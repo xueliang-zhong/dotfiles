@@ -18,6 +18,8 @@ Plugin 'taglist.vim'              " TList
 Plugin 'a.vim'                    " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
 Plugin 'Valloric/YouCompleteMe'   " Auto-completion
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
 
 call vundle#end()
 filetype plugin indent on
@@ -62,7 +64,9 @@ set shiftwidth=2
 set showcmd
 set tabstop=2
 set encoding=utf8
-colorscheme evening
+set relativenumber
+
+colorscheme desert " other options: elflord
 
 " For 100-char width limit, useful in code review
 set colorcolumn=100
@@ -122,10 +126,14 @@ endfunction
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Taglist
 let Tlist_Show_One_File = 1
+let Tlist_Compact_Format = 1
 let Tlist_Use_Right_Window = 1
 
 " YouCompleteMe
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+
+" vim-airline
+" let g:airline#extensions#tabline#enabled = 1
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
