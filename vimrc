@@ -9,10 +9,10 @@ call vundle#begin()
 Plugin 'gmarik/vundle'
 
 " PluginInstall/List/Update
-Plugin 'kien/ctrlp.vim'           " fuzzy find files
+Plugin 'kien/ctrlp.vim'           " fuzzy find files (Ctrl-P).
 Plugin 'scrooloose/nerdtree'      " file drawer, open with :NERDTreeToggle
 Plugin 'benmills/vimux'           
-Plugin 'tpope/vim-fugitive'       " the ultimate git helper
+Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plugin 'tpope/vim-commentary'     " comment/uncomment lines with gcc or gc in visual mode
 Plugin 'taglist.vim'              " TList
 Plugin 'a.vim'                    " Switch h/{cc,c} files
@@ -135,7 +135,6 @@ map <F12>     <ESC>*
             \ <ESC>:copen<CR>
 
 map <C-N>     <ESC>:cn<CR>zz
-map <C-P>     <ESC>:cp<CR>zz
 
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
