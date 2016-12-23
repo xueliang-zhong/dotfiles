@@ -37,7 +37,7 @@ set autowrite
 set autoread " detect when a file is changed
 set background=dark
 set backspace=2
-"set clipboard=unamed
+set clipboard=unnamed
 set cst
 set cursorline
 set expandtab
