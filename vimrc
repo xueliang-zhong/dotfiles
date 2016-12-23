@@ -92,6 +92,31 @@ exe "cs add ".expand(android_src)."/art/cscope.out"
 " Show CScope find result in quickfix window - life changing
 set cscopequickfix=s-,c-,d-,i-,t-,e-
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Functions
+" """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+map <C-h> :call WinMove('h')<cr>
+map <C-j> :call WinMove('j')<cr>
+map <C-k> :call WinMove('k')<cr>
+map <C-l> :call WinMove('l')<cr>
+
+" Window movement shortcuts
+" move to the window in the direction shown, or create a new window
+function! WinMove(key)
+  let t:curwin = winnr()
+  exec "wincmd ".a:key
+  if (t:curwin == winnr())
+    if (match(a:key,'[jk]'))
+      wincmd v
+    else
+      wincmd s
+    endif
+    exec
+    "wincmd
+    ".a:key
+  endif
+endfunction
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -107,8 +132,10 @@ let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 map k gk
 map j gj
-map <C-J>     <C-E>g<Down>
-map <C-K>     <C-Y>g<Up>
+
+" Now the following old C-J/K maps conflicts with WinMove()
+" map <C-J>     <C-E>g<Down>
+" map <C-K>     <C-Y>g<Up>
 
 map <F1>      <ESC>q:
 
@@ -125,7 +152,7 @@ map <F5>      <ESC>:grep "^Index:" %<CR>
 
 map <F6>      <ESC>:Tlist<CR>:TlistUpdate<CR><C-L>
 
-map <F7>      <ESC>:!clear<CR><ESC>:make -j2<CR>
+map <F7>      <ESC>:!clear<CR><ESC>:make -j20<CR>
 
 map <F9>      <ESC>:NERDTreeToggle<CR>
 
