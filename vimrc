@@ -18,8 +18,8 @@ Plugin 'taglist.vim'              " TList
 Plugin 'a.vim'                    " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
 Plugin 'Valloric/YouCompleteMe'   " Auto-completion
-"Plugin 'vim-airline/vim-airline'
-"Plugin 'vim-airline/vim-airline-themes'
+Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline-themes'
 
 call vundle#end()
 filetype plugin indent on
@@ -76,7 +76,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme desert " other options: elflord
+colorscheme evening " other options: edesert, lflord
 set encoding=utf8
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
@@ -151,6 +151,7 @@ let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 
 " vim-airline
 " let g:airline#extensions#tabline#enabled = 1
+let g:airline_theme='papercolor'
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
