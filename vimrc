@@ -11,15 +11,15 @@ Plugin 'gmarik/vundle'
 " PluginInstall/List/Update
 Plugin 'kien/ctrlp.vim'           " fuzzy find files (Ctrl-P).
 Plugin 'scrooloose/nerdtree'      " file drawer, open with :NERDTreeToggle
-Plugin 'benmills/vimux'           
+Plugin 'benmills/vimux'
 Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plugin 'tpope/vim-commentary'     " comment/uncomment lines with gcc or gc in visual mode
 Plugin 'taglist.vim'              " TList
 Plugin 'a.vim'                    " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
 Plugin 'Valloric/YouCompleteMe'   " Auto-completion
-Plugin 'vim-airline/vim-airline'
-Plugin 'vim-airline/vim-airline-themes'
+"Plugin 'vim-airline/vim-airline'
+"Plugin 'vim-airline/vim-airline-themes'
 
 call vundle#end()
 filetype plugin indent on
@@ -33,50 +33,66 @@ filetype plugin indent on
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Global Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-set ai
+syntax on
+
 set autochdir
 set autowrite
 set autoread " detect when a file is changed
-set background=dark
-set backspace=2
 set clipboard=unnamed
-set cst
 set cursorline
-set expandtab
-set foldenable
-set foldlevel=1
 set history=1000
-set hls
-set ignorecase
-set smartcase 
-set smartindent
-set incsearch
 set laststatus=2
-set magic
 set modeline
 set mouse=a
 set nocp
 set novb
 set nowrap
-set nu
 set ruler
-set shiftwidth=2
 set showcmd
-set tabstop=2
 set encoding=utf8
+
+" line numbers
+set nu
 set relativenumber
 
-colorscheme desert " other options: elflord
+" search
+set hls
+set ignorecase
+set incsearch
+set smartcase
+set magic
 
-" For 100-char width limit, useful in code review
-set colorcolumn=100
+" indent
+set autoindent
+set smartindent
+
+" tab settings
+set tabstop=2
+set expandtab
+set shiftwidth=2
+set smarttab
+
+" make backspace behave in a sane manner
+set backspace=indent,eol,start
+
+" color/scheme settings
+colorscheme desert " other options: elflord
+set encoding=utf8
+let base16colorspace=256  " Access colors present in 256 colorspace
+set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
+set background=dark
+set colorcolumn=100  " useful in code review
 hi ColorColumn ctermbg=lightblue guibg=lightgrey
 
-"Swap files are no good to me"
+" Swap files are no good to me
 set noswapfile
 
-"Life Chaning menu"
+" Life Chaning menu"
 set wildmenu
+
+" folding
+set foldenable
+set foldlevel=1
 
 au BufRead *.def set filetype=c
 au BufRead *.log set filetype=asm
@@ -91,6 +107,7 @@ exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
 exe "set tags+=".expand(android_src)."/bionic/libc/tags"
 
 " CScope
+set cst  " include cscope tags
 exe "cs add ".expand(android_src)."/art/cscope.out"
 
 " Show CScope find result in quickfix window - life changing
