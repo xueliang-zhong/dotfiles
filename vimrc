@@ -150,8 +150,10 @@ let Tlist_Use_Right_Window = 1
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
 
 " vim-airline
-" let g:airline#extensions#tabline#enabled = 1
 let g:airline_theme='papercolor'
+let g:airline#extensions#ycm#enabled = 1
+let g:airline#extensions#ycm#error_symbol   = 'E:' " set error count prefix
+let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
