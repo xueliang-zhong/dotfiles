@@ -76,7 +76,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme evening " other options: edesert, lflord
+colorscheme desert " other options: evening, elflord
 set encoding=utf8
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
@@ -122,19 +122,16 @@ map <C-k> :call WinMove('k')<cr>
 map <C-l> :call WinMove('l')<cr>
 
 " Window movement shortcuts
-" move to the window in the direction shown, or create a new window
+" move to the window in the direction shown
 function! WinMove(key)
   let t:curwin = winnr()
   exec "wincmd ".a:key
   if (t:curwin == winnr())
     if (match(a:key,'[jk]'))
-      wincmd v
+      "wincmd v
     else
-      wincmd s
+      "wincmd s
     endif
-    exec
-    "wincmd
-    ".a:key
   endif
 endfunction
 
@@ -162,6 +159,7 @@ map k gk
 map j gj
 
 " Now the following old C-J/K maps conflicts with WinMove()
+" Use C-e and C-y instead.
 " map <C-J>     <C-E>g<Down>
 " map <C-K>     <C-Y>g<Up>
 
