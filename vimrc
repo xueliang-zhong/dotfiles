@@ -197,3 +197,5 @@ map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
 map <leader>b <ESC>:BufExplorer<CR>
+map <leader>n <ESC>:NERDTreeToggle<CR>
+map <leader>t <ESC>:Tlist<CR>:TlistUpdate<CR>
