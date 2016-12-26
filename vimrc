@@ -13,6 +13,7 @@ Plugin 'kien/ctrlp.vim'           " fuzzy find files (Ctrl-P).
 Plugin 'scrooloose/nerdtree'      " file drawer, open with :NERDTreeToggle
 Plugin 'benmills/vimux'
 Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
+Plugin 'airblade/vim-gitgutter'   " show modifications to the file.
 Plugin 'tpope/vim-commentary'     " comment/uncomment lines with gcc or gc in visual mode
 Plugin 'taglist.vim'              " TList
 Plugin 'a.vim'                    " Switch h/{cc,c} files
@@ -93,6 +94,9 @@ set wildmenu
 " folding
 set foldenable
 set foldlevel=1
+
+" set a map leader for more key combos
+let mapleader = ','
 
 au BufRead *.def set filetype=c
 au BufRead *.log set filetype=asm
@@ -192,3 +196,4 @@ map <C-N>     <ESC>:cn<CR>zz
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
+map <leader>b <ESC>:BufExplorer<CR>
