@@ -46,15 +46,14 @@ set laststatus=2
 set modeline
 set mouse=a
 set nocp
-set novb
+set novb belloff=all
 set nowrap
 set ruler
 set showcmd
 set encoding=utf8
 
 " line numbers
-set nu
-set relativenumber
+set relativenumber number
 
 " search
 set hls
@@ -90,6 +89,7 @@ set noswapfile
 
 " Life Chaning menu"
 set wildmenu
+set wildmode=full
 
 " folding
 set foldenable
@@ -158,6 +158,14 @@ let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 map k gk
 map j gj
 
+" ESC also helps removes the search high-lighting.
+map <ESC>     :noh<CR>
+
+" <leader> key mappings
+map <leader>b <ESC>:BufExplorer<CR>
+map <leader>n <ESC>:NERDTreeToggle<CR>
+map <leader>t <ESC>:TagbarToggle<CR>
+
 " Now the following old C-J/K maps conflicts with WinMove()
 " Use C-e and C-y instead.
 " map <C-J>     <C-E>g<Down>
@@ -189,7 +197,3 @@ map <C-N>     <ESC>:cn<CR>zz
 
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
-
-map <leader>b <ESC>:BufExplorer<CR>
-map <leader>n <ESC>:NERDTreeToggle<CR>
-map <leader>t <ESC>:TagbarToggle<CR>
