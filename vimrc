@@ -95,6 +95,9 @@ set wildmode=full
 set foldenable
 set foldlevel=1
 
+" makes ':find ' really fuzzy
+set path+=**
+
 " set a map leader for more key combos
 let mapleader = ','
 
@@ -117,9 +120,17 @@ exe "cs add ".expand(android_src)."/art/cscope.out"
 " Show CScope find result in quickfix window - life changing
 set cscopequickfix=s-,c-,d-,i-,t-,e-
 
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Commands
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Useful in automatic code review; requires ~/bin/cpplint.py
+au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
+
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
-" """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 map <C-h> :call WinMove('h')<cr>
 map <C-j> :call WinMove('j')<cr>
 map <C-k> :call WinMove('k')<cr>
@@ -165,6 +176,7 @@ map <ESC>     :noh<CR>
 map <leader>b <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
+map <leader>f <ESC>:find<space>
 
 " Now the following old C-J/K maps conflicts with WinMove()
 " Use C-e and C-y instead.
