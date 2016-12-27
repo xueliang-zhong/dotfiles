@@ -15,7 +15,7 @@ Plugin 'benmills/vimux'
 Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plugin 'airblade/vim-gitgutter'   " show modifications to the file.
 Plugin 'tpope/vim-commentary'     " comment/uncomment lines with gcc or gc in visual mode
-Plugin 'taglist.vim'              " TList
+Plugin 'majutsushi/tagbar'        " Tagbar
 Plugin 'a.vim'                    " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
 Plugin 'Valloric/YouCompleteMe'   " Auto-completion
@@ -142,10 +142,6 @@ endfunction
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Taglist
-let Tlist_Show_One_File = 1
-let Tlist_Compact_Format = 1
-let Tlist_Use_Right_Window = 1
 
 " YouCompleteMe
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
@@ -180,8 +176,6 @@ map <F5>      <ESC>:grep "^Index:" %<CR>
             \ <ESC><ESC>:copen<CR>\
             \ <ESC><ESC><C-W>L
 
-map <F6>      <ESC>:Tlist<CR>:TlistUpdate<CR><C-L>
-
 map <F7>      <ESC>:!clear<CR><ESC>:make -j20<CR>
 
 map <F9>      <ESC>:NERDTreeToggle<CR>
@@ -198,4 +192,4 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
 map <leader>b <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
-map <leader>t <ESC>:Tlist<CR>:TlistUpdate<CR>
+map <leader>t <ESC>:TagbarToggle<CR>
