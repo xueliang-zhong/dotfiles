@@ -10,6 +10,7 @@ echo ART_TEST_JIT=true m test-art-host
 echo ART_TEST_JIT=true m test-art-host-run-test-001-HelloWorld
 echo art/test/run-test --host 001-HelloWorld
 echo mma -j40 test-art-host
+echo mm cpplint-art
 echo art/tools/cpplint.py art/compiler/optimizing/
 
 echo
