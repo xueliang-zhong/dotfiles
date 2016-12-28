@@ -173,7 +173,7 @@ map j gj
 map <ESC>     :noh<CR>
 
 " <leader> key mappings
-map <leader>b <ESC>:BufExplorer<CR>
+map <leader>e <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>f <ESC>:find<space>
