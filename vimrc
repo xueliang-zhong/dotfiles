@@ -45,12 +45,15 @@ set history=1000
 set laststatus=2
 set modeline
 set mouse=a
-set nocp
 set novb belloff=all
 set nowrap
 set ruler
 set showcmd
 set encoding=utf8
+
+" avoid traditional vi stuff: EX mode, compatible with vi, ...
+nnoremap Q <esc>
+set nocompatible
 
 " line numbers
 set relativenumber number
@@ -126,6 +129,7 @@ set cscopequickfix=s-,c-,d-,i-,t-,e-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Useful in automatic code review; requires ~/bin/cpplint.py
 au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
+command! History q
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -169,6 +173,10 @@ let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 map k gk
 map j gj
 
+" crazy idea
+" ';' is more convinient than ';'
+nnoremap ; :
+
 " ESC also helps removes the search high-lighting.
 map <ESC>     :noh<CR>
 
@@ -209,3 +217,10 @@ map <C-N>     <ESC>:cn<CR>zz
 
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Usage Suggestions
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" - Use :vimgrep instead of :grep
+" - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
