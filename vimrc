@@ -123,6 +123,11 @@ exe "cs add ".expand(android_src)."/art/cscope.out"
 " Show CScope find result in quickfix window - life changing
 set cscopequickfix=s-,c-,d-,i-,t-,e-
 
+" Hard to type things
+iabbrev --> →
+iabbrev <-- ←
+iabbrev ^^  ↑
+iabbrev VV  ↓
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
