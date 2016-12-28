@@ -16,6 +16,6 @@ echo art/tools/cpplint.py art/compiler/optimizing/
 echo
 
 # Linaro
-echo [Linaro] 
+echo [Linaro]
 echo scripts/tests/run_art_test.sh --default
 
