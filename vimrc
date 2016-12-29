@@ -20,6 +20,7 @@ Plugin 'majutsushi/tagbar'        " Tagbar
 Plugin 'a.vim'                    " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
 Plugin 'Valloric/YouCompleteMe'   " Auto-completion
+Plugin 'rking/ag.vim'             " Ag (silver searcher)
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
 
@@ -184,7 +185,10 @@ let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 " CtrlP funky highlighting
 let g:ctrlp_funky_syntax_highlight = 1
 
-" Tagbar iconds 
+" Use Ag over Grep
+set grepprg=ag\ --nogroup\ --nocolor
+
+" Tagbar iconds
 let g:tagbar_iconchars = ['+', '▼']
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -205,7 +209,8 @@ map <leader>e <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
 map <leader>f <ESC>:NERDTreeFind<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
-map <leader>g <ESC>:vimgrep<space>
+map <leader>a <ESC>:Ag<space>
+map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
 
 
