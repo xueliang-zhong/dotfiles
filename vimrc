@@ -101,6 +101,15 @@ set foldlevel=1
 " makes ':find ' really fuzzy
 set path+=**
 
+" Autocomplete with dictionary words when spell check is on
+set complete+=kspell
+
+" Always use vertical diffs: for example Gdiff, diffsplit, etc
+set diffopt+=vertical
+
+" Open new split panes to right and bottom, which feels more natural
+set splitbelow splitright
+
 " set a map leader for more key combos
 let mapleader = ','
 
@@ -134,8 +143,7 @@ iabbrev VV  ↓
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Useful in automatic code review; requires ~/bin/cpplint.py
 au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
-command! History q
-
+command! Nonu set nonu norelativenumber
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
@@ -188,8 +196,9 @@ map <ESC>     :noh<CR>
 " <leader> key mappings
 map <leader>e <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
+map <leader>f <ESC>:NERDTreeFind<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
-map <leader>f <ESC>:find<space>
+map <leader>g <ESC>:vimgrep<space>
 
 " Now the following old C-J/K maps conflicts with WinMove()
 " Use C-e and C-y instead.
@@ -229,3 +238,4 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " - Use :vimgrep instead of :grep
 " - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
+" - Use C-j and C-j to navigate CtrlP's result window.
