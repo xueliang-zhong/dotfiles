@@ -10,6 +10,7 @@ Plugin 'gmarik/vundle'
 
 " PluginInstall/List/Update
 Plugin 'kien/ctrlp.vim'           " fuzzy find files (Ctrl-P).
+Plugin 'vim-scripts/ctrlp-funky'  " improve CtrlP to fuzzy find functions
 Plugin 'scrooloose/nerdtree'      " file drawer, open with :NERDTreeToggle
 Plugin 'benmills/vimux'
 Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
@@ -180,6 +181,12 @@ let g:airline#extensions#ycm#enabled = 1
 let g:airline#extensions#ycm#error_symbol   = 'E:' " set error count prefix
 let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 
+" CtrlP funky highlighting
+let g:ctrlp_funky_syntax_highlight = 1
+
+" Tagbar iconds 
+let g:tagbar_iconchars = ['+', '▼']
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -199,6 +206,8 @@ map <leader>n <ESC>:NERDTreeToggle<CR>
 map <leader>f <ESC>:NERDTreeFind<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>g <ESC>:vimgrep<space>
+map <Leader>p <ESC>:CtrlPFunky<CR>
+
 
 " Now the following old C-J/K maps conflicts with WinMove()
 " Use C-e and C-y instead.
