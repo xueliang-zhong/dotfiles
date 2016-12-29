@@ -81,7 +81,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme desert " other options: evening, elflord
+colorscheme elflord " other options: evening, elflord, desert
 set encoding=utf8
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
@@ -194,8 +194,6 @@ let g:tagbar_iconchars = ['+', '▼']
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-map k gk
-map j gj
 
 " crazy idea
 " ';' is more convinient than ';'
@@ -212,12 +210,6 @@ map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>a <ESC>:Ag<space>
 map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
-
-
-" Now the following old C-J/K maps conflicts with WinMove()
-" Use C-e and C-y instead.
-" map <C-J>     <C-E>g<Down>
-" map <C-K>     <C-Y>g<Up>
 
 map <F1>      <ESC>q:
 
@@ -245,6 +237,19 @@ map <C-N>     <ESC>:cn<CR>zz
 
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
+
+"
+" The following key maps are obsolete.
+"
+
+" No need for g[jk] any more because most of the width limit.
+" map k gk
+" map j gj
+
+" Now the following old C-J/K maps conflicts with WinMove()
+" Use C-e and C-y instead.
+" map <C-J>     <C-E>g<Down>
+" map <C-K>     <C-Y>g<Up>
 
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
