@@ -146,6 +146,8 @@ iabbrev VV  ↓
 " Useful in automatic code review; requires ~/bin/cpplint.py
 au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
 command! Nonu set nonu norelativenumber
+command! Noline set laststatus=0
+command! Smallwin set nonu norelativenumber laststatus=0 nocursorline noruler
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
@@ -209,8 +211,6 @@ map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>a <ESC>:Ag<space>
 map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
-
-map <F1>      <ESC>q:
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 
