@@ -195,9 +195,8 @@ let g:tagbar_iconchars = ['+', '▼']
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" crazy idea
-" ';' is more convinient than ';'
-nnoremap ; :
+" crazy idea - ';' is more convinient than ';'
+" nnoremap ; :
 
 " ESC also helps removes the search high-lighting.
 map <ESC>     :noh<CR>
