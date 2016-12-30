@@ -197,7 +197,7 @@ let g:tagbar_iconchars = ['+', '▼']
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" crazy idea - ';' is more convinient than ';'
+" crazy idea - ';' is more convinient than ';' which I don't quite like.
 " nnoremap ; :
 
 " ESC also helps removes the search high-lighting.
@@ -211,6 +211,11 @@ map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>a <ESC>:Ag<space>
 map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
+" move windows so that C-W doesn't conflict with other software like Chrome.
+map <leader>wj <C-W>J
+map <leader>wk <C-W>K
+map <leader>wl <C-W>L
+map <leader>wh <C-W>H
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 
