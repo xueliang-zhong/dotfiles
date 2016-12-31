@@ -82,8 +82,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme elflord " other options: evening, elflord, desert
-set encoding=utf8
+colorscheme elflord " good options: evening, elflord, desert, delek, koehler, pablo
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -197,13 +196,13 @@ map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>a <ESC>:Ag<space>
 map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
-" move windows so that C-W doesn't conflict with other software like Chrome.
+" arrange windows so that C-W doesn't conflict with other software like Chrome.
 map <leader>wj <C-W>J
 map <leader>wk <C-W>K
 map <leader>wl <C-W>L
 map <leader>wh <C-W>H
 
-" Quicker window movement
+" Quicker window and tmux pane movement
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h

@@ -12,11 +12,11 @@
 #
 
 # right panes are utility panes
-split-window -h -l 16 "watch -n 10 date"
+split-window -h -l 15 "watch -n 10 date +%R%n%A%n%d-%b-%Y"
 
 # three panes in utility panes
-split-window -v -p 87 "vim /tmp/todo"    # for todo list today.
-split-window -v       "vim -RM ~/.vimrc" # for vim key mapping references.
+split-window -v -p 80 "vim /tmp/todo"    # for todo list today.
+split-window -v -p 60 "vim -RM ~/.vimrc" # for vim key mapping references.
 
 # back to the left pane
 select-pane -L
