@@ -196,11 +196,6 @@ map <leader>t <ESC>:TagbarToggle<CR>
 map <leader>a <ESC>:Ag<space>
 map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
-" arrange windows so that C-W doesn't conflict with other software like Chrome.
-map <leader>wj <C-W>J
-map <leader>wk <C-W>K
-map <leader>wl <C-W>L
-map <leader>wh <C-W>H
 
 " Quicker window and tmux pane movement
 nnoremap <C-j> <C-w>j
@@ -254,3 +249,4 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 " - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
 " - Use C-j and C-k to navigate CtrlP's result window.
 " - Use C-space to trigger completion from YCM; and use C-X C-P to trigger form vim.
+" - Set Chrome's secure shell to open in a seperate window, so that C-T/C-N/C-P all work in vim.
