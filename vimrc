@@ -9,18 +9,19 @@ call vundle#begin()
 Plugin 'gmarik/vundle'
 
 " PluginInstall/List/Update
-Plugin 'kien/ctrlp.vim'           " fuzzy find files (Ctrl-P).
-Plugin 'vim-scripts/ctrlp-funky'  " improve CtrlP to fuzzy find functions
-Plugin 'scrooloose/nerdtree'      " file drawer, open with :NERDTreeToggle
+Plugin 'kien/ctrlp.vim'                 " fuzzy find files (Ctrl-P).
+Plugin 'vim-scripts/ctrlp-funky'        " improve CtrlP to fuzzy find functions
+Plugin 'scrooloose/nerdtree'            " file drawer, open with :NERDTreeToggle
 Plugin 'benmills/vimux'
-Plugin 'tpope/vim-fugitive'       " the ultimate git helper: Gdiff, Glog, Gstatus ...
-Plugin 'airblade/vim-gitgutter'   " show modifications to the file.
-Plugin 'tpope/vim-commentary'     " comment/uncomment lines with gcc or gc in visual mode
-Plugin 'majutsushi/tagbar'        " Tagbar
-Plugin 'a.vim'                    " Switch h/{cc,c} files
-Plugin 'jlanzarotta/bufexplorer'  " BufExplorer
-Plugin 'Valloric/YouCompleteMe'   " Auto-completion
-Plugin 'rking/ag.vim'             " Ag (silver searcher)
+Plugin 'tpope/vim-fugitive'             " the ultimate git helper: Gdiff, Glog, Gstatus ...
+Plugin 'airblade/vim-gitgutter'         " show modifications to the file.
+Plugin 'tpope/vim-commentary'           " comment/uncomment lines with gcc or gc in visual mode
+Plugin 'majutsushi/tagbar'              " Tagbar
+Plugin 'a.vim'                          " Switch h/{cc,c} files
+Plugin 'jlanzarotta/bufexplorer'        " BufExplorer
+Plugin 'Valloric/YouCompleteMe'         " Auto-completion
+Plugin 'rking/ag.vim'                   " Ag (silver searcher)
+Plugin 'christoomey/vim-tmux-navigator' " Tmuxleft
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
 
@@ -144,32 +145,17 @@ iabbrev VV  ↓
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Useful in automatic code review; requires ~/bin/cpplint.py
-au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
 command! Nonu set nonu norelativenumber
 command! Noline set laststatus=0
 command! Smallwin set nonu norelativenumber laststatus=0 nocursorline noruler
 
+au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
+au BufRead todo Smallwin   " my todo file is usually opened in a small window.
+au BufRead .vimrc Smallwin
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-map <C-h> :call WinMove('h')<cr>
-map <C-j> :call WinMove('j')<cr>
-map <C-k> :call WinMove('k')<cr>
-map <C-l> :call WinMove('l')<cr>
-
-" Window movement shortcuts
-" move to the window in the direction shown
-function! WinMove(key)
-  let t:curwin = winnr()
-  exec "wincmd ".a:key
-  if (t:curwin == winnr())
-    if (match(a:key,'[jk]'))
-      "wincmd v
-    else
-      "wincmd s
-    endif
-  endif
-endfunction
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
@@ -217,6 +203,12 @@ map <leader>wk <C-W>K
 map <leader>wl <C-W>L
 map <leader>wh <C-W>H
 
+" Quicker window movement
+nnoremap <C-j> <C-w>j
+nnoremap <C-k> <C-w>k
+nnoremap <C-h> <C-w>h
+nnoremap <C-l> <C-w>l
+
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 
 map <F4>      <ESC>*
@@ -259,6 +251,6 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Usage Suggestions
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" - Use :vimgrep instead of :grep
+" - :grep uses Ag now, which is better than :vimgrep
 " - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
 " - Use C-j and C-j to navigate CtrlP's result window.
