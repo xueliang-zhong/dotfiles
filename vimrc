@@ -159,9 +159,9 @@ au BufRead .vimrc Smallwin
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 " YouCompleteMe
 let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
+let g:ycm_min_num_of_chars_for_completion = 1
 
 " vim-airline
 let g:airline_theme='papercolor'
@@ -252,4 +252,5 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " - :grep uses Ag now, which is better than :vimgrep
 " - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
-" - Use C-j and C-j to navigate CtrlP's result window.
+" - Use C-j and C-k to navigate CtrlP's result window.
+" - Use C-space to trigger completion from YCM; and use C-X C-P to trigger form vim.

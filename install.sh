@@ -10,8 +10,9 @@ ln -sf `pwd`/tmux.conf ~/.tmux.conf
 ln -sf `pwd`/window.tmux ~/.window.tmux
 
 # ctags settings
-rm -f ~/.ctags
-ln -sf `pwd`/ctags ~/.ctags
+rm -f ~/.ctags ~/bin/ctag
+ln -sf `pwd`/ctags.conf ~/.ctags
+ln -sf `pwd`/ctag ~/bin/ctag
 
 # m command
 rm -f ~/bin/m
