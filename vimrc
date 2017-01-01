@@ -193,9 +193,11 @@ map <leader>e <ESC>:BufExplorer<CR>
 map <leader>n <ESC>:NERDTreeToggle<CR>
 map <leader>f <ESC>:NERDTreeFind<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
-map <leader>a <ESC>:Ag<space>
-map <leader>g <ESC>:Ag<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
+
+" search for current word or any word
+map <leader>gw <ESC>:Ag<space>
+map <leader>gc <ESC>:Ag<CR>
 
 " Quicker window and tmux pane movement
 nnoremap <C-j> <C-w>j
