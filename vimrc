@@ -192,10 +192,12 @@ map <ESC>     :noh<CR>
 
 " <leader> key mappings
 map <leader>e <ESC>:BufExplorer<CR>
-map <leader>n <ESC>:NERDTreeToggle<CR>
-map <leader>f <ESC>:NERDTreeFind<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
+
+" NERDTree
+map <leader>nf <ESC>:NERDTreeFind<CR>
+map <leader>nt <ESC>:NERDTreeToggle<CR>
 
 " search for current word or any word
 map <leader>gw <ESC>:Ag<space>
