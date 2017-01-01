@@ -143,14 +143,16 @@ iabbrev VV  ↓
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Useful in automatic code review; requires ~/bin/cpplint.py
 command! Nonu set nonu norelativenumber
 command! Noline set laststatus=0
-command! Smallwin set nonu norelativenumber laststatus=0 nocursorline noruler
+command! Smallwindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
+command! Bigwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
+au BufRead todo Smallwindow   " my todo file is usually opened in a small window.
+au BufRead .vimrc Smallwindow
+
+" Useful in automatic code review; requires ~/bin/cpplint.py
 au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
-au BufRead todo Smallwin   " my todo file is usually opened in a small window.
-au BufRead .vimrc Smallwin
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
