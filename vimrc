@@ -209,6 +209,13 @@ nnoremap <C-k> <C-w>k
 nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 
+" next in quick fix window
+map <C-N>     <ESC>:cn<CR>zz
+
+" tag jumping
+map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
+map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
+
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 
 map <F4>      <ESC>*
@@ -216,23 +223,7 @@ map <F4>      <ESC>*
             \ <ESC>:cs f 0 <cword><CR>
             \ <ESC>:copen<CR>
 
-map <F5>      <ESC>:grep "^Index:" %<CR>
-            \ <ESC><ESC>:copen<CR>\
-            \ <ESC><ESC><C-W>L
-
-map <F7>      <ESC>:!clear<CR><ESC>:make -j20<CR>
-
-map <F9>      <ESC>:NERDTreeToggle<CR>
-
-map <F10>     <ESC>:BufExplorer<CR>
-map <F12>     <ESC>*
-            \ <ESC>:exec "grep " . expand("<cword>") .  " * -rn --exclude 'cscope.*' --exclude 'tags'"<CR>
-            \ <ESC>:copen<CR>
-
-map <C-N>     <ESC>:cn<CR>zz
-
-map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
-map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
+map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 
 "
 " The following key maps are obsolete.
