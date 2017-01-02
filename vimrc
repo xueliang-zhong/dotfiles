@@ -190,16 +190,17 @@ let g:tagbar_iconchars = ['+', '▼']
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" crazy idea - ';' is more convinient than ';' which I don't quite like.
-" nnoremap ; :
-
 " ESC also helps removes the search high-lighting.
 map <ESC>     :noh<CR>
 
 " <leader> key mappings
-map <leader>e <ESC>:BufExplorer<CR>
 map <leader>t <ESC>:TagbarToggle<CR>
 map <Leader>p <ESC>:CtrlPFunky<CR>
+
+" BufExplorer
+map <leader>be <ESC>:BufExplorer<CR>
+map <leader>bs <ESC>:BufExplorerHorizontalSplit<CR>
+map <leader>bv <ESC>:BufExplorerVerticalSplit<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
@@ -253,3 +254,5 @@ map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 " - Use C-j and C-k to navigate CtrlP's result window.
 " - Use C-space to trigger completion from YCM; and use C-X C-P to trigger form vim.
 " - Set Chrome's secure shell to open in a seperate window, so that C-T/C-N/C-P all work in vim.
+" - :map to browse current key mappings.
+" - :command to browse current commands.
