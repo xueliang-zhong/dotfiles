@@ -22,11 +22,12 @@ Plugin 'jlanzarotta/bufexplorer'          " BufExplorer
 Plugin 'Valloric/YouCompleteMe'           " Auto-completion
 Plugin 'rking/ag.vim'                     " Ag (silver searcher)
 Plugin 'christoomey/vim-tmux-navigator'   " Tmuxleft
-Plugin 'vim-airline/vim-airline'
+Plugin 'vim-airline/vim-airline'          " Better status bar
 Plugin 'vim-airline/vim-airline-themes'
 Plugin 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
 Plugin 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plugin 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
+Plugin 'nanotech/jellybeans.vim'          " A very nice colorscheme
 
 call vundle#end()
 filetype plugin indent on
@@ -85,7 +86,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme koehler " good options: evening, elflord, desert, delek, koehler, pablo
+colorscheme jellybeans " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
