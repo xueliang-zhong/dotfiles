@@ -24,6 +24,8 @@ Plugin 'rking/ag.vim'                   " Ag (silver searcher)
 Plugin 'christoomey/vim-tmux-navigator' " Tmuxleft
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
+Plugin 'yggdroot/indentline'            " Indentlines with chars like '|', useful in coding.
+Plugin 'ntpeters/vim-better-whitespace' " Shows trailing whitespace, etc.
 
 call vundle#end()
 filetype plugin indent on
@@ -249,6 +251,7 @@ map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Usage Suggestions
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" - For Plugins, http://vimawesome.com/ looks like a good place to go to.
 " - :grep uses Ag now, which is better than :vimgrep
 " - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
 " - Use C-j and C-k to navigate CtrlP's result window.
