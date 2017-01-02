@@ -115,10 +115,6 @@ set splitbelow splitright
 " set a map leader for more key combos
 let mapleader = ','
 
-au BufRead *.def set filetype=c
-au BufRead *.log set filetype=asm
-au BufRead *.txt set filetype=asm
-
 let android_src = expand("/home/xueliang/workspace/Android-src/")
 
 " Tags
@@ -145,14 +141,24 @@ iabbrev VV  ↓
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 command! Nonu set nonu norelativenumber
 command! Noline set laststatus=0
-command! Smallwindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
-command! Bigwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
+command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
+command! Simplewindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
+command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
+command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
-au BufRead todo Smallwindow   " my todo file is usually opened in a small window.
-au BufRead .vimrc Smallwindow
+autocmd BufRead todo Smallwindow   " my todo file is usually opened in a small window.
+autocmd BufRead .vimrc Smallwindow
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
-au BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
+autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
+
+" Get some nice syntax highlighting
+autocmd BufRead *.def set filetype=c
+autocmd BufRead *.log set filetype=asm
+autocmd BufRead *.txt set filetype=asm
+
+" In vimrc/.vim files, the K looks for vim help instead of man command.
+autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
