@@ -9,23 +9,24 @@ call vundle#begin()
 Plugin 'gmarik/vundle'
 
 " PluginInstall/List/Update
-Plugin 'kien/ctrlp.vim'                 " fuzzy find files (Ctrl-P).
-Plugin 'vim-scripts/ctrlp-funky'        " improve CtrlP to fuzzy find functions
-Plugin 'scrooloose/nerdtree'            " file drawer, open with :NERDTreeToggle
+Plugin 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
+Plugin 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
+Plugin 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
 Plugin 'benmills/vimux'
-Plugin 'tpope/vim-fugitive'             " the ultimate git helper: Gdiff, Glog, Gstatus ...
-Plugin 'airblade/vim-gitgutter'         " show modifications to the file.
-Plugin 'tpope/vim-commentary'           " comment/uncomment lines with gcc or gc in visual mode
-Plugin 'majutsushi/tagbar'              " Tagbar
-Plugin 'a.vim'                          " Switch h/{cc,c} files
-Plugin 'jlanzarotta/bufexplorer'        " BufExplorer
-Plugin 'Valloric/YouCompleteMe'         " Auto-completion
-Plugin 'rking/ag.vim'                   " Ag (silver searcher)
-Plugin 'christoomey/vim-tmux-navigator' " Tmuxleft
+Plugin 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
+Plugin 'airblade/vim-gitgutter'           " show modifications to the file.
+Plugin 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
+Plugin 'majutsushi/tagbar'                " Tagbar
+Plugin 'a.vim'                            " Switch h/{cc,c} files
+Plugin 'jlanzarotta/bufexplorer'          " BufExplorer
+Plugin 'Valloric/YouCompleteMe'           " Auto-completion
+Plugin 'rking/ag.vim'                     " Ag (silver searcher)
+Plugin 'christoomey/vim-tmux-navigator'   " Tmuxleft
 Plugin 'vim-airline/vim-airline'
 Plugin 'vim-airline/vim-airline-themes'
-Plugin 'yggdroot/indentline'            " Indentlines with chars like '|', useful in coding.
-Plugin 'ntpeters/vim-better-whitespace' " Shows trailing whitespace, etc.
+Plugin 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
+Plugin 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
+Plugin 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 
 call vundle#end()
 filetype plugin indent on
@@ -84,7 +85,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme elflord " good options: evening, elflord, desert, delek, koehler, pablo
+colorscheme koehler " good options: evening, elflord, desert, delek, koehler, pablo
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
