@@ -19,21 +19,21 @@ vim+tmux provides shell and vim in the same window.
 M-x shell
 
 
-
 # Session
 ## vim+tmux
 - attach to a session: tmux attach
 - detach from a session: '<prefix> d'
-
 ## emacs
 
+
+# Completion
+## vim+tmux
+- basic completion: C-N, C-P
+## emacs
+- in evil mode, basic completion: C-N
 
 -----------------------------------------------------------
 
-# title
-## vim+tmux
-## emacs
-
 # [title]
 ## vim+tmux
 ## emacs
@@ -61,6 +61,11 @@ M-x shell
 # [title]
 ## vim+tmux
 ## emacs
+
+# [title]
+## vim+tmux
+## emacs
+
 # [title]
 ## vim+tmux
 ## emacs
