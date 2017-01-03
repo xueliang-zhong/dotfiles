@@ -89,7 +89,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme jellybeans " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
+colorscheme elflord " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -122,7 +122,7 @@ set splitbelow splitright
 " set a map leader for more key combos
 let mapleader = ','
 
-let android_src = expand("/home/xueliang/workspace/Android-src/")
+let android_src = expand("~/workspace/aosp")
 
 " Tags
 exe "set tags+=".expand(android_src)."/art/tags"
@@ -217,6 +217,12 @@ map <leader>nt <ESC>:NERDTreeToggle<CR>
 map <leader>gw <ESC>:Ag<space>
 map <leader>gc <ESC>:Ag<CR>
 
+" Cscope search in my projects
+map <leader>cs <ESC>*
+             \ <ESC>:exe "cd " . expand(android_src)."/art/"<CR>
+             \ <ESC>:cs f 0 <cword><CR>
+             \ <ESC>:copen<CR>
+
 " Quicker window and tmux pane movement
 nnoremap <C-j> <C-w>j
 nnoremap <C-k> <C-w>k
@@ -224,18 +230,13 @@ nnoremap <C-h> <C-w>h
 nnoremap <C-l> <C-w>l
 
 " next in quick fix window
-map <C-N>     <ESC>:cn<CR>zz
+map <C-N>     :cn<CR>zz
 
 " tag jumping
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
-
-map <F4>      <ESC>*
-            \ <ESC>:exe "cd " . expand(android_src)."/art/"<CR>
-            \ <ESC>:cs f 0 <cword><CR>
-            \ <ESC>:copen<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 
@@ -264,3 +265,4 @@ map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 " - Set Chrome's secure shell to open in a seperate window, so that C-T/C-N/C-P all work in vim.
 " - :map to browse current key mappings.
 " - :command to browse current commands.
+" - Use gcc in normal mode to quickly comment code.
