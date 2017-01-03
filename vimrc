@@ -2,6 +2,9 @@
 " vundle settings
 " https://github.com/VundleVim/Vundle.vim
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set nocompatible              " be iMproved, required
+filetype off                  " required
+
 set rtp+=~/.vim/bundle/vundle/
 call vundle#begin()
 
