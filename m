@@ -19,5 +19,5 @@ echo
 
 # Linaro
 echo [Linaro]
-echo scripts/tests/run_art_test.sh --default
+echo scripts/tests/test_art_host.sh
 
