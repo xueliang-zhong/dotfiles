@@ -1,3 +1,7 @@
+# References:
+- http://blog.aaronbieber.com/2015/05/24/from-vim-to-emacs-in-fourteen-days.html
+
+
 # Moving & Editing
 ## vim+tmux
 - vim editing
