@@ -22,7 +22,7 @@ Plugin 'tpope/vim-commentary'             " comment/uncomment lines with gcc or 
 Plugin 'majutsushi/tagbar'                " Tagbar
 Plugin 'a.vim'                            " Switch h/{cc,c} files
 Plugin 'jlanzarotta/bufexplorer'          " BufExplorer
-Plugin 'Valloric/YouCompleteMe'           " Auto-completion
+"Plugin 'Valloric/YouCompleteMe'           " Auto-completion
 Plugin 'rking/ag.vim'                     " Ag (silver searcher)
 Plugin 'christoomey/vim-tmux-navigator'   " Tmuxleft
 Plugin 'vim-airline/vim-airline'          " Better status bar
@@ -170,6 +170,14 @@ autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+function! CleverTab()
+  if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
+    return "\<Tab>"
+  else
+    return "\<C-N>"
+  endif
+endfunction
+inoremap <Tab> <C-R>=CleverTab()<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
@@ -266,3 +274,19 @@ map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 " - :map to browse current key mappings.
 " - :command to browse current commands.
 " - Use gcc in normal mode to quickly comment code.
+"
+" - vim's built in complete:
+"  |i_CTRL-X_CTRL-L| Whole lines
+"  |i_CTRL-X_CTRL-N| keywords in the current file
+"  |i_CTRL-X_CTRL-K| keywords in 'dictionary'
+"  |i_CTRL-X_CTRL-T| keywords in 'thesaurus', thesaurus-style
+"  |i_CTRL-X_CTRL-I| keywords in the current and included files
+"  |i_CTRL-X_CTRL-]| tags
+"  |i_CTRL-X_CTRL-F| file names
+"  |i_CTRL-X_CTRL-D| definitions or macros
+"  |i_CTRL-X_CTRL-V| Vim command-line
+"  |i_CTRL-X_CTRL-U| User defined completion
+"  |i_CTRL-X_CTRL-O| omni completion
+"  |i_CTRL-X_s|      Spelling suggestions
+"  |i_CTRL-N|        keywords in 'complete'
+"  and use C-E to exit the completion.

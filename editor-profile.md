@@ -14,9 +14,9 @@
 
 # Shell
 ## vim+tmux
-vim+tmux provides shell and vim in the same window.
+- vim+tmux provides shell and vim in the same window.
 ## emacs
-M-x shell
+- M-x shell
 
 
 # Session
@@ -24,6 +24,8 @@ M-x shell
 - attach to a session: tmux attach
 - detach from a session: '<prefix> d'
 ## emacs
+-
+-
 
 
 # Completion
@@ -32,6 +34,32 @@ M-x shell
 ## emacs
 - in evil mode, basic completion: C-N
 
+
+# Buffer Exploration
+## vim+tmux
+- vim :buffers, :BufExplorer
+## emacs
+- in evil mode, :buffers
+
+
+# Escape from command mode
+## vim+tmux
+- ESC
+## emacs
+- C-g
+
+# Execute a function
+## vim+tmux
+-
+## emacs
+- M-x (func), e.g. M-x (move-begninning-of-line)
+
+
+# tags
+## vim+tmux
+- ctags, file tags.
+## emacs
+- etags, file TAGS.
 -----------------------------------------------------------
 
 # [title]
