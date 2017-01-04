@@ -18,3 +18,6 @@ ln -sf `pwd`/ctag ~/bin/ctag
 rm -f ~/bin/m
 ln -sf `pwd`/m ~/bin/m
 
+# emacs
+rm -f ~/.emacs
+ln -sf `pwd`/emacs ~/.emacs
