@@ -98,6 +98,8 @@
 - M-/
 - in evil-mode: C-n, C-p
 - (hippie-expand)
+- (helm-complete-file-name-at-point)
+- (helm-complex-command-history)
 - company-mode package
 
 -----------------------------------------------------------
