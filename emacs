@@ -9,3 +9,6 @@
 
 (require 'evil)
 (evil-mode 1)
+
+;; xueliang
+(global-set-key (kbd "M-x") 'helm-M-x)
