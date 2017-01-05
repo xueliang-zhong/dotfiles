@@ -10,5 +10,12 @@
 (require 'evil)
 (evil-mode 1)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Nice M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
+
+; good way to learn all completion functions.
+(global-set-key (kbd "M-/") 'hippie-expand)
