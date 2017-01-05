@@ -3,7 +3,6 @@
 - https://www.youtube.com/watch?v=SzA2YODtgK4
 - https://www.youtube.com/watch?v=5FQwQ0QWBTU
 
-
 # Moving & Editing
 ## vim+tmux
 - vim editing
@@ -77,6 +76,7 @@
   (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
   (package-initialize)
 
+
 # Key binding/mapping
 ## vim+tmux
 - map
@@ -89,6 +89,16 @@
 - :grep, :vimgrep, :Ag
 ## emacs
 - M-x grep RET
+
+
+# Auto Complete
+## vim+tmux
+- C-n, C-p
+## emacs
+- M-/
+- in evil-mode: C-n, C-p
+- (hippie-expand)
+- company-mode package
 
 -----------------------------------------------------------
 
