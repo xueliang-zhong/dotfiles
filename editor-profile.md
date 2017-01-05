@@ -1,5 +1,7 @@
 # References:
 - http://blog.aaronbieber.com/2015/05/24/from-vim-to-emacs-in-fourteen-days.html
+- https://www.youtube.com/watch?v=SzA2YODtgK4
+- https://www.youtube.com/watch?v=5FQwQ0QWBTU
 
 
 # Moving & Editing
@@ -74,6 +76,19 @@
   (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
   (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
   (package-initialize)
+
+# Key binding/mapping
+## vim+tmux
+- map
+## emacs
+- (global-set-key): https://www.gnu.org/software/emacs/manual/html_node/elisp/Key-Binding-Commands.html
+
+
+# grep
+## vim+tmux
+- :grep, :vimgrep, :Ag
+## emacs
+- M-x grep RET
 
 -----------------------------------------------------------
 
