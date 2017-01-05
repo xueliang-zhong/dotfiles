@@ -11,8 +11,8 @@ echo mm test-art-host-gtest
 echo mma test-art-host -j40
 echo ART_TEST_JIT=true m test-art-host-run-test-001-HelloWorld
 echo art/test/run-test --host 001-HelloWorld
-echo m test-art-host-gtest-scheduler_test64
-echo mm cpplint-art
+echo mm test-art-host-gtest-scheduler_test64 -j20
+echo mm cpplint-art -j20
 echo art/tools/cpplint.py art/compiler/optimizing/
 
 echo
