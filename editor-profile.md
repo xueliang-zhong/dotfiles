@@ -102,6 +102,15 @@
 - (helm-complex-command-history)
 - company-mode package
 
+# Tag Search/Jumps
+## vim+tmux
+- C-], C-t
+## emacs
+- Same as vim in evil-mode.
+- https://www.gnu.org/software/emacs/manual/html_node/emacs/Find-Tag.html
+- xref-find-definitions
+- xref-find-references
+
 -----------------------------------------------------------
 
 # [title]
