@@ -2,12 +2,16 @@
 - http://blog.aaronbieber.com/2015/05/24/from-vim-to-emacs-in-fourteen-days.html
 - https://www.youtube.com/watch?v=SzA2YODtgK4
 - https://www.youtube.com/watch?v=5FQwQ0QWBTU
+- http://ergoemacs.org/emacs/elisp_examples.html
+- http://ergoemacs.org/emacs/command-frequency.html
+
 
 # Moving & Editing
 ## vim+tmux
 - vim editing
 ## emacs
 - evil-mode
+
 
 # Multi-Window
 ## vim+tmux
@@ -52,6 +56,7 @@
 - ESC
 ## emacs
 - C-g
+
 
 # Execute a function
 ## vim+tmux
@@ -102,6 +107,7 @@
 - (helm-complex-command-history)
 - company-mode package
 
+
 # Tag Search/Jumps
 ## vim+tmux
 - C-], C-t
@@ -111,9 +117,58 @@
 - xref-find-definitions
 - xref-find-references
 
------------------------------------------------------------
+
+# Dynamic Evaluation of Expression
+## vim+tmux
+- (none)
+## emacs
+- M-x pp-eval-last-sexp in buffer.
+
+# High-light current line
+## vim+tmux
+- :set cursorline
+## emacs
+- M-x hl-line-mode
+
+# Line number
+## vim+tmux
+- :set nu
+## emacs
+- M-x linum-mode
+
+# Source Function Browsing
+## vim+tmux
+- Tagbar
+## emacs
+- M-x semantic-mode
+- M-x helm-semantic-or-imenu
+
+
+# Diffs
+## vim+tmux
+- vimdiff
+## emacs
+
+# High light certain column (for code review)
+## vim+tmux
+## emacs
+
+# git integration
+## vim+tmux
+## emacs
+
+# spell
+## vim+tmux
+- :set spell
+## emacs
+
+;; Emacs Functions
+execute-extended-command
+keyboard-quit
+command-log-mode
+
+----------------------------------------------------------
 
 # [title]
 ## vim+tmux
 ## emacs
-
