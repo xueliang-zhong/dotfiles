@@ -151,11 +151,15 @@
 
 # High light certain column (for code review)
 ## vim+tmux
+- set colorcolumn=100
 ## emacs
+- 
 
 # git integration
 ## vim+tmux
+- git plugs: vim-fugitive, vim-gitgutter
 ## emacs
+- magit
 
 # spell
 ## vim+tmux
