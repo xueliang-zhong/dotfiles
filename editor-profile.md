@@ -201,6 +201,7 @@
 - change items indent: Alt+Left/Right
 - shift+Left/Right: change items' bullets.
 - TAB to fold/collapse items.
+- Shift-TAB to fold/collapse whole doc.
 
 ;; Emacs Functions
 execute-extended-command

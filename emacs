@@ -58,7 +58,7 @@
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
-; default theme
+; default theme: tango-dark or tango are both OK.
 (load-theme 'tango-dark)
 
 ;;
