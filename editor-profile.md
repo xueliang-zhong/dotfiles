@@ -4,6 +4,7 @@
 - https://www.youtube.com/watch?v=5FQwQ0QWBTU
 - http://ergoemacs.org/emacs/elisp_examples.html
 - http://ergoemacs.org/emacs/command-frequency.html
+- https://github.com/emacs-helm/helm
 
 
 # Moving & Editing
@@ -19,6 +20,7 @@
 - With plugins: C-j/k/l/h between vim windows & tmux panes.
 ## emacs
 - same as vim in evil-mode, for example :sp, :vs.
+- C-x-0 to kill current window (the emacs way).
 
 
 # Shell
@@ -26,6 +28,14 @@
 - vim+tmux provides shell and vim in the same window.
 ## emacs
 - M-x shell
+
+# Run Shell command
+## vim+tmux
+- :!
+## emacs
+- in evil mode, :!CMD as well.
+- M-| on selected text.
+- M-1 M-!
 
 
 # Session
@@ -94,6 +104,7 @@
 - :grep, :vimgrep, :Ag
 ## emacs
 - M-x grep RET
+- helm-do-grep-ag
 
 
 # Auto Complete
@@ -106,6 +117,7 @@
 - (helm-complete-file-name-at-point)
 - (helm-complex-command-history)
 - company-mode package
+- company-complete and C-g to quit completion.
 
 
 # Tag Search/Jumps
@@ -153,7 +165,7 @@
 ## vim+tmux
 - set colorcolumn=100
 ## emacs
-- 
+- whitespace/column-marker
 
 # git integration
 ## vim+tmux
@@ -165,6 +177,30 @@
 ## vim+tmux
 - :set spell
 ## emacs
+- M-x flyspell-mode
+- C-M-i correct word in flyspell-mode.
+- or use "z =", ispell-word
+
+
+# Find file
+## vim+tmux
+- Nerdtree
+## emacs
+- helm-find-files
+
+
+# Font Size
+## vim+tmux
+## emacs
+- C-x C-= / C-x C-- / C-x C-0
+
+
+;; Org mode
+## emacs
+- move items up and down: Alt+Up/Down
+- change items indent: Alt+Left/Right
+- shift+Left/Right: change items' bullets.
+- TAB to fold/collapse items.
 
 ;; Emacs Functions
 execute-extended-command
