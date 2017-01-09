@@ -58,6 +58,9 @@
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
+; default theme
+(load-theme 'tango-dark)
+
 ;;
 ;; C-u ARG M-x func RET
 ;; package install RET command-log-mode, toggle-command-log/buffer
