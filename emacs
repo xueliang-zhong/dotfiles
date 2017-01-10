@@ -14,6 +14,8 @@
 ;; xueliang
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(setq tags-table-list '("~/workspace/aosp/art/TAGS" "~/workspace/aosp/external/vixl/src/TAGS")) 
+
 ; line/column related
 (column-number-mode)
 (global-linum-mode)
@@ -34,6 +36,8 @@
 ; <f1> .. <f4> :
 ; <f5> .. <f8> : tag, coding, development related
 ; <f9> .. <f12>: buffer, folder, grep find related.
+
+(global-set-key (kbd "<f5>") 'tags-search)
 
 ; something like tagbar/tlist
 (global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
