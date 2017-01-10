@@ -1,8 +1,11 @@
 #!/bin/bash
 
-# generate ctags and cscope files.
+# generate ctags/etags and cscope files.
 
-find . | grep -v ".mk" | grep "\/.*\/" | grep "\..*\." | grep -v scripts | grep -v "\.git" > cscope.files
-cscope -bkq &> /dev/null &
-ctags -R --c++-kinds=+p --fields=+iaS --extra=+q . --exclude=test
-wait
+#find . | grep -v ".mk" | grep "\/.*\/" | grep "\..*\." | grep -v scripts | grep -v "\.git" > cscope.files
+#cscope -bkq &> /dev/null &
+#ctags -R --c++-kinds=+p --fields=+iaS --extra=+q . --exclude=test
+#wait
+
+find -name "*.h" -o -name "*.cc" | xargs etags
+
