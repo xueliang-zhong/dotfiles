@@ -114,5 +114,9 @@
 (global-set-key (kbd "C-SPC") 'company-complete)
 
 ;;
-;; C-u ARG M-x func RET
-;; package install RET command-log-mode, toggle-command-log/buffer
+;; * C-u ARG M-x func RET
+;; * package install RET command-log-mode, toggle-command-log/buffer
+;; * M-x ansi-term
+
+;; https://github.com/emacs-tw/awesome-emacs
+
