@@ -11,10 +11,8 @@
 (evil-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; xueliang
+;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(setq tags-table-list '("~/workspace/aosp/art/TAGS" "~/workspace/aosp/external/vixl/src/TAGS")) 
 
 ; line/column related
 (column-number-mode)
@@ -26,38 +24,6 @@
 (setq indent-tabs-mode nil)
 (defun tab-as-two-spaces() (interactive) (insert "  "))
 (global-set-key (kbd "TAB") 'tab-as-two-spaces)
-
-; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)
-
-; good way to learn all completion functions.
-(global-set-key (kbd "M-/") 'hippie-expand)
-
-; <f1> .. <f4> :
-; <f5> .. <f8> : tag, coding, development related
-; <f9> .. <f12>: buffer, folder, grep find related.
-
-(global-set-key (kbd "<f5>") 'tags-search)
-
-; something like tagbar/tlist
-(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
-
-; buffer
-(global-set-key (kbd "<f9>") 'helm-buffers-list)
-
-; find file
-(global-set-key (kbd "<f10>") 'helm-find-files)
-
-; increment grep so useful
-(global-set-key (kbd "<f11>") 'helm-grep-do-git-grep)
-
-; grep current word
-(global-set-key (kbd "<f12>") 'helm-do-grep-ag)
-
-
-; company mode
-(add-hook 'after-init-hook 'global-company-mode)
-(global-set-key (kbd "C-SPC") 'company-complete)
 
 ; disable menu-bar-mode
 (menu-bar-mode -1)
@@ -78,7 +44,7 @@
 
 (require 'whitespace)
 (global-whitespace-mode +1)
-(setq whitespace-line-column 100) ;; limit line length
+(setq whitespace-line-column 101) ;; limit line length
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
@@ -91,35 +57,62 @@
 ; default theme: tango-dark or tango are both OK.
 (load-theme 'tango-dark)
 
-;;
-;; C-u ARG M-x func RET
-;; package install RET command-log-mode, toggle-command-log/buffer
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(global-hl-line-mode nil)
- '(package-selected-packages
-	 (quote
-		(command-log-mode which-key helm-company company helm evil column-marker)))
- '(semantic-mode t)
- '(which-key-mode t))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; xueliang's vars
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(setq android-art-root "~/workspace/aosp/art/")
+
+(setq tags-table-list '("~/workspace/aosp/art/TAGS"
+                        "~/workspace/aosp/external/vixl/src/TAGS"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Xueliang's functions
+;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Help to make code reviews easier; requires cpplint.py in $PATH
 (defun art-cpplint ()
-  "invokes AOSP/art/tools/cpplint.py on current buffer"
-  (interactive)
-  (shell-command
-   (concat "cpplint.py --filter=-whitespace/line_length,-build/include " (buffer-file-name)))
-)
+  "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
+  (shell-command (concat
+                  "cpplint.py --filter=-whitespace/line_length,-build/include " (buffer-file-name))))
+
+(defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; xueliang's key bindings
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Nice M-x
+(global-set-key (kbd "M-x") 'helm-M-x)
+
+; good way to learn all completion functions.
+(global-set-key (kbd "M-/") 'hippie-expand)
+
+; <f1> .. <f4> :
+; <f5> .. <f8> : tag, coding, development related
+; <f9> .. <f12>: buffer, folder, grep find related.
+
+; find tag and jump to tag
+(global-set-key (kbd "<f5>") 'xueliang-helm-etags-select)
+
+; something like tagbar/tlist
+(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
+
+; buffer
+(global-set-key (kbd "<f9>") 'helm-buffers-list)
+
+; find file
+(global-set-key (kbd "<f10>") 'helm-find-files)
+
+; increment grep so useful
+(global-set-key (kbd "<f11>") 'helm-grep-do-git-grep)
+
+; grep current word
+(global-set-key (kbd "<f12>") 'helm-do-grep-ag)
+
+; company mode
+(add-hook 'after-init-hook 'global-company-mode)
+(global-set-key (kbd "C-SPC") 'company-complete)
+
+;;
+;; C-u ARG M-x func RET
+;; package install RET command-log-mode, toggle-command-log/buffer
