@@ -77,8 +77,9 @@
 ; Help to make code reviews easier; requires cpplint.py in $PATH
 (defun art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
-  (shell-command (concat
-                  "cpplint.py --filter=-whitespace/line_length,-build/include " (buffer-file-name))))
+  (setq cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
+  (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
+  (switch-to-buffer-other-window "*Shell Command Output*"))
 
 (defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
 
