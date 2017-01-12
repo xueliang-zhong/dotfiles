@@ -94,7 +94,8 @@
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
-  (shell-command (concat "git checkout " (buffer-file-name))))
+  (shell-command (concat "git checkout " (buffer-file-name)))
+  (revert-buffer :ignore-auto :noconfirm))
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
