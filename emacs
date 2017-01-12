@@ -10,6 +10,11 @@
 (require 'evil)
 (evil-mode 1)
 
+(ivy-mode 1)
+(setq ivy-use-virtual-buffers t)
+
+(rainbow-delimiters-mode 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -77,6 +82,34 @@
 
 (defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
 
+(defun xueliang-gdiff-current-buffer ()
+  "run git diff on current buffer; use C-M-i to browse diff hunks." (interactive)
+  (shell-command (concat "git diff " (buffer-file-name)))
+  (switch-to-buffer-other-window "*Shell Command Output*"))
+
+(defun xueliang-gwrite-current-buffer ()
+  "run git add on current buffer" (interactive)
+  (shell-command (concat "git add " (buffer-file-name))))
+
+(defun xueliang-gread-current-buffer ()
+  "run git checkout on current buffer" (interactive)
+  (shell-command (concat "git checkout " (buffer-file-name))))
+
+(defun xueliang-gblame-current-buffer ()
+  "run git blame on current buffer, esp. current line" (interactive)
+  (setq gblame-window-line (line-number-at-pos))
+  (shell-command (concat "git blame " (buffer-file-name)))
+  (switch-to-buffer-other-window "*Shell Command Output*")
+  (goto-line gblame-window-line))
+
+(defun xueliang-gstatus ()
+  "run git status" (interactive)
+  (shell-command "git status"))
+
+(defun xueliang-glog ()
+  "run git log" (interactive)
+  (shell-command "git log"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -119,4 +152,5 @@
 ;; * M-x ansi-term
 
 ;; https://github.com/emacs-tw/awesome-emacs
+;; https://github.com/caiorss/Emacs-Elisp-Programming
 

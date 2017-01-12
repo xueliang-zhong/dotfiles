@@ -5,6 +5,11 @@
 - http://ergoemacs.org/emacs/elisp_examples.html
 - http://ergoemacs.org/emacs/command-frequency.html
 - https://github.com/emacs-helm/helm
+- https://github.com/emacs-tw/awesome-emacs
+- https://github.com/caiorss/Emacs-Elisp-Programming
+
+
+
 
 
 # Moving & Editing
@@ -203,10 +208,13 @@
 - TAB to fold/collapse items.
 - Shift-TAB to fold/collapse whole doc.
 
+
+
 ;; Emacs Functions
 execute-extended-command
 keyboard-quit
 command-log-mode
+
 
 ----------------------------------------------------------
 
