@@ -1,4 +1,4 @@
-; 2017 the emacs.
+; 2017 the emacs year for me.
 
 (require 'package)
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
@@ -14,6 +14,8 @@
 (setq ivy-use-virtual-buffers t)
 
 (rainbow-delimiters-mode 1)
+
+(set-face-attribute 'default nil :height 160)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
@@ -88,6 +90,12 @@
   (shell-command (concat "git diff " (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*"))
 
+(defun xueliang-gdiff-with-base-current-buffer ()
+  "run git diff on base version on current buffer; use C-M-i to browse diff hunks." (interactive)
+  (setq base-version-string (shell-command-to-string "git log -n 1 --pretty=format:%H"))
+  (shell-command (concat "git diff " base-version-string  " " (buffer-file-name)))
+  (Switch-to-buffer-other-window "*Shell Command Output*"))
+
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
   (shell-command (concat "git add " (buffer-file-name))))
@@ -101,8 +109,7 @@
   "run git blame on current buffer, esp. current line" (interactive)
   (setq gblame-window-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*")
-  (goto-line gblame-window-line))
+  (goto-line gblame-window-line (switch-to-buffer-other-window "*Shell Command Output*")))
 
 (defun xueliang-gstatus ()
   "run git status" (interactive)
