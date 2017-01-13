@@ -36,7 +36,7 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 
-; show match parenthes
+; show match parentheses
 (show-paren-mode)
 
 ; wrap long lines
@@ -44,6 +44,9 @@
 
 ; diable bold font
 (set-face-bold 'bold nil)
+
+; don't put any backup files in my directory.
+(setq backup-directory-alist "/tmp/")
 
 ; mark long lines in column
 (require 'column-marker)
@@ -67,10 +70,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(setq android-art-root "~/workspace/aosp/art/")
 
-(setq tags-table-list '("~/workspace/aosp/art/TAGS"
-                        "~/workspace/aosp/external/vixl/src/TAGS"))
+(setq android-root "~/workspace/Linaro_Android_Master")
+(setq android-art  (concat android-root "/art"))
+(setq android-vixl (concat android-root "/external/vixl/src"))
+(setq android-art-tags  (concat android-art  "/TAGS"))
+(setq android-vixl-tags (concat android-vixl "/TAGS"))
+(setq tags-table-list (list android-art-tags android-vixl-tags))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -84,28 +90,38 @@
   (switch-to-buffer-other-window "*Shell Command Output*")
   (compilation-mode))
 
+; Helper to cd to directory of current buffer/file.
+(defun xueliang-cd-current-buffer-directory ()
+  "cd to directory of current buffer/file." (interactive)
+  (cd (file-name-directory buffer-file-name))
+  (print (concat "pwd: " (file-name-directory buffer-file-name))))
+
 ; Git helper functions/commands.
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer; use C-M-i to browse diff hunks." (interactive)
+  (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git diff " (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
-  (diff-mode))
+  (diff-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gdiff-with-base-current-buffer ()
   "run git diff on base version on current buffer; use C-M-i to browse diff hunks." (interactive)
+  (xueliang-cd-current-buffer-directory)
   (setq base-version-string (shell-command-to-string "git log -n 1 --pretty=format:%H"))
   (shell-command (concat "git diff " base-version-string  " " (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
-  (diff-mode))
+  (diff-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
-  (shell-command (concat "git add " (buffer-file-name))))
+  (shell-command (concat "git add " (buffer-file-name)))
+  (print (concat "git add: " (buffer-file-name))))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
   (shell-command (concat "git checkout " (buffer-file-name)))
-  (revert-buffer :ignore-auto :noconfirm))
+  (revert-buffer :ignore-auto :noconfirm)
+  (print (concat "git checkout: " (buffer-file-name))))
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
@@ -120,10 +136,6 @@
 (defun xueliang-glog ()
   "run git log" (interactive)
   (shell-command "git log"))
-
-(defun xueliang-cd-current-buffer-directory ()
-  "cd to directory of current buffer/file." (interactive)
-  (cd (file-name-directory buffer-file-name)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
@@ -140,7 +152,7 @@
 ; <f9> .. <f12>: buffer, folder, grep find related.
 
 ; find tag and jump to tag
-(defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
+(defun xueliang-helm-etags-select() (interactive) (cd android-art) (helm-etags-select t))
 (global-set-key (kbd "<f5>") 'xueliang-helm-etags-select)
 
 ; something like tagbar/tlist
