@@ -81,20 +81,22 @@
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
   (setq cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*"))
+  (switch-to-buffer-other-window "*Shell Command Output*")
+  (compilation-mode))
 
-(defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
-
+; Git helper functions/commands.
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer; use C-M-i to browse diff hunks." (interactive)
   (shell-command (concat "git diff " (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*"))
+  (switch-to-buffer-other-window "*Shell Command Output*")
+  (diff-mode))
 
 (defun xueliang-gdiff-with-base-current-buffer ()
   "run git diff on base version on current buffer; use C-M-i to browse diff hunks." (interactive)
   (setq base-version-string (shell-command-to-string "git log -n 1 --pretty=format:%H"))
   (shell-command (concat "git diff " base-version-string  " " (buffer-file-name)))
-  (Switch-to-buffer-other-window "*Shell Command Output*"))
+  (switch-to-buffer-other-window "*Shell Command Output*")
+  (diff-mode))
 
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
@@ -119,6 +121,10 @@
   "run git log" (interactive)
   (shell-command "git log"))
 
+(defun xueliang-cd-current-buffer-directory ()
+  "cd to directory of current buffer/file." (interactive)
+  (cd (file-name-directory buffer-file-name)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -134,6 +140,7 @@
 ; <f9> .. <f12>: buffer, folder, grep find related.
 
 ; find tag and jump to tag
+(defun xueliang-helm-etags-select() (interactive) (cd android-art-root) (helm-etags-select t))
 (global-set-key (kbd "<f5>") 'xueliang-helm-etags-select)
 
 ; something like tagbar/tlist
@@ -159,6 +166,7 @@
 ;; * C-u ARG M-x func RET
 ;; * package install RET command-log-mode, toggle-command-log/buffer
 ;; * M-x ansi-term
+;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
