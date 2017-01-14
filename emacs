@@ -85,7 +85,7 @@
 ; Help to make code reviews easier; requires cpplint.py in $PATH
 (defun xueliang-art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
-  (setq cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
+  (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
   (compilation-mode))
@@ -124,9 +124,10 @@
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
-  (setq gblame-window-line (line-number-at-pos))
+  (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
-  (goto-line gblame-window-line (switch-to-buffer-other-window "*Shell Command Output*")) (hl-line-mode))
+  (goto-line gblame-line (switch-to-buffer-other-window "*Shell Command Output*"))
+  (hl-line-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gcommit-current-file ()
   "run git commit on current file.
