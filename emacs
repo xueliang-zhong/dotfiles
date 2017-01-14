@@ -83,7 +83,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Help to make code reviews easier; requires cpplint.py in $PATH
-(defun art-cpplint ()
+(defun xueliang-art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
   (setq cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
@@ -94,48 +94,54 @@
 (defun xueliang-cd-current-buffer-directory ()
   "cd to directory of current buffer/file." (interactive)
   (cd (file-name-directory buffer-file-name))
-  (print (concat "pwd: " (file-name-directory buffer-file-name))))
+  (message "pwd: %s" (file-name-directory buffer-file-name)))
 
 ; Git helper functions/commands.
 (defun xueliang-gdiff-current-buffer ()
-  "run git diff on current buffer; use C-M-i to browse diff hunks." (interactive)
+  "run git diff on current buffer;
+   use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git diff " (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
   (diff-mode) (toggle-truncate-lines 1))
 
-(defun xueliang-gdiff-with-base-current-buffer ()
-  "run git diff on base version on current buffer; use C-M-i to browse diff hunks." (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (setq base-version-string (shell-command-to-string "git log -n 1 --pretty=format:%H"))
-  (shell-command (concat "git diff " base-version-string  " " (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*")
+(defun xueliang-gdiff-revision-at-point ()
+  "run git diff using the revision number at point.
+   workflow: glog to get revision in output, browse revisions, apply this function." (interactive)
+  (shell-command (message "git diff %s " (thing-at-point 'word)))
   (diff-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
   (shell-command (concat "git add " (buffer-file-name)))
-  (print (concat "git add: " (buffer-file-name))))
+  (message "git add: %s" (buffer-file-name)))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
   (shell-command (concat "git checkout " (buffer-file-name)))
   (revert-buffer :ignore-auto :noconfirm)
-  (print (concat "git checkout: " (buffer-file-name))))
+  (message "git checkout: " (buffer-file-name)))
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
   (setq gblame-window-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
-  (goto-line gblame-window-line (switch-to-buffer-other-window "*Shell Command Output*")))
+  (goto-line gblame-window-line (switch-to-buffer-other-window "*Shell Command Output*")) (hl-line-mode))
+
+(defun xueliang-gcommit-current-file ()
+  "run git commit on current file.
+   *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
+  (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
 
 (defun xueliang-gstatus ()
   "run git status" (interactive)
-  (shell-command "git status"))
+  (shell-command "git status")
+  (switch-to-buffer-other-window "*Shell Command Output*"))
 
 (defun xueliang-glog ()
   "run git log" (interactive)
-  (shell-command "git log"))
+  (shell-command "git log")
+  (switch-to-buffer-other-window "*Shell Command Output*"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
