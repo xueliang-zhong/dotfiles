@@ -71,7 +71,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/Linaro_Android_Master")
+(setq android-root "~/workspace/aosp")
 (setq android-art  (concat android-root "/art"))
 (setq android-vixl (concat android-root "/external/vixl/src"))
 (setq android-art-tags  (concat android-art  "/TAGS"))
@@ -81,6 +81,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+; Help to make upate TAGS of the project I'm working on easier.
+(defun xueliang-update-tags-art ()
+  "update etags/TAGS of Android ART project" (interactive)
+  (cd android-art) (shell-command "ctag"))
 
 ; Help to make code reviews easier; requires cpplint.py in $PATH
 (defun xueliang-art-cpplint ()
