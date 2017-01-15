@@ -20,4 +20,4 @@ ln -sf `pwd`/m ~/bin/m
 
 # emacs
 rm -f ~/.emacs
-ln -sf `pwd`/emacs ~/.emacs
+ln -sf `pwd`/emacs.el ~/.emacs
