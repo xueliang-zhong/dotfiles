@@ -8,16 +8,11 @@
 - https://github.com/emacs-tw/awesome-emacs
 - https://github.com/caiorss/Emacs-Elisp-Programming
 
-
-
-
-
 # Moving & Editing
 ## vim+tmux
 - vim editing
 ## emacs
 - evil-mode
-
 
 # Multi-Window
 ## vim+tmux
@@ -26,7 +21,6 @@
 ## emacs
 - same as vim in evil-mode, for example :sp, :vs.
 - C-x-0 to kill current window (the emacs way).
-
 
 # Shell
 ## vim+tmux
@@ -209,12 +203,10 @@
 - Shift-TAB to fold/collapse whole doc.
 
 
-
 ;; Emacs Functions
 execute-extended-command
 keyboard-quit
 command-log-mode
-
 
 ----------------------------------------------------------
 
