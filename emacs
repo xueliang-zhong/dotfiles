@@ -114,7 +114,7 @@
 
 (defun xueliang-glog ()
   "run git log" (interactive)
-  (shell-command "git log")
+  (shell-command "git log -n 200")
   (switch-to-buffer-other-window "*Shell Command Output*"))
 
 (defun xueliang-gdiff-current-buffer ()
