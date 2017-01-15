@@ -40,7 +40,7 @@
 (show-paren-mode)
 
 ; wrap long lines
-(toggle-truncate-lines 1)
+(set-default 'truncate-lines t)
 
 ; diable bold font
 (set-face-bold 'bold nil)
