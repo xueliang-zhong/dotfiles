@@ -49,7 +49,7 @@
 (xterm-mouse-mode 1)
 
 ; don't put any backup files in my directory.
-(setq backup-directory-alist "/tmp/")
+(setq backup-directory-alist `(("." . "~/.saves")))
 
 ; mark long lines in column
 (require 'column-marker)
@@ -181,7 +181,7 @@
 (global-set-key (kbd "<f9>") 'helm-buffers-list)
 
 ; find file
-(global-set-key (kbd "<f10>") 'helm-find-files)
+(global-set-key (kbd "<f10>") 'fiplr-find-file)
 
 ; increment grep so useful
 (global-set-key (kbd "<f11>") 'helm-grep-do-git-grep)
