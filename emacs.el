@@ -24,7 +24,8 @@
 ; line/column related
 (column-number-mode)
 (global-linum-mode)
-; (global-hl-line-mode)
+(global-hl-line-mode)
+(set-face-background hl-line-face "color-236")
 
 ; tabs
 (setq tab-width 2)
