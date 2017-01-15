@@ -45,6 +45,9 @@
 ; diable bold font
 (set-face-bold 'bold nil)
 
+; mouse
+(xterm-mouse-mode 1)
+
 ; don't put any backup files in my directory.
 (setq backup-directory-alist "/tmp/")
 
