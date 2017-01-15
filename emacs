@@ -102,6 +102,21 @@
   (message "pwd: %s" (file-name-directory buffer-file-name)))
 
 ; Git helper functions/commands.
+(defun xueliang-gcommit-current-file ()
+  "run git commit on current file.
+   *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
+  (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
+
+(defun xueliang-gstatus ()
+  "run git status" (interactive)
+  (shell-command "git status")
+  (switch-to-buffer-other-window "*Shell Command Output*"))
+
+(defun xueliang-glog ()
+  "run git log" (interactive)
+  (shell-command "git log")
+  (switch-to-buffer-other-window "*Shell Command Output*"))
+
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
    use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
@@ -113,8 +128,12 @@
 (defun xueliang-gdiff-revision-at-point ()
   "run git diff using the revision number at point.
    workflow: glog to get revision in output, browse revisions, apply this function." (interactive)
-  (shell-command (message "git diff %s " (thing-at-point 'word)))
-  (diff-mode) (toggle-truncate-lines 1))
+   (if (null (buffer-file-name (current-buffer)))
+       (funcall (lambda () ;; already in shell command output buffer.
+                  (shell-command (message "git diff %s " (thing-at-point 'word)))
+                  (diff-mode) (toggle-truncate-lines 1)))
+       (funcall (lambda () ;; in some other file.
+                  (xueliang-glog) (message "try apply this function in glog.")))))
 
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
@@ -133,21 +152,6 @@
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window "*Shell Command Output*"))
   (hl-line-mode) (toggle-truncate-lines 1))
-
-(defun xueliang-gcommit-current-file ()
-  "run git commit on current file.
-   *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
-  (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
-
-(defun xueliang-gstatus ()
-  "run git status" (interactive)
-  (shell-command "git status")
-  (switch-to-buffer-other-window "*Shell Command Output*"))
-
-(defun xueliang-glog ()
-  "run git log" (interactive)
-  (shell-command "git log")
-  (switch-to-buffer-other-window "*Shell Command Output*"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
