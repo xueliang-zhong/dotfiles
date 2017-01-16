@@ -50,12 +50,14 @@
 ; mouse
 (xterm-mouse-mode 1)
 
+; scroll
+(setq scroll-step 1)
+
 ; don't put any backup files in my directory.
 (setq backup-directory-alist `(("." . "~/.saves")))
 
-; mark long lines in column
+; mark long lines in column, for example: (column-marker-1 100)
 (require 'column-marker)
-; (add-hook 'evil-mode-hook (lambda () (interactive) (column-marker-1 100)))
 
 (require 'whitespace)
 (global-whitespace-mode +1)
