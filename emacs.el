@@ -15,7 +15,8 @@
 
 (rainbow-delimiters-mode 1)
 
-(set-face-attribute 'default nil :height 160)
+(set-default-font "Monospace-12")
+(set-face-attribute 'default nil :height 200)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
@@ -25,7 +26,7 @@
 (column-number-mode)
 (global-linum-mode)
 (global-hl-line-mode)
-(set-face-background hl-line-face "color-236")
+(set-face-background hl-line-face "gray26")
 
 ; tabs
 (setq tab-width 2)
@@ -75,11 +76,11 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp")
-(setq android-art  (concat android-root "/art"))
-(setq android-vixl (concat android-root "/external/vixl/src"))
-(setq android-art-tags  (concat android-art  "/TAGS"))
-(setq android-vixl-tags (concat android-vixl "/TAGS"))
+(setq android-root "~/workspace/Linaro_Android_Master/")
+(setq android-art  (concat android-root "art/"))
+(setq android-vixl (concat android-root "external/vixl/src/"))
+(setq android-art-tags  (concat android-art  "TAGS"))
+(setq android-vixl-tags (concat android-vixl "TAGS"))
 (setq tags-table-list (list android-art-tags android-vixl-tags))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -192,14 +193,19 @@
 
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
-(global-set-key (kbd "C-SPC") 'company-complete)
+(setq company-idle-delay 0)  ;; instead of:  (global-set-key (kbd "") 'company-complete)
+
+; C-c C-c for switching between .h/.cc files.
+(defun xueliang-h-cc-files-switch () "just like A plugin for VIM" (interactive)
+    (message "going to switching to %s" (file-name-nondirectory buffer-file-name)))
+(global-set-key (kbd "C-c C-c") 'xueliang-h-cc-files-switch)
 
 ;;
 ;; * C-u ARG M-x func RET
 ;; * package install RET command-log-mode, toggle-command-log/buffer
 ;; * M-x ansi-term
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
+;; * emacs -nw
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
-
