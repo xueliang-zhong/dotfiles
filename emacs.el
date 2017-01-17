@@ -15,7 +15,7 @@
 
 (rainbow-delimiters-mode 1)
 
-;; requires build emacs with: ./configure --with-x-toolkit=gtk 
+;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
 (set-face-attribute 'default nil :height 150)
 
@@ -171,8 +171,9 @@
 ; Nice M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
 
-; Better than (describe-function
+; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'helm-apropos)
+(global-set-key (kbd "C-h v") 'helm-apropos)
 
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
