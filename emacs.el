@@ -79,7 +79,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/Linaro_Android_Master/")
+(setq android-root "~/workspace/aosp/")
 (setq android-art  (concat android-root "art/"))
 (setq android-vixl (concat android-root "external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -171,6 +171,9 @@
 ; Nice M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
 
+; Better than (describe-function
+(global-set-key (kbd "C-h f") 'helm-apropos)
+
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
 
@@ -208,6 +211,8 @@
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
 ;; * emacs -nw
 ;; * M-x server-start
+;; * helm-show-kill-ring
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
+;; https://github.com/emacs-helm/helm/wiki
