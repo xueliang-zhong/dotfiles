@@ -17,7 +17,7 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk 
 (set-default-font "DejaVu Sans Mono")
-(set-face-attribute 'default nil :height 160)
+(set-face-attribute 'default nil :height 150)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
@@ -46,7 +46,7 @@
 (set-default 'truncate-lines t)
 
 ; diable bold font
-(set-face-bold 'bold nil)
+(set-face-bold 'bold t)
 
 ; mouse
 (xterm-mouse-mode 1)
@@ -116,14 +116,12 @@
   (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
 
 (defun xueliang-gstatus ()
-  "run git status" (interactive)
-  (shell-command "git status")
-  (switch-to-buffer-other-window "*Shell Command Output*"))
+  "run git status" (interactive) (shell-command "git status"))
 
 (defun xueliang-glog ()
   "run git log" (interactive)
   (shell-command "git log -n 200")
-  (switch-to-buffer-other-window "*Shell Command Output*"))
+  (switch-to-buffer-other-window "*Shell Command Output*") (evil-window-move-far-right))
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
@@ -131,15 +129,15 @@
   (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git diff " (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
-  (diff-mode) (toggle-truncate-lines 1))
+  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gdiff-revision-at-point ()
   "run git diff using the revision number at point.
-   workflow: glog to get revision in output, browse revisions, apply this function." (interactive)
+   workflow: get git revision in output, browse revisions, apply this function." (interactive)
    (if (null (buffer-file-name (current-buffer)))
        (funcall (lambda () ;; already in shell command output buffer.
                   (shell-command (message "git diff %s " (thing-at-point 'word)))
-                  (diff-mode) (toggle-truncate-lines 1)))
+                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
        (funcall (lambda () ;; in some other file.
                   (xueliang-glog) (message "try apply this function in glog.")))))
 
@@ -159,7 +157,7 @@
   (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window "*Shell Command Output*"))
-  (hl-line-mode) (toggle-truncate-lines 1))
+  (evil-window-move-far-left) (hl-line-mode) (toggle-truncate-lines 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
@@ -209,6 +207,7 @@
 ;; * M-x ansi-term
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
 ;; * emacs -nw
+;; * M-x server-start
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
