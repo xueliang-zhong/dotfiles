@@ -159,6 +159,11 @@
   (goto-line gblame-line (switch-to-buffer-other-window "*Shell Command Output*"))
   (evil-window-move-far-left) (hl-line-mode) (toggle-truncate-lines 1))
 
+; for switching between .h/.cc files.
+(defun xueliang-A-h-cc-files-switcher ()
+  "similiar to A plugin for VIM, just type 'M-x A' in helm" (interactive)
+  (helm-find-files-1 (car (split-string (buffer-file-name) "\\."))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -177,7 +182,7 @@
 (defun xueliang-helm-etags-select() (interactive) (cd android-art) (helm-etags-select t))
 (global-set-key (kbd "<f5>") 'xueliang-helm-etags-select)
 
-; something like tagbar/tlist
+; something like tagbar/tlist, and jump to current function defining in file.
 (global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
 
 ; buffer
@@ -195,11 +200,6 @@
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of:  (global-set-key (kbd "") 'company-complete)
-
-; C-c C-c for switching between .h/.cc files.
-(defun xueliang-h-cc-files-switch () "just like A plugin for VIM" (interactive)
-    (message "going to switching to %s" (file-name-nondirectory buffer-file-name)))
-(global-set-key (kbd "C-c C-c") 'xueliang-h-cc-files-switch)
 
 ;;
 ;; * C-u ARG M-x func RET
