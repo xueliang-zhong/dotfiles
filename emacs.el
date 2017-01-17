@@ -15,8 +15,9 @@
 
 (rainbow-delimiters-mode 1)
 
-(set-default-font "Monospace-12")
-(set-face-attribute 'default nil :height 200)
+;; requires build emacs with: ./configure --with-x-toolkit=gtk 
+(set-default-font "DejaVu Sans Mono")
+(set-face-attribute 'default nil :height 160)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
