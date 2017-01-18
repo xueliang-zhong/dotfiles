@@ -20,4 +20,6 @@ echo
 # Linaro
 echo [Linaro]
 echo scripts/tests/test_art_host.sh
-
+echo export ART_USE_VIXL_ARM_BACKEND=true
+echo scripts/tests/test_art_target.sh --32bit --optimizing
+echo scripts/tests/test_art_target.sh --32bit --single-test test-art-target-run-test-ndebug-prebuild-optimizing-relocate-ntrace-cms-checkjni-picimage-npictest-debuggable-082-inline-execute32

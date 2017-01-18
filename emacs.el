@@ -15,13 +15,19 @@
 
 (rainbow-delimiters-mode 1)
 
-;; requires build emacs with: ./configure --with-x-toolkit=gtk
-(set-default-font "DejaVu Sans Mono")
-(set-face-attribute 'default nil :height 150)
+; company mode
+(add-hook 'after-init-hook 'global-company-mode)
+(setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
+
+(setq helm-mode-fuzzy-match t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; requires build emacs with: ./configure --with-x-toolkit=gtk
+(set-default-font "DejaVu Sans Mono")
+(set-face-attribute 'default nil :height 150)
 
 ; line/column related
 (column-number-mode)
@@ -79,9 +85,9 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp/")
-(setq android-art  (concat android-root "art/"))
-(setq android-vixl (concat android-root "external/vixl/src/"))
+(setq android-root "~/workspace/aosp")
+(setq android-art  (concat android-root "/art/"))
+(setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
 (setq android-vixl-tags (concat android-vixl "TAGS"))
 (setq tags-table-list (list android-art-tags android-vixl-tags))
@@ -121,7 +127,8 @@
 (defun xueliang-glog ()
   "run git log" (interactive)
   (shell-command "git log -n 200")
-  (switch-to-buffer-other-window "*Shell Command Output*") (evil-window-move-far-right))
+  (switch-to-buffer-other-window "*Shell Command Output*")
+  (evil-window-move-far-right) (evil-forward-WORD-end 2))
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
@@ -201,9 +208,12 @@
 ; grep current word
 (global-set-key (kbd "<f12>") 'helm-do-grep-ag)
 
-; company mode
-(add-hook 'after-init-hook 'global-company-mode)
-(setq company-idle-delay 0)  ;; instead of:  (global-set-key (kbd "") 'company-complete)
+; in org mode, mark a line as +strike-through+
+(defun xueliang-ctrl-s() "in org mode, mark a line as +strike-through+" (interactive)
+       (evil-insert-line 0) (insert "+")
+       (evil-append-line 0) (insert "+")
+       (evil-force-normal-state))
+(global-set-key (kbd "C-s") 'xueliang-ctrl-s)
 
 ;;
 ;; * C-u ARG M-x func RET
@@ -213,6 +223,7 @@
 ;; * emacs -nw
 ;; * M-x server-start
 ;; * helm-show-kill-ring
+;; * evil mode,  helm, org mode, company mode.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
