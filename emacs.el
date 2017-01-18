@@ -139,11 +139,21 @@
   (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-gdiff-revision-at-point ()
-  "run git diff using the revision number at point.
+  "run 'git diff' using the revision number at point.
    workflow: get git revision in output, browse revisions, apply this function." (interactive)
    (if (null (buffer-file-name (current-buffer)))
        (funcall (lambda () ;; already in shell command output buffer.
                   (shell-command (message "git diff %s " (thing-at-point 'word)))
+                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
+       (funcall (lambda () ;; in some other file.
+                  (xueliang-glog) (message "try apply this function in glog.")))))
+
+(defun xueliang-gshow-revision-at-point()
+  "run 'git show' using the revision number at point.
+   workflow: get git revision in output, browse revisions, apply this function." (interactive)
+   (if (null (buffer-file-name (current-buffer)))
+       (funcall (lambda () ;; already in shell command output buffer.
+                  (shell-command (message "git show %s " (thing-at-point 'word)))
                   (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
        (funcall (lambda () ;; in some other file.
                   (xueliang-glog) (message "try apply this function in glog.")))))
