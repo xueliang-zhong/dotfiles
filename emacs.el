@@ -1,5 +1,3 @@
-; 2017 the emacs year for me.
-
 (require 'package)
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
@@ -85,7 +83,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp")
+(setq android-root "~/workspace/Linaro_Android_Master")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -128,7 +126,7 @@
   "run git log" (interactive)
   (shell-command "git log -n 200")
   (switch-to-buffer-other-window "*Shell Command Output*")
-  (evil-window-move-far-right) (evil-forward-WORD-end 2))
+  (evil-window-move-far-right) (evil-end-of-line))
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
@@ -143,6 +141,7 @@
    workflow: get git revision in output, browse revisions, apply this function." (interactive)
    (if (null (buffer-file-name (current-buffer)))
        (funcall (lambda () ;; already in shell command output buffer.
+                  (evil-end-of-line)
                   (shell-command (message "git diff %s " (thing-at-point 'word)))
                   (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
        (funcall (lambda () ;; in some other file.
