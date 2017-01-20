@@ -8,6 +8,11 @@
 (require 'evil)
 (evil-mode 1)
 
+; highlight like vim, C-x SPC to remove all persistant search highlights.
+(require 'highlight)
+(require 'evil-search-highlight-persist)
+(global-evil-search-highlight-persist t)
+
 (ivy-mode 1)
 (setq ivy-use-virtual-buffers t)
 
@@ -25,7 +30,7 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
-(set-face-attribute 'default nil :height 150)
+(set-face-attribute 'default nil :height 140)
 
 ; line/column related
 (column-number-mode)
@@ -232,3 +237,4 @@
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
 ;; https://github.com/emacs-helm/helm/wiki
+;; http://cestlaz.github.io/stories/emacs/
