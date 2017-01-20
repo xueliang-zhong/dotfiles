@@ -81,14 +81,14 @@
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 
-; default theme: tango-dark or tango are both OK.
-(load-theme 'tango-dark)
+; default theme good themes: tango-dark, zenburn
+(load-theme 'zenburn t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/Linaro_Android_Master")
+(setq android-root "~/workspace/aosp")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -200,6 +200,9 @@
 (global-set-key (kbd "C-h f") 'helm-apropos)
 (global-set-key (kbd "C-h v") 'helm-apropos)
 
+; describe key-bindings
+(global-set-key (kbd "C-h b") 'helm-descbinds)
+
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
 
@@ -233,6 +236,7 @@
 ;; * helm-show-kill-ring
 ;; * evil mode,  helm, org mode, company mode.
 ;; * helm-swoop
+;; * (ielm) inferior-emacs-lisp-mode
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
