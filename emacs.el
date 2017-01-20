@@ -70,7 +70,7 @@
 (setq whitespace-style '(face lines-tail))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
-; '-' as part of word
+; '_' as part of word
 (add-hook 'c-mode-hook    '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'c++-mode-hook  '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
@@ -124,7 +124,7 @@
 
 (defun xueliang-glog ()
   "run git log" (interactive)
-  (shell-command "git log -n 200")
+  (shell-command "git log -n 100")
   (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-far-right) (evil-end-of-line))
 
@@ -180,6 +180,10 @@
   "similiar to A plugin for VIM, just type 'M-x A' in helm" (interactive)
   (helm-find-files-1 (car (split-string (buffer-file-name) "\\."))))
 
+; for tag search in android-art project.
+(defun xueliang-helm-etags-select() (interactive)
+   (cd android-art) (helm-etags-select t))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -195,27 +199,17 @@
 (global-set-key (kbd "M-/") 'hippie-expand)
 
 ; <f1> .. <f4> :
-; <f5> .. <f8> : tag, coding, development related
-; <f9> .. <f12>: buffer, folder, grep find related.
+; <f5> .. <f8> : with in buffer : coding, development, tags,
+; <f9> .. <f12>: with in project: buffer, find in project, related.
 
-; find tag and jump to tag
-(defun xueliang-helm-etags-select() (interactive) (cd android-art) (helm-etags-select t))
-(global-set-key (kbd "<f5>") 'xueliang-helm-etags-select)
+(global-set-key (kbd "<f5>")  'helm-swoop)                 ; find in current buffer using helm-swoop.
+(global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)     ; imenu in current file.
+(global-set-key (kbd "<f8>")  'xueliang-helm-etags-select) ; find tag and jump to tag in android-art.
 
-; something like tagbar/tlist, and jump to current function defining in file.
-(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
-
-; buffer
-(global-set-key (kbd "<f9>") 'helm-buffers-list)
-
-; find file
-(global-set-key (kbd "<f10>") 'fiplr-find-file)
-
-; increment grep so useful
-(global-set-key (kbd "<f11>") 'helm-grep-do-git-grep)
-
-; grep current word
-(global-set-key (kbd "<f12>") 'helm-do-grep-ag)
+(global-set-key (kbd "<f9>")  'helm-buffers-list)     ; buffer emnu.
+(global-set-key (kbd "<f10>") 'fiplr-find-file)       ; find file in project.
+(global-set-key (kbd "<f11>") 'helm-grep-do-git-grep) ; increment grep using git-grep.
+(global-set-key (kbd "<f12>") 'helm-do-grep-ag)       ; grep current word in project.
 
 ; in org mode, mark a line as +strike-through+
 (defun xueliang-ctrl-s() "in org mode, mark a line as +strike-through+" (interactive)
@@ -233,6 +227,7 @@
 ;; * M-x server-start
 ;; * helm-show-kill-ring
 ;; * evil mode,  helm, org mode, company mode.
+;; * helm-swoop
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
