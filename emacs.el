@@ -11,18 +11,22 @@
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 (require 'highlight)
 (require 'evil-search-highlight-persist)
-(global-evil-search-highlight-persist t)
+;(global-evil-search-highlight-persist nil) ;; color is not so great.
 
 (ivy-mode 1)
 (setq ivy-use-virtual-buffers t)
-
-(rainbow-delimiters-mode 1)
 
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 
 (setq helm-mode-fuzzy-match t)
+
+; default theme good themes: tango-dark, zenburn
+;(load-theme 'tango-dark t)
+(load-theme 'zenburn t)
+
+(rainbow-delimiters-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
@@ -80,9 +84,6 @@
 (add-hook 'c++-mode-hook  '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
-
-; default theme good themes: tango-dark, zenburn
-(load-theme 'zenburn t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
@@ -237,6 +238,7 @@
 ;; * evil mode,  helm, org mode, company mode.
 ;; * helm-swoop
 ;; * (ielm) inferior-emacs-lisp-mode
+;; * company-mode: M-n/p to select, TAB to complete the common part.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
