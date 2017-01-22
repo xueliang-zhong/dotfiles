@@ -19,6 +19,7 @@
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
+(setq company-minimum-prefix-length 1)
 
 ; default theme good themes: tango-dark, zenburn
 (load-theme 'tango-dark t) ;(load-theme 'zenburn t)
@@ -42,6 +43,12 @@
 ;(setq helm-autoresize-max-height 0)
 ;(setq helm-autoresize-min-height 20)
 ;(helm-autoresize-mode 0)
+
+;; fuzzy matching settings in helm
+(setq helm-M-x-fuzzy-match        t
+      helm-buffers-fuzzy-matching t
+      helm-semantic-fuzzy-match   t
+      helm-imenu-fuzzy-match      t)
 
 (helm-mode 1)
 
@@ -256,8 +263,10 @@
 ;; * helm-swoop
 ;; * (ielm) inferior-emacs-lisp-mode
 ;; * company-mode: M-n/p to select, TAB to complete the common part.
+;; * helm: C-n/p to move up/down in helm buffer-menu-delete-backwards
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
 ;; https://github.com/emacs-helm/helm/wiki
 ;; http://cestlaz.github.io/stories/emacs/
+;; https://tuhdo.github.io/helm-intro.html
