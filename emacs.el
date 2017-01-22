@@ -20,13 +20,30 @@
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 
-(setq helm-mode-fuzzy-match t)
-
 ; default theme good themes: tango-dark, zenburn
-;(load-theme 'tango-dark t)
-(load-theme 'zenburn t)
+(load-theme 'tango-dark t) ;(load-theme 'zenburn t)
 
 (rainbow-delimiters-mode 1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Helm config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'helm)
+(require 'helm-config)
+
+(setq helm-split-window-in-side-p t) ; open helm buffer inside current window, not occupy whole other window
+(setq helm-echo-input-in-header-line t)
+(setq helm-mode-fuzzy-match t)
+;(setq helm-move-to-line-cycle-in-source     t) ; move to end or beginning of source when reaching top or bottom of source.
+;(setq helm-ff-search-library-in-sexp        t) ; search for library in `require' and `declare-function' sexp.
+;(setq helm-scroll-amount                    8) ; scroll lines other window using M-<next>/M-<prior>
+;(setq helm-ff-file-name-history-use-recentf t)
+
+;(setq helm-autoresize-max-height 0)
+;(setq helm-autoresize-min-height 20)
+;(helm-autoresize-mode 0)
+
+(helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
