@@ -100,7 +100,7 @@
 (require 'whitespace)
 (global-whitespace-mode +1)
 (setq whitespace-line-column 101) ;; limit line length
-(setq whitespace-style '(face lines-tail))
+(setq whitespace-style '(face trailing lines-tail tabs))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
 ; '_' as part of word
