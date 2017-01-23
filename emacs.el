@@ -22,7 +22,7 @@
 (setq company-minimum-prefix-length 1)
 
 ; default theme good themes: tango-dark, zenburn
-(load-theme 'tango-dark t) ;(load-theme 'zenburn t)
+(load-theme 'zenburn t)
 
 (rainbow-delimiters-mode 1)
 
@@ -45,7 +45,7 @@
 ;(helm-autoresize-mode 0)
 
 ;; fuzzy matching settings in helm
-(setq helm-M-x-fuzzy-match        t
+(setq helm-M-x-fuzzy-match        nil
       helm-buffers-fuzzy-matching t
       helm-semantic-fuzzy-match   t
       helm-imenu-fuzzy-match      t)
@@ -64,7 +64,7 @@
 (column-number-mode)
 (global-linum-mode)
 (global-hl-line-mode)
-(set-face-background hl-line-face "gray26")
+(set-face-background hl-line-face "gray30")
 
 ; tabs
 (setq tab-width 2)
@@ -113,7 +113,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp")
+(setq android-root "~/workspace/Linaro_Android_Master")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
