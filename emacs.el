@@ -24,10 +24,16 @@
 ; default theme good themes: tango-dark, zenburn
 (load-theme 'zenburn t)
 
-(rainbow-delimiters-mode 1)
+(require 'rainbow-delimiters)
+(rainbow-delimiters-mode)
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+
+(require 'powerline)
+;(powerline-evil-vim-color-theme)
+(powerline-evil-center-color-theme)
+(setq powerline-default-separator 'arrow)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
