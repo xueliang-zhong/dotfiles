@@ -264,12 +264,14 @@
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
 ;; * emacs -nw
 ;; * M-x server-start
+;; * emacsclient -nw
 ;; * helm-show-kill-ring
 ;; * evil mode,  helm, org mode, company mode.
 ;; * helm-swoop
 ;; * (ielm) inferior-emacs-lisp-mode
 ;; * company-mode: M-n/p to select, TAB to complete the common part.
 ;; * helm: C-n/p to move up/down in helm buffer-menu-delete-backwards
+;; * M-n/p is usually going through history items.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
