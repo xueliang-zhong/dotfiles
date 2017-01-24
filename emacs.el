@@ -26,6 +26,9 @@
 
 (rainbow-delimiters-mode 1)
 
+(require 'org-bullets)
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -64,7 +67,7 @@
 (column-number-mode)
 (global-linum-mode)
 (global-hl-line-mode)
-(set-face-background hl-line-face "gray30")
+(set-face-background hl-line-face "gray28")
 
 ; tabs
 (setq tab-width 2)
@@ -124,6 +127,8 @@
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(setq-default shell-output-buffer-name "*Shell Command Output*")
+
 ; Help to make upate TAGS of the project I'm working on easier.
 (defun xueliang-update-tags-art ()
   "update etags/TAGS of Android ART project" (interactive)
@@ -134,7 +139,7 @@
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
   (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*")
+  (switch-to-buffer-other-window shell-output-buffer-name)
   (compilation-mode))
 
 ; Helper to cd to directory of current buffer/file.
@@ -155,7 +160,7 @@
 (defun xueliang-glog ()
   "run git log" (interactive)
   (shell-command "git log -n 100")
-  (switch-to-buffer-other-window "*Shell Command Output*")
+  (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (evil-end-of-line))
 
 (defun xueliang-gdiff-current-buffer ()
@@ -163,8 +168,9 @@
    use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git diff " (buffer-file-name)))
-  (switch-to-buffer-other-window "*Shell Command Output*")
-  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1))
+  (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
+    (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
+    (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number at point.
@@ -202,7 +208,7 @@
   "run git blame on current buffer, esp. current line" (interactive)
   (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
-  (goto-line gblame-line (switch-to-buffer-other-window "*Shell Command Output*"))
+  (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-far-left) (hl-line-mode) (toggle-truncate-lines 1))
 
 ; for switching between .h/.cc files.
