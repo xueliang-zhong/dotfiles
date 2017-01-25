@@ -31,9 +31,14 @@
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 (require 'powerline)
-;(powerline-evil-vim-color-theme)
-(powerline-evil-center-color-theme)
+(powerline-center-evil-theme)
 (setq powerline-default-separator 'arrow)
+
+(require 'git-gutter-fringe)
+(global-git-gutter-mode 1)
+
+;; start for emacsclient
+(server-start)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
