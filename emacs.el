@@ -5,6 +5,11 @@
 (setq package-enable-at-startup nil)
 (package-initialize)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; modes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (require 'evil)
 (evil-mode 1)
 
@@ -37,9 +42,6 @@
 (require 'git-gutter-fringe)
 (global-git-gutter-mode 1)
 
-;; start for emacsclient
-(server-start)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -69,6 +71,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; start for emacsclient
+(server-start)
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
@@ -289,3 +294,4 @@
 ;; https://github.com/emacs-helm/helm/wiki
 ;; http://cestlaz.github.io/stories/emacs/
 ;; https://tuhdo.github.io/helm-intro.html
+;; https://github.com/jwiegley/use-package
