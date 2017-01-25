@@ -26,8 +26,8 @@
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 (setq company-minimum-prefix-length 1)
 
-; default theme good themes: tango-dark, zenburn
-(load-theme 'zenburn t)
+; default theme good themes: tango-dark, zenburn, monokai
+(load-theme 'monokai t)
 
 (require 'rainbow-delimiters)
 (rainbow-delimiters-mode)
@@ -81,9 +81,9 @@
 
 ; line/column related
 (column-number-mode)
-(global-linum-mode)
+(global-nlinum-mode 1) ;; said to be more efficient than (global-linum-mode)
 (global-hl-line-mode)
-(set-face-background hl-line-face "gray28")
+(set-face-background hl-line-face "gray25")
 
 ; tabs
 (setq tab-width 2)
