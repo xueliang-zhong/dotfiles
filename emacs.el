@@ -5,7 +5,6 @@
 (setq package-enable-at-startup nil)
 (package-initialize)
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -16,15 +15,20 @@
 (require 'evil-leader)
 (global-evil-leader-mode)
 
-(evil-leader/set-leader ",")
+(setq-default xueliang-leader-key "<SPC>")
+
+(evil-leader/set-leader xueliang-leader-key)
 
 (evil-leader/set-key
+  "]" 'helm-etags-select-android-art
   "a" 'helm-do-grep-ag
   "b" 'helm-buffers-list
-  "i" 'helm-semantic-or-imenu
   "f" 'fiplr-find-file
-  "s" 'helm-swoop
   "g" 'helm-grep-do-git-grep
+  "i" 'helm-semantic-or-imenu
+  "r" 'helm-recentf
+  "s" 'helm-swoop
+  "x" 'helm-M-x                 ;; for easier use in the dark
 )
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
@@ -54,17 +58,17 @@
 ;(powerline-evil-vim-color-theme)
 (powerline-evil-center-color-theme)
 (set-face-attribute 'mode-line nil
-		    :foreground "White"
-		    ;:background "RoyalBlue"
-		    :background "BlueViolet"
-		    :box nil)
+                    :foreground "White"
+                    ;:background "RoyalBlue"
+                    :background "BlueViolet"
+                    :box nil)
 (setq powerline-default-separator 'contour)
 
 (require 'git-gutter-fringe)
 (global-git-gutter-mode 1)
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence '("," "C-h" "C-c"))
+(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x"))
 (setq guide-key/idle-delay 0.1)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
@@ -108,7 +112,6 @@
 
 ; line/column related
 (column-number-mode)
-;;(global-nlinum-mode -1) ;; said to be more efficient than
 (global-linum-mode)
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
@@ -160,7 +163,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/Linaro_Android_Master")
+(setq android-root "~/workspace/aosp")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -219,13 +222,13 @@
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number at point.
    workflow: get git revision in output, browse revisions, apply this function." (interactive)
-   (if (null (buffer-file-name (current-buffer)))
-       (funcall (lambda () ;; already in shell command output buffer.
-                  (evil-end-of-line)
-                  (shell-command (message "git diff %s " (thing-at-point 'word)))
-                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
-       (funcall (lambda () ;; in some other file.
-                  (xueliang-glog) (message "try apply this function in glog.")))))
+  (if (null (buffer-file-name (current-buffer)))
+      (funcall (lambda () ;; already in shell command output buffer.
+                 (evil-end-of-line)
+                 (shell-command (message "git diff %s " (thing-at-point 'word)))
+                 (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
+      (funcall (lambda () ;; in some other file.
+                 (xueliang-glog) (message "try apply this function in glog.")))))
 
 (defun xueliang-gshow-revision-at-point()
   "run 'git show' using the revision number at point.
@@ -262,7 +265,7 @@
   (helm-find-files-1 (car (split-string (buffer-file-name) "\\."))))
 
 ; for tag search in android-art project.
-(defun xueliang-helm-etags-select() (interactive)
+(defun helm-etags-select-android-art() (interactive)
    (cd android-art) (helm-etags-select t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -286,9 +289,9 @@
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 
-(global-set-key (kbd "<f5>")  'helm-swoop)                 ; find in current buffer using helm-swoop.
-(global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)     ; imenu in current file.
-(global-set-key (kbd "<f8>")  'xueliang-helm-etags-select) ; find tag and jump to tag in android-art.
+(global-set-key (kbd "<f5>")  'helm-swoop)                    ; find in current buffer using helm-swoop.
+(global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
+(global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
 (global-set-key (kbd "<f9>")  'helm-buffers-list)     ; buffer emnu.
 (global-set-key (kbd "<f10>") 'fiplr-find-file)       ; find file in project.
@@ -319,6 +322,7 @@
 ;; * M-n/p is usually going through history items.
 
 ;; https://github.com/emacs-tw/awesome-emacs
+;; http://www.john2x.com/emacs.html
 ;; https://github.com/caiorss/Emacs-Elisp-Programming
 ;; https://github.com/emacs-helm/helm/wiki
 ;; http://cestlaz.github.io/stories/emacs/
