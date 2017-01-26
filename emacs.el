@@ -13,6 +13,20 @@
 (require 'evil)
 (evil-mode 1)
 
+(require 'evil-leader)
+(global-evil-leader-mode)
+
+(evil-leader/set-leader ",")
+
+(evil-leader/set-key
+  "a" 'helm-do-grep-ag
+  "b" 'helm-buffers-list
+  "i" 'helm-semantic-or-imenu
+  "f" 'fiplr-find-file
+  "s" 'helm-swoop
+  "g" 'helm-grep-do-git-grep
+)
+
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 (require 'highlight)
 (require 'evil-search-highlight-persist)
@@ -27,7 +41,7 @@
 (setq company-minimum-prefix-length 1)
 
 ; default theme good themes: tango-dark, zenburn, monokai
-(load-theme 'monokai t)
+(load-theme 'tango-dark t)
 
 (require 'rainbow-delimiters)
 (rainbow-delimiters-mode)
@@ -36,11 +50,24 @@
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 (require 'powerline)
-(powerline-center-evil-theme)
-(setq powerline-default-separator 'arrow)
+;(powerline-center-evil-theme)
+;(powerline-evil-vim-color-theme)
+(powerline-evil-center-color-theme)
+(set-face-attribute 'mode-line nil
+		    :foreground "White"
+		    ;:background "RoyalBlue"
+		    :background "BlueViolet"
+		    :box nil)
+(setq powerline-default-separator 'contour)
 
 (require 'git-gutter-fringe)
 (global-git-gutter-mode 1)
+
+(require 'guide-key)
+(setq guide-key/guide-key-sequence '("," "C-h" "C-c"))
+(setq guide-key/idle-delay 0.1)
+(setq guide-key/popup-window-position 'bottom)
+(guide-key-mode 1)  ; Enable guide-key-mode
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
@@ -81,7 +108,8 @@
 
 ; line/column related
 (column-number-mode)
-(global-nlinum-mode 1) ;; said to be more efficient than (global-linum-mode)
+;;(global-nlinum-mode -1) ;; said to be more efficient than
+(global-linum-mode)
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
 
@@ -209,16 +237,17 @@
        (funcall (lambda () ;; in some other file.
                   (xueliang-glog) (message "try apply this function in glog.")))))
 
-(defun xueliang-gwrite-current-buffer ()
-  "run git add on current buffer" (interactive)
-  (shell-command (concat "git add " (buffer-file-name)))
-  (message "git add: %s" (buffer-file-name)))
-
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
   (shell-command (concat "git checkout " (buffer-file-name)))
   (revert-buffer :ignore-auto :noconfirm)
   (message "git checkout: " (buffer-file-name)))
+
+(defun xueliang-gwrite-current-buffer ()
+  "run git add on current buffer" (interactive)
+  (shell-command (concat "git add " (buffer-file-name)))
+  (xueliang-gread-current-buffer) ;; gread it again to refresh git-gutter.
+  (message "git add: %s" (buffer-file-name)))
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
@@ -295,3 +324,4 @@
 ;; http://cestlaz.github.io/stories/emacs/
 ;; https://tuhdo.github.io/helm-intro.html
 ;; https://github.com/jwiegley/use-package
+;; https://github.com/kai2nenobu/guide-key
