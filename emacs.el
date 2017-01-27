@@ -26,6 +26,7 @@
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
+  "n" 'neotree-toggle
   "r" 'helm-recentf
   "s" 'helm-swoop
   "u" 'universal-argument
@@ -74,6 +75,12 @@
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
+(require 'neotree)
+(setq neo-smart-open 1)
+(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
+(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
+(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -83,14 +90,7 @@
 (setq helm-split-window-in-side-p t) ; open helm buffer inside current window, not occupy whole other window
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match t)
-;(setq helm-move-to-line-cycle-in-source     t) ; move to end or beginning of source when reaching top or bottom of source.
-;(setq helm-ff-search-library-in-sexp        t) ; search for library in `require' and `declare-function' sexp.
-;(setq helm-scroll-amount                    8) ; scroll lines other window using M-<next>/M-<prior>
-;(setq helm-ff-file-name-history-use-recentf t)
-
-;(setq helm-autoresize-max-height 0)
-;(setq helm-autoresize-min-height 20)
-;(helm-autoresize-mode 0)
+(setq helm-ff-file-name-history-use-recentf t)
 
 ;; fuzzy matching settings in helm
 (setq helm-M-x-fuzzy-match        nil
@@ -165,7 +165,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/Linaro_Android_Master")
+(setq android-root "~/workspace/aosp")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
