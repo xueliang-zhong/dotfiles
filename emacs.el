@@ -28,7 +28,8 @@
   "i" 'helm-semantic-or-imenu
   "r" 'helm-recentf
   "s" 'helm-swoop
-  "x" 'helm-M-x                 ;; for easier use in the dark
+  "u" 'universal-argument
+  "x" 'helm-M-x  ;; for easier use in the dark
 )
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
@@ -125,6 +126,7 @@
 ; disable menu-bar-mode
 (menu-bar-mode -1)
 (tool-bar-mode -1)
+(scroll-bar-mode -1) ;; powerline already shows a mini scroll bar
 
 ; show match parentheses
 (show-paren-mode)
@@ -163,7 +165,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp")
+(setq android-root "~/workspace/Linaro_Android_Master")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -187,7 +189,7 @@
   (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
   (switch-to-buffer-other-window shell-output-buffer-name)
-  (compilation-mode))
+  (evil-window-move-very-bottom) (compilation-mode))
 
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
@@ -275,6 +277,9 @@
 ; Nice M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
 
+; vim way of page up, the original universal argument is <leader>-u.
+(global-set-key (kbd "C-u") 'evil-scroll-page-up)
+
 ; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'helm-apropos)
 (global-set-key (kbd "C-h v") 'helm-apropos)
@@ -305,6 +310,9 @@
        (evil-force-normal-state))
 (global-set-key (kbd "C-s") 'xueliang-ctrl-s)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; xueliang good tips
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; * C-u ARG M-x func RET
 ;; * package install RET command-log-mode, toggle-command-log/buffer
