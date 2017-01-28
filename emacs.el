@@ -46,8 +46,10 @@
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 (setq company-minimum-prefix-length 1)
 
-; default theme good themes: tango-dark, zenburn, monokai
-(load-theme 'tango-dark t)
+; default theme good themes: tango-dark, zenburn, monokai, wombat
+(if window-system
+  (load-theme 'tango-dark t)
+  (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
 (rainbow-delimiters-mode)
@@ -107,6 +109,9 @@
 ;; start for emacsclient
 (server-start)
 
+;; make things faster?
+(setq echo-keystrokes 0.1)
+
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
 (set-face-attribute 'default nil :height 140)
@@ -143,8 +148,12 @@
 ; scroll
 (setq scroll-step 1)
 
-; don't put any backup files in my directory.
+; backup files
+(setq make-backup-files nil)
 (setq backup-directory-alist `(("." . "~/.saves")))
+
+; yes and no
+;(defalias yes-or-no-p 'y-or-n-p)
 
 ; mark long lines in column, for example: (column-marker-1 100)
 (require 'column-marker)
@@ -337,3 +346,4 @@
 ;; https://tuhdo.github.io/helm-intro.html
 ;; https://github.com/jwiegley/use-package
 ;; https://github.com/kai2nenobu/guide-key
+;; http://aaronbedra.com/emacs.d/#sec-1
