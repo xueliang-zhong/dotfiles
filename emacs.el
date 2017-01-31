@@ -83,6 +83,9 @@
 (evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
 (evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
 
+; said to make emacs faster
+(remove-hook 'find-file-hooks 'vc-find-file-hook)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
