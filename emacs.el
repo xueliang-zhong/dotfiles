@@ -98,16 +98,16 @@
 (require 'helm)
 (require 'helm-config)
 
-(setq helm-split-window-in-side-p t) ; open helm buffer inside current window, not occupy whole other window
+(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, not occupy whole other window
 (setq helm-echo-input-in-header-line t)
-(setq helm-mode-fuzzy-match t)
-(setq helm-ff-file-name-history-use-recentf t)
+(setq helm-mode-fuzzy-match nil)
+(setq helm-ff-file-name-history-use-recentf nil)
 
 ;; fuzzy matching settings in helm
 (setq helm-M-x-fuzzy-match        nil
-      helm-buffers-fuzzy-matching t
-      helm-semantic-fuzzy-match   t
-      helm-imenu-fuzzy-match      t)
+      helm-buffers-fuzzy-matching nil
+      helm-semantic-fuzzy-match   nil
+      helm-imenu-fuzzy-match      nil)
 
 (helm-mode 1)
 
