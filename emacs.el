@@ -27,12 +27,12 @@
 (evil-leader/set-key
   "]" 'helm-etags-select-android-art
   "a" 'helm-do-grep-ag
-  "b" 'helm-buffers-list
+  "b" 'helm-mini
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
   "n" 'neotree-toggle
-  "r" 'helm-recentf
+  "r" 'helm-mini
   "s" 'helm-swoop
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
@@ -252,7 +252,7 @@
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
-(global-set-key (kbd "<f9>")  'helm-buffers-list)     ; buffer emnu.
+(global-set-key (kbd "<f9>")  'helm-mini)             ; buffer emnu and recentf.
 (global-set-key (kbd "<f10>") 'fiplr-find-file)       ; find file in project.
 (global-set-key (kbd "<f11>") 'helm-grep-do-git-grep) ; increment grep using git-grep.
 (global-set-key (kbd "<f12>") 'helm-do-grep-ag)       ; grep current word in project.
