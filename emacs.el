@@ -76,7 +76,7 @@
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
   (load-theme 'tango-dark t)
-  (load-theme 'wombat t))
+  (load-theme 'tango-dark t))
 
 (require 'rainbow-delimiters)
 (rainbow-delimiters-mode)
