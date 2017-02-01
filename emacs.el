@@ -49,7 +49,7 @@
 (require 'helm)
 (require 'helm-config)
 
-(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, not occupy whole other window
+(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, I think it makes things slow.
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
@@ -101,7 +101,7 @@
 (require 'guide-key)
 (setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
 (setq guide-key/idle-delay 0.1)
-(setq guide-key/popup-window-position 'bottom)
+(setq guide-key/popup-window-position 'box)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
 (require 'neotree)
