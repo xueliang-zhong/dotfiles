@@ -9,6 +9,7 @@ echo make
 echo mm test-art-host-run-test
 echo mm test-art-host-gtest
 echo mma test-art-host -j40
+echo ART_USE_VIXL_ARM_BACKEND=true mm test-art-target-run-test
 echo ART_TEST_JIT=true m test-art-host-run-test-001-HelloWorld
 echo art/test/run-test --host 001-HelloWorld
 echo mm test-art-host-gtest-scheduler_test64 -j20
