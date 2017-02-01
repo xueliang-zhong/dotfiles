@@ -12,19 +12,18 @@
 (load "xueliang-git.elc");
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; modes
+;; Evil config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
 (require 'evil)
 (evil-mode 1)
 
 (require 'evil-leader)
 (global-evil-leader-mode)
 
+(setq evil-shift-width 2)
+
 (setq-default xueliang-leader-key "<SPC>")
-
 (evil-leader/set-leader xueliang-leader-key)
-
 (evil-leader/set-key
   "]" 'helm-etags-select-android-art
   "a" 'helm-do-grep-ag
@@ -44,6 +43,28 @@
 (require 'evil-search-highlight-persist)
 ;(global-evil-search-highlight-persist nil) ;; color is not so great.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Helm config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(require 'helm)
+(require 'helm-config)
+
+(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, not occupy whole other window
+(setq helm-echo-input-in-header-line t)
+(setq helm-mode-fuzzy-match nil)
+(setq helm-ff-file-name-history-use-recentf nil)
+
+;; fuzzy matching settings in helm
+(setq helm-M-x-fuzzy-match        nil
+      helm-buffers-fuzzy-matching nil
+      helm-semantic-fuzzy-match   nil
+      helm-imenu-fuzzy-match      nil)
+
+(helm-mode 1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Other modes
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (ivy-mode 1)
 (setq ivy-use-virtual-buffers t)
 
@@ -91,25 +112,6 @@
 
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Helm config
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(require 'helm)
-(require 'helm-config)
-
-(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, not occupy whole other window
-(setq helm-echo-input-in-header-line t)
-(setq helm-mode-fuzzy-match nil)
-(setq helm-ff-file-name-history-use-recentf nil)
-
-;; fuzzy matching settings in helm
-(setq helm-M-x-fuzzy-match        nil
-      helm-buffers-fuzzy-matching nil
-      helm-semantic-fuzzy-match   nil
-      helm-imenu-fuzzy-match      nil)
-
-(helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
