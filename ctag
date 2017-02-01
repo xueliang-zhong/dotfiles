@@ -7,5 +7,5 @@
 #ctags -R --c++-kinds=+p --fields=+iaS --extra=+q . --exclude=test
 #wait
 
-find -name "*.h" -o -name "*.cc" | xargs etags
+find -name "*.h" -o -name "*.cc" | grep -v test | xargs etags
 

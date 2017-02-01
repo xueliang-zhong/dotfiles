@@ -127,7 +127,7 @@
 
 ; line/column related
 (column-number-mode)
-(global-linum-mode)
+(global-linum-mode -1)  ;; disable line number for performance.
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
 
