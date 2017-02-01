@@ -99,7 +99,7 @@
 (global-git-gutter-mode 1)
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x"))
+(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
 (setq guide-key/idle-delay 0.1)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
