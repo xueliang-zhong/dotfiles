@@ -6,6 +6,12 @@
 (package-initialize)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; my own plugin
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(add-to-list 'load-path "~/.emacs.d/xueliang/")
+(load "xueliang-git.elc");
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -142,7 +148,7 @@
 ; wrap long lines
 (set-default 'truncate-lines t)
 
-; diable bold font
+; bold font
 (set-face-bold 'bold t)
 
 ; mouse
@@ -188,8 +194,6 @@
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq-default shell-output-buffer-name "*Shell Command Output*")
-
 ; Help to make upate TAGS of the project I'm working on easier.
 (defun xueliang-update-tags-art ()
   "update etags/TAGS of Android ART project" (interactive)
@@ -200,7 +204,7 @@
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
   (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
-  (switch-to-buffer-other-window shell-output-buffer-name)
+  (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-very-bottom) (compilation-mode))
 
 ; Helper to cd to directory of current buffer/file.
@@ -208,70 +212,6 @@
   "cd to directory of current buffer/file." (interactive)
   (cd (file-name-directory buffer-file-name))
   (message "pwd: %s" (file-name-directory buffer-file-name)))
-
-; Git helper functions/commands.
-(defun xueliang-gcommit-current-file ()
-  "run git commit on current file.
-   *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
-  (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
-
-(defun xueliang-gstatus ()
-  "run git status" (interactive) (shell-command "git status"))
-
-(defun xueliang-glog ()
-  "run git log" (interactive)
-  (shell-command "git log -n 100")
-  (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (evil-end-of-line))
-
-(defun xueliang-gdiff-current-buffer ()
-  "run git diff on current buffer;
-   use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (shell-command (concat "git diff " (buffer-file-name)))
-  (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
-    (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-    (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
-
-(defun xueliang-gdiff-revision-at-point ()
-  "run 'git diff' using the revision number at point.
-   workflow: get git revision in output, browse revisions, apply this function." (interactive)
-  (if (null (buffer-file-name (current-buffer)))
-      (funcall (lambda () ;; already in shell command output buffer.
-                 (evil-end-of-line)
-                 (shell-command (message "git diff %s " (thing-at-point 'word)))
-                 (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
-      (funcall (lambda () ;; in some other file.
-                 (xueliang-glog) (message "try apply this function in glog.")))))
-
-(defun xueliang-gshow-revision-at-point()
-  "run 'git show' using the revision number at point.
-   workflow: get git revision in output, browse revisions, apply this function." (interactive)
-   (if (null (buffer-file-name (current-buffer)))
-       (funcall (lambda () ;; already in shell command output buffer.
-                  (shell-command (message "git show %s " (thing-at-point 'word)))
-                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
-       (funcall (lambda () ;; in some other file.
-                  (xueliang-glog) (message "try apply this function in glog.")))))
-
-(defun xueliang-gread-current-buffer ()
-  "run git checkout on current buffer" (interactive)
-  (shell-command (concat "git checkout " (buffer-file-name)))
-  (revert-buffer :ignore-auto :noconfirm)
-  (message "git checkout: " (buffer-file-name)))
-
-(defun xueliang-gwrite-current-buffer ()
-  "run git add on current buffer" (interactive)
-  (shell-command (concat "git add " (buffer-file-name)))
-  (xueliang-gread-current-buffer) ;; gread it again to refresh git-gutter.
-  (message "git add: %s" (buffer-file-name)))
-
-(defun xueliang-gblame-current-buffer ()
-  "run git blame on current buffer, esp. current line" (interactive)
-  (setq-local gblame-line (line-number-at-pos))
-  (shell-command (concat "git blame " (buffer-file-name)))
-  (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
-  (evil-window-move-far-left) (hl-line-mode) (toggle-truncate-lines 1))
 
 ; for switching between .h/.cc files.
 (defun xueliang-A-h-cc-files-switcher ()

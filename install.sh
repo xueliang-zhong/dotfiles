@@ -21,3 +21,8 @@ ln -sf `pwd`/m ~/bin/m
 # emacs
 rm -f ~/.emacs
 ln -sf `pwd`/emacs.el ~/.emacs
+
+# emacs.d
+rm -rf ~/.emacs.d/xueliang/
+mkdir  ~/.emacs.d/xueliang/
+ln -sf `pwd`/xueliang-git.el ~/.emacs.d/xueliang/xueliang-git.el
