@@ -80,7 +80,7 @@
   (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
-(rainbow-delimiters-mode)
+(add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
