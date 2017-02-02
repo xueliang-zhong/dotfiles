@@ -49,7 +49,7 @@
 (require 'helm)
 (require 'helm-config)
 
-(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, I think it makes things slow.
+(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, I think it might make things slow.
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
@@ -65,8 +65,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(ivy-mode 1)
-(setq ivy-use-virtual-buffers t)
+; I have helm, ivy is not needed.
+;(ivy-mode -1)
+;(setq ivy-use-virtual-buffers t)
 
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
@@ -84,16 +85,17 @@
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
-(require 'powerline)
+;; powerline is pretty but I like simple things.
+;(require 'powerline)
 ;(powerline-center-evil-theme)
 ;(powerline-evil-vim-color-theme)
-(powerline-evil-center-color-theme)
-(set-face-attribute 'mode-line nil
-                    :foreground "White"
-                    ;:background "RoyalBlue"
-                    :background "BlueViolet"
-                    :box nil)
-(setq powerline-default-separator 'contour)
+;(powerline-evil-center-color-theme)
+;(set-face-attribute 'mode-line nil
+;                    :foreground "White"
+;                    ;:background "RoyalBlue"
+;                    :background "BlueViolet"
+;                    :box nil)
+;(setq powerline-default-separator 'contour)
 
 (require 'git-gutter-fringe)
 (global-git-gutter-mode 1)
@@ -101,7 +103,7 @@
 (require 'guide-key)
 (setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
 (setq guide-key/idle-delay 0.1)
-(setq guide-key/popup-window-position 'box)
+(setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
 (require 'neotree)
@@ -129,7 +131,7 @@
 
 ; line/column related
 (column-number-mode)
-(global-linum-mode -1)  ;; disable line number for performance.
+(global-linum-mode 1)  ;; disable line number for performance.
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
 
