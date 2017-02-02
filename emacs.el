@@ -72,12 +72,12 @@
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
-(setq company-minimum-prefix-length 1)
+(setq company-minimum-prefix-length 2)
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
   (load-theme 'tango-dark t)
-  (load-theme 'tango-dark t))
+  (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
 (rainbow-delimiters-mode)
@@ -142,6 +142,7 @@
 (setq indent-tabs-mode nil)
 (defun tab-as-two-spaces() (interactive) (insert "  "))
 (global-set-key (kbd "TAB") 'tab-as-two-spaces)
+
 
 ; disable menu-bar-mode
 (menu-bar-mode -1)
@@ -280,6 +281,7 @@
 ;; * emacs -nw
 ;; * M-x server-start
 ;; * emacsclient -nw
+;; * emacsclient -c
 ;; * helm-show-kill-ring
 ;; * evil mode,  helm, org mode, company mode.
 ;; * helm-swoop
