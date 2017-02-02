@@ -86,19 +86,19 @@
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 ;; powerline is pretty but I like simple things.
-(require 'powerline-evil)
+;(require 'powerline-evil)
 ;(powerline-center-evil-theme)
 ;(powerline-evil-vim-color-theme)
-(powerline-evil-center-color-theme)
-(set-face-attribute 'mode-line nil
-                    :foreground "White"
-                    ;:background "RoyalBlue"
-                    :background "BlueViolet"
-                    :box nil)
-(setq powerline-default-separator 'arrow)
+;(powerline-evil-center-color-theme)
+;(set-face-attribute 'mode-line nil
+;                    :foreground "White"
+;                    ;:background "RoyalBlue"
+;                    :background "BlueViolet"
+;                    :box nil)
+;(setq powerline-default-separator 'arrow)
 
-(require 'git-gutter-fringe)
-(global-git-gutter-mode 1)
+(require 'git-gutter+)
+(global-git-gutter+-mode 1)
 
 (require 'guide-key)
 (setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
@@ -131,7 +131,8 @@
 
 ; line/column related
 (column-number-mode)
-(global-linum-mode 1)  ;; disable line number for performance.
+;;(global-linum-mode -1)  ;; disable line number for performance.
+;;(global-nlinum-mode -1)  ;; faster one?
 (require 'hl-line+)
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
@@ -167,10 +168,7 @@
 (setq backup-directory-alist `(("." . "~/.saves")))
 
 ; yes and no
-;(defalias yes-or-no-p 'y-or-n-p)
-
-; mark long lines in column, for example: (column-marker-1 100)
-; (require 'column-marker)
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 (require 'whitespace)
 (global-whitespace-mode +1)
