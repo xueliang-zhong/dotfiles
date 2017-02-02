@@ -41,7 +41,7 @@
   "run git show" (interactive)
   (shell-command "git show")
   (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (evil-end-of-line))
+  (evil-window-move-far-right) (diff-mode) (evil-end-of-line))
 
 (defun xueliang-gshow-revision-at-point()
   "run 'git show' using the revision number at point.

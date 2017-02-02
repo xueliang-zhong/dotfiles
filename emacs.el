@@ -40,7 +40,7 @@
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 (require 'highlight)
-(require 'evil-search-highlight-persist)
+;(require 'evil-search-highlight-persist)
 ;(global-evil-search-highlight-persist nil) ;; color is not so great.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -49,7 +49,7 @@
 (require 'helm)
 (require 'helm-config)
 
-(setq helm-split-window-in-side-p nil) ; open helm buffer inside current window, I think it might make things slow.
+(setq helm-split-window-in-side-p t) ; open helm buffer inside current window, I think it might make things slow.
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
@@ -86,16 +86,16 @@
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 ;; powerline is pretty but I like simple things.
-;(require 'powerline)
+(require 'powerline-evil)
 ;(powerline-center-evil-theme)
 ;(powerline-evil-vim-color-theme)
-;(powerline-evil-center-color-theme)
-;(set-face-attribute 'mode-line nil
-;                    :foreground "White"
-;                    ;:background "RoyalBlue"
-;                    :background "BlueViolet"
-;                    :box nil)
-;(setq powerline-default-separator 'contour)
+(powerline-evil-center-color-theme)
+(set-face-attribute 'mode-line nil
+                    :foreground "White"
+                    ;:background "RoyalBlue"
+                    :background "BlueViolet"
+                    :box nil)
+(setq powerline-default-separator 'arrow)
 
 (require 'git-gutter-fringe)
 (global-git-gutter-mode 1)
@@ -132,6 +132,7 @@
 ; line/column related
 (column-number-mode)
 (global-linum-mode 1)  ;; disable line number for performance.
+(require 'hl-line+)
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
 
@@ -169,7 +170,7 @@
 ;(defalias yes-or-no-p 'y-or-n-p)
 
 ; mark long lines in column, for example: (column-marker-1 100)
-(require 'column-marker)
+; (require 'column-marker)
 
 (require 'whitespace)
 (global-whitespace-mode +1)
@@ -235,6 +236,10 @@
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
+
+; my vim way of moving screen
+(global-set-key (kbd "C-j") 'evil-scroll-line-down)
+(global-set-key (kbd "C-k") 'evil-scroll-line-up)
 
 ; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'helm-apropos)
