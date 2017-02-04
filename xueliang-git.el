@@ -13,7 +13,7 @@
 
 (defun xueliang-glog ()
   "run git log" (interactive)
-  (shell-command "git log -n 100")
+  (shell-command "git log -n 30")
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (evil-end-of-line))
 
@@ -70,4 +70,4 @@
   (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
-  (evil-window-move-far-left) (hl-line-mode) (toggle-truncate-lines 1))
+  (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))

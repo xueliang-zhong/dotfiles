@@ -97,6 +97,10 @@
 ;                    :box nil)
 ;(setq powerline-default-separator 'arrow)
 
+(require 'smart-mode-line)
+(setq sml/no-confirm-load-theme t)
+(smart-mode-line-enable)
+
 (require 'git-gutter+)
 (global-git-gutter+-mode 1)
 
