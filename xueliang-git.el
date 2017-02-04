@@ -13,9 +13,9 @@
 
 (defun xueliang-glog ()
   "run git log" (interactive)
-  (shell-command "git log -n 30")
+  (shell-command "git log -n 100 --pretty=oneline")
   (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (evil-end-of-line))
+  (evil-window-move-far-right) (evil-beginning-of-line))
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
@@ -31,7 +31,7 @@
    workflow: get git revision in output, browse revisions, apply this function." (interactive)
   (if (null (buffer-file-name (current-buffer)))
       (funcall (lambda () ;; already in shell command output buffer.
-                 (evil-end-of-line)
+                 (evil-beginning-of-line)
                  (shell-command (message "git diff %s " (thing-at-point 'word)))
                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1)))
       (funcall (lambda () ;; in some other file.
