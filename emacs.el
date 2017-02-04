@@ -17,6 +17,11 @@
 (require 'evil)
 (evil-mode 1)
 
+;; Evil Mode everywhere.
+(setq evil-emacs-state-modes nil)
+(setq evil-insert-state-modes nil)
+(setq evil-motion-state-modes nil)
+
 (require 'evil-leader)
 (global-evil-leader-mode)
 
@@ -37,6 +42,8 @@
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
 )
+
+(setq evil-mode-line-format 'before)
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 (require 'highlight)
@@ -65,9 +72,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; I have helm, ivy is not needed.
-;(ivy-mode -1)
-;(setq ivy-use-virtual-buffers t)
+;; helm for M-x, ivy for evil/vi ex command line.
+;; <tab> to trigger in ex command line.
+(ivy-mode 1)
 
 ; company mode
 (add-hook 'after-init-hook 'global-company-mode)
@@ -123,7 +130,7 @@
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; start for emacsclient
+;; start server for emacsclient
 (server-start)
 
 ;; make things faster?
@@ -147,8 +154,7 @@
 (defun tab-as-two-spaces() (interactive) (insert "  "))
 (global-set-key (kbd "TAB") 'tab-as-two-spaces)
 
-
-; disable menu-bar-mode
+; disable some bars
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1) ;; powerline already shows a mini scroll bar
@@ -303,3 +309,4 @@
 ;; https://github.com/jwiegley/use-package
 ;; https://github.com/kai2nenobu/guide-key
 ;; http://aaronbedra.com/emacs.d/#sec-1
+;; https://github.com/noctuid/evil-guide/blob/master/README.org
