@@ -36,8 +36,7 @@
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
-  "n" 'neotree-toggle
-  "r" 'helm-mini
+  "r" 'helm-for-files
   "s" 'helm-swoop
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
@@ -46,7 +45,7 @@
 (setq evil-mode-line-format 'before)
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
-(require 'highlight)
+;(require 'highlight)
 ;(require 'evil-search-highlight-persist)
 ;(global-evil-search-highlight-persist nil) ;; color is not so great.
 
@@ -117,11 +116,11 @@
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
-(require 'neotree)
-(setq neo-smart-open 1)
-(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
-(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
-(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
+;(require 'neotree)
+;(setq neo-smart-open 1)
+;(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
+;(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
+;(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
 
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
@@ -131,7 +130,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; start server for emacsclient
-(server-start)
+(unless (server-running-p)
+  (server-start))
 
 ;; make things faster?
 (setq echo-keystrokes 0.1)
