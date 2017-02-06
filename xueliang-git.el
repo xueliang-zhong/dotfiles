@@ -15,7 +15,7 @@
   "run git log" (interactive)
   (shell-command "git log -n 100 --pretty=oneline")
   (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (evil-beginning-of-line))
+  (evil-window-move-very-bottom) (evil-beginning-of-line))
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;

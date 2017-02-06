@@ -32,7 +32,7 @@
 (evil-leader/set-key
   "]" 'helm-etags-select-android-art
   "a" 'helm-do-grep-ag
-  "b" 'helm-mini
+  "b" 'helm-for-files
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
@@ -43,6 +43,12 @@
 )
 
 (setq evil-mode-line-format 'before)
+(setq helm-for-files-preferred-list
+      '(helm-source-buffers-list
+	helm-source-recentf
+	helm-source-bookmarks
+	helm-source-file-cache
+	helm-source-files-in-current-dir))
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 ;(require 'highlight)
@@ -157,7 +163,7 @@
 ; disable some bars
 (menu-bar-mode -1)
 (tool-bar-mode -1)
-(scroll-bar-mode -1) ;; powerline already shows a mini scroll bar
+(scroll-bar-mode -1)
 
 ; show match parentheses
 (show-paren-mode)
