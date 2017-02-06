@@ -14,6 +14,9 @@
 (defun xueliang-gstatus ()
   "run git status" (interactive) (shell-command "git status"))
 
+(defun xueliang-gbranch()
+  "run git branch" (interactive) (shell-command "git branch"))
+
 (defun xueliang-glog ()
   "run git log" (interactive)
   (shell-command "git log -n 100 --pretty=oneline")
