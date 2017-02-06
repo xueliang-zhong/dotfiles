@@ -1,6 +1,9 @@
 ; xueliang's
 ; Git helper functions/commands.
 
+;; for windows to display diff, put them far-right.
+;; for windows for the user to do select, put them very-bottom.
+
 (setq-default shell-output-buffer-name "*Shell Command Output*")
 
 (defun xueliang-gcommit-current-file ()
