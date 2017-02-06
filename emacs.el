@@ -142,6 +142,9 @@
 ;; make things faster?
 (setq echo-keystrokes 0.1)
 
+;; hide welcome screen
+(setq inhibit-splash-screen t)
+
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
 (set-face-attribute 'default nil :height 140)
