@@ -37,7 +37,7 @@
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
   "n" 'neotree-toggle
-  "r" 'helm-for-files
+  "r" 'helm-recentf
   "s" 'helm-swoop
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
