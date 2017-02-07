@@ -36,6 +36,7 @@
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
+  "n" 'neotree-toggle
   "r" 'helm-for-files
   "s" 'helm-swoop
   "u" 'universal-argument
@@ -123,10 +124,10 @@
 (guide-key-mode 1)  ; Enable guide-key-mode
 
 ;(require 'neotree)
-;(setq neo-smart-open 1)
-;(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
-;(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
-;(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
+(setq neo-smart-open 1)
+(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
+(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
+(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
 
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
@@ -277,8 +278,8 @@
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
-(global-set-key (kbd "<f9>")  'helm-mini)             ; buffer emnu and recentf.
-(global-set-key (kbd "<f10>") 'fiplr-find-file)       ; find file in project.
+(global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
+(global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-grep-do-git-grep) ; increment grep using git-grep.
 (global-set-key (kbd "<f12>") 'helm-do-grep-ag)       ; grep current word in project.
 
