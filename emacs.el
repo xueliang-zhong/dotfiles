@@ -36,7 +36,7 @@
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
-  "n" 'neotree-toggle
+  "n" 'helm-for-files
   "r" 'helm-recentf
   "s" 'helm-swoop
   "u" 'universal-argument
@@ -148,7 +148,7 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 130)
 
 ; line/column related
 (column-number-mode)
