@@ -33,6 +33,7 @@
   "]" 'helm-etags-select-android-art
   "a" 'helm-do-grep-ag
   "b" 'helm-for-files
+  "e" 'xueliang-eshell
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
@@ -245,6 +246,11 @@
 ; for tag search in android-art project.
 (defun helm-etags-select-android-art() (interactive)
    (cd android-art) (helm-etags-select t))
+
+; invoke e-shell
+(defun xueliang-eshell()
+   "invokes eshell in a split window" (interactive)
+   (split-window-below) (eshell) (evil-append-line 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
