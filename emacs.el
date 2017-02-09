@@ -31,7 +31,7 @@
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
   "]" 'helm-etags-select-android-art
-  "a" 'helm-do-grep-ag
+  "a" 'xueliang-ag-search-in-project
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "f" 'fiplr-find-file
@@ -251,6 +251,12 @@
 (defun xueliang-eshell()
    "invokes eshell in a split window" (interactive)
    (split-window-below) (eshell) (evil-append-line 1))
+
+; search in project using ag
+(defun xueliang-ag-search-in-project(argument)
+  "search in project using ag; use fiplr to goto the root dir of the project"
+  (interactive "P")
+  (cd (fiplr-root)) (helm-do-grep-ag argument))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
