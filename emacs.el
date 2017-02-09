@@ -256,6 +256,7 @@
 (defun xueliang-ag-search-in-project(argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
+  (require 'fiplr)
   (cd (fiplr-root)) (helm-do-grep-ag argument))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
