@@ -192,6 +192,9 @@
 ; yes and no
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+; improve display performance
+(setq redisplay-dont-pause t)
+
 (require 'whitespace)
 (global-whitespace-mode +1)
 (setq whitespace-line-column 101) ;; limit line length
