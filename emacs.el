@@ -63,18 +63,35 @@
 (require 'helm)
 (require 'helm-config)
 
-(setq helm-split-window-in-side-p t) ; open helm buffer inside current window, I think it might make things slow.
+(setq helm-split-window-in-side-p t) ; open helm buffer inside current window
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
 
 ;; fuzzy matching settings in helm
 (setq helm-M-x-fuzzy-match        nil
-      helm-buffers-fuzzy-matching nil
-      helm-semantic-fuzzy-match   nil
-      helm-imenu-fuzzy-match      nil)
+      helm-buffers-fuzzy-matching t
+      helm-semantic-fuzzy-match   t
+      helm-imenu-fuzzy-match      t)
+
+;; rebind tab to run persistent action
+(define-key helm-map (kbd "TAB") 'helm-execute-persistent-action)
+(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
 
 (helm-mode 1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Company config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(add-hook 'after-init-hook 'global-company-mode)
+(setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
+(setq company-minimum-prefix-length 2)
+
+; tab to select in company.
+(eval-after-load 'company
+  '(progn
+     (define-key company-active-map (kbd "TAB")   'company-complete-common-or-cycle)
+     (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
@@ -82,11 +99,6 @@
 ;; helm for M-x, ivy for evil/vi ex command line.
 ;; <tab> to trigger in ex command line.
 (ivy-mode 1)
-
-; company mode
-(add-hook 'after-init-hook 'global-company-mode)
-(setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
-(setq company-minimum-prefix-length 2)
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
