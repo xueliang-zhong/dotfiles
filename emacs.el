@@ -45,12 +45,6 @@
 )
 
 (setq evil-mode-line-format 'before)
-(setq helm-for-files-preferred-list
-      '(helm-source-buffers-list
-        helm-source-recentf
-        helm-source-bookmarks
-        helm-source-file-cache
-        helm-source-files-in-current-dir))
 
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 ;(require 'highlight)
@@ -67,6 +61,13 @@
 (setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
+
+(setq helm-for-files-preferred-list
+      '(helm-source-buffers-list
+        helm-source-recentf
+        helm-source-bookmarks
+        helm-source-file-cache
+        helm-source-files-in-current-dir))
 
 ;; fuzzy matching settings in helm
 (setq helm-M-x-fuzzy-match        nil
@@ -333,7 +334,7 @@
 ;; * emacsclient -nw
 ;; * emacsclient -c
 ;; * helm-show-kill-ring
-;; * evil mode,  helm, org mode, company mode.
+;; * evil mode, helm, org mode, company mode.
 ;; * helm-swoop
 ;; * (ielm) inferior-emacs-lisp-mode
 ;; * company-mode: M-n/p to select, TAB to complete the common part.
