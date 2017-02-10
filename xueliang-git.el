@@ -6,8 +6,8 @@
 
 (setq-default shell-output-buffer-name "*Shell Command Output*")
 
-(defun xueliang-gcommit-current-file ()
-  "run git commit on current file.
+(defun xueliang-gcommit ()
+  "run git commit.
    *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
   (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
 
