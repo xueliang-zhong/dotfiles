@@ -74,9 +74,9 @@
       helm-semantic-fuzzy-match   t
       helm-imenu-fuzzy-match      t)
 
-;; rebind tab to run persistent action
-(define-key helm-map (kbd "TAB") 'helm-execute-persistent-action)
-(define-key helm-map (kbd "C-z")  'helm-select-action) ; list actions using C-z
+;; rebind tab to the next line in helm window, same behavior as company.
+(define-key helm-map (kbd "TAB") 'helm-next-line)
+(define-key helm-map (kbd "C-z") 'helm-select-action) ; list actions using C-z
 
 (helm-mode 1)
 
@@ -254,9 +254,10 @@
   (message "pwd: %s" (file-name-directory buffer-file-name)))
 
 ; for switching between .h/.cc files.
+; USE NEOTREE INSTEAD
 (defun xueliang-A-h-cc-files-switcher ()
-  "similiar to A plugin for VIM, just type 'M-x A' in helm" (interactive)
-  (helm-find-files-1 (car (split-string (buffer-file-name) "\\."))))
+  "USE NEOTREE INSTEAD; similiar to A plugin for VIM, just type 'M-x A' in helm" (interactive)
+  (neotree-toggle))
 
 ; for tag search in android-art project.
 (defun helm-etags-select-android-art() (interactive)
@@ -265,6 +266,7 @@
 ; invoke e-shell
 (defun xueliang-eshell()
    "invokes eshell in a split window" (interactive)
+   (xueliang-cd-current-buffer-directory)
    (split-window-below) (eshell) (evil-append-line 1))
 
 ; search in project using ag
