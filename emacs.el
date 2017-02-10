@@ -314,10 +314,9 @@
 (global-set-key (kbd "<f11>") 'helm-grep-do-git-grep) ; increment grep using git-grep.
 (global-set-key (kbd "<f12>") 'helm-do-grep-ag)       ; grep current word in project.
 
-; in org mode, mark a line as +strike-through+
-(defun xueliang-ctrl-s() "in org mode, mark a line as +strike-through+" (interactive)
-       (evil-insert-line 0) (insert "+")
-       (evil-append-line 0) (insert "+")
+; simply save current file
+(defun xueliang-ctrl-s() "simply save current file like other modern editors do." (interactive)
+       (write-file (buffer-file-name))
        (evil-force-normal-state))
 (global-set-key (kbd "C-s") 'xueliang-ctrl-s)
 
