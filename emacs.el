@@ -224,7 +224,7 @@
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(setq android-root "~/workspace/aosp")
+(setq android-root "~/workspace/linaro/")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
@@ -239,6 +239,10 @@
 (defun xueliang-update-tags-art ()
   "update etags/TAGS of Android ART project" (interactive)
   (cd android-art) (shell-command "ctag"))
+
+(defun xueliang-update-tags-vixl ()
+  "update etags/TAGS of Android VIXL project" (interactive)
+  (cd android-vixl) (shell-command "ctag"))
 
 ; Help to make code reviews easier; requires cpplint.py in $PATH.
 (defun xueliang-art-cpplint ()
@@ -349,6 +353,7 @@
 ;; * company-mode: M-n/p to select, TAB to complete the common part.
 ;; * helm: C-n/p to move up/down in helm buffer-menu-delete-backwards
 ;; * M-n/p is usually going through history items.
+;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
