@@ -240,13 +240,23 @@
   "update etags/TAGS of Android ART project" (interactive)
   (cd android-art) (shell-command "ctag"))
 
-; Help to make code reviews easier; requires cpplint.py in $PATH
+; Help to make code reviews easier; requires cpplint.py in $PATH.
 (defun xueliang-art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
   (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-very-bottom) (compilation-mode))
+
+; Help to make cross-project search easier.
+(defun xueliang-ag-vixl (arg)
+  "look for WORD in VIXL using ag searcher" (interactive "P")
+  (cd android-vixl) (helm-do-grep-ag arg))
+
+; Help to make cross-project search easier.
+(defun xueliang-ag-art (arg)
+  "look for WORD in Android ART using ag searcher" (interactive "P")
+  (cd android-art) (helm-do-grep-ag arg))
 
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
@@ -287,9 +297,9 @@
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
 
-; my vim way of moving screen
-(global-set-key (kbd "C-j") 'evil-scroll-line-down)
-(global-set-key (kbd "C-k") 'evil-scroll-line-up)
+;; my vim way of moving screen
+;(global-set-key (kbd "C-j") 'evil-scroll-line-down)
+;(global-set-key (kbd "C-k") 'evil-scroll-line-up)
 
 ; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'helm-apropos)
