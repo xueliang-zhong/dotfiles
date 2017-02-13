@@ -298,8 +298,8 @@
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
 
 ;; my vim way of moving screen
-;(global-set-key (kbd "C-j") 'evil-scroll-line-down)
-;(global-set-key (kbd "C-k") 'evil-scroll-line-up)
+(global-set-key (kbd "C-j") 'evil-scroll-line-down)
+(global-set-key (kbd "C-k") 'evil-scroll-line-up)
 
 ; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'helm-apropos)

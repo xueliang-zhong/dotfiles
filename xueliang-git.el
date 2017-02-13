@@ -9,6 +9,7 @@
 (defun xueliang-gcommit ()
   "run git commit.
    *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
 
 (defun xueliang-gstatus ()
