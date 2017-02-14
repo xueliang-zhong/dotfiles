@@ -220,6 +220,9 @@
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 
+; show which function on mode-line.
+(which-function-mode 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -24,7 +24,7 @@
   (if (null (buffer-file-name (current-buffer)))
       (funcall (lambda () ;; already in shell command output buffer.
                  (setq-local rebase-cmd (message "git rebase -i HEAD~%d" (count-lines (region-beginning) (region-end))))
-                 (print rebase-cmd) (shell-command rebase-cmd)))
+                 (print rebase-cmd) (async-shell-command rebase-cmd)))
       (funcall (lambda () ;; in some other file.
                  (xueliang-glog) (message "try apply this function in glog.")))))
 
