@@ -18,17 +18,9 @@
 (defun xueliang-gbranch()
   "run git branch" (interactive) (shell-command "git branch"))
 
-(defun xueliang-grebase-last-commits()
-  "run git rebase on selected top lines in glog.\nRequire $EDITOR to be set properly." (interactive)
-  (if (null (buffer-file-name (current-buffer)))
-      (funcall (lambda () ;; already in shell command output buffer.
-                 (setq-local rebase-cmd (message "/bin/bash ~/bin/git-rebase-head %d" (count-lines (region-beginning) (region-end))))
-                 (print rebase-cmd) (async-shell-command rebase-cmd)))
-      (funcall (lambda () ;; in some other file.
-                 (xueliang-glog) (message "try apply this function in glog.")))))
-
 (defun xueliang-glog ()
   "run git log" (interactive)
+  (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (shell-command "git log -n 100 --pretty=oneline")
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-very-bottom) (evil-beginning-of-line))
@@ -87,3 +79,12 @@
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
+
+(defun xueliang-grebase-last-commits()
+  "run git rebase on selected top lines in glog.\nRequire $EDITOR to be set properly." (interactive)
+  (if (null (buffer-file-name (current-buffer)))
+      (funcall (lambda () ;; already in shell command output buffer.
+                 (setq-local rebase-cmd (message "/bin/bash ~/bin/git-rebase-head %d" (count-lines (region-beginning) (region-end))))
+                 (print rebase-cmd) (async-shell-command rebase-cmd)))
+      (funcall (lambda () ;; in some other file.
+                 (xueliang-glog) (message "try apply this function in glog.")))))
