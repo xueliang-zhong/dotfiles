@@ -166,11 +166,13 @@
 
 ; line/column related
 (column-number-mode)
-;;(global-linum-mode -1)  ;; disable line number for performance.
-;;(global-nlinum-mode -1)  ;; faster one?
 (require 'hl-line+)
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
+
+; nlinum for programming and org.
+(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
+(add-hook 'org-mode-hook  '(lambda () (nlinum-mode 1)))
 
 ; tabs
 (setq tab-width 2)
@@ -219,9 +221,6 @@
 (add-hook 'c++-mode-hook  '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
-
-; nlinum for programming.
-(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 
 ; show which function on mode-line.
 (which-function-mode 1)
