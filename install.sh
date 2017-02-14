@@ -29,8 +29,8 @@ ln -sf `pwd`/xueliang-git.el  ~/.emacs.d/xueliang/xueliang-git.el
 ln -sf `pwd`/xueliang-git.elc ~/.emacs.d/xueliang/xueliang-git.elc
 
 # my-editor
-rm -f ~/bin/my-editor
-ln -sf `pwd`/my-editor ~/bin/my-editor
+rm -f ~/bin/git-rebase-head
+ln -sf `pwd`/git-rebase-head ~/bin/git-rebase-head
 
 # DONE
 echo DONE

@@ -23,7 +23,8 @@
   "run git rebase on selected top lines in glog.\nRequire $EDITOR to be set properly." (interactive)
   (if (null (buffer-file-name (current-buffer)))
       (funcall (lambda () ;; already in shell command output buffer.
-                 (setq-local rebase-cmd (message "git rebase -i HEAD~%d" (count-lines (region-beginning) (region-end))))
+                 ;(setq-local rebase-cmd (message "git rebase -i HEAD~%d" (count-lines (region-beginning) (region-end))))
+                 (setq-local rebase-cmd (message "/bin/bash ~/bin/git-rebase-head %d" (count-lines (region-beginning) (region-end))))
                  (print rebase-cmd) (async-shell-command rebase-cmd)))
       (funcall (lambda () ;; in some other file.
                  (xueliang-glog) (message "try apply this function in glog.")))))
