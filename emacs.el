@@ -129,7 +129,7 @@
 (smart-mode-line-enable)
 
 (require 'git-gutter+)
-(global-git-gutter+-mode 1)
+(global-git-gutter+-mode -1)  ;; don't enable git-gutter+ because I've enabled nlinum.
 
 (require 'guide-key)
 (setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
@@ -219,6 +219,9 @@
 (add-hook 'c++-mode-hook  '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
+
+; nlinum for programming.
+(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 
 ; show which function on mode-line.
 (which-function-mode 1)
