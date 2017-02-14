@@ -162,6 +162,11 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
+
+;; set default font for emacs --daemon / emacsclient
+;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
+;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
+
 (set-face-attribute 'default nil :height 130)
 
 ; line/column related
