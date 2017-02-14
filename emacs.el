@@ -170,9 +170,13 @@
 (global-hl-line-mode)
 (set-face-background hl-line-face "gray25")
 
-; nlinum for programming and org.
-(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
-(add-hook 'org-mode-hook  '(lambda () (nlinum-mode 1)))
+; nlinum/nlinum-relative for programming and org.
+(require 'nlinum-relative)
+(add-hook 'prog-mode-hook '(lambda () (nlinum-relative-mode 1)))
+(add-hook 'org-mode-hook  '(lambda () (nlinum-relative-mode 1)))
+(nlinum-relative-on)
+(nlinum-relative-setup-evil)
+(setq nlinum-relative-redisplay-delay 0)
 
 ; tabs
 (setq tab-width 2)
