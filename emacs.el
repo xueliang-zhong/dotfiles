@@ -95,6 +95,23 @@
      (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Smart mode-line config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; smart mode line
+(require 'smart-mode-line)
+(setq sml/no-confirm-load-theme t)
+(smart-mode-line-enable)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/dotfiles/" ":dotfiles:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/aosp/" ":aosp:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/" ":linaro:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
+
+; show which function on mode-line.
+(which-function-mode 1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; helm for M-x, ivy for evil/vi ex command line.
@@ -111,22 +128,6 @@
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
-
-;; powerline is pretty but I like simple things.
-;(require 'powerline-evil)
-;(powerline-center-evil-theme)
-;(powerline-evil-vim-color-theme)
-;(powerline-evil-center-color-theme)
-;(set-face-attribute 'mode-line nil
-;                    :foreground "White"
-;                    ;:background "RoyalBlue"
-;                    :background "BlueViolet"
-;                    :box nil)
-;(setq powerline-default-separator 'arrow)
-
-(require 'smart-mode-line)
-(setq sml/no-confirm-load-theme t)
-(smart-mode-line-enable)
 
 (require 'git-gutter+)
 (global-git-gutter+-mode -1)  ;; don't enable git-gutter+ because I've enabled nlinum.
@@ -230,9 +231,6 @@
 (add-hook 'c++-mode-hook  '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
-
-; show which function on mode-line.
-(which-function-mode 1)
 
 ;; eshell
 ;; don't enable company in eshell, which is annoying.
@@ -383,3 +381,17 @@
 ;; https://github.com/kai2nenobu/guide-key
 ;; http://aaronbedra.com/emacs.d/#sec-1
 ;; https://github.com/noctuid/evil-guide/blob/master/README.org
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(custom-safe-themes
+   (quote
+    ("84d2f9eeb3f82d619ca4bfffe5f157282f4779732f48a5ac1484d94d5ff5b279" default))))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ )
