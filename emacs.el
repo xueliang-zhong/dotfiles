@@ -234,7 +234,7 @@
 
 ;; eshell
 ;; don't enable company in eshell, which is annoying.
-(add-hook 'eshell-mode-hook '(lambda () (setq company-minimum-prefix-length 999)))
+;;(add-hook 'eshell-mode-hook '(lambda () (setq company-minimum-prefix-length 999)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
