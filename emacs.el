@@ -111,8 +111,6 @@
 ; show which function on mode-line.
 (which-function-mode 1)
 
-; (vc-mode-line)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

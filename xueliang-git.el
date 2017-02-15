@@ -16,7 +16,8 @@
   "run git status" (interactive) (shell-command "git status"))
 
 (defun xueliang-gbranch()
-  "run git branch" (interactive) (shell-command "git branch"))
+  "run git branch" (interactive)
+  (vc-mode-line (buffer-file-name)) (shell-command "git branch"))
 
 (defun xueliang-glog ()
   "run git log" (interactive)
