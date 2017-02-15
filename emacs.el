@@ -234,6 +234,10 @@
 ; show which function on mode-line.
 (which-function-mode 1)
 
+;; eshell
+;; don't enable company in eshell, which is annoying.
+(add-hook 'eshell-mode-hook '(lambda () (setq company-minimum-prefix-length 999)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
