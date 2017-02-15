@@ -108,8 +108,11 @@
 (add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
 (add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
 
-; show which function on mode-line.
+;; show which function on mode-line.
 (which-function-mode 1)
+
+;; always show which git brach I'm in.
+(add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
