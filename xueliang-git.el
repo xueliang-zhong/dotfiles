@@ -84,6 +84,7 @@
   "run git rebase on selected top lines in glog.\nRequire $EDITOR to be set properly." (interactive)
   (if (null (buffer-file-name (current-buffer)))
       (funcall (lambda () ;; already in shell command output buffer.
+                 (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
                  (setq-local rebase-cmd
 			     ;; have to write following way because git rebase seems to require a highly functional shell,
 			     ;; which the default emacs shell-command cannot provide.
