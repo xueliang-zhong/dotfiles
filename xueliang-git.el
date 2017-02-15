@@ -22,6 +22,7 @@
 (defun xueliang-glog ()
   "run git log" (interactive)
   (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
+  (vc-mode-line (buffer-file-name))
   (shell-command "git log -n 100 --pretty=oneline")
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-very-bottom) (evil-beginning-of-line))
@@ -87,10 +88,10 @@
       (funcall (lambda () ;; already in shell command output buffer.
                  (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
                  (setq-local rebase-cmd
-			     ;; have to write following way because git rebase seems to require a highly functional shell,
-			     ;; which the default emacs shell-command cannot provide.
-			     (message "/bin/bash ~/bin/git-rebase-head %d"
-				      (count-lines (region-beginning) (region-end))))
+                   ;; have to write following way because git rebase seems to require a highly functional shell,
+                   ;; which the default emacs shell-command cannot provide.
+                   (message "/bin/bash ~/bin/git-rebase-head %d"
+                      (count-lines (region-beginning) (region-end))))
                  (print rebase-cmd) (async-shell-command rebase-cmd)))
       (funcall (lambda () ;; in some other file.
                  (xueliang-glog) (message "try apply this function in glog.")))))
