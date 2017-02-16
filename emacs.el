@@ -85,6 +85,10 @@
 (define-key helm-map (kbd "TAB") 'helm-next-line)
 (define-key helm-map (kbd "C-z") 'helm-select-action) ; list actions using C-z
 
+(setq helm-autoresize-max-height 20)
+(setq helm-autoresize-min-height 15)
+(helm-autoresize-mode 1)
+
 (helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
