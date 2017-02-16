@@ -84,7 +84,7 @@
 ;; rebind tab to the next/previous line in helm window, same behavior as company.
 (define-key helm-map (kbd "<tab>")     'helm-next-line)
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
-(define-key helm-map (kbd "C-z") 'helm-select-action) ; list actions using C-z
+(define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
 
 (setq helm-autoresize-max-height 20)
 (setq helm-autoresize-min-height 15)
