@@ -81,8 +81,9 @@
       helm-semantic-fuzzy-match   t
       helm-imenu-fuzzy-match      t)
 
-;; rebind tab to the next line in helm window, same behavior as company.
-(define-key helm-map (kbd "TAB") 'helm-next-line)
+;; rebind tab to the next/previous line in helm window, same behavior as company.
+(define-key helm-map (kbd "<tab>")     'helm-next-line)
+(define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
 (define-key helm-map (kbd "C-z") 'helm-select-action) ; list actions using C-z
 
 (setq helm-autoresize-max-height 20)
