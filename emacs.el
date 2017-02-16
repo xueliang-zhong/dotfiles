@@ -112,6 +112,8 @@
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/" ":linaro:") t)
 (add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
 (add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/" ":workspace:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/" ":workspace:") t)
 
 ;; show which function on mode-line.
 (which-function-mode 1)
@@ -322,6 +324,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
 (global-set-key (kbd "M-x") 'helm-M-x)
