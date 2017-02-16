@@ -14,6 +14,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============evil-config=============())
 (require 'evil)
 (evil-mode 1)
 
@@ -54,6 +55,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============helm-config=============())
 (require 'helm)
 (require 'helm-config)
 
@@ -84,6 +86,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============company-config=============())
+
 (add-hook 'after-init-hook 'global-company-mode)
 (setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 (setq company-minimum-prefix-length 2)
@@ -97,6 +101,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============smart-mode-line-config=============())
 
 ;; smart mode line
 (require 'smart-mode-line)
@@ -111,12 +116,13 @@
 ;; show which function on mode-line.
 (which-function-mode 1)
 
-;; always show which git brach I'm in.
+;; always show which git branch I'm in.
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============misc-modes-config=============())
 ;; helm for M-x, ivy for evil/vi ex command line.
 ;; <tab> to trigger in ex command line.
 (ivy-mode 1)
@@ -153,6 +159,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============global-settings=============())
 
 ;; start server for emacsclient
 (unless (server-running-p)
@@ -190,8 +197,7 @@
 ; tabs
 (setq tab-width 2)
 (setq indent-tabs-mode nil)
-(defun tab-as-two-spaces() (interactive) (insert "  "))
-(global-set-key (kbd "TAB") 'tab-as-two-spaces)
+(global-set-key (kbd "TAB") '(lambda () (interactive) (insert "  ")))
 
 ; disable some bars
 (menu-bar-mode -1)
@@ -242,6 +248,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============vars=============())
 
 (setq android-root "~/workspace/linaro/")
 (setq android-art  (concat android-root "/art/"))
@@ -253,6 +260,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun =============xueliang-functions=============())
 
 ; Help to make upate TAGS of the project I'm working on easier.
 (defun xueliang-update-tags-art ()
