@@ -117,12 +117,23 @@
 (setq sml/no-confirm-load-theme t)
 (smart-mode-line-enable)
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/dotfiles/" ":dotfiles:") t)
+
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/aosp/" ":aosp:") t)
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/" ":linaro:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/Linaro_Android_Master/" ":linaro:") t)
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/" ":workspace:") t)
+
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/linaro/" ":linaro:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
 (add-to-list 'sml/replacer-regexp-list '("^/data/workspace/" ":workspace:") t)
+
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/external/vixl" ":aosp-vixl:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/linaro/external/vixl/" ":linaro-vixl:") t)
+(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/external/vixl/" ":linaro-vixl:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/aosp/external/vixl" ":aosp-vixl:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/external/vixl/" ":linaro-vixl:") t)
+(add-to-list 'sml/replacer-regexp-list '("^~/workspace/Linaro_Android_Master/external/vixl/" ":linaro-vixl:") t)
 
 ;; show which function on mode-line.
 (which-function-mode 1)
@@ -395,6 +406,7 @@
 ;; * helm: C-n/p to move up/down in helm buffer-menu-delete-backwards
 ;; * M-n/p is usually going through history items.
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
+;; * compilation-minor-mode in eshell, after use eshell for compiling project.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
