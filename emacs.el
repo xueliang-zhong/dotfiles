@@ -47,6 +47,10 @@
 
 (setq evil-mode-line-format 'before)
 
+;; use helm-swoop instead of vim style */# find.
+(define-key evil-normal-state-map (kbd "*") 'helm-swoop)
+(define-key evil-normal-state-map (kbd "#") 'helm-swoop)
+
 ; highlight like vim, C-x SPC to remove all persistant search highlights.
 ;(require 'highlight)
 ;(require 'evil-search-highlight-persist)
@@ -194,7 +198,7 @@
 (add-hook 'org-mode-hook  '(lambda () (nlinum-relative-mode 1)))
 (nlinum-relative-on)
 (nlinum-relative-setup-evil)
-(setq nlinum-relative-redisplay-delay 0)
+(setq nlinum-relative-redisplay-delay 0.1)
 
 ; tabs
 (setq tab-width 2)
