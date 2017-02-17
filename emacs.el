@@ -267,8 +267,7 @@
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 
 ;; eshell
-;; don't enable company in eshell, which is annoying.
-;;(add-hook 'eshell-mode-hook '(lambda () (setq company-minimum-prefix-length 999)))
+(evil-define-key 'normal eshell-mode-map (kbd "A") 'xueliang-append-in-shell)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
@@ -335,7 +334,7 @@
 (defun xueliang-eshell()
    "invokes eshell in a split window" (interactive)
    (xueliang-cd-current-buffer-directory)
-   (split-window-below) (evil-window-move-very-bottom) (eshell) (evil-append-line 1))
+   (split-window-below) (evil-window-move-very-bottom) (eshell) (evil-goto-line) (evil-append-line 1))
 
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
@@ -343,6 +342,17 @@
   (interactive "P")
   (require 'fiplr)
   (cd (fiplr-root)) (helm-do-grep-ag argument))
+
+(defun xueliang-append-in-shell()
+  (interactive)
+  (evil-goto-line) (evil-append-line 1))
+
+(defun xueliang-run-in-eshell()
+  (interactive)
+  (setq my-cmd-in-eshell (thing-at-point 'line))
+  (switch-to-buffer-other-window (get-buffer "*eshell*"))
+  (evil-goto-line) (evil-append-line 1)
+  (insert my-cmd-in-eshell))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
