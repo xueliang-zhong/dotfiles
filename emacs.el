@@ -358,6 +358,13 @@
   (evil-goto-line) (evil-append-line 1)
   (insert my-cmd-in-eshell))
 
+(defun xueliang-run-linaro-art-test()
+  "shows command for linaro target test single test, which can be further sent to shell to execute."
+  (interactive)
+  (split-window-horizontally)
+  (find-file "~/workspace/dotfiles/linaro-build-scripts")
+  (helm-swoop))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
