@@ -160,8 +160,8 @@
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
-(require 'git-gutter+)
-(global-git-gutter+-mode 1)  ;; don't enable git-gutter+ if nlinum is enabled.
+(require 'git-gutter-fringe+)
+(global-git-gutter+-mode)
 
 (require 'guide-key)
 (setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
@@ -210,9 +210,11 @@
 
 ;; nlinum/nlinum-relative for programming and org.
 ;; cost lots of CPU.
+(require 'nlinum)
+(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
+(add-hook 'org-mode-hook  '(lambda () (nlinum-mode 1)))
+;; nlinum-relative-mode is CPU consuming.
 ;(require 'nlinum-relative)
-;(add-hook 'prog-mode-hook '(lambda () (nlinum-relative-mode 1)))
-;(add-hook 'org-mode-hook  '(lambda () (nlinum-relative-mode 1)))
 ;(nlinum-relative-on)
 ;(nlinum-relative-setup-evil)
 ;(setq nlinum-relative-redisplay-delay 0.1)
