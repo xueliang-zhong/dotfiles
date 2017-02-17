@@ -335,7 +335,7 @@
 (defun xueliang-eshell()
    "invokes eshell in a split window" (interactive)
    (xueliang-cd-current-buffer-directory)
-   (split-window-below) (eshell) (evil-append-line 1))
+   (split-window-below) (evil-window-move-very-bottom) (eshell) (evil-append-line 1))
 
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
