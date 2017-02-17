@@ -332,9 +332,12 @@
 
 ; invoke e-shell
 (defun xueliang-eshell()
-   "invokes eshell in a split window" (interactive)
-   (xueliang-cd-current-buffer-directory)
-   (split-window-below) (evil-window-move-very-bottom) (eshell) (evil-goto-line) (evil-append-line 1))
+   "invokes eshell in a split window, send current line to eshell." (interactive)
+   (setq my-cmd-in-eshell (thing-at-point 'line))
+   (when (buffer-file-name)
+     (xueliang-cd-current-buffer-directory)
+     (split-window-below) (evil-window-move-very-bottom) (eshell))
+   (evil-goto-line) (evil-append-line 1) (insert my-cmd-in-eshell) (left-char))
 
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
@@ -345,7 +348,7 @@
 
 (defun xueliang-append-in-shell()
   (interactive)
-  (evil-goto-line) (evil-append-line 1))
+  (evil-goto-line) (evil-append-line 1))  ;; or in shell/term in normal mode, type in G A.
 
 (defun xueliang-run-in-eshell()
   (interactive)
