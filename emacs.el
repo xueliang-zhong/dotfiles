@@ -336,7 +336,10 @@
    (setq my-cmd-in-eshell (thing-at-point 'line))
    (when (buffer-file-name)
      (xueliang-cd-current-buffer-directory)
-     (split-window-below) (evil-window-move-very-bottom) (eshell))
+     (if (get-buffer-window "*eshell*")
+       (switch-to-buffer-other-window "*eshell*")
+       ;; else
+       (split-window-below) (evil-window-move-very-bottom) (eshell)))
    (evil-goto-line) (evil-append-line 1) (insert my-cmd-in-eshell) (left-char))
 
 ; search in project using ag
@@ -349,14 +352,6 @@
 (defun xueliang-append-in-shell()
   (interactive)
   (evil-goto-line) (evil-append-line 1))  ;; or in shell/term in normal mode, type in G A.
-
-(defun xueliang-run-in-eshell()
-  (interactive)
-  (setq my-cmd-in-eshell (thing-at-point 'line))
-  (if (buffer-file-name)  ;; not in eshell window, i.e. in some other file.
-     (switch-to-buffer-other-window (get-buffer "*eshell*")))
-  (evil-goto-line) (evil-append-line 1)
-  (insert my-cmd-in-eshell))
 
 (defun xueliang-run-linaro-art-test()
   "shows command for linaro target test single test, which can be further sent to shell to execute."
