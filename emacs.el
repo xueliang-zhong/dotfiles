@@ -35,10 +35,10 @@
   "a" 'xueliang-ag-search-in-project
   "b" 'helm-for-files
   "e" 'xueliang-eshell
+  "E" 'xueliang-eshell-current-line
   "f" 'fiplr-find-file
   "g" 'helm-grep-do-git-grep
   "i" 'helm-semantic-or-imenu
-  "n" 'helm-for-files
   "r" 'helm-recentf
   "s" 'helm-swoop
   "u" 'universal-argument
@@ -82,6 +82,7 @@
       helm-imenu-fuzzy-match      t)
 
 ;; rebind tab to the next/previous line in helm window, same behavior as company.
+(define-key helm-map (kbd "TAB")       'helm-next-line)
 (define-key helm-map (kbd "<tab>")     'helm-next-line)
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
 (define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
@@ -160,11 +161,12 @@
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
-(require 'git-gutter-fringe+)
-(global-git-gutter+-mode)
+(if window-system
+  (require 'git-gutter-fringe+)
+  (global-git-gutter+-mode))
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
+(setq guide-key/guide-key-sequence (list "C-h" "C-x" "C-x c"))
 (setq guide-key/idle-delay 0.1)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
@@ -266,9 +268,6 @@
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 
-;; eshell
-(evil-define-key 'normal eshell-mode-map (kbd "A") 'xueliang-append-in-shell)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -331,16 +330,24 @@
    (cd android-art) (helm-etags-select t))
 
 ; invoke e-shell
-(defun xueliang-eshell()
-   "invokes eshell in a split window, send current line to eshell." (interactive)
-   (setq my-cmd-in-eshell (thing-at-point 'line))
+(defun xueliang-create-eshell-or-switch-to-existing ()
    (when (buffer-file-name)
      (xueliang-cd-current-buffer-directory)
      (if (get-buffer-window "*eshell*")
        (switch-to-buffer-other-window "*eshell*")
        ;; else
        (split-window-below) (evil-window-move-very-bottom) (eshell)))
-   (evil-goto-line) (evil-append-line 1) (insert my-cmd-in-eshell) (left-char))
+   (evil-goto-line) (evil-append-line 1))
+
+(defun xueliang-eshell-current-line ()
+   "invokes eshell in a split window, send current line to eshell." (interactive)
+   (setq my-cmd-in-eshell (thing-at-point 'line))
+   (xueliang-create-eshell-or-switch-to-existing)
+   (insert my-cmd-in-eshell) (left-char))
+
+(defun xueliang-eshell ()
+   "invokes eshell in a split window." (interactive)
+   (xueliang-create-eshell-or-switch-to-existing))
 
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
@@ -348,10 +355,6 @@
   (interactive "P")
   (require 'fiplr)
   (cd (fiplr-root)) (helm-do-grep-ag argument))
-
-(defun xueliang-append-in-shell()
-  (interactive)
-  (evil-goto-line) (evil-append-line 1))  ;; or in shell/term in normal mode, type in G A.
 
 (defun xueliang-run-linaro-art-test()
   "shows command for linaro target test single test, which can be further sent to shell to execute."
