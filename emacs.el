@@ -350,7 +350,8 @@
 (defun xueliang-run-in-eshell()
   (interactive)
   (setq my-cmd-in-eshell (thing-at-point 'line))
-  (switch-to-buffer-other-window (get-buffer "*eshell*"))
+  (if (buffer-file-name)  ;; not in eshell window, i.e. in some other file.
+     (switch-to-buffer-other-window (get-buffer "*eshell*")))
   (evil-goto-line) (evil-append-line 1)
   (insert my-cmd-in-eshell))
 
