@@ -99,7 +99,6 @@
 (defun =============company-config=============())
 
 (add-hook 'after-init-hook 'global-company-mode)
-(setq company-idle-delay 0)  ;; instead of any key bindings for company-complete.
 (setq company-minimum-prefix-length 2)
 
 ; tab to select in company.
@@ -107,6 +106,13 @@
   '(progn
      (define-key company-active-map (kbd "TAB")   'company-complete-common-or-cycle)
      (define-key company-active-map (kbd "<tab>") 'company-complete-common-or-cycle)))
+
+;; instead of any key bindings for company-complete.
+(add-hook 'prog-mode-hook '(lambda () (setq company-idle-delay 0)))
+(add-hook 'org-mode-hook '(lambda () (setq company-idle-delay 0)))
+
+;; avoid company-complete being annoying in eshell mode.
+(add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
