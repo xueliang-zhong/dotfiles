@@ -51,11 +51,6 @@
 (define-key evil-normal-state-map (kbd "*") 'helm-swoop)
 (define-key evil-normal-state-map (kbd "#") 'helm-swoop)
 
-; highlight like vim, C-x SPC to remove all persistant search highlights.
-;(require 'highlight)
-;(require 'evil-search-highlight-persist)
-;(global-evil-search-highlight-persist nil) ;; color is not so great.
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
