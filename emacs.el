@@ -37,7 +37,7 @@
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'fiplr-find-file
-  "g" 'helm-grep-do-git-grep
+  "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "r" 'helm-recentf
   "s" 'helm-swoop
