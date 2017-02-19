@@ -82,7 +82,7 @@
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
 (define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
 
-(setq helm-autoresize-max-height 20)
+(setq helm-autoresize-max-height (if window-system 20 30))
 (setq helm-autoresize-min-height 15)
 (helm-autoresize-mode 1)
 
