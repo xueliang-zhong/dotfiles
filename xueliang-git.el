@@ -24,7 +24,7 @@
   (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (vc-mode-line (buffer-file-name))  ;; for updating mode-line
   ;(shell-command "git log -n 100 --pretty=oneline")
-  (shell-command "git log --pretty=\"%h * %<(60)%s | %<(20)%an | %cr\"")
+  (shell-command "git log -n 100 --pretty=\"%h * %<(80)%s | %<(20)%an | %cr\"")
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-very-bottom) (evil-beginning-of-line))
   ;; or I can call: (magit-log-head =n 100)
