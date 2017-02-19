@@ -23,10 +23,10 @@
   "run git log" (interactive)
   (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (vc-mode-line (buffer-file-name))  ;; for updating mode-line
-  (magit-log-head))
-  ;(shell-command "git log -n 100 --pretty=oneline")
-  ;(switch-to-buffer-other-window shell-output-buffer-name)
-  ;(evil-window-move-very-bottom) (evil-beginning-of-line))
+  (shell-command "git log -n 100 --pretty=oneline")
+  (switch-to-buffer-other-window shell-output-buffer-name)
+  (evil-window-move-very-bottom) (evil-beginning-of-line))
+  ;; or I can call: (magit-log-head)
 
 (defun xueliang-gdiff-current-buffer ()
   "run git diff on current buffer;
