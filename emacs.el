@@ -39,6 +39,7 @@
   "f" 'fiplr-find-file
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
+  "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
   "s" 'helm-swoop
   "u" 'universal-argument
@@ -74,6 +75,7 @@
 (setq helm-M-x-fuzzy-match        nil
       helm-buffers-fuzzy-matching t
       helm-semantic-fuzzy-match   t
+      helm-swoop-use-fuzzy-match  t
       helm-imenu-fuzzy-match      t)
 
 ;; rebind tab to the next/previous line in helm window, same behavior as company.
@@ -440,3 +442,4 @@
 ;; https://github.com/kai2nenobu/guide-key
 ;; http://aaronbedra.com/emacs.d/#sec-1
 ;; https://github.com/noctuid/evil-guide/blob/master/README.org
+;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
