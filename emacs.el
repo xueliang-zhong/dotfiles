@@ -75,7 +75,7 @@
 (setq helm-M-x-fuzzy-match        nil
       helm-buffers-fuzzy-matching t
       helm-semantic-fuzzy-match   t
-      helm-swoop-use-fuzzy-match  t
+      helm-swoop-use-fuzzy-match  nil
       helm-imenu-fuzzy-match      t)
 
 ;; rebind tab to the next/previous line in helm window, same behavior as company.
