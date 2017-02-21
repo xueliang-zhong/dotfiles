@@ -24,8 +24,9 @@
   (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (vc-mode-line (buffer-file-name))  ;; for updating mode-line
   ;(shell-command "git log -n 100 --pretty=oneline")
-  (shell-command "git log -n 100 --pretty=\"%h * %<(80)%s | %<(20)%an | %cr\"")
+  (shell-command "git log -n 100 --pretty=\"%Cred%h %Creset * %Cgreen %<(70)%s %Creset| %<(20)%an | %Cblue%cr\"")
   (switch-to-buffer-other-window shell-output-buffer-name)
+  (ansi-color-apply-on-region (point-min) (point-max))  ;; display ansi colors (%Cred/green/blue/reset), requres ansi-color.
   (evil-window-move-very-bottom) (evil-beginning-of-line))
   ;; or I can call: (magit-log-head =n 100)
 

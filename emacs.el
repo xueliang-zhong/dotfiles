@@ -443,3 +443,4 @@
 ;; http://aaronbedra.com/emacs.d/#sec-1
 ;; https://github.com/noctuid/evil-guide/blob/master/README.org
 ;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
+;; http://www.howardism.org/Technical/Emacs/eshell-fun.html
