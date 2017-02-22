@@ -85,15 +85,17 @@
   (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
 
 (defun xueliang-grebase-last-commits()
-  "run git rebase on selected top lines in glog.\nRequire $EDITOR to be set properly." (interactive)
-  (if (null (buffer-file-name (current-buffer)))
-      (funcall (lambda () ;; already in shell command output buffer.
-                 (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
-                 (setq-local rebase-cmd
-                   ;; have to write following way because git rebase seems to require a highly functional shell,
-                   ;; which the default emacs shell-command cannot provide.
-                   (message "/bin/bash ~/bin/git-rebase-head %d"
-                      (count-lines (region-beginning) (region-end))))
-                 (print rebase-cmd) (async-shell-command rebase-cmd)))
-      (funcall (lambda () ;; in some other file.
-                 (xueliang-glog) (message "try apply this function in glog.")))))
+  "run git rebase on current line and lines above in glog.\nRequire $EDITOR to be set properly.\nOr use magit-rebase-interactive." (interactive)
+  (if (null window-system)
+    (print "Use (magit-rebase-interactive) command instead.")
+    ;; else in window-system
+    (if (null (buffer-file-name (current-buffer)))
+        (funcall (lambda () ;; already in shell command output buffer.
+                   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
+                   (setq-local rebase-cmd
+                     ;; have to write following way because git rebase seems to require a highly functional shell,
+                     ;; which the default emacs shell-command cannot provide.
+                     (message "/bin/bash ~/bin/git-rebase-head %d" (count-lines 1 (point))))
+                   (print rebase-cmd) (async-shell-command rebase-cmd)))
+        (funcall (lambda () ;; in some other file.
+                   (xueliang-glog) (message "try apply this function in glog."))))))
