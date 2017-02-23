@@ -152,6 +152,8 @@
 ;; helm for M-x, ivy for evil/vi ex command line.
 ;; <tab> to trigger in ex command line.
 (ivy-mode 1)
+;; TAB as ivy-partial-or-next-line
+(define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
