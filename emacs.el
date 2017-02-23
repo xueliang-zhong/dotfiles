@@ -91,6 +91,18 @@
 (helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ivy config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============ivy-config=============())
+(require 'ivy)
+
+;; helm for M-x, ivy for several scenarios where helm cannot complete.
+(ivy-mode 1)
+
+;; TAB behaves as ivy-partial-or-next-line
+(define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============company-config=============())
@@ -149,12 +161,6 @@
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
-;; helm for M-x, ivy for evil/vi ex command line.
-;; <tab> to trigger in ex command line.
-(ivy-mode 1)
-;; TAB as ivy-partial-or-next-line
-(define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
-
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
   (load-theme 'tango-dark t)
@@ -196,6 +202,7 @@
 
 ;; make things faster?
 (setq echo-keystrokes 0.1)
+(setq redisplay-dont-pause t)  ;; improve display performance
 
 ;; hide welcome screen
 (setq inhibit-splash-screen t)
@@ -257,9 +264,6 @@
 
 ; yes and no
 (defalias 'yes-or-no-p 'y-or-n-p)
-
-; improve display performance
-(setq redisplay-dont-pause t)
 
 (require 'whitespace)
 (global-whitespace-mode +1)
