@@ -88,6 +88,12 @@
 (setq helm-autoresize-min-height 15)
 (helm-autoresize-mode 1)
 
+;; if this value is t, split window inside the current window
+(setq helm-swoop-split-with-multiple-windows nil)
+
+;; helm-swoop split direcion. 'split-window-vertically or 'split-window-horizontally
+(setq helm-swoop-split-direction 'split-window-vertically)
+
 (helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -401,7 +407,7 @@
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 
-(global-set-key (kbd "<f5>")  'helm-swoop)                    ; find in current buffer using helm-swoop.
+(global-set-key (kbd "<f5>")  '(lambda () (interactive) (split-window-horizontally) (helm-swoop))) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
