@@ -41,7 +41,7 @@
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
-  "s" 'helm-swoop
+  "s" 'xueliang-helm-swoop
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
 )
@@ -49,8 +49,8 @@
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'helm-swoop)
-(define-key evil-normal-state-map (kbd "#") 'helm-swoop)
+(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
@@ -84,7 +84,7 @@
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
 (define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
 
-(setq helm-autoresize-max-height (if window-system 20 30))
+(setq helm-autoresize-max-height 40)
 (setq helm-autoresize-min-height 15)
 (helm-autoresize-mode 1)
 
@@ -378,6 +378,17 @@
   (find-file "~/workspace/dotfiles/linaro-build-scripts")
   (helm-swoop))
 
+; nice helm-swoop
+(defun xueliang-helm-swoop ()
+  "show helm-swoop results in a side window."
+  (interactive)
+  (setq new-helm-swoop-window nil)
+  (when (window-full-width-p (get-buffer-window (buffer-name)))
+    (setq new-helm-swoop-window (split-window-horizontally)))
+  (helm-swoop)
+  (when new-helm-swoop-window
+    (delete-window new-helm-swoop-window)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -407,7 +418,7 @@
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 
-(global-set-key (kbd "<f5>")  '(lambda () (interactive) (split-window-horizontally) (helm-swoop))) ; find in current buffer using helm-swoop.
+(global-set-key (kbd "<f5>")  'xueliang-helm-swoop) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
