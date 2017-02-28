@@ -178,7 +178,7 @@
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
-(if window-system
+(when window-system
   (require 'git-gutter-fringe+)
   (global-git-gutter+-mode))
 
