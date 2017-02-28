@@ -42,6 +42,7 @@
   "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
   "s" 'xueliang-helm-swoop
+  "S" 'xueliang-eshell-new  ;; S means 'Shell'
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
 )
@@ -208,6 +209,7 @@
 (defun =============global-settings=============())
 
 ;; start server for emacsclient
+(require 'server)
 (unless (server-running-p)
   (server-start))
 
