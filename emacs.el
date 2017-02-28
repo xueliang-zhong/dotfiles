@@ -454,6 +454,7 @@
 ;; * M-n/p is usually going through history items.
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
 ;; * compilation-minor-mode in eshell, after use eshell for compiling project.
+;; * helm-google-suggest is really awesome.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
