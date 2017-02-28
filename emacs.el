@@ -369,6 +369,12 @@
    "invokes eshell in a split window." (interactive)
    (xueliang-create-eshell-or-switch-to-existing))
 
+(setq-default eshell-buffer-number 0)
+(defun xueliang-eshell-new ()
+   "invokes a new eshell in a split window." (interactive)
+   (setq eshell-buffer-number (+ eshell-buffer-number 1))
+   (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number))
+
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
