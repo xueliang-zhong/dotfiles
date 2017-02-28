@@ -376,7 +376,7 @@
   (interactive)
   (split-window-horizontally)
   (find-file "~/workspace/dotfiles/linaro-build-scripts")
-  (helm-swoop))
+  (xueliang-helm-swoop))
 
 ; nice helm-swoop
 (defun xueliang-helm-swoop ()
