@@ -196,8 +196,8 @@
 
 ;(require 'neotree)
 (setq neo-smart-open 1)
-(evil-define-key 'normal neotree-mode-map (kbd "TAB") 'neotree-enter)
-(evil-define-key 'normal neotree-mode-map (kbd "RET") 'neotree-enter)
+(evil-define-key 'normal neotree-mode-map (kbd "TAB") '(lambda () (interactive) (neotree-enter) (neotree-hide)))
+(evil-define-key 'normal neotree-mode-map (kbd "RET") '(lambda () (interactive) (neotree-enter) (neotree-hide)))
 (evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
 
 ; said to make emacs faster
