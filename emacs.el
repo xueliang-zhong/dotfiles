@@ -290,6 +290,9 @@
 (add-hook 'java-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 (add-hook 'prog-mode-hook '(lambda () (modify-syntax-entry ?_ "w")))
 
+;; modern style 'paste' in evil insert mode.
+(define-key evil-insert-state-map (kbd "C-v") 'yank)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
