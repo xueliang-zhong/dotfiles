@@ -247,7 +247,7 @@
 ;(setq nlinum-relative-redisplay-delay 0.1)
 
 ; tabs
-(setq tab-width 2)
+(setq-default tab-width 2)
 (setq indent-tabs-mode nil)
 (global-set-key (kbd "TAB") '(lambda () (interactive) (insert "  ")))
 
