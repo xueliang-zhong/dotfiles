@@ -168,6 +168,9 @@
 ;; eshell config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============eshell-config=============())
+;; bash reverse-i-search style history search, even more powerful with helm.
+(evil-define-key 'normal eshell-mode-map (kbd "C-r") 'helm-eshell-history)
+(evil-define-key 'insert eshell-mode-map (kbd "C-r") 'helm-eshell-history)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
