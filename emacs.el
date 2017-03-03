@@ -127,9 +127,6 @@
 (add-hook 'prog-mode-hook '(lambda () (setq company-idle-delay 0)))
 (add-hook 'org-mode-hook '(lambda () (setq company-idle-delay 0)))
 
-;; avoid company-complete being annoying in eshell mode.
-(add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -169,8 +166,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============eshell-config=============())
 ;; bash reverse-i-search style history search, even more powerful with helm.
-(evil-define-key 'normal eshell-mode-map (kbd "C-r") 'helm-eshell-history)
-(evil-define-key 'insert eshell-mode-map (kbd "C-r") 'helm-eshell-history)
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
+
+;; avoid company-complete being annoying in eshell mode.
+(add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
@@ -235,7 +235,7 @@
 ; line/column related
 (column-number-mode)
 (require 'hl-line+)
-(global-hl-line-mode)
+(global-hl-line-mode -1)
 (set-face-background hl-line-face "gray25")
 
 ;; nlinum/nlinum-relative for programming and org.
