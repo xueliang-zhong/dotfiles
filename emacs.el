@@ -165,12 +165,16 @@
 ;; eshell config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============eshell-config=============())
+;; avoid company-complete being annoying in eshell mode.
+(add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
+
 ;; bash reverse-i-search style history search, even more powerful with helm.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
 
-;; avoid company-complete being annoying in eshell mode.
-(add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
+;; begin-of-line, end-of-line in eshell.
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-e") 'evil-append-line)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
