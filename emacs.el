@@ -234,8 +234,11 @@
 
 ; line/column related
 (column-number-mode)
+
+;; high-light line for programming and org.
 (require 'hl-line+)
-(global-hl-line-mode -1)
+(add-hook 'prog-mode-hook '(lambda () (hl-line-mode 1)))
+(add-hook 'org-mode-hook  '(lambda () (hl-line-mode 1)))
 (set-face-background hl-line-face "gray25")
 
 ;; nlinum/nlinum-relative for programming and org.
