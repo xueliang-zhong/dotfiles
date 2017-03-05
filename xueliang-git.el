@@ -55,7 +55,7 @@
   "run git show" (interactive)
   (shell-command "git show")
   (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+  (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
 
 (defun xueliang-gshow-revision-at-point()
   "run 'git show' using the revision number at point.
@@ -63,7 +63,7 @@
    (if (null (buffer-file-name (current-buffer)))
        (funcall (lambda () ;; already in shell command output buffer.
                   (shell-command (message "git show %s " (thing-at-point 'word)))
-                  (evil-window-move-far-right) (diff-mode) (toggle-truncate-lines 1) (evil-next-line 10)))
+                  (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source)))
        (funcall (lambda () ;; in some other file.
                   (xueliang-glog) (message "try apply this function in glog.")))))
 
