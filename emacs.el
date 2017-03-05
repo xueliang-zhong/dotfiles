@@ -127,6 +127,9 @@
 (add-hook 'prog-mode-hook '(lambda () (setq company-idle-delay 0)))
 (add-hook 'org-mode-hook '(lambda () (setq company-idle-delay 0)))
 
+;; not to downcase the returned candidates, keep them as-is.
+(setq company-dabbrev-downcase nil)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
