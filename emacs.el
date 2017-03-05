@@ -234,7 +234,7 @@
 ;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
 ;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
 
-(set-face-attribute 'default nil :height 130)
+(set-face-attribute 'default nil :height 160)
 
 ; line/column related
 (column-number-mode)
@@ -386,9 +386,12 @@
 
 (setq-default eshell-buffer-number 0)
 (defun xueliang-eshell-new ()
-   "invokes a new eshell in a split window." (interactive)
+   "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (setq eshell-buffer-number (+ eshell-buffer-number 1))
-   (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number))
+	 (xueliang-cd-current-buffer-directory)
+	 (cd (fiplr-root))  ;; since fiplr-root is a private function of fiplr, just use <leader>-f to load fiplr into emacs.
+   (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
+   (evil-goto-line) (evil-append-line 1))
 
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
