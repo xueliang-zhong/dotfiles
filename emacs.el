@@ -293,7 +293,7 @@
 
 (require 'whitespace)
 (global-whitespace-mode +1)
-(setq whitespace-line-column 101) ;; limit line length
+(setq whitespace-line-column 100) ;; limit line length
 (setq whitespace-style '(face trailing lines-tail tabs))
 (add-hook 'prog-mode-hook 'whitespace-mode)
 
@@ -441,6 +441,7 @@
 (global-set-key (kbd "C-h v") 'helm-apropos)
 
 ; describe key-bindings
+(require 'helm-descbinds)
 (global-set-key (kbd "C-h b") 'helm-descbinds)
 
 ; good way to learn all completion functions.
