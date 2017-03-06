@@ -1,0 +1,6 @@
+alias gshow git show
+alias top top -d 1
+alias ll ls -l
+alias la ls -a
+alias glog git log
+alias gdiff git diff

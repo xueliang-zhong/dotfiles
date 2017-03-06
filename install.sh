@@ -32,6 +32,10 @@ ln -sf `pwd`/xueliang-git.elc ~/.emacs.d/xueliang/xueliang-git.elc
 rm -f ~/bin/git-rebase-head
 ln -sf `pwd`/git-rebase-head ~/bin/git-rebase-head
 
+# emacs eshell alias
+rm -f ~/.emacs.d/eshell/alias
+ln -sf `pwd`/alias ~/.emacs.d/eshell/alias
+
 # DONE
 echo DONE
 
