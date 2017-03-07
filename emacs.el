@@ -245,7 +245,7 @@
 ;; high-light line for programming and org.
 (require 'hl-line+)
 (add-hook 'prog-mode-hook '(lambda () (hl-line-mode 1)))
-(add-hook 'org-mode-hook  '(lambda () (hl-line-mode 1)))
+(add-hook 'org-mode-hook  '(lambda () (hl-line-mode -1)))  ;; don't enable hl-line in org-mode.
 (set-face-background hl-line-face "gray25")
 
 ;; nlinum/nlinum-relative for programming and org.
