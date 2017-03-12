@@ -270,15 +270,10 @@
 (set-face-background hl-line-face "gray25")
 
 ;; nlinum/nlinum-relative for programming and org.
-;; cost lots of CPU.
+;; cost lots of CPU. And nlinum-relative-mode is even more CPU consuming.
 (require 'nlinum)
 (add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 (add-hook 'org-mode-hook  '(lambda () (nlinum-mode 1)))
-;; nlinum-relative-mode is CPU consuming.
-;(require 'nlinum-relative)
-;(nlinum-relative-on)
-;(nlinum-relative-setup-evil)
-;(setq nlinum-relative-redisplay-delay 0.1)
 
 ; tabs
 (setq-default tab-width 2)
@@ -491,20 +486,11 @@
 ;; xueliang good tips
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; * C-u ARG M-x func RET
 ;; * package install RET command-log-mode, toggle-command-log/buffer
 ;; * M-x ansi-term
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
-;; * emacs -nw
-;; * M-x server-start
-;; * emacsclient -nw
-;; * emacsclient -c
 ;; * helm-show-kill-ring
 ;; * evil mode, helm, org mode, company mode.
-;; * helm-swoop
-;; * (ielm) inferior-emacs-lisp-mode
-;; * company-mode: M-n/p to select, TAB to complete the common part.
-;; * helm: C-n/p to move up/down in helm buffer-menu-delete-backwards
 ;; * M-n/p is usually going through history items.
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
 ;; * compilation-minor-mode in eshell, after use eshell for compiling project.
