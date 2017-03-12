@@ -168,6 +168,8 @@
 ;; eshell config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============eshell-config=============())
+;; https://www.masteringemacs.org/article/complete-guide-mastering-eshell
+
 ;; avoid company-complete being annoying in eshell mode.
 (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
@@ -177,7 +179,22 @@
 
 ;; begin-of-line, end-of-line in eshell.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-a") 'eshell-bol)))
+
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-e") 'evil-append-line)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-e") 'evil-append-line)))
+
+;; TAB to complete command in eshell, currently I'm using helm style.
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'helm-esh-pcomplete)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "<tab>") 'helm-esh-pcomplete)))
+
+;; Eshell will run a term session to support following complex commands
+(add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
+
+;; Typing clear in eshell will then result in clearing the buffer.
+(defun eshell/clear ()
+  "Clear the eshell buffer."
+  (let ((inhibit-read-only t)) (erase-buffer)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
@@ -237,7 +254,7 @@
 ;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
 ;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
 
-(set-face-attribute 'default nil :height 160)
+(set-face-attribute 'default nil :height 140)
 
 ; line/column related
 (column-number-mode)
@@ -488,6 +505,7 @@
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
 ;; * compilation-minor-mode in eshell, after use eshell for compiling project.
 ;; * helm-google-suggest is really awesome.
+;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
