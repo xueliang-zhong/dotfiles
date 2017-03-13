@@ -288,6 +288,7 @@
 (setq-default tab-width 2)
 (setq indent-tabs-mode nil)
 (global-set-key (kbd "TAB") '(lambda () (interactive) (insert "  ")))
+(add-hook 'prog-mode-hook '(lambda () (setq indent-tabs-mode nil)))
 
 ; disable some bars
 (menu-bar-mode -1)
