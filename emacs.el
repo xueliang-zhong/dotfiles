@@ -258,7 +258,7 @@
 ;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
 ;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
 
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 130)
 
 ; line/column related
 (column-number-mode)
