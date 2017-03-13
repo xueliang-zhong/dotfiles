@@ -53,6 +53,7 @@
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop)
+(define-key evil-normal-state-map (kbd "/") 'helm-swoop-without-pre-input)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
@@ -99,6 +100,9 @@
 
 ;; helm-swoop split direcion. 'split-window-vertically or 'split-window-horizontally
 (setq helm-swoop-split-direction 'split-window-vertically)
+
+;; If nil, you can slightly boost invoke speed in exchange for text color
+(setq helm-swoop-speed-or-color t)
 
 (helm-mode 1)
 
@@ -267,7 +271,7 @@
 ;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
 ;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
 
-(set-face-attribute 'default nil :height 130)
+(set-face-attribute 'default nil :height 140)
 
 ; line/column related
 (column-number-mode)
@@ -284,11 +288,13 @@
 (add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 (add-hook 'org-mode-hook  '(lambda () (nlinum-mode 1)))
 
-; tabs
+;; tabs
 (setq-default tab-width 2)
-(setq indent-tabs-mode nil)
-(global-set-key (kbd "TAB") '(lambda () (interactive) (insert "  ")))
+;; make sure '=' don't insert tab in evil-mode.
 (add-hook 'prog-mode-hook '(lambda () (setq indent-tabs-mode nil)))
+;; tab in insert mode is simply interpreted as inserting two spaces.
+(add-hook 'prog-mode-hook
+          '(lambda () (define-key evil-insert-state-local-map (kbd "TAB") '(lambda () (interactive) (insert "  ")))))
 
 ; disable some bars
 (menu-bar-mode -1)
@@ -418,6 +424,7 @@
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (setq eshell-buffer-number (+ eshell-buffer-number 1))
 	 (xueliang-cd-current-buffer-directory)
+   (require 'fiplr)
 	 (cd (fiplr-root))  ;; since fiplr-root is a private function of fiplr, just use <leader>-f to load fiplr into emacs.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))

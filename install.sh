@@ -36,6 +36,10 @@ ln -sf `pwd`/git-rebase-head ~/bin/git-rebase-head
 rm -f ~/.emacs.d/eshell/alias
 ln -sf `pwd`/alias ~/.emacs.d/eshell/alias
 
+# so that emacs can start chrome using 'browse-url-chromium'
+rm -f ~/bin/chromium
+ln -s /usr/bin/google-chrome ~/bin/chromium
+
 # DONE
 echo DONE
 

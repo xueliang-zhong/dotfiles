@@ -1,6 +1,7 @@
-alias gshow git show
-alias top top -d 1
-alias ll ls -l
-alias la ls -a
-alias glog git log
+alias ff find-file-other-window $1
 alias gdiff git diff
+alias glog git log
+alias la ls -a
+alias ll ls -l
+alias top top -d 1
+alias gshow git show
