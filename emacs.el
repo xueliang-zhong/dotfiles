@@ -31,6 +31,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
+	"<SPC>" 'helm-for-files
   "]" 'helm-etags-select-android-art
   "a" 'xueliang-ag-search-in-project
   "b" 'helm-for-files
@@ -195,6 +196,10 @@
 (defun eshell/clear ()
   "Clear the eshell buffer."
   (let ((inhibit-read-only t)) (erase-buffer)))
+
+(defun eshell/e (arg)
+  "create or edit file in another window."
+  (find-file-other-window arg))
 
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
