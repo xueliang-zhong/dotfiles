@@ -42,7 +42,7 @@
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
-  "s" 'xueliang-helm-swoop
+  "s" 'helm-multi-swoop-all
   "S" 'xueliang-eshell-new  ;; S means 'Shell'
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
@@ -85,6 +85,10 @@
 (define-key helm-map (kbd "<tab>")     'helm-next-line)
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
 (define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
+
+;; use the helm-swoop style preview.
+(define-key helm-map (kbd "<up>")   '(lambda() (interactive) (helm-previous-line) (helm-execute-persistent-action)))
+(define-key helm-map (kbd "<down>") '(lambda() (interactive) (helm-next-line) (helm-execute-persistent-action)))
 
 (setq helm-autoresize-max-height 40)
 (setq helm-autoresize-min-height 15)
@@ -225,8 +229,8 @@
   (global-git-gutter+-mode))
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list "C-h" "C-x" "C-x c"))
-(setq guide-key/idle-delay 0.1)
+(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
+(setq guide-key/idle-delay 1.0)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
