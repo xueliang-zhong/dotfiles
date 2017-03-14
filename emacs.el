@@ -51,8 +51,8 @@
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop)
+(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -443,7 +443,7 @@
   (interactive)
   (split-window-horizontally)
   (find-file "~/workspace/dotfiles/linaro-build-scripts")
-  (xueliang-helm-swoop))
+  (xueliang-helm-swoop-at-point))
 
 ;; nice helm-swoop
 (defun xueliang-helm-split-window-swoop (use-pre-input)
@@ -454,7 +454,7 @@
   (when new-helm-swoop-window
     (delete-window new-helm-swoop-window)))
 
-(defun xueliang-helm-swoop ()
+(defun xueliang-helm-swoop-at-point ()
   "show helm-swoop results in a side window."
   (interactive)
   (xueliang-helm-split-window-swoop t))
@@ -494,7 +494,7 @@
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 
-(global-set-key (kbd "<f5>")  'xueliang-helm-swoop) ; find in current buffer using helm-swoop.
+(global-set-key (kbd "<f5>")  'xueliang-helm-swoop-at-point) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
