@@ -53,7 +53,7 @@
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop)
-(define-key evil-normal-state-map (kbd "/") 'helm-swoop-without-pre-input)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
@@ -445,16 +445,24 @@
   (find-file "~/workspace/dotfiles/linaro-build-scripts")
   (xueliang-helm-swoop))
 
-; nice helm-swoop
-(defun xueliang-helm-swoop ()
-  "show helm-swoop results in a side window."
-  (interactive)
+;; nice helm-swoop
+(defun xueliang-helm-split-window-swoop (use-pre-input)
   (setq new-helm-swoop-window nil)
   (when (window-full-width-p (get-buffer-window (buffer-name)))
     (setq new-helm-swoop-window (split-window-horizontally)))
-  (helm-swoop)
+  (if use-pre-input (helm-swoop) (helm-swoop-without-pre-input))
   (when new-helm-swoop-window
     (delete-window new-helm-swoop-window)))
+
+(defun xueliang-helm-swoop ()
+  "show helm-swoop results in a side window."
+  (interactive)
+  (xueliang-helm-split-window-swoop t))
+
+(defun xueliang-helm-swoop-without-pre-input ()
+  "show helm-swoop results in a side window."
+  (interactive)
+  (xueliang-helm-split-window-swoop nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
