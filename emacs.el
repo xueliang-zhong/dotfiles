@@ -61,6 +61,8 @@
 (defun =============helm-config=============())
 (require 'helm)
 (require 'helm-config)
+(require 'helm-swoop)
+(require 'helm-chrome)
 
 (setq helm-split-window-in-side-p t) ; open helm buffer inside current window
 (setq helm-echo-input-in-header-line t)
