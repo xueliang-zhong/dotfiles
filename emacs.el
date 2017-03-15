@@ -55,6 +55,9 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
 
+;; use company use C-n completion.
+(define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -273,7 +276,7 @@
 ;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
 ;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
 
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 130)
 
 ; line/column related
 (column-number-mode)
