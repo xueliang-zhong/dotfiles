@@ -208,7 +208,7 @@
 ;; Typing clear in eshell will then result in clearing the buffer.
 (defun eshell/clear ()
   "Clear the eshell buffer."
-  (let ((inhibit-read-only t)) (erase-buffer)))
+  (dotimes (i 30) (eshell-send-input)))
 
 (defun eshell/e (arg)
   "create or edit file in another window."

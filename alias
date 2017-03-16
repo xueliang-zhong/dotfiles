@@ -1,9 +1,10 @@
+alias ff find -name "$1"
 alias gdiff git diff
 alias glog git log
 alias gshow git show
 alias la ls -a
 alias ll ls -l
+alias s alias vim find-file-other-window $1
 alias top top -d 1
 alias v find-file-other-window $1
 alias vi find-file-other-window $1
-alias vim find-file-other-window $1
