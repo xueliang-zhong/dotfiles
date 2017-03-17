@@ -33,7 +33,7 @@
 (evil-leader/set-key
 	"<SPC>" 'helm-for-files
   "]" 'helm-etags-select-android-art
-  "a" 'helm-projectile-ag
+  "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
@@ -463,12 +463,14 @@
 (defun xueliang-helm-swoop-at-point ()
   "show helm-swoop results in a side window."
   (interactive)
-  (xueliang-helm-split-window-swoop t))
+  (xueliang-helm-split-window-swoop t)
+  (add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 (defun xueliang-helm-swoop-without-pre-input ()
   "show helm-swoop results in a side window."
   (interactive)
-  (xueliang-helm-split-window-swoop nil))
+  (xueliang-helm-split-window-swoop nil)
+  (add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
