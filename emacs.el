@@ -93,8 +93,9 @@
 (define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
 
 ;; use the helm-swoop style preview.
-(define-key helm-map (kbd "<up>")   '(lambda() (interactive) (helm-previous-line) (helm-execute-persistent-action)))
-(define-key helm-map (kbd "<down>") '(lambda() (interactive) (helm-next-line) (helm-execute-persistent-action)))
+;; because helm-execute-persistent-action kills processes in helm-top, that's why it is bound to Ctrl-Up/Down.
+(define-key helm-map (kbd "C-<up>")   '(lambda() (interactive) (helm-previous-line) (helm-execute-persistent-action)))
+(define-key helm-map (kbd "C-<down>") '(lambda() (interactive) (helm-next-line) (helm-execute-persistent-action)))
 
 (setq helm-autoresize-max-height 40)
 (setq helm-autoresize-min-height 15)
@@ -208,11 +209,16 @@
 ;; Typing clear in eshell will then result in clearing the buffer.
 (defun eshell/clear ()
   "Clear the eshell buffer."
-  (dotimes (i 30) (eshell-send-input)))
+  (dotimes (i 5) (eshell-send-input)))
 
 (defun eshell/e (arg)
   "create or edit file in another window."
   (find-file-other-window arg))
+
+(defun eshell/ec ()
+  "create emacsclient frame from eshell."
+  (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
+  (async-shell-command "emacsclient -c"))
 
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
@@ -272,10 +278,7 @@
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 (set-default-font "DejaVu Sans Mono")
 
-;; set default font for emacs --daemon / emacsclient
-;; but I found it has some problem in showing fonts. A workaround is to eval following code here.
-;;(setq default-frame-alist '((font . "DejaVu Sans Mono")))
-
+;; font size
 (set-face-attribute 'default nil :height 130)
 
 ; line/column related
