@@ -33,11 +33,11 @@
 (evil-leader/set-key
 	"<SPC>" 'helm-for-files
   "]" 'helm-etags-select-android-art
-  "a" 'xueliang-ag-search-in-project
+  "a" 'helm-projectile-ag
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'fiplr-find-file
+  "f" 'helm-projectile
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -66,6 +66,7 @@
 (require 'helm-config)
 (require 'helm-swoop)
 (require 'helm-chrome)
+(require 'helm-projectile)
 
 (setq helm-split-window-in-side-p t) ; open helm buffer inside current window
 (setq helm-echo-input-in-header-line t)
@@ -220,6 +221,10 @@
   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
   (async-shell-command "emacsclient -c"))
 
+(defun eshell/gcommit (arg)
+  "make git commit easier"
+  (shell-command (message "git commit -m \"%s\"" arg)))
+
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
@@ -279,7 +284,7 @@
 (set-default-font "DejaVu Sans Mono")
 
 ;; font size
-(set-face-attribute 'default nil :height 130)
+(set-face-attribute 'default nil :height 140)
 
 ; line/column related
 (column-number-mode)
@@ -419,9 +424,8 @@
 
 (defun xueliang-eshell-current-line ()
    "invokes eshell in a split window, send current line to eshell." (interactive)
-   (setq my-cmd-in-eshell (thing-at-point 'line))
-   (xueliang-create-eshell-or-switch-to-existing)
-   (insert my-cmd-in-eshell) (left-char))
+   (kill-ring-save (point) (line-end-position))
+   (xueliang-create-eshell-or-switch-to-existing) (yank))
 
 (defun xueliang-eshell ()
    "invokes eshell in a split window." (interactive)
@@ -542,3 +546,4 @@
 ;; https://github.com/noctuid/evil-guide/blob/master/README.org
 ;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
 ;; http://www.howardism.org/Technical/Emacs/eshell-fun.html
+;; http://pages.sachachua.com/.emacs.d/Sacha.html

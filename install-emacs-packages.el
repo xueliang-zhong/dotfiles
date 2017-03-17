@@ -5,6 +5,7 @@
 (package-install 'helm-swoop)
 (package-install 'helm-chrome)
 (package-install 'helm-descbinds)
+(package-install 'helm-projectile)
 (package-install 'ivy)
 (package-install 'smart-mode-line)
 (package-install 'rainbow-delimiters)
@@ -16,3 +17,4 @@
 (package-install 'nlinum)
 (package-install 'whitespace)
 (package-install 'fiplr)
+(package-install 'projectile)
