@@ -212,10 +212,6 @@
   "Clear the eshell buffer."
   (dotimes (i 5) (eshell-send-input)))
 
-(defun eshell/e (arg)
-  "create or edit file in another window."
-  (find-file-other-window arg))
-
 (defun eshell/ec ()
   "create emacsclient frame from eshell."
   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient

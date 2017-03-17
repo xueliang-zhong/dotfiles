@@ -1,3 +1,4 @@
+alias e find-file-other-window $1
 alias ff find -name "$1"
 alias gdiff git diff
 alias glog git log
