@@ -33,15 +33,14 @@
                             projectile)
         "Default packages")
 
-(defun xueliang-reinstall-packages (pkg-list-refresh)
+(defun xueliang-reinstall-packages ()
   "resintall a package if it is missing on this machine." (interactive)
-  (when pkg-list-refresh (package-refresh-contents))
   (dolist (pkg xueliang/packages)
     (when (not (package-installed-p pkg))
       (package-install pkg))))
 
 ;; check at emacs start up, make sure all packages are ready to use.
-(xueliang-reinstall-packages nil)
+(xueliang-reinstall-packages)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
