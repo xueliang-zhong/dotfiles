@@ -1,9 +1,47 @@
 (require 'package)
 (add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
-(add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/"))
+;;(add-to-list 'package-archives '("melpa-stable" . "http://stable.melpa.org/packages/"))
 (setq package-enable-at-startup nil)
 (package-initialize)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; packages that are in use.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============packages-config=============())
+(defvar xueliang/packages '(evil
+                            evil-leader
+                            helm
+                            helm-swoop
+                            helm-chrome
+                            helm-descbinds
+                            helm-projectile
+                            company
+                            magit
+                            evil-magit
+                            ivy
+                            smart-mode-line
+                            rainbow-delimiters
+                            org-bullets
+                            git-gutter-fringe+
+                            guide-key
+                            neotree
+                            hl-line+
+                            nlinum
+                            whitespace
+                            fiplr
+                            projectile)
+        "Default packages")
+
+(defun xueliang-reinstall-packages (pkg-list-refresh)
+  "resintall a package if it is missing on this machine." (interactive)
+  (when pkg-list-refresh (package-refresh-contents))
+  (dolist (pkg xueliang/packages)
+    (when (not (package-installed-p pkg))
+      (package-install pkg))))
+
+;; check at emacs start up, make sure all packages are ready to use.
+(xueliang-reinstall-packages nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
