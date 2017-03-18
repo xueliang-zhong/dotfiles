@@ -15,6 +15,7 @@
                             helm-chrome
                             helm-descbinds
                             helm-projectile
+                            helm-flyspell
                             company
                             magit
                             evil-magit
