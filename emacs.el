@@ -110,6 +110,10 @@
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
 
+;; I don't like any delay.
+(setq helm-input-idle-delay 0)
+(setq helm-quick-update 0)
+
 (setq helm-for-files-preferred-list
       '(helm-source-buffers-list
         helm-source-recentf
@@ -147,6 +151,9 @@
 
 ;; If nil, you can slightly boost invoke speed in exchange for text color
 (setq helm-swoop-speed-or-color t)
+
+;; quite useful to see what I've deleted.
+(define-key evil-normal-state-local-map (kbd "M-y") 'helm-show-kill-ring)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -393,6 +400,16 @@
 
 ;; modern style 'paste' in evil insert mode.
 (define-key evil-insert-state-map (kbd "C-v") 'yank)
+
+;; window move
+(define-key evil-normal-state-map (kbd "M-<up>")    'windmove-up)
+(define-key evil-normal-state-map (kbd "M-<down>")  'windmove-down)
+(define-key evil-normal-state-map (kbd "M-<left>")  'windmove-left)
+(define-key evil-normal-state-map (kbd "M-<right>") 'windmove-right)
+(define-key evil-insert-state-map (kbd "M-<up>")    'windmove-up)
+(define-key evil-insert-state-map (kbd "M-<down>")  'windmove-down)
+(define-key evil-insert-state-map (kbd "M-<left>")  'windmove-left)
+(define-key evil-insert-state-map (kbd "M-<right>") 'windmove-right)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
