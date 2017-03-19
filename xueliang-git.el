@@ -31,11 +31,11 @@
   (ansi-color-apply-on-region (point-min) (point-max))  ;; display ansi colors (%Cred/green/blue/reset), requres ansi-color.
   (evil-window-move-very-bottom) (evil-beginning-of-line))
 
-(defun xueliang-gdiff-current-buffer ()
-  "run git diff on current buffer;
+(defun xueliang-gdiff ()
+  "run git diff HEAD;
    use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
   (xueliang-cd-current-buffer-directory)
-  (shell-command (concat "git diff " (buffer-file-name)))
+  (shell-command "git diff HEAD")
   (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
     (evil-window-move-far-right) (diff-mode) (evil-next-line 7) (diff-goto-source)))
