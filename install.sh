@@ -40,6 +40,12 @@ ln -sf `pwd`/alias ~/.emacs.d/eshell/alias
 rm -f ~/bin/chromium
 ln -s /usr/bin/google-chrome ~/bin/chromium
 
+# Android aosp/linaro development
+rm -f ~/bin/cpplint.py
+rm -f ~/bin/adb
+ln -s ~/workspace/aosp/art/tools/cpplint.py  ~/bin/cpplint.py
+ln -s ~/workspace/aosp/out/host/linux-x86/bin/adb  ~/bin/adb
+
 # DONE
 echo DONE
 

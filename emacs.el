@@ -153,7 +153,8 @@
 (setq helm-swoop-speed-or-color t)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-local-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -177,7 +178,7 @@
 ;; Org mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============org-config=============())
-(setq org-todo-keywords '((sequence "TODO" "TODO-!!!" "IN-PROGRESS" "DONE")))
+(setq org-todo-keywords '((sequence "TODO" "TODO-LOW" "IN-PROGRESS" "DONE")))
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
@@ -334,7 +335,7 @@
 (set-default-font "DejaVu Sans Mono")
 
 ;; font size
-(set-face-attribute 'default nil :height 140)
+(set-face-attribute 'default nil :height 130)
 
 ; line/column related
 (column-number-mode)
@@ -402,14 +403,14 @@
 (define-key evil-insert-state-map (kbd "C-v") 'yank)
 
 ;; window move
-(define-key evil-normal-state-map (kbd "M-<up>")    'windmove-up)
-(define-key evil-normal-state-map (kbd "M-<down>")  'windmove-down)
-(define-key evil-normal-state-map (kbd "M-<left>")  'windmove-left)
-(define-key evil-normal-state-map (kbd "M-<right>") 'windmove-right)
-(define-key evil-insert-state-map (kbd "M-<up>")    'windmove-up)
-(define-key evil-insert-state-map (kbd "M-<down>")  'windmove-down)
-(define-key evil-insert-state-map (kbd "M-<left>")  'windmove-left)
-(define-key evil-insert-state-map (kbd "M-<right>") 'windmove-right)
+(define-key evil-normal-state-map (kbd "C-<up>")    'windmove-up)
+(define-key evil-normal-state-map (kbd "C-<down>")  'windmove-down)
+(define-key evil-normal-state-map (kbd "C-<left>")  'windmove-left)
+(define-key evil-normal-state-map (kbd "C-<right>") 'windmove-right)
+(define-key evil-insert-state-map (kbd "C-<up>")    'windmove-up)
+(define-key evil-insert-state-map (kbd "C-<down>")  'windmove-down)
+(define-key evil-insert-state-map (kbd "C-<left>")  'windmove-left)
+(define-key evil-insert-state-map (kbd "C-<right>") 'windmove-right)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
