@@ -289,7 +289,7 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
-  (load-theme 'tango-dark t)
+  ;;(load-theme 'tango-dark t)
   (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
@@ -335,7 +335,10 @@
 (set-default-font "DejaVu Sans Mono")
 
 ;; font size
-(set-face-attribute 'default nil :height 130)
+(if window-system
+    (if (> (x-display-pixel-width) 2000)
+        (set-face-attribute 'default nil :height 130)
+        (set-face-attribute 'default nil :height 140)))
 
 ; line/column related
 (column-number-mode)
