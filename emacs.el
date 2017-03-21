@@ -74,7 +74,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'helm-projectile
+  "f" 'xueliang-helm-projectile
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -406,14 +406,14 @@
 (define-key evil-insert-state-map (kbd "C-v") 'yank)
 
 ;; window move
-(define-key evil-normal-state-map (kbd "C-<up>")    'windmove-up)
-(define-key evil-normal-state-map (kbd "C-<down>")  'windmove-down)
-(define-key evil-normal-state-map (kbd "C-<left>")  'windmove-left)
-(define-key evil-normal-state-map (kbd "C-<right>") 'windmove-right)
-(define-key evil-insert-state-map (kbd "C-<up>")    'windmove-up)
-(define-key evil-insert-state-map (kbd "C-<down>")  'windmove-down)
-(define-key evil-insert-state-map (kbd "C-<left>")  'windmove-left)
-(define-key evil-insert-state-map (kbd "C-<right>") 'windmove-right)
+(define-key evil-normal-state-map (kbd "C-M-k")    'windmove-up)
+(define-key evil-normal-state-map (kbd "C-M-j")  'windmove-down)
+(define-key evil-normal-state-map (kbd "C-M-h")  'windmove-left)
+(define-key evil-normal-state-map (kbd "C-M-l") 'windmove-right)
+(define-key evil-insert-state-map (kbd "C-M-k")    'windmove-up)
+(define-key evil-insert-state-map (kbd "C-M-j")  'windmove-down)
+(define-key evil-insert-state-map (kbd "C-M-h")  'windmove-left)
+(define-key evil-insert-state-map (kbd "C-M-l") 'windmove-right)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
@@ -511,6 +511,12 @@
   (interactive "P")
   (require 'fiplr)
   (cd (fiplr-root)) (helm-do-grep-ag argument))
+
+(defun xueliang-helm-projectile ()
+  "switch to current buffer before calling helm-projectile."
+  (interactive)
+  (require 'helm-projectile)
+  (projectile-switch-to-buffer) (helm-projectile))
 
 (defun xueliang-run-linaro-art-test()
   "shows command for linaro target test single test, which can be further sent to shell to execute."
