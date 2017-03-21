@@ -537,14 +537,16 @@
 (defun xueliang-helm-swoop-at-point ()
   "show helm-swoop results in a side window."
   (interactive)
-  (xueliang-helm-split-window-swoop t)
-  (add-to-list 'regexp-search-ring helm-swoop-pattern))
+  (helm-occur))
+  ;(xueliang-helm-split-window-swoop t)
+  ;(add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 (defun xueliang-helm-swoop-without-pre-input ()
   "show helm-swoop results in a side window."
   (interactive)
-  (xueliang-helm-split-window-swoop nil)
-  (add-to-list 'regexp-search-ring helm-swoop-pattern))
+  (helm-occur))
+  ;(xueliang-helm-split-window-swoop nil)
+  ;(add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
