@@ -74,7 +74,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'xueliang-helm-projectile
+  "f" 'fiplr-find-file
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
