@@ -30,8 +30,7 @@
                             nlinum
                             whitespace
                             fiplr
-                            projectile)
-        "Default packages")
+                            projectile))
 
 (defun xueliang-reinstall-packages ()
   "resintall a package if it is missing on this machine." (interactive)
@@ -68,7 +67,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-	"<SPC>" 'helm-for-files
+  "<SPC>" 'helm-for-files
   "]" 'helm-etags-select-android-art
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
@@ -91,7 +90,7 @@
 (define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
-(define-key evil-normal-state-map (kbd "?") 'helm-occur)
+(define-key evil-normal-state-map (kbd "?") 'helm-occur)  ;; sometimes helm-occur behaves better, e.g. for small window.
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -179,7 +178,7 @@
 ;; Org mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============org-config=============())
-(setq org-todo-keywords '((sequence "TODO" "TODO-LOW" "IN-PROGRESS" "DONE")))
+(setq org-todo-keywords '((sequence "TODO" "LOW" "IN-PROGRESS" "DONE")))
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
@@ -500,9 +499,9 @@
 (defun xueliang-eshell-new ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (setq eshell-buffer-number (+ eshell-buffer-number 1))
-	 (xueliang-cd-current-buffer-directory)
+   (xueliang-cd-current-buffer-directory)
    (require 'fiplr)
-	 (cd (fiplr-root))  ;; since fiplr-root is a private function of fiplr, just use <leader>-f to load fiplr into emacs.
+   (cd (fiplr-root))  ;; since fiplr-root is a private function of fiplr, just use <leader>-f to load fiplr into emacs.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
@@ -517,7 +516,7 @@
   "switch to current buffer before calling helm-projectile."
   (interactive)
   (require 'helm-projectile)
-  (projectile-switch-to-buffer) (helm-projectile))
+  (helm-projectile))
 
 (defun xueliang-run-linaro-art-test()
   "shows command for linaro target test single test, which can be further sent to shell to execute."
