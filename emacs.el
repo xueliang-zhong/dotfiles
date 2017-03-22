@@ -91,6 +91,7 @@
 (define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
 (define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
+(define-key evil-normal-state-map (kbd "?") 'helm-occur)
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -537,16 +538,14 @@
 (defun xueliang-helm-swoop-at-point ()
   "show helm-swoop results in a side window."
   (interactive)
-  (helm-occur))
-  ;(xueliang-helm-split-window-swoop t)
-  ;(add-to-list 'regexp-search-ring helm-swoop-pattern))
+  (xueliang-helm-split-window-swoop t)
+  (add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 (defun xueliang-helm-swoop-without-pre-input ()
   "show helm-swoop results in a side window."
   (interactive)
-  (helm-occur))
-  ;(xueliang-helm-split-window-swoop nil)
-  ;(add-to-list 'regexp-search-ring helm-swoop-pattern))
+  (xueliang-helm-split-window-swoop nil)
+  (add-to-list 'regexp-search-ring helm-swoop-pattern))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
