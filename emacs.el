@@ -36,6 +36,7 @@
   "resintall a package if it is missing on this machine." (interactive)
   (dolist (pkg xueliang/packages)
     (when (not (package-installed-p pkg))
+      (package-refresh-contents)
       (package-install pkg))))
 
 ;; check at emacs start up, make sure all packages are ready to use.
@@ -265,7 +266,7 @@
 ;; Eshell will run a term session to support following complex commands
 (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
 
-;; Typing clear in eshell will then result in clearing the buffer.
+;; Avoid clearing the whole buffer when typing clear in eshell.
 (defun eshell/clear ()
   "Clear the eshell buffer."
   (dotimes (i 5) (eshell-send-input)))
@@ -276,8 +277,13 @@
   (async-shell-command "emacsclient -c"))
 
 (defun eshell/gcommit (arg)
-  "make git commit easier"
+  "make git commit easier."
   (shell-command (message "git commit -m \"%s\"" arg)))
+
+(defun eshell/x ()
+  "exit eshell and close the window."
+  (insert "exit") (eshell-send-input)
+  (delete-window))
 
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
@@ -289,7 +295,7 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat
 (if window-system
-  ;;(load-theme 'tango-dark t)
+  (load-theme 'tango-dark t)
   (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
@@ -332,6 +338,7 @@
 (setq inhibit-splash-screen t)
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
+;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
 (set-default-font "DejaVu Sans Mono")
 
 ;; font size
@@ -404,6 +411,10 @@
 
 ;; modern style 'paste' in evil insert mode.
 (define-key evil-insert-state-map (kbd "C-v") 'yank)
+
+;; make kill-ring more convenient.
+(setq x-select-enable-clipboard t)
+(setq save-interprogram-paste-before-kill t)
 
 ;; window move
 (define-key evil-normal-state-map (kbd "C-M-k")    'windmove-up)
@@ -545,6 +556,15 @@
   (interactive)
   (xueliang-helm-split-window-swoop nil)
   (add-to-list 'regexp-search-ring helm-swoop-pattern))
+
+(setq-default xueliang-current-font 0)
+(defun xueliang-switch-fonts ()
+  "it's nice to be able to switch between pretty fonts.\nEspecially for writing emails, docs, and code."
+  (interactive)
+  (if (= (mod xueliang-current-font 2) 0)
+      (set-default-font "DejaVu Sans Mono")
+      (set-default-font "DejaVu Sans"))
+   (setq xueliang-current-font (+ xueliang-current-font 1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
