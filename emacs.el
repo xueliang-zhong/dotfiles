@@ -279,6 +279,11 @@
   (insert "exit") (eshell-send-input)
   (delete-window))
 
+(defun eshell/cdroot ()
+  "cd to project root"
+  (require 'fiplr)
+  (cd (fiplr-root)))
+
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
@@ -504,9 +509,6 @@
 (defun xueliang-eshell-new ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (setq eshell-buffer-number (+ eshell-buffer-number 1))
-   (xueliang-cd-current-buffer-directory)
-   (require 'fiplr)
-   (cd (fiplr-root))  ;; since fiplr-root is a private function of fiplr, just use <leader>-f to load fiplr into emacs.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
