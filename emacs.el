@@ -74,8 +74,8 @@
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
-  "s" 'helm-multi-swoop-all
-  "S" 'xueliang-eshell-new  ;; S means 'Shell'
+  "s" 'xueliang-eshell-new  ;; s means 'shell'
+  "S" 'helm-multi-swoop-all
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
 )
