@@ -229,7 +229,7 @@
 (add-to-list 'sml/replacer-regexp-list '("^~/workspace/Linaro_Android_Master/external/vixl/" ":linaro-vixl:") t)
 
 ;; show which function on mode-line.
-(which-function-mode 1)
+(which-function-mode -1)
 
 ;; always show which git branch I'm in.
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
@@ -288,6 +288,13 @@
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
+
+;; eshell prompt configs
+(setq eshell-prompt-function (lambda () (concat
+   (propertize (eshell/pwd) 'face `(:foreground "LightSkyBlue"))
+   (propertize (format-time-string " [%a %d %b, %H:%M]" (current-time)) 'face `(:foreground "gold"))
+   (propertize " $ " 'face `(:foreground "white")))))
+(setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
@@ -748,4 +755,5 @@
 ;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
 ;; http://www.howardism.org/Technical/Emacs/eshell-fun.html
 ;; http://pages.sachachua.com/.emacs.d/Sacha.html
+;; https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
 ;; https://pawelbx.github.io/emacs-theme-gallery/
