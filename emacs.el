@@ -733,6 +733,7 @@
 ;; * compilation-minor-mode in eshell, after use eshell for compiling project.
 ;; * helm-google-suggest is really awesome.
 ;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
+;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
