@@ -30,6 +30,7 @@
                             nlinum
                             whitespace
                             fiplr
+                            heroku-theme
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -292,9 +293,9 @@
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
-; default theme good themes: tango-dark, zenburn, monokai, wombat
+; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
 (if window-system
-  (load-theme 'tango-dark t)
+  (load-theme 'heroku t)
   (load-theme 'wombat t))
 
 (require 'rainbow-delimiters)
@@ -641,3 +642,4 @@
 ;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
 ;; http://www.howardism.org/Technical/Emacs/eshell-fun.html
 ;; http://pages.sachachua.com/.emacs.d/Sacha.html
+;; https://pawelbx.github.io/emacs-theme-gallery/
