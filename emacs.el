@@ -362,7 +362,7 @@
   (shell-command "git diff HEAD")
   (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-    (evil-window-move-far-right) (diff-mode) (evil-next-line 7) (diff-goto-source)))
+    (evil-window-move-far-right) (diff-mode) (evil-next-line 7)))
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number at point.
@@ -429,7 +429,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============global-settings=============())
+(defun =============global-config/settings=============())
 
 ;; start server for emacsclient
 (require 'server)
