@@ -291,8 +291,8 @@
 
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
+   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "gold"))
    (propertize (eshell/pwd) 'face `(:foreground "LightSkyBlue"))
-   (propertize (format-time-string " [%a %d %b, %H:%M]" (current-time)) 'face `(:foreground "gold"))
    (propertize " $ " 'face `(:foreground "white")))))
 (setq eshell-highlight-prompt nil)
 
