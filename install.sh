@@ -45,8 +45,12 @@ ln -s ~/workspace/aosp/art/tools/cpplint.py  ~/bin/cpplint.py
 ln -s ~/workspace/aosp/out/host/linux-x86/bin/adb  ~/bin/adb
 
 # gnome environment
+rm -f ~/bin/files
+rm -f ~/bin/file
+rm -f ~/bin/tilix
 ln -s /usr/bin/nautilus ~/bin/files
 ln -s /usr/bin/nautilus ~/bin/file
+ln -s /usr/bin/tilix ~/bin/terminal
 
 # DONE
 echo DONE
