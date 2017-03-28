@@ -302,8 +302,11 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
 (if window-system
-  (load-theme 'heroku t)
+  (load-theme 'tango-dark t)  ;; tango-dark works nice with transparency.
   (load-theme 'wombat t))
+
+;; transparency
+(set-frame-parameter (selected-frame) 'alpha '(85 . 50))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
