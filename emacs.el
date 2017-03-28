@@ -174,7 +174,7 @@
 ;; Org mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============org-config=============())
-(setq org-todo-keywords '((sequence "TODO" "LOW" "IN-PROGRESS" "DONE")))
+(setq org-todo-keywords '((sequence "TODO" "LOW" "PROGRESS" "DONE")))
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
@@ -510,11 +510,12 @@
 ; yes and no
 (defalias 'yes-or-no-p 'y-or-n-p)
 
+;; whitespace mode config
 (require 'whitespace)
-(global-whitespace-mode +1)
+(global-whitespace-mode -1)  ;; don't enable whitespace mode everywhere.
+(add-hook 'prog-mode-hook '(lambda () (whitespace-mode 1)))
 (setq whitespace-line-column 100) ;; limit line length
 (setq whitespace-style '(face trailing lines-tail tabs))
-(add-hook 'prog-mode-hook 'whitespace-mode)
 
 ; '_' as part of word
 (add-hook 'c-mode-hook    '(lambda () (modify-syntax-entry ?_ "w")))
