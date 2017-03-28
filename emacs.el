@@ -302,7 +302,7 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
 (if window-system
-  (load-theme 'tango-dark t)  ;; tango-dark works nice with transparency.
+  (load-theme 'wombat t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
 
 ;; transparency
