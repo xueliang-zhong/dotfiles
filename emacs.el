@@ -307,7 +307,7 @@
   (load-theme 'wombat t))
 
 ;; transparency
-(set-frame-parameter (selected-frame) 'alpha '(88 . 85))
+(set-frame-parameter (selected-frame) 'alpha '(85 . 85))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
