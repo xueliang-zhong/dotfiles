@@ -31,6 +31,7 @@
                             whitespace
                             fiplr
                             heroku-theme
+                            zenburn-theme
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -302,11 +303,11 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
 (if window-system
-  (load-theme 'wombat t)  ;; themes that work nice with transparency: wombat, tango-dark
+  (load-theme 'tango-dark t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
 
 ;; transparency
-(set-frame-parameter (selected-frame) 'alpha '(85 . 50))
+(set-frame-parameter (selected-frame) 'alpha '(88 . 85))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
