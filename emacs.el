@@ -17,6 +17,7 @@
                             helm-projectile
                             helm-flyspell
                             company
+                            company-statistics
                             magit
                             evil-magit
                             ivy
@@ -201,6 +202,9 @@
 
 ;; not to downcase the returned candidates, keep them as-is.
 (setq company-dabbrev-downcase nil)
+
+;; better ranking of candidates in company completion.
+(company-statistics-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
