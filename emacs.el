@@ -682,6 +682,11 @@
       (set-default-font "DejaVu Sans"))
    (setq xueliang-current-font (+ xueliang-current-font 1)))
 
+(defun xueliang-turn-on-transparency ()
+  "turn on transparency easier for any eamcs frames."
+  (interactive)
+  (set-frame-parameter (selected-frame) 'alpha '(85 . 85)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
