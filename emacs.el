@@ -32,6 +32,7 @@
                             fiplr
                             heroku-theme
                             zenburn-theme
+                            graphviz-dot-mode
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -762,3 +763,4 @@
 ;; http://pages.sachachua.com/.emacs.d/Sacha.html
 ;; https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
 ;; https://pawelbx.github.io/emacs-theme-gallery/
+;; http://orgmode.org/worg/org-contrib/babel/languages/ob-doc-dot.html
