@@ -330,7 +330,7 @@
   (global-git-gutter+-mode))
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c"))
+(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c" "C-x n"))
 (setq guide-key/idle-delay 1.0)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
@@ -769,6 +769,7 @@
 ;; * helm-google and helm-google-suggest is really awesome.
 ;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
 ;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
+;; * narrow: helps reading/writing code: narrow-to-defun, narrow-to-region.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
