@@ -735,8 +735,8 @@
 
 (global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
-(global-set-key (kbd "<f11>") 'helm-grep-do-git-grep) ; increment grep using git-grep.
-(global-set-key (kbd "<f12>") 'helm-do-grep-ag)       ; grep current word in project.
+(global-set-key (kbd "<f11>") 'helm-google-suggest) ; increment grep using git-grep.
+(global-set-key (kbd "<f12>") 'helm-chrome-bookmarks)
 
 ; simply save current file
 (defun xueliang-ctrl-s() "simply save current file like other modern editors do." (interactive)
