@@ -320,7 +320,7 @@
   (load-theme 'wombat t))
 
 ;; transparency
-(set-frame-parameter (selected-frame) 'alpha '(85 . 85))
+(set-frame-parameter (selected-frame) 'alpha '(90 . 85))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -697,7 +697,7 @@
 (defun xueliang-turn-on-transparency ()
   "turn on transparency easier for any eamcs frames."
   (interactive)
-  (set-frame-parameter (selected-frame) 'alpha '(85 . 85)))
+  (set-frame-parameter (selected-frame) 'alpha '(90 . 85)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
@@ -761,7 +761,7 @@
 ;; * M-n/p is usually going through history items.
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
 ;; * compilation-minor-mode in eshell, after use eshell for compiling project.
-;; * helm-google-suggest is really awesome.
+;; * helm-google and helm-google-suggest is really awesome.
 ;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
 ;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
 
