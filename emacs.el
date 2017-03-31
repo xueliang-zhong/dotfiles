@@ -20,6 +20,7 @@
                             helm-google
                             company
                             company-statistics
+                            vdiff
                             magit
                             evil-magit
                             ivy
@@ -303,6 +304,11 @@
    (propertize (eshell/pwd) 'face `(:foreground "LightSkyBlue"))
    (propertize " $ " 'face `(:foreground "white")))))
 (setq eshell-highlight-prompt nil)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; vdiff mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============vdiff-mode-config=============())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
