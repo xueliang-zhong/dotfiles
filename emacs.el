@@ -16,6 +16,8 @@
                             helm-descbinds
                             helm-projectile
                             helm-flyspell
+                            helm-themes
+                            helm-google
                             company
                             company-statistics
                             magit
