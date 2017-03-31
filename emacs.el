@@ -344,6 +344,11 @@
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
 
+;; graphviz-dot-mode
+;; Ctrl-l to build and preview current dot file.
+(add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-l") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
+(add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-l") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang git
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
