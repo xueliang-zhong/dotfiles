@@ -320,7 +320,7 @@
   (load-theme 'wombat t))
 
 ;; transparency
-(set-frame-parameter (selected-frame) 'alpha '(90 . 85))
+(set-frame-parameter (selected-frame) 'alpha '(90 . 95))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -697,7 +697,7 @@
 (defun xueliang-turn-on-transparency ()
   "turn on transparency easier for any eamcs frames."
   (interactive)
-  (set-frame-parameter (selected-frame) 'alpha '(90 . 85)))
+  (set-frame-parameter (selected-frame) 'alpha '(90 . 95)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
