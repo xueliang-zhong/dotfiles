@@ -10,6 +10,7 @@
 (defun =============packages-config=============())
 (defvar xueliang/packages '(evil
                             evil-leader
+                            vimrc-mode
                             helm
                             helm-swoop
                             helm-chrome
@@ -23,6 +24,7 @@
                             vdiff
                             magit
                             evil-magit
+                            eshell-did-you-mean
                             ivy
                             smart-mode-line
                             rainbow-delimiters
