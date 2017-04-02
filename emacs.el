@@ -10,6 +10,7 @@
 (defun =============packages-config=============())
 (defvar xueliang/packages '(evil
                             evil-leader
+                            evil-matchit
                             vimrc-mode
                             helm
                             helm-swoop
@@ -65,6 +66,9 @@
 
 (require 'evil-leader)
 (global-evil-leader-mode)
+
+(require 'evil-matchit)
+(global-evil-matchit-mode 1)
 
 (setq evil-shift-width 2)
 
@@ -772,6 +776,7 @@
 ;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
 ;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
 ;; * narrow: helps reading/writing code: narrow-to-defun, narrow-to-region.
+;; * evil: in normal mode: evil-find-char/evil-find-char-backward/evil-find-char-to: f, F, t keys.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
