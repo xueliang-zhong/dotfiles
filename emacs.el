@@ -10,7 +10,6 @@
 (defun =============packages-config=============())
 (defvar xueliang/packages '(evil
                             evil-leader
-                            evil-matchit
                             vimrc-mode
                             helm
                             helm-swoop
@@ -67,8 +66,8 @@
 (require 'evil-leader)
 (global-evil-leader-mode)
 
-(require 'evil-matchit)
-(global-evil-matchit-mode -1)
+;;(require 'evil-matchit)
+;;(global-evil-matchit-mode -1)
 
 (setq evil-shift-width 2)
 
@@ -87,7 +86,7 @@
   "I" 'helm-imenu-in-all-buffers
   "r" 'helm-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
-  "S" 'helm-multi-swoop-all
+  "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
   "x" 'helm-M-x  ;; for easier use in the dark
 )
@@ -486,7 +485,7 @@
 (if window-system
     (if (> (x-display-pixel-width) 2000)
         (set-face-attribute 'default nil :height 130)
-        (set-face-attribute 'default nil :height 140)))
+        (set-face-attribute 'default nil :height 200)))
 
 ; line/column related
 (column-number-mode)
@@ -628,6 +627,12 @@
 ; for tag search in android-art project.
 (defun helm-etags-select-android-art() (interactive)
    (cd android-art) (helm-etags-select t))
+
+;; this is for easier code reading and help drawing flowgraph of the coode (dot graph)
+(defun xueliang-send-current-line-to-scratch ()
+   "send current line to scratch for further edit." (interactive)
+   (kill-ring-save (point) (line-end-position))
+   (switch-to-buffer-other-window "*scratch*") (yank) (insert "\n") (evil-window-next 1))
 
 ; invoke e-shell
 (defun xueliang-create-eshell-or-switch-to-existing ()
