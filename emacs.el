@@ -68,7 +68,7 @@
 (global-evil-leader-mode)
 
 (require 'evil-matchit)
-(global-evil-matchit-mode 1)
+(global-evil-matchit-mode -1)
 
 (setq evil-shift-width 2)
 
@@ -746,8 +746,8 @@
 
 (global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
-(global-set-key (kbd "<f11>") 'helm-google-suggest) ; increment grep using git-grep.
-(global-set-key (kbd "<f12>") 'helm-chrome-bookmarks)
+(global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
+(global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
 
 ; simply save current file
 (defun xueliang-ctrl-s() "simply save current file like other modern editors do." (interactive)
@@ -777,6 +777,8 @@
 ;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
 ;; * narrow: helps reading/writing code: narrow-to-defun, narrow-to-region.
 ;; * evil: in normal mode: evil-find-char/evil-find-char-backward/evil-find-char-to: f, F, t keys.
+;; * emacs --debug-init to debug if emacs fails to launch.
+;; * ctrl-l to reposition current line: top, middle, bottom.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
