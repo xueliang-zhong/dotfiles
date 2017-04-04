@@ -805,6 +805,7 @@
 ;; * emacs --debug-init to debug if emacs fails to launch.
 ;; * ctrl-l to reposition current line: top, middle, bottom.
 ;; * use glasses-mode for code reading, it makes variable easier to read.
+;; * org-redisplay-inline-images / org-toggle-inline-images (C-c C-x C-v).
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
