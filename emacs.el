@@ -190,6 +190,11 @@
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
+;; add dotty support in org-babel
+(org-babel-do-load-languages 'org-babel-load-languages
+                             '((dot . t)
+                               (emacs-lisp . t)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -805,3 +810,5 @@
 ;; https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
 ;; https://pawelbx.github.io/emacs-theme-gallery/
 ;; http://orgmode.org/worg/org-contrib/babel/languages/ob-doc-dot.html
+;; http://orgmode.org/worg/org-contrib/babel/intro.html
+;; http://orgmode.org/worg/org-contrib/babel/languages.html
