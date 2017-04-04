@@ -567,6 +567,9 @@
 (define-key evil-insert-state-map (kbd "C-M-h")  'windmove-left)
 (define-key evil-insert-state-map (kbd "C-M-l") 'windmove-right)
 
+;; glasses-mode o^o settings
+(setq glasses-separator "_")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -784,6 +787,7 @@
 ;; * evil: in normal mode: evil-find-char/evil-find-char-backward/evil-find-char-to: f, F, t keys.
 ;; * emacs --debug-init to debug if emacs fails to launch.
 ;; * ctrl-l to reposition current line: top, middle, bottom.
+;; * use glasses-mode for code reading, it makes variable easier to read.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
