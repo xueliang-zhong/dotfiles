@@ -84,6 +84,7 @@
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
+  "n" 'xueliang-toggle-narrow-to-defun-widen
   "r" 'helm-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
   "S" 'xueliang-send-current-line-to-scratch
@@ -738,6 +739,15 @@
   "turn on transparency easier for any eamcs frames."
   (interactive)
   (set-frame-parameter (selected-frame) 'alpha '(90 . 95)))
+
+(setq-default xueliang-current-narrow 1)
+(defun xueliang-toggle-narrow-to-defun-widen ()
+  "make the switch between narrow and wide view easier."
+  (interactive)
+  (if (= (mod xueliang-current-narrow 2) 0)
+    (narrow-to-defun)
+    (widen))
+   (setq xueliang-current-narrow (+ xueliang-current-narrow 1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
