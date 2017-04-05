@@ -804,7 +804,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; * package install RET command-log-mode, toggle-command-log/buffer
-;; * M-x ansi-term
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
 ;; * helm-show-kill-ring
 ;; * evil mode, helm, org mode, company mode.
