@@ -592,7 +592,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root "~/workspace/aosp/")
+(setq android-root "~/workspace/linaro/")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
