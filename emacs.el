@@ -508,7 +508,7 @@
 (if window-system
     (if (> (x-display-pixel-width) 2000)
         (set-face-attribute 'default nil :height 130)
-        (set-face-attribute 'default nil :height 200)))
+        (set-face-attribute 'default nil :height 140)))
 
 ; line/column related
 (column-number-mode)
