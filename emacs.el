@@ -186,7 +186,7 @@
 ;; Org mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============org-config=============())
-(setq org-todo-keywords '((sequence "TODO" "LOW" "PROGRESS" "ON-GOING-EFFORT" "DONE")))
+(setq org-todo-keywords '((sequence "TODO" "PROGRESS" "ON-GOING-EFFORT" "DONE")))
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
