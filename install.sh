@@ -46,12 +46,12 @@ ln -s ~/workspace/aosp/out/host/linux-x86/bin/adb  ~/bin/adb
 
 # gnome environment
 rm -f ~/bin/files
-rm -f ~/bin/file
 rm -f ~/bin/terminal
 ln -s /usr/bin/nautilus ~/bin/files
-ln -s /usr/bin/nautilus ~/bin/file
-#ln -s /usr/bin/tilix ~/bin/terminal
 ln -s /usr/bin/gnome-terminal ~/bin/terminal
+
+# dropbox
+ln -s ~/Dropbox ~/workspace/dropbox
 
 # DONE
 echo DONE
