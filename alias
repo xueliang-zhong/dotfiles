@@ -10,3 +10,4 @@ alias s alias vim find-file-other-window $1
 alias top top -d 1
 alias v find-file-other-window $1
 alias vi find-file-other-window $1
+alias vim find-file-other-window $1
