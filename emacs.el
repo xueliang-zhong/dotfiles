@@ -304,8 +304,7 @@
 
 (defun eshell/ec ()
   "create emacsclient frame from eshell."
-  (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
-  (async-shell-command "emacsclient -c"))
+  (xueliang-make-frame))
 
 (defun eshell/gcommit (arg)
   "make git commit easier."
@@ -381,6 +380,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============xueliang-git-config/functions=============())
 ;; xueliang's Git helper functions/commands.
+
+(setq-default xueliang-font "DejaVu Sans Mono")
 
 ;; for windows to display diff, put them far-right.
 ;; for windows for the user to do select, put them very-bottom.
@@ -473,7 +474,7 @@
     ;; else in window-system
     (if (null (buffer-file-name (current-buffer)))
         (funcall (lambda () ;; already in shell command output buffer.
-                   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
+                   (setq default-frame-alist '((font . xueliang-font)))  ;; make fonts pretty in emacsclient
                    (setq-local rebase-cmd
                      ;; have to write following way because git rebase seems to require a highly functional shell,
                      ;; which the default emacs shell-command cannot provide.
@@ -497,11 +498,11 @@
 (setq redisplay-dont-pause t)  ;; improve display performance
 
 ;; hide welcome screen
-(setq inhibit-splash-screen t)
+(setq inhibit-splash-screen nil)
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
-(set-default-font "DejaVu Sans Mono")
+(set-default-font xueliang-font)
 
 ;; font size
 (if window-system
@@ -731,8 +732,8 @@
   "it's nice to be able to switch between pretty fonts.\nEspecially for writing emails, docs, and code."
   (interactive)
   (if (= (mod xueliang-current-font 2) 0)
-      (set-default-font "DejaVu Sans Mono")
-      (set-default-font "DejaVu Sans"))
+      (set-default-font "DejaVu Sans")
+      (set-default-font xueliang-font))
    (setq xueliang-current-font (+ xueliang-current-font 1)))
 
 (defun xueliang-turn-on-transparency ()
@@ -748,6 +749,14 @@
     (narrow-to-defun)
     (widen))
    (setq xueliang-current-narrow (+ xueliang-current-narrow 1)))
+
+(defun xueliang-make-frame ()
+  "create a new emacsclient window frame, with nice fonts."
+  (interactive)
+  (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
+  (setq default-frame-alist '((font . xueliang-font)))
+  (make-frame)
+  (nlinum-mode 1))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
