@@ -160,6 +160,9 @@
 ;; If nil, you can slightly boost invoke speed in exchange for text color
 (setq helm-swoop-speed-or-color t)
 
+;; all helm windows don't cycle from bottom to beginning.
+(setq helm-swoop-move-to-line-cycle nil)
+
 ;; quite useful to see what I've deleted.
 (define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
 (define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
