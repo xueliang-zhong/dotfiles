@@ -53,9 +53,6 @@ ln -s /usr/bin/gnome-terminal ~/bin/terminal
 # dropbox
 ln -s ~/Dropbox ~/workspace/dropbox
 
-# use ipython instead of python
-ln -s /usr/bin/ipython ~/bin/python
-
 # DONE
 echo DONE
 
