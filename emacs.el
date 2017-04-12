@@ -384,8 +384,6 @@
 (defun =============xueliang-git-config/functions=============())
 ;; xueliang's Git helper functions/commands.
 
-(setq-default xueliang-font "DejaVu Sans Mono")
-
 ;; for windows to display diff, put them far-right.
 ;; for windows for the user to do select, put them very-bottom.
 (setq-default shell-output-buffer-name "*Shell Command Output*")
@@ -477,7 +475,7 @@
     ;; else in window-system
     (if (null (buffer-file-name (current-buffer)))
         (funcall (lambda () ;; already in shell command output buffer.
-                   (setq default-frame-alist '((font . xueliang-font)))  ;; make fonts pretty in emacsclient
+                   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
                    (setq-local rebase-cmd
                      ;; have to write following way because git rebase seems to require a highly functional shell,
                      ;; which the default emacs shell-command cannot provide.
@@ -505,7 +503,7 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
-(set-default-font xueliang-font)
+(set-default-font "DejaVu Sans Mono")
 
 ;; font size
 (if window-system
@@ -736,7 +734,7 @@
   (interactive)
   (if (= (mod xueliang-current-font 2) 0)
       (set-default-font "DejaVu Sans")
-      (set-default-font xueliang-font))
+      (set-default-font "DejaVu Sans Mono"))
    (setq xueliang-current-font (+ xueliang-current-font 1)))
 
 (defun xueliang-turn-on-transparency ()
@@ -757,7 +755,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . xueliang-font)))
+  (setq default-frame-alist '((font . "DejaVu Sans Mono")))
   (make-frame)
   (nlinum-mode 1))
 
