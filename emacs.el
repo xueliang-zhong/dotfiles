@@ -84,6 +84,7 @@
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
+  "m" 'helm-bookmarks
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "r" 'helm-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
