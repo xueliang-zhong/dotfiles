@@ -39,6 +39,7 @@
                             heroku-theme
                             zenburn-theme
                             graphviz-dot-mode
+                            markdown-mode+
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -393,7 +394,7 @@
   "run git commit.
    *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
   (xueliang-cd-current-buffer-directory)
-  (shell-command (message "git commit -m \"improve %s\"" (file-name-nondirectory buffer-file-name))))
+  (shell-command (message "git commit -m \"Various improvements to %s\"" (file-name-nondirectory buffer-file-name))))
 
 (defun xueliang-gstatus ()
   "run git status" (interactive) (shell-command "git status"))
@@ -517,7 +518,7 @@
 
 ;; high-light line for programming and org.
 (require 'hl-line+)
-(add-hook 'prog-mode-hook '(lambda () (hl-line-mode 1)))
+(add-hook 'prog-mode-hook '(lambda () (hl-line-mode -1)))
 (add-hook 'org-mode-hook  '(lambda () (hl-line-mode -1)))  ;; don't enable hl-line in org-mode.
 (set-face-background hl-line-face "gray25")
 
@@ -816,7 +817,6 @@
 ;;
 ;; * package install RET command-log-mode, toggle-command-log/buffer
 ;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
-;; * helm-show-kill-ring
 ;; * evil mode, helm, org mode, company mode.
 ;; * M-n/p is usually going through history items.
 ;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
@@ -831,6 +831,8 @@
 ;; * use glasses-mode for code reading, it makes variable easier to read.
 ;; * org-redisplay-inline-images / org-toggle-inline-images (C-c C-x C-v).
 ;; * in org mode, '<s' to start a new code block. C-c ' to open a temp buffer modify the code buffer.
+;; * to get current buffer full path name and copy it in to clipboard: (insert (buffer-file-name))
+;; * to get number sequence, e.g. [10, 20] : (number-sequence 10 20)
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
