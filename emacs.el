@@ -711,12 +711,9 @@
 
 ;; nice helm-swoop
 (defun xueliang-helm-split-window-swoop (use-pre-input)
-  (setq new-helm-swoop-window nil)
-  (when (window-full-width-p (get-buffer-window (buffer-name)))
-    (setq new-helm-swoop-window (split-window-horizontally)))
-  (if use-pre-input (helm-swoop) (helm-swoop-without-pre-input))
-  (when new-helm-swoop-window
-    (delete-window new-helm-swoop-window)))
+  (save-window-excursion
+    (when (window-full-width-p (get-buffer-window)) (split-window-horizontally))
+    (if use-pre-input (helm-swoop) (helm-swoop-without-pre-input))))
 
 (defun xueliang-helm-swoop-at-point ()
   "show helm-swoop results in a side window."
