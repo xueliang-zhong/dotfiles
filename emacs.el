@@ -758,6 +758,12 @@
   (make-frame)
   (nlinum-mode 1))
 
+(defun xueliang/pwd-string ()
+  "get pwd string of current file-buffer easily."
+  (interactive)
+  (newline-and-indent)
+  (insert (buffer-file-name)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
