@@ -403,8 +403,8 @@
   "run git branch" (interactive)
   (vc-mode-line (buffer-file-name)) (shell-command "git branch"))
 
-(defun xueliang-glog ()
-  "run git log" (interactive)
+(defun xueliang/glog ()
+  "run git log, internal function."
   (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (vc-mode-line (buffer-file-name))  ;; for updating mode-line
   (if (get-buffer-window shell-output-buffer-name)
@@ -433,7 +433,7 @@
                  (shell-command (message "git diff %s " (thing-at-point 'word)))
                  (evil-window-move-far-right) (diff-mode) (evil-next-line 7) (diff-goto-source)))
       (funcall (lambda () ;; in some other file.
-                 (xueliang-glog) (message "try apply this function in glog.")))))
+                 (xueliang/glog) (message "try apply this function in glog.")))))
 
 (defun xueliang-gshow ()
   "run git show" (interactive)
@@ -449,7 +449,7 @@
                   (shell-command (message "git show %s " (thing-at-point 'word)))
                   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source)))
        (funcall (lambda () ;; in some other file.
-                  (xueliang-glog) (message "try apply this function in glog.")))))
+                  (xueliang/glog) (message "try apply this function in glog.")))))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
@@ -471,6 +471,7 @@
   (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
 
 ;; simply calls magit-rebase-interactive.
+(defalias 'xueliang-glog 'magit-rebase-interactive)
 (defalias 'xueliang-grebase 'magit-rebase-interactive)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
