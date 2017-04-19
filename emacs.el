@@ -470,21 +470,8 @@
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
 
-(defun xueliang-grebase-last-commits()
-  "run git rebase on current line and lines above in glog.\nRequire $EDITOR to be set properly.\nOr use magit-rebase-interactive." (interactive)
-  (if (null window-system)
-    (print "Use (magit-rebase-interactive) command instead.")
-    ;; else in window-system
-    (if (null (buffer-file-name (current-buffer)))
-        (funcall (lambda () ;; already in shell command output buffer.
-                   (setq default-frame-alist '((font . "DejaVu Sans Mono")))  ;; make fonts pretty in emacsclient
-                   (setq-local rebase-cmd
-                     ;; have to write following way because git rebase seems to require a highly functional shell,
-                     ;; which the default emacs shell-command cannot provide.
-                     (message "/bin/bash ~/bin/git-rebase-head %d" (count-lines (region-beginning) (region-end))))
-                   (print rebase-cmd) (async-shell-command rebase-cmd)))
-        (funcall (lambda () ;; in some other file.
-                   (xueliang-glog) (message "try apply this function in glog."))))))
+;; simply calls magit-rebase-interactive.
+(defalias 'xueliang-grebase 'magit-rebase-interactive)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
@@ -762,7 +749,8 @@
   "get pwd string of current file-buffer easily."
   (interactive)
   (newline-and-indent)
-  (insert (buffer-file-name)))
+  (insert (buffer-file-name))
+  (save-excursion (newline-and-indent)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings

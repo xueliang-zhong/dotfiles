@@ -26,10 +26,6 @@ ln -sf `pwd`/emacs.el ~/.emacs
 rm -rf ~/.emacs.d/xueliang/
 mkdir  ~/.emacs.d/xueliang/
 
-# my-editor
-rm -f ~/bin/git-rebase-head
-ln -sf `pwd`/git-rebase-head ~/bin/git-rebase-head
-
 # emacs eshell alias
 rm -f ~/.emacs.d/eshell/alias
 ln -sf `pwd`/alias ~/.emacs.d/eshell/alias
