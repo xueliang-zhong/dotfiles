@@ -8,41 +8,43 @@
 ;; packages that are in use.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============packages-config=============())
-(defvar xueliang/packages '(evil
-                            evil-leader
-                            vimrc-mode
-                            helm
-                            helm-swoop
-                            helm-chrome
-                            helm-descbinds
-                            helm-projectile
-                            helm-flyspell
-                            helm-themes
-                            helm-google
+(defvar xueliang/packages '(
                             company
                             company-statistics
-                            vdiff
-                            magit
-                            evil-magit
                             eshell-did-you-mean
-                            ivy
-                            smart-mode-line
-                            rainbow-delimiters
-                            org-bullets
-                            git-gutter-fringe+
-                            guide-key
-                            neotree
-                            hl-line+
-                            nlinum
-                            whitespace
+                            evil
+                            evil-leader
+                            evil-magit
                             fiplr
-                            heroku-theme
-                            zenburn-theme
+                            git-gutter-fringe+
                             graphviz-dot-mode
-                            markdown-mode+
-                            nyan-mode
+                            guide-key
+                            helm
+                            helm-chrome
+                            helm-descbinds
+                            helm-flyspell
+                            helm-google
+                            helm-projectile
+                            helm-swoop
+                            helm-themes
+                            heroku-theme
+                            hl-line+
+                            ivy
                             keyfreq
-                            projectile))
+                            magit
+                            markdown-mode+
+                            neotree
+                            nlinum
+                            nyan-mode
+                            org-bullets
+                            projectile
+                            rainbow-delimiters
+                            smart-mode-line
+                            vdiff
+                            vimrc-mode
+                            whitespace
+                            zenburn-theme
+                            ))
 
 (defun xueliang-reinstall-packages ()
   "resintall a package if it is missing on this machine." (interactive)
