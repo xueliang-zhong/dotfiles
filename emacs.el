@@ -849,6 +849,7 @@
 ;; * to get current buffer full path name and copy it in to clipboard: (insert (buffer-file-name))
 ;; * to get number sequence, e.g. [10, 20] : (number-sequence 10 20)
 ;; * 'sort and uniq' on selected region: !sort -u
+;; * in region: M-= to invoke (count-words-region)
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
