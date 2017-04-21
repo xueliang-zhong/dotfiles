@@ -41,6 +41,7 @@
                             graphviz-dot-mode
                             markdown-mode+
                             nyan-mode
+                            keyfreq
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -386,6 +387,10 @@
 
 ;; nice progress bar in mode line.
 (nyan-mode 1)
+
+;; use keyfreq-show to see how many times you used a command.
+(keyfreq-mode 1)
+(keyfreq-autosave-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang git
