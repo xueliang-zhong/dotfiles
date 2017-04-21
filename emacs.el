@@ -40,6 +40,7 @@
                             zenburn-theme
                             graphviz-dot-mode
                             markdown-mode+
+                            nyan-mode
                             projectile))
 
 (defun xueliang-reinstall-packages ()
@@ -379,6 +380,9 @@
 ;; build and preview current dot file.
 (add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-c C-c") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
 (add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-c C-c") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
+
+;; nice progress bar in mode line.
+(nyan-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang git
