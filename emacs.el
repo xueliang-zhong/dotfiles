@@ -585,6 +585,12 @@
 (define-key evil-insert-state-map (kbd "C-M-h")  'windmove-left)
 (define-key evil-insert-state-map (kbd "C-M-l") 'windmove-right)
 
+;; window resize (Ctrl Alt +/-)
+(define-key evil-insert-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
+(define-key evil-normal-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
+(define-key evil-insert-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
+(define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
+
 ;; glasses-mode o^o settings
 (setq glasses-separator "_")
 
