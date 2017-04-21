@@ -143,7 +143,10 @@
 (define-key helm-map (kbd "TAB")       'helm-next-line)
 (define-key helm-map (kbd "<tab>")     'helm-next-line)
 (define-key helm-map (kbd "<backtab>") 'helm-previous-line)  ;; Shift-Tab is <backtab>
-(define-key helm-map (kbd "M-x") 'helm-select-action) ;; list actions using M-x inside helm.
+(define-key helm-map (kbd "M-x")       'helm-select-action) ;; list actions using M-x inside helm.
+
+(define-key helm-map (kbd "C-f")       'helm-next-page)
+(define-key helm-map (kbd "C-b")       'helm-previous-page)
 
 ;; use the helm-swoop style preview.
 ;; because helm-execute-persistent-action kills processes in helm-top, that's why it is bound to Ctrl-Up/Down.
@@ -575,6 +578,9 @@
 (setq x-select-enable-clipboard t)
 (setq save-interprogram-paste-before-kill t)
 
+;; auto revert buffers
+(global-auto-revert-mode 1)
+
 ;; window move
 (define-key evil-normal-state-map (kbd "C-M-k")    'windmove-up)
 (define-key evil-normal-state-map (kbd "C-M-j")  'windmove-down)
@@ -835,6 +841,7 @@
 ;; * in org mode, '<s' to start a new code block. C-c ' to open a temp buffer modify the code buffer.
 ;; * to get current buffer full path name and copy it in to clipboard: (insert (buffer-file-name))
 ;; * to get number sequence, e.g. [10, 20] : (number-sequence 10 20)
+;; * 'sort and uniq' on selected region: !sort -u
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
