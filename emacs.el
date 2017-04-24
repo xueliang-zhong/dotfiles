@@ -200,6 +200,9 @@
 (defun =============org-config=============())
 (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "ON-GOING-EFFORT" "DONE")))
 
+;; Add a time stamp to the 'DONE' task.
+(setq org-log-done t)
+
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
