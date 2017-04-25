@@ -120,9 +120,12 @@
 (require 'helm-projectile)
 
 (setq helm-split-window-in-side-p t) ; open helm buffer inside current window
-(setq helm-echo-input-in-header-line t)
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
+
+;; avoid visual noise
+(setq helm-echo-input-in-header-line nil)
+(setq helm-display-header-line nil)
 
 ;; I don't like any delay.
 (setq helm-input-idle-delay 0)
