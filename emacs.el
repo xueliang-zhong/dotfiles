@@ -30,6 +30,7 @@
                             heroku-theme
                             hl-line+
                             ivy
+                            ivy-historian
                             keyfreq
                             magit
                             markdown-mode+
@@ -195,6 +196,8 @@
 
 ;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
+(ivy-historian-mode t)
+(counsel-mode t)
 
 ;; enable more stuff
 (setq ivy-use-virtual-buffers t)
@@ -306,8 +309,8 @@
 (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
 ;; bash reverse-i-search style history search, even more powerful with helm.
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'counsel-esh-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'counsel-esh-history)))
 
 ;; begin-of-line, end-of-line in eshell.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
@@ -321,8 +324,8 @@
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-e") 'evil-append-line)))
 
 ;; TAB to complete command in eshell, currently I'm using helm style.
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'helm-esh-pcomplete)))
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "<tab>") 'helm-esh-pcomplete)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "<tab>") 'completion-at-point)))
 
 ;; Eshell will run a term session to support following complex commands
 (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
