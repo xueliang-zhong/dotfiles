@@ -79,7 +79,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'helm-for-files
+  "<SPC>" 'ivy-switch-buffer
   "]" 'helm-etags-select-android-art
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
@@ -87,7 +87,7 @@
   "E" 'xueliang-eshell-current-line
   "f" 'fiplr-find-file
   "g" 'magit-status
-  "i" 'helm-semantic-or-imenu
+  "i" 'counsel-imenu
   "I" 'helm-imenu-in-all-buffers
   "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
@@ -105,6 +105,8 @@
 (define-key evil-normal-state-map (kbd "#") '(lambda () (interactive) (swiper (ivy-thing-at-point))))
 (define-key evil-normal-state-map (kbd "/") 'swiper)
 (define-key evil-normal-state-map (kbd "?") 'helm-occur)  ;; sometimes helm-occur behaves better, e.g. for small window.
+(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
+(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -203,6 +205,9 @@
 
 ;; I don't like the default "^" for M-x command.
 (add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
+
+;; Make sure C-a C-k work in ivy mode as well.
+(define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode config
@@ -867,6 +872,7 @@
 ;; * to get number sequence, e.g. [10, 20] : (number-sequence 10 20)
 ;; * 'sort and uniq' on selected region: !sort -u
 ;; * in region: M-= to invoke (count-words-region)
+;; * run-python to bring up a nice python buffer window.
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
