@@ -41,6 +41,7 @@
                             projectile
                             rainbow-delimiters
                             smart-mode-line
+                            smex
                             vdiff
                             vimrc-mode
                             whitespace
@@ -179,8 +180,8 @@
 (setq helm-swoop-move-to-line-cycle nil)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
-(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -198,6 +199,9 @@
 (ivy-mode 1)
 (ivy-historian-mode t)
 (counsel-mode t)
+
+;; number of result lines to display
+(setq ivy-height 20)
 
 ;; enable more stuff
 (setq ivy-use-virtual-buffers t)
@@ -817,8 +821,8 @@
 (global-set-key (kbd "C-k") 'evil-scroll-line-up)
 
 ; Better than (describe-function) and (describe-variable)
-(global-set-key (kbd "C-h f") 'helm-apropos)
-(global-set-key (kbd "C-h v") 'helm-apropos)
+(global-set-key (kbd "C-h f") 'counsel-describe-function)
+(global-set-key (kbd "C-h v") 'counsel-describe-variable)
 
 ; describe key-bindings
 (require 'helm-descbinds)
@@ -876,6 +880,7 @@
 ;; * 'sort and uniq' on selected region: !sort -u
 ;; * in region: M-= to invoke (count-words-region)
 ;; * run-python to bring up a nice python buffer window.
+;; * extend ivy/counsel example: (insert (ivy-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
@@ -896,3 +901,4 @@
 ;; http://orgmode.org/worg/org-contrib/babel/intro.html
 ;; http://orgmode.org/worg/org-contrib/babel/languages.html
 ;; https://github.com/abo-abo/swiper : ivy & counsel related.
+;; https://sam217pa.github.io/2016/09/13/from-helm-to-ivy/
