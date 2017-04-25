@@ -89,21 +89,21 @@
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
-  "m" 'helm-bookmarks
+  "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
-  "r" 'helm-recentf
+  "r" 'counsel-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
-  "x" 'helm-M-x  ;; for easier use in the dark
+  "x" 'counsel-M-x  ;; for easier use in the dark
 )
 
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
-(define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
+(define-key evil-normal-state-map (kbd "*") '(lambda () (interactive) (swiper (ivy-thing-at-point))))
+(define-key evil-normal-state-map (kbd "#") '(lambda () (interactive) (swiper (ivy-thing-at-point))))
+(define-key evil-normal-state-map (kbd "/") 'swiper)
 (define-key evil-normal-state-map (kbd "?") 'helm-occur)  ;; sometimes helm-occur behaves better, e.g. for small window.
 
 ;; use company use C-n completion.
@@ -194,8 +194,15 @@
 ;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
 
+;; enable more stuff
+(setq ivy-use-virtual-buffers t)
+(setq enable-recursive-minibuffers t)
+
 ;; TAB behaves as ivy-partial-or-next-line
 (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
+
+;; I don't like the default "^" for M-x command.
+(add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode config
@@ -775,6 +782,10 @@
   (make-frame)
   (nlinum-mode 1))
 
+(defun xueliang-htop ()
+  "calls helm-top, but easier for typing." (interactive)
+  (helm-top))
+
 (defun xueliang/pwd-string ()
   "get pwd string of current file-buffer easily."
   (interactive)
@@ -788,7 +799,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
@@ -875,3 +886,4 @@
 ;; http://orgmode.org/worg/org-contrib/babel/languages/ob-doc-dot.html
 ;; http://orgmode.org/worg/org-contrib/babel/intro.html
 ;; http://orgmode.org/worg/org-contrib/babel/languages.html
+;; https://github.com/abo-abo/swiper : ivy & counsel related.
