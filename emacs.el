@@ -9,8 +9,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============packages-config=============())
 (defvar xueliang/packages '(
+                            anti-zenburn-theme
                             company
                             company-statistics
+                            counsel-projectile
                             eshell-did-you-mean
                             evil
                             evil-leader
@@ -87,7 +89,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'fiplr-find-file
+  "f" 'counsel-projectile-find-file
   "g" 'magit-status
   "i" 'counsel-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -201,11 +203,11 @@
 (counsel-mode t)
 
 ;; number of result lines to display
-(setq ivy-height 20)
+(setq ivy-height 25)
 
 ;; enable more stuff
 (setq ivy-use-virtual-buffers t)
-(setq enable-recursive-minibuffers t)
+(setq enable-recursive-minibuffers nil)
 
 ;; TAB behaves as ivy-partial-or-next-line
 (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
@@ -363,9 +365,9 @@
 
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
-   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "gold"))
-   (propertize (eshell/pwd) 'face `(:foreground "LightSkyBlue"))
-   (propertize " $ " 'face `(:foreground "white")))))
+   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "OrangeRed"))
+   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue"))
+   (propertize " $ " 'face `(:foreground "black")))))
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -379,11 +381,11 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
 (if window-system
-  (load-theme 'tango-dark t)  ;; themes that work nice with transparency: wombat, tango-dark
+  (load-theme 'anti-zenburn t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
 
 ;; transparency
-(set-frame-parameter (selected-frame) 'alpha '(93 . 93))
+(set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
 (require 'rainbow-delimiters)
 (add-hook 'prog-mode-hook 'rainbow-delimiters-mode)
@@ -413,7 +415,7 @@
 (add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-c C-c") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
 
 ;; nice progress bar in mode line.
-(nyan-mode 1)
+(nyan-mode -1)
 
 ;; use keyfreq-show to see how many times you used a command.
 (keyfreq-mode 1)
@@ -537,8 +539,8 @@
 ;; font size
 (if window-system
     (if (> (x-display-pixel-width) 2000)
-        (set-face-attribute 'default nil :height 130)
-        (set-face-attribute 'default nil :height 140)))
+        (set-face-attribute 'default nil :height 110)
+        (set-face-attribute 'default nil :height 110)))
 
 ; line/column related
 (column-number-mode)
@@ -564,7 +566,7 @@
           '(lambda () (define-key evil-insert-state-local-map (kbd "TAB") '(lambda () (interactive) (insert "  ")))))
 
 ; disable some bars
-(menu-bar-mode -1)
+(menu-bar-mode 1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
@@ -775,7 +777,7 @@
 (defun xueliang-turn-on-transparency ()
   "turn on transparency easier for any eamcs frames."
   (interactive)
-  (set-frame-parameter (selected-frame) 'alpha '(93 . 93)))
+  (set-frame-parameter (selected-frame) 'alpha '(100 . 100)))
 
 (setq-default xueliang-current-narrow 1)
 (defun xueliang-toggle-narrow-to-defun-widen ()
@@ -798,6 +800,10 @@
   "calls helm-top, but easier for typing." (interactive)
   (helm-top))
 
+(defun xueliang-highlight-current-word ()
+  "makes highlight-regexp easier" (interactive)
+  (highlight-regexp (thing-at-point 'word)))
+
 (defun xueliang/pwd-string ()
   "get pwd string of current file-buffer easily."
   (interactive)
@@ -818,11 +824,16 @@
 
 ;; my vim way of moving screen
 (global-set-key (kbd "C-j") 'evil-scroll-line-down)
-(global-set-key (kbd "C-k") 'evil-scroll-line-up)
+
+;; emacs style kill-line
+(global-set-key (kbd "C-k") 'evil-delete-line)
 
 ; Better than (describe-function) and (describe-variable)
 (global-set-key (kbd "C-h f") 'counsel-describe-function)
 (global-set-key (kbd "C-h v") 'counsel-describe-variable)
+
+;; good practice for reading code.
+(global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
 
 ; describe key-bindings
 (require 'helm-descbinds)
@@ -843,12 +854,6 @@
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
-
-; simply save current file
-(defun xueliang-ctrl-s() "simply save current file like other modern editors do." (interactive)
-       (write-file (buffer-file-name))
-       (evil-force-normal-state))
-(global-set-key (kbd "C-s") 'xueliang-ctrl-s)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
