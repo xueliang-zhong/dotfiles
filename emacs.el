@@ -89,7 +89,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'counsel-projectile-find-file
+  "f" 'fiplr-find-file
   "g" 'magit-status
   "i" 'counsel-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -420,6 +420,17 @@
 ;; use keyfreq-show to see how many times you used a command.
 (keyfreq-mode 1)
 (keyfreq-autosave-mode 1)
+
+;; projectile configs
+(setq projectile-require-project-root nil)
+
+;; ignore some files in find-file.
+(setq counsel-find-file-ignore-regexp
+        (concat
+         ;; File names beginning with # or .
+         "\\(?:\\`[#.]\\)"
+         ;; File names ending with # or ~
+         "\\|\\(?:\\`.+?[#~]\\'\\)"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang git
