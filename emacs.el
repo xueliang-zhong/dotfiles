@@ -897,6 +897,7 @@
 ;; * in region: M-= to invoke (count-words-region)
 ;; * run-python to bring up a nice python buffer window.
 ;; * extend ivy/counsel example: (insert (ivy-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
+;; * extend ivy/counsel example: (insert (helm-comp-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
