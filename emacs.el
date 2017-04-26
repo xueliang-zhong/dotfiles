@@ -173,7 +173,7 @@
 (setq helm-swoop-split-with-multiple-windows nil)
 
 ;; helm-swoop split direcion. 'split-window-vertically or 'split-window-horizontally
-(setq helm-swoop-split-direction 'split-window-horizontally)
+(setq helm-swoop-split-direction 'split-window-vertically)
 
 ;; If nil, you can slightly boost invoke speed in exchange for text color
 (setq helm-swoop-speed-or-color t)
@@ -761,7 +761,7 @@
 ;; nice helm-swoop
 (defun xueliang-helm-split-window-swoop (use-pre-input)
   (save-window-excursion
-    (when (window-full-width-p (get-buffer-window)) (split-window-horizontally))
+    ;; (when (window-full-width-p (get-buffer-window)) (split-window-horizontally))
     (if use-pre-input (helm-swoop) (helm-swoop-without-pre-input))))
 
 (defun xueliang-helm-swoop-at-point ()
