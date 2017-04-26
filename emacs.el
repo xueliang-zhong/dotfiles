@@ -89,25 +89,25 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'fiplr-find-file
+  "f" 'counsel-projectile-find-file  ;; because it can ignore some files (.dropbox)
   "g" 'magit-status
-  "i" 'counsel-imenu
+  "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
-  "m" 'counsel-bookmark
+  "m" 'helm-bookmarks
   "n" 'xueliang-toggle-narrow-to-defun-widen
-  "r" 'counsel-recentf
+  "r" 'helm-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
-  "x" 'counsel-M-x  ;; for easier use in the dark
+  "x" 'helm-M-x  ;; for easier use in the dark
 )
 
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") '(lambda () (interactive) (swiper (ivy-thing-at-point))))
-(define-key evil-normal-state-map (kbd "#") '(lambda () (interactive) (swiper (ivy-thing-at-point))))
-(define-key evil-normal-state-map (kbd "/") 'swiper)
+(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
 (define-key evil-normal-state-map (kbd "?") 'helm-occur)  ;; sometimes helm-occur behaves better, e.g. for small window.
 (define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
 (define-key evil-normal-state-map (kbd "N") 'evil-search-next)
@@ -130,8 +130,8 @@
 (setq helm-ff-file-name-history-use-recentf nil)
 
 ;; avoid visual noise
-(setq helm-echo-input-in-header-line nil)
-(setq helm-display-header-line nil)
+(setq helm-echo-input-in-header-line t)
+(setq helm-display-header-line t)
 
 ;; I don't like any delay.
 (setq helm-input-idle-delay 0)
@@ -167,7 +167,7 @@
 
 (setq helm-autoresize-max-height 40)
 (setq helm-autoresize-min-height 15)
-(helm-autoresize-mode 1)
+(helm-autoresize-mode -1)
 
 ;; if this value is t, split window inside the current window
 (setq helm-swoop-split-with-multiple-windows nil)
@@ -182,8 +182,8 @@
 (setq helm-swoop-move-to-line-cycle nil)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
-(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -200,7 +200,7 @@
 ;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
 (ivy-historian-mode -1)
-(counsel-mode t)
+(counsel-mode -1)
 
 ;; number of result lines to display
 (setq ivy-height 25)
@@ -315,8 +315,8 @@
 (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
 ;; bash reverse-i-search style history search, even more powerful with helm.
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'counsel-esh-history)))
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'counsel-esh-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
 
 ;; begin-of-line, end-of-line in eshell.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
@@ -828,7 +828,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)  ;; counsel-M-x
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
@@ -840,8 +840,8 @@
 (global-set-key (kbd "C-k") 'evil-delete-line)
 
 ; Better than (describe-function) and (describe-variable)
-(global-set-key (kbd "C-h f") 'counsel-describe-function)
-(global-set-key (kbd "C-h v") 'counsel-describe-variable)
+(global-set-key (kbd "C-h f") 'helm-apropos)
+(global-set-key (kbd "C-h v") 'helm-apropos)
 
 ;; good practice for reading code.
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
