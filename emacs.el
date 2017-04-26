@@ -545,13 +545,13 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
-(set-default-font "DejaVu Sans Mono")
+(set-default-font "Ubuntu Mono")
 
 ;; font size
 (if window-system
     (if (> (x-display-pixel-width) 2000)
-        (set-face-attribute 'default nil :height 110)
-        (set-face-attribute 'default nil :height 110)))
+        (set-face-attribute 'default nil :height 120)
+        (set-face-attribute 'default nil :height 120)))
 
 ; line/column related
 (column-number-mode)
@@ -782,7 +782,7 @@
   (interactive)
   (if (= (mod xueliang-current-font 2) 0)
       (set-default-font "DejaVu Sans")
-      (set-default-font "DejaVu Sans Mono"))
+      (set-default-font "Ubuntu Mono"))
    (setq xueliang-current-font (+ xueliang-current-font 1)))
 
 (defun xueliang-turn-on-transparency ()
@@ -803,7 +803,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . "DejaVu Sans Mono")))
+  (setq default-frame-alist '((font . "Ubuntu Mono")))
   (make-frame)
   (nlinum-mode 1))
 
