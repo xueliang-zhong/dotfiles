@@ -199,7 +199,7 @@
 
 ;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
-(ivy-historian-mode t)
+(ivy-historian-mode -1)
 (counsel-mode t)
 
 ;; number of result lines to display
