@@ -83,7 +83,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'ivy-switch-buffer
+  "<SPC>" 'helm-for-files
   "]" 'helm-etags-select-android-art
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
@@ -379,7 +379,7 @@
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
-; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku
+; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (if window-system
   (load-theme 'anti-zenburn t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
@@ -898,6 +898,7 @@
 ;; * run-python to bring up a nice python buffer window.
 ;; * extend ivy/counsel example: (insert (ivy-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
 ;; * extend ivy/counsel example: (insert (helm-comp-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
+;; * org tabel auto calculation: #+TBLFM: $4=($3-$2)*100
 
 ;; https://github.com/emacs-tw/awesome-emacs
 ;; http://www.john2x.com/emacs.html
@@ -919,3 +920,4 @@
 ;; http://orgmode.org/worg/org-contrib/babel/languages.html
 ;; https://github.com/abo-abo/swiper : ivy & counsel related.
 ;; https://sam217pa.github.io/2016/09/13/from-helm-to-ivy/
+;; Org mode, really good doc to read: http://ehneilsen.net/notebook/orgExamples/org-examples.html, http://doc.norang.ca/org-mode.html
