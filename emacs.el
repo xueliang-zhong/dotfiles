@@ -645,6 +645,11 @@
 ;; glasses-mode o^o settings
 (setq glasses-separator "_")
 
+;; easier to invoke function to open link with chrome.
+(defalias 'xueliang-open-url-chrome 'browse-url-chromium)
+;; org mode style open link
+(define-key evil-normal-state-map (kbd "C-c C-o") 'xueliang-open-url-chrome)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
