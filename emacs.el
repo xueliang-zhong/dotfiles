@@ -12,6 +12,7 @@
                             anti-zenburn-theme
                             company
                             company-statistics
+                            company-quickhelp
                             counsel-projectile
                             eshell-did-you-mean
                             evil
@@ -84,7 +85,7 @@
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
   "<SPC>" 'helm-for-files
-  "]" 'helm-etags-select-android-art
+  "]" 'helm-etags-select
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
   "e" 'xueliang-eshell
@@ -99,7 +100,7 @@
   "s" 'xueliang-eshell-new  ;; s means 'shell'
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
-  "x" 'helm-M-x  ;; for easier use in the dark
+  "x" 'delete-window  ;; common operation.
 )
 
 (setq evil-mode-line-format 'before)
@@ -180,6 +181,9 @@
 
 ;; all helm windows don't cycle from bottom to beginning.
 (setq helm-swoop-move-to-line-cycle nil)
+
+;; avoid wrap in helm-swoop window
+(setq truncate-partial-width-windows 100)
 
 ;; quite useful to see what I've deleted.
 (define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
@@ -270,6 +274,13 @@
 
 ;; better ranking of candidates in company completion.
 (company-statistics-mode)
+
+;; quick help popup
+(company-quickhelp-mode 1)
+(setq company-quickhelp-delay 0)
+
+(add-to-list 'completion-styles 'initials t)
+(setq completion-cycle-threshold 5)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Smart mode-line config
@@ -474,7 +485,7 @@
   (shell-command "git diff HEAD")
   (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-    (evil-window-move-far-right) (diff-mode) (evil-next-line 7)))
+    (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number at point.
@@ -483,7 +494,7 @@
       (funcall (lambda () ;; already in shell command output buffer.
                  (evil-beginning-of-line)
                  (shell-command (message "git diff %s " (thing-at-point 'word)))
-                 (evil-window-move-far-right) (diff-mode) (evil-next-line 7) (diff-goto-source)))
+                 (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
       (funcall (lambda () ;; in some other file.
                  (xueliang/glog) (message "try apply this function in glog.")))))
 
@@ -655,7 +666,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root "~/workspace/linaro/")
+(setq android-root "~/workspace/linaro")
 (setq android-art  (concat android-root "/art/"))
 (setq android-vixl (concat android-root "/external/vixl/src/"))
 (setq android-art-tags  (concat android-art  "TAGS"))
