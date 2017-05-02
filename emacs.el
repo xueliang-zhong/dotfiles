@@ -150,6 +150,7 @@
       helm-buffers-fuzzy-matching t
       helm-semantic-fuzzy-match   t
       helm-swoop-use-fuzzy-match  nil
+      helm-projectile-fuzzy-match t
       helm-imenu-fuzzy-match      t)
 
 ;; rebind tab to the next/previous line in helm window, same behavior as company.
@@ -678,10 +679,11 @@
 ;; glasses-mode o^o settings
 (setq glasses-separator "_")
 
-;; easier to invoke function to open link with chrome.
-(defalias 'xueliang-open-url-chrome 'browse-url-chromium)
+;; goto-address-mode related
+(add-hook 'prog-mode-hook '(lambda ()  (goto-address-prog-mode 1)))
+(add-hook 'org-mode-hook '(lambda ()  (goto-address-prog-mode 1)))
 ;; org mode style open link
-(define-key evil-normal-state-map (kbd "C-c C-o") 'xueliang-open-url-chrome)
+(define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
