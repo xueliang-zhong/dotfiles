@@ -1,7 +1,7 @@
 export SHELL=/bin/bash
-alias v='emacsclient -nw'
-alias vi='emacsclient -nw'
-alias vim='emacsclient -nw'
+#alias v='emacsclient -nw'
+#alias vi='emacsclient -nw'
+#alias vim='emacsclient -nw'
 alias e='emacs --daemon'
 alias ta='tmux attach'
 

@@ -90,7 +90,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'counsel-projectile-find-file  ;; because it can ignore some files (.dropbox)
+  "f" 'helm-projectile
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -406,7 +406,7 @@
   (global-git-gutter+-mode))
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c" "C-x n"))
+(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c" "C-x n" "C-c" "C-c p"))
 (setq guide-key/idle-delay 1.0)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
@@ -432,8 +432,30 @@
 (keyfreq-mode 1)
 (keyfreq-autosave-mode 1)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============projectile-configs=============())
+
+(projectile-global-mode)
+(setq projectile-completion-system 'helm)
+(helm-projectile-on)
+
 (setq projectile-require-project-root nil)
+(setq projectile-enable-caching nil)
+
+(setq projectile-globally-ignored-directories
+   (append '(
+    ".dropbox.cache"
+    "dropbox/.dropbox.cache"
+    "dropbox"
+    ) projectile-globally-ignored-directories))
+
+;; TODO: ignore file names begining with # or . and ignore file names ending with # or ~
+(setq projectile-globally-ignored-files
+   (append '(
+    "#*#"
+    ) projectile-globally-ignored-files))
 
 ;; ignore some files in find-file.
 (setq counsel-find-file-ignore-regexp
