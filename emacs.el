@@ -98,6 +98,7 @@
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "r" 'helm-recentf
   "s" 'xueliang-eshell-new  ;; s means 'shell'
+  "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
   "x" 'delete-window  ;; common operation.
@@ -910,54 +911,3 @@
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (add-to-list 'load-path "~/.emacs.d/xueliang/")
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; xueliang good tips
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;
-;; * package install RET command-log-mode, toggle-command-log/buffer
-;; * Use compilation mode to parse command line outputs, e.g. cpplint's output.
-;; * evil mode, helm, org mode, company mode.
-;; * M-n/p is usually going through history items.
-;; * Useful functions for coding: beginning-of-defun (C-M-home), end-of-defun (C-M-end).
-;; * compilation-minor-mode in eshell, after use eshell for compiling project.
-;; * helm-google and helm-google-suggest is really awesome.
-;; * in eshell: ls > /dev/clip can send output to clipboard for future use.
-;; * highlight-regexp / unhighlight-regexp for hi-lighting important things on screen.
-;; * narrow: helps reading/writing code: narrow-to-defun, narrow-to-region.
-;; * evil: in normal mode: evil-find-char/evil-find-char-backward/evil-find-char-to: f, F, t keys.
-;; * emacs --debug-init to debug if emacs fails to launch.
-;; * ctrl-l to reposition current line: top, middle, bottom.
-;; * use glasses-mode for code reading, it makes variable easier to read.
-;; * org-redisplay-inline-images / org-toggle-inline-images (C-c C-x C-v).
-;; * in org mode, '<s' to start a new code block. C-c ' to open a temp buffer modify the code buffer.
-;; * to get current buffer full path name and copy it in to clipboard: (insert (buffer-file-name))
-;; * to get number sequence, e.g. [10, 20] : (number-sequence 10 20)
-;; * 'sort and uniq' on selected region: !sort -u
-;; * in region: M-= to invoke (count-words-region)
-;; * run-python to bring up a nice python buffer window.
-;; * extend ivy/counsel example: (insert (ivy-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
-;; * extend ivy/counsel example: (insert (helm-comp-read "Pick:" (mapcar #'number-to-string (number-sequence 1 10))))
-;; * org tabel auto calculation: #+TBLFM: $4=($3-$2)*100
-
-;; https://github.com/emacs-tw/awesome-emacs
-;; http://www.john2x.com/emacs.html
-;; https://github.com/caiorss/Emacs-Elisp-Programming
-;; https://github.com/emacs-helm/helm/wiki
-;; http://cestlaz.github.io/stories/emacs/
-;; https://tuhdo.github.io/helm-intro.html
-;; https://github.com/jwiegley/use-package
-;; https://github.com/kai2nenobu/guide-key
-;; http://aaronbedra.com/emacs.d/#sec-1
-;; https://github.com/noctuid/evil-guide/blob/master/README.org
-;; https://github.com/emacs-helm/helm/blob/master/helm-config.el
-;; http://www.howardism.org/Technical/Emacs/eshell-fun.html
-;; http://pages.sachachua.com/.emacs.d/Sacha.html
-;; https://github.com/howardabrams/dot-files/blob/master/emacs-eshell.org
-;; https://pawelbx.github.io/emacs-theme-gallery/
-;; http://orgmode.org/worg/org-contrib/babel/languages/ob-doc-dot.html
-;; http://orgmode.org/worg/org-contrib/babel/intro.html
-;; http://orgmode.org/worg/org-contrib/babel/languages.html
-;; https://github.com/abo-abo/swiper : ivy & counsel related.
-;; https://sam217pa.github.io/2016/09/13/from-helm-to-ivy/
-;; Org mode, really good doc to read: http://ehneilsen.net/notebook/orgExamples/org-examples.html, http://doc.norang.ca/org-mode.html
