@@ -234,7 +234,7 @@
 (setq org-log-done t)
 
 (require 'org-bullets)
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode -1)))
 
 ;; add dotty support in org-babel
 (org-babel-do-load-languages (quote org-babel-load-languages)
@@ -252,6 +252,8 @@
             (org . t)
             (plantuml . t)
             (latex . t))))
+
+(add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
