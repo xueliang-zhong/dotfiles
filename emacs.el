@@ -90,8 +90,8 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'fiplr-find-file  ;; faster
-  "F" 'helm-projectile  ;; slower but more powerful than fiplr
+  "f" 'helm-projectile  ;; slower but more powerful than fiplr
+  "F" 'fiplr-find-file  ;; faster
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "I" 'helm-imenu-in-all-buffers
@@ -235,7 +235,7 @@
 (setq org-log-done nil)
 
 (require 'org-bullets)
-(add-hook 'org-mode-hook (lambda () (org-bullets-mode -1)))
+(add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
 
 ;; add dotty support in org-babel
 (org-babel-do-load-languages (quote org-babel-load-languages)
