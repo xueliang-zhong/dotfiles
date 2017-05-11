@@ -711,6 +711,7 @@
 (defun xueliang-linaro-make ()
   "invoke linaro build scripts easily" (interactive)
   (cd android-root) (xueliang-eshell-pwd)
+  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M" (current-time)) "*"))
   (compilation-minor-mode)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
