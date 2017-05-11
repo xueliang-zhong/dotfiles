@@ -98,7 +98,7 @@
   "m" 'helm-bookmarks
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "r" 'helm-recentf
-  "s" 'xueliang-eshell-new  ;; s means 'shell'
+  "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
@@ -707,6 +707,12 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-linaro-make ()
+  "invoke linaro build scripts easily" (interactive)
+  (cd android-root) (xueliang-eshell-pwd)
+  (compilation-minor-mode)
+  (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+
 ; Help to make upate TAGS of the project I'm working on easier.
 (defun xueliang-update-tags-art ()
   "update etags/TAGS of Android ART project" (interactive)
@@ -776,7 +782,7 @@
    (xueliang-create-eshell-or-switch-to-existing))
 
 (setq-default eshell-buffer-number 0)
-(defun xueliang-eshell-new ()
+(defun xueliang-eshell-pwd ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (setq eshell-buffer-number (+ eshell-buffer-number 1))
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
@@ -903,6 +909,7 @@
 
 (global-set-key (kbd "<f5>")  'xueliang-helm-swoop-at-point) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
+(global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
 (global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
 (global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
