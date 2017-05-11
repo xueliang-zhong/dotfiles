@@ -907,6 +907,7 @@
 ; <f1> .. <f4> :
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
+(global-set-key (kbd "<f4>")  'kill-buffer-and-window)
 
 (global-set-key (kbd "<f5>")  'xueliang-helm-swoop-at-point) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
