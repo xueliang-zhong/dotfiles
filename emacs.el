@@ -103,6 +103,7 @@
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
   "x" 'delete-window  ;; common operation.
+  "X" 'kill-buffer-and-window  ;; common operation.
 )
 
 (setq evil-mode-line-format 'before)
