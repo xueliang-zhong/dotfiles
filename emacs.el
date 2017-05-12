@@ -799,7 +799,9 @@
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (require 'fiplr)
-  (cd (fiplr-root)) (helm-do-grep-ag argument))
+  ;;(cd (fiplr-root)) (helm-do-grep-ag argument))
+  ;; counsel-ag is better than helm is that it allows initial input to play with.
+  (cd (fiplr-root)) (counsel-ag (thing-at-point 'word)))
 
 (defun xueliang-helm-projectile ()
   "switch to current buffer before calling helm-projectile."
@@ -914,10 +916,8 @@
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
 
-(global-set-key (kbd "<f5>")  'xueliang-helm-swoop-at-point) ; find in current buffer using helm-swoop.
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
-(global-set-key (kbd "<f8>")  'helm-etags-select-android-art) ; find tag and jump to tag in android-art.
 
 (global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
