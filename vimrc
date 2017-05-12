@@ -120,9 +120,9 @@ set diffopt+=vertical
 set splitbelow splitright
 
 " set a map leader for more key combos
-let mapleader = ','
+let mapleader="\<Space>"
 
-let android_src = expand("~/workspace/aosp")
+let android_src = expand("~/workspace/linaro")
 
 " Tags
 exe "set tags+=".expand(android_src)."/art/tags"
@@ -209,21 +209,19 @@ let g:tagbar_iconchars = ['+', '▼']
 map <ESC>     :noh<CR>
 
 " <leader> key mappings
-map <leader>t <ESC>:TagbarToggle<CR>
-map <Leader>p <ESC>:CtrlPFunky<CR>
+map <leader>i <ESC>:TagbarToggle<CR>
+map <Leader>f <ESC>:CtrlP<CR>
 
 " BufExplorer
-map <leader>be <ESC>:BufExplorer<CR>
-map <leader>bs <ESC>:BufExplorerHorizontalSplit<CR>
-map <leader>bv <ESC>:BufExplorerVerticalSplit<CR>
+map <leader><leader> <ESC>:BufExplorer<CR>
+map <leader>b <ESC>:BufExplorer<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
 map <leader>nt <ESC>:NERDTreeToggle<CR>
 
 " search for current word or any word
-map <leader>gw <ESC>:Ag<space>
-map <leader>gc <ESC>:Ag<CR>
+map <leader>a <ESC>:Ag<CR>
 
 " Cscope search in my projects
 map <leader>cs <ESC>*
