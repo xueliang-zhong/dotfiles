@@ -383,8 +383,8 @@
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
    (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "OrangeRed"))
-   (propertize (eshell/pwd) 'face `(:foreground "SteelBlue"))
-   (propertize " $ " 'face `(:foreground "white")))))
+   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue"))
+   (propertize " $ " 'face `(:foreground "black")))))
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -398,7 +398,7 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (if window-system
-  (load-theme 'wombat t)  ;; themes that work nice with transparency: wombat, tango-dark
+  (load-theme 'anti-zenburn t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
 
 ;; transparency
@@ -589,8 +589,8 @@
 ;; font size
 (if window-system
     (if (> (x-display-pixel-width) 2000)
-        (set-face-attribute 'default nil :height 130)
-        (set-face-attribute 'default nil :height 130)))
+        (set-face-attribute 'default nil :height 120)
+        (set-face-attribute 'default nil :height 120)))
 
 ; line/column related
 (column-number-mode)
