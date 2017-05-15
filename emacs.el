@@ -401,6 +401,10 @@
   (load-theme 'anti-zenburn t)  ;; themes that work nice with transparency: wombat, tango-dark
   (load-theme 'wombat t))
 
+;; useful commands: list-faces-display, helm-colors. Good colors: DarkOliveGreen, SeaGreen
+(set-face-foreground 'font-lock-comment-face "DarkOliveGreen")
+(set-face-foreground 'font-lock-comment-delimiter-face "DarkOliveGreen")
+
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
