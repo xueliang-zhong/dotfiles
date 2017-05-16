@@ -532,6 +532,9 @@
 
 (defun xueliang-gshow ()
   "run git show" (interactive)
+  (require 'fiplr)
+  (xueliang-cd-current-buffer-directory)
+  (cd (fiplr-root))
   (shell-command "git show")
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
@@ -715,9 +718,18 @@
 (defun xueliang-linaro-make ()
   "invoke linaro build scripts easily" (interactive)
   (cd android-root) (xueliang-eshell-pwd)
-  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M" (current-time)) "*"))
-  (compilation-minor-mode)
+  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+
+(defun xueliang-cnext-compilation-error ()
+  "get compilation error easily in current buffer" (interactive)
+  (compilation-mode)
+  (compilation-next-error 1))
+
+(defun xueliang-cprev-compilation-error ()
+  "get compilation error easily in current buffer" (interactive)
+  (compilation-mode)
+  (compilation-previous-error 1))
 
 ; Help to make upate TAGS of the project I'm working on easier.
 (defun xueliang-update-tags-art ()
