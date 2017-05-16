@@ -23,6 +23,7 @@
                             graphviz-dot-mode
                             guide-key
                             helm
+                            helm-ag
                             helm-chrome
                             helm-descbinds
                             helm-flyspell
@@ -196,6 +197,10 @@
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "z=") 'helm-flyspell-correct)))
+
+;; helm-ag config
+(custom-set-variables '(helm-ag-insert-at-point 'symbol))
+(custom-set-variables '(helm-follow-mode-persistent t))
 
 (helm-mode 1)
 
@@ -811,9 +816,8 @@
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (require 'fiplr)
-  ;;(cd (fiplr-root)) (helm-do-grep-ag argument))
-  ;; counsel-ag is better than helm is that it allows initial input to play with.
-  (cd (fiplr-root)) (counsel-ag (thing-at-point 'word)))
+  ;; (cd (fiplr-root)) (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
+  (cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
 
 (defun xueliang-helm-projectile ()
   "switch to current buffer before calling helm-projectile."
