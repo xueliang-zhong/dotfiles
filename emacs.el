@@ -10,9 +10,11 @@
 (defun =============packages-config=============())
 (defvar xueliang/packages '(
                             anti-zenburn-theme
+                            autopair
                             company
                             company-statistics
                             company-quickhelp
+                            counsel
                             counsel-projectile
                             eshell-did-you-mean
                             evil
@@ -446,6 +448,9 @@
 ;; use keyfreq-show to see how many times you used a command.
 (keyfreq-mode 1)
 (keyfreq-autosave-mode 1)
+
+;; autopair
+(autopair-mode)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
