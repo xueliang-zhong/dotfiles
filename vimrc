@@ -205,23 +205,24 @@ let g:tagbar_iconchars = ['+', '▼']
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+map <C-g> <ESC><ESC>
+map <M-x> <ESC>:
+
 " ESC also helps removes the search high-lighting.
-map <ESC>     :noh<CR>
+" map <ESC>     :noh<CR>
 
 " <leader> key mappings
+map <leader>a <ESC>:Ag<CR>
+map <leader><leader> <ESC>:CtrlPBuffer<CR>
+map <Leader>b <ESC>:CtrlP<CR>
 map <leader>i <ESC>:TagbarToggle<CR>
 map <Leader>f <ESC>:CtrlP<CR>
-
-" BufExplorer
-map <leader><leader> <ESC>:BufExplorer<CR>
-map <leader>b <ESC>:BufExplorer<CR>
+map <Leader>r <ESC>:CtrlPMRUFiles<CR>
+map <Leader>x <ESC>:q<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
 map <leader>nt <ESC>:NERDTreeToggle<CR>
-
-" search for current word or any word
-map <leader>a <ESC>:Ag<CR>
 
 " Cscope search in my projects
 map <leader>cs <ESC>*
