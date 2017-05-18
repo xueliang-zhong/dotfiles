@@ -40,7 +40,6 @@
                             keyfreq
                             magit
                             markdown-mode+
-                            neotree
                             nlinum
                             nyan-mode
                             org-bullets
@@ -428,12 +427,6 @@
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
-(require 'neotree)
-(setq neo-smart-open 1)
-(evil-define-key 'normal neotree-mode-map (kbd "TAB") '(lambda () (interactive) (neotree-enter) (neotree-hide)))
-(evil-define-key 'normal neotree-mode-map (kbd "RET") '(lambda () (interactive) (neotree-enter) (neotree-hide)))
-(evil-define-key 'normal neotree-mode-map (kbd "q")   'neotree-hide)
-
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
 
@@ -510,7 +503,6 @@
 
 (defun xueliang/glog ()
   "run git log, internal function."
-  (neotree-hide)  ;; if there is neotree window, make sure neotree doesn't bring wierd window behavior.
   (vc-mode-line (buffer-file-name))  ;; for updating mode-line
   (if (get-buffer-window shell-output-buffer-name)
     (switch-to-buffer-other-window shell-output-buffer-name)
@@ -774,12 +766,6 @@
   (cd (file-name-directory buffer-file-name))
   (message "pwd: %s" (file-name-directory buffer-file-name)))
 
-; for switching between .h/.cc files.
-; USE NEOTREE INSTEAD
-(defun xueliang-A-h-cc-files-switcher ()
-  "USE NEOTREE INSTEAD; similiar to A plugin for VIM, just type 'M-x A' in helm" (interactive)
-  (neotree-toggle))
-
 ; for tag search in android-art project.
 (defun helm-etags-select-android-art() (interactive)
    (cd android-art) (helm-etags-select t))
@@ -940,7 +926,7 @@
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
 
-(global-set-key (kbd "<f9>")  'neotree-toggle)        ; neotree
+(global-set-key (kbd "<f9>")  '(lambda() (interactive) (helm-find-files-1 (file-name-sans-extension (buffer-file-name)))))
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
