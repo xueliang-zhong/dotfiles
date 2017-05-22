@@ -64,6 +64,15 @@
 (xueliang-reinstall-packages)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; xueliang's vars
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============vars=============())
+
+(setq android-root "~/workspace/linaro")
+(setq android-art  (concat android-root "/art"))
+(setq android-vixl (concat android-root "/external/vixl/src"))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============evil-config=============())
@@ -460,6 +469,12 @@
 
 (add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
 
+(semantic-mode)
+(semantic-add-system-include android-art 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
+(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -713,18 +728,6 @@
 (add-hook 'org-mode-hook '(lambda ()  (goto-address-prog-mode 1)))
 ;; org mode style open link
 (define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; xueliang's vars
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============vars=============())
-
-(setq android-root "~/workspace/linaro")
-(setq android-art  (concat android-root "/art/"))
-(setq android-vixl (concat android-root "/external/vixl/src/"))
-(setq android-art-tags  (concat android-art  "TAGS"))
-(setq android-vixl-tags (concat android-vixl "TAGS"))
-(setq tags-table-list (list android-art-tags android-vixl-tags))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
