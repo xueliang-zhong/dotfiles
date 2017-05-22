@@ -87,7 +87,7 @@
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
   "<SPC>" 'helm-for-files
-  "]" 'helm-etags-select
+  "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
   "e" 'xueliang-eshell
@@ -96,6 +96,8 @@
   "F" 'fiplr-find-file  ;; faster
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
+  "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
+  "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "I" 'helm-imenu-in-all-buffers
   "m" 'helm-bookmarks
   "n" 'xueliang-toggle-narrow-to-defun-widen
@@ -442,8 +444,21 @@
 (keyfreq-mode 1)
 (keyfreq-autosave-mode 1)
 
-;; autopair
+;; autopair mode
 (add-hook 'prog-mode-hook '(lambda () (autopair-mode)))
+
+;; semantic mode
+(setq semantic-default-submodes
+      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
+        global-semanticdb-minor-mode          ;; Use a database of parsed tags
+        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
+        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
+        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
+        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
+        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
+        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
+
+(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
@@ -917,6 +932,9 @@
 
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
+
+;; work with <leader>-j (jump to tag), and Ctrl-t to jump back.
+(define-key evil-normal-state-map (kbd "C-t") 'helm-all-mark-rings)
 
 ; <f1> .. <f4> :
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
