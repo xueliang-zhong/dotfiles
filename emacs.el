@@ -443,7 +443,7 @@
 (keyfreq-autosave-mode 1)
 
 ;; autopair
-(autopair-mode)
+(add-hook 'prog-mode-hook '(lambda () (autopair-mode)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
