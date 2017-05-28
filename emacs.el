@@ -439,9 +439,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
-(if window-system
-  (load-theme 'anti-zenburn t)  ;; themes that work nice with transparency: wombat, tango-dark
-  (load-theme 'wombat t))
+
+(if (= (x-display-pixel-width) 1920)
+  (load-theme 'wombat t)        ;; home laptop
+  (load-theme 'anti-zenburn t)  ;; themes that's good for work at office
+)
 
 ;; useful commands: list-faces-display, helm-colors. Good colors: DarkOliveGreen, SeaGreen
 (set-face-foreground 'font-lock-comment-face "DarkOliveGreen")
