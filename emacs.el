@@ -107,6 +107,7 @@
   "i" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
+  "k" 'xueliang-google-current-word
   "I" 'helm-imenu-in-all-buffers
   "m" 'helm-bookmarks
   "n" 'xueliang-toggle-narrow-to-defun-widen
@@ -739,6 +740,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun =============xueliang-functions=============())
+
+(defun xueliang-google-current-word ()
+  "google current word" (interactive)
+ (helm-google (thing-at-point 'word)))
 
 (defun xueliang-linaro-make ()
   "invoke linaro build scripts easily" (interactive)
