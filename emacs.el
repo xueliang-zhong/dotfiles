@@ -97,12 +97,13 @@
 (evil-leader/set-key
   "<SPC>" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
-  "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
+  "a" 'xueliang-ag-search-in-dir
+  "A" 'xueliang-ag-search-in-project
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'ido-find-file    ;; fast search a file in current directory
-  "F" 'helm-projectile  ;; slower but more powerful than fiplr
+  "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
@@ -751,6 +752,15 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-find-file ()
+  "my fast find file in project" (interactive)
+  (require 'fiplr)
+  (find-file (ivy-read (concat "Find File " (fiplr-root) ": ")
+                       (split-string
+                        (shell-command-to-string
+                         (concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
+                        "\n"))))
+
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
  (helm-google (thing-at-point 'word)))
@@ -840,12 +850,17 @@
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
+(defun xueliang-ag-search-in-dir(argument)
+  "search in dir using ag"
+  (interactive "P")
+  (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
+
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
-  (require 'fiplr)
-  (cd (fiplr-root)) (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
+  (require 'fiplr) (cd (fiplr-root))
+  (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
   ;;(cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
 
 (defun xueliang-helm-projectile ()
