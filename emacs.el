@@ -101,17 +101,17 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'helm-projectile  ;; slower but more powerful than fiplr
-  "F" 'fiplr-find-file  ;; faster
+  "f" 'ido-find-file    ;; fast search a file in current directory
+  "F" 'helm-projectile  ;; slower but more powerful than fiplr
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
   "I" 'helm-imenu-in-all-buffers
-  "m" 'helm-bookmarks
+  "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
-  "r" 'helm-recentf
+  "r" 'counsel-recentf
   "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
@@ -837,8 +837,8 @@
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (require 'fiplr)
-  ;; (cd (fiplr-root)) (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
-  (cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
+  (cd (fiplr-root)) (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
+  ;;(cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
 
 (defun xueliang-helm-projectile ()
   "switch to current buffer before calling helm-projectile."
@@ -923,7 +923,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)  ;; counsel-M-x
+(global-set-key (kbd "M-x") 'counsel-M-x)  ;; counsel-M-x, helm-M-x
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
@@ -935,8 +935,8 @@
 (global-set-key (kbd "C-k") 'evil-delete-line)
 
 ; Better than (describe-function) and (describe-variable)
-(global-set-key (kbd "C-h f") 'helm-apropos)
-(global-set-key (kbd "C-h v") 'helm-apropos)
+(global-set-key (kbd "C-h f") 'counsel-describe-function)
+(global-set-key (kbd "C-h v") 'counsel-describe-variable)
 
 ;; good practice for reading code.
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
