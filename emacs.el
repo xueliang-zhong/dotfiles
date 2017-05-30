@@ -95,7 +95,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'helm-for-files
+  "<SPC>" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project  ;; behaves better than helm-projectile-ag.
   "b" 'helm-for-files
@@ -218,6 +218,14 @@
 (helm-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ido mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============ido-config=============())
+(setq ido-enable-flex-matching t)
+(setq ido-everywhere nil)
+(ido-mode -1)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ivy config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============ivy-config=============())
@@ -226,7 +234,7 @@
 ;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
 (ivy-historian-mode -1)
-(counsel-mode -1)
+(counsel-mode 1)
 
 ;; number of result lines to display
 (setq ivy-height 25)
