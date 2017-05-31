@@ -109,7 +109,6 @@
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
-  "I" 'helm-imenu-in-all-buffers
   "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "r" 'counsel-recentf
@@ -124,10 +123,10 @@
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-helm-swoop-at-point)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-helm-swoop-at-point)
-(define-key evil-normal-state-map (kbd "/") 'xueliang-helm-swoop-without-pre-input)
-(define-key evil-normal-state-map (kbd "?") 'helm-occur)  ;; sometimes helm-occur behaves better, e.g. for small window.
+(define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
+(define-key evil-normal-state-map (kbd "/") 'swiper)
+(define-key evil-normal-state-map (kbd "?") 'swiper)
 (define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
 (define-key evil-normal-state-map (kbd "N") 'evil-search-next)
 
@@ -232,7 +231,6 @@
 (defun =============ivy-config=============())
 (require 'ivy)
 
-;; helm for M-x, ivy for several scenarios where helm cannot complete.
 (ivy-mode 1)
 (ivy-historian-mode -1)
 (counsel-mode 1)
@@ -382,9 +380,9 @@
 ;; avoid company-complete being annoying in eshell mode.
 (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
-;; bash reverse-i-search style history search, even more powerful with helm.
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
+;; bash reverse-i-search style history search
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'counsel-esh-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'counsel-esh-history)))
 
 ;; begin-of-line, end-of-line in eshell.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
@@ -499,7 +497,7 @@
 
 (projectile-global-mode)
 (setq projectile-completion-system 'helm)
-(helm-projectile-on)
+;; (helm-projectile-on)
 
 (setq projectile-require-project-root nil)
 (setq projectile-enable-caching nil)
@@ -756,10 +754,13 @@
   "my fast find file in project" (interactive)
   (require 'fiplr)
   (find-file (ivy-read (concat "Find File " (fiplr-root) ": ")
-                       (split-string
-                        (shell-command-to-string
-                         (concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
-                        "\n"))))
+       (split-string (shell-command-to-string
+            (concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
+            "\n"))))
+
+(defun xueliang-top()
+  "my top command in emacs" (interactive)
+  (ivy-read "Top: " (split-string (shell-command-to-string (concat "top -b -n 1")) "\n")))
 
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
@@ -801,12 +802,12 @@
 ; Help to make cross-project search easier.
 (defun xueliang-ag-vixl (arg)
   "look for WORD in VIXL using ag searcher" (interactive "P")
-  (cd android-vixl) (helm-do-grep-ag arg))
+  (cd android-vixl) (counsel-ag arg))
 
 ; Help to make cross-project search easier.
 (defun xueliang-ag-art (arg)
   "look for WORD in Android ART using ag searcher" (interactive "P")
-  (cd android-art) (helm-do-grep-ag arg))
+  (cd android-art) (counsel-ag arg))
 
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
@@ -860,39 +861,18 @@
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
+  (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
   ;;(cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
-
-(defun xueliang-helm-projectile ()
-  "switch to current buffer before calling helm-projectile."
-  (interactive)
-  (require 'helm-projectile)
-  (helm-projectile))
 
 (defun xueliang-run-linaro-art-test()
   "shows command for linaro target test single test, which can be further sent to shell to execute."
   (interactive)
   (split-window-horizontally)
   (find-file "~/workspace/dotfiles/linaro-build-scripts")
-  (xueliang-helm-swoop-at-point))
+  (xueliang-search-word-at-point))
 
-;; nice helm-swoop
-(defun xueliang-helm-split-window-swoop (use-pre-input)
-  (save-window-excursion
-    ;; (when (window-full-width-p (get-buffer-window)) (split-window-horizontally))
-    (if use-pre-input (helm-swoop) (helm-swoop-without-pre-input))))
-
-(defun xueliang-helm-swoop-at-point ()
-  "show helm-swoop results in a side window."
-  (interactive)
-  (xueliang-helm-split-window-swoop t)
-  (add-to-list 'regexp-search-ring helm-swoop-pattern))
-
-(defun xueliang-helm-swoop-without-pre-input ()
-  "show helm-swoop results in a side window."
-  (interactive)
-  (xueliang-helm-split-window-swoop nil)
-  (add-to-list 'regexp-search-ring helm-swoop-pattern))
+(defun xueliang-search-word-at-point ()
+  "" (interactive) (swiper (thing-at-point 'word)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
@@ -927,7 +907,7 @@
 
 (defun xueliang-htop ()
   "calls helm-top, but easier for typing." (interactive)
-  (helm-top))
+  (xueliang-top))
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
@@ -958,8 +938,8 @@
 (global-set-key (kbd "C-k") 'evil-delete-line)
 
 ; Better than (describe-function) and (describe-variable)
-(global-set-key (kbd "C-h f") 'counsel-describe-function)
-(global-set-key (kbd "C-h v") 'counsel-describe-variable)
+(global-set-key (kbd "C-h f") 'helm-apropos)
+(global-set-key (kbd "C-h v") 'helm-apropos)
 
 ;; good practice for reading code.
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
