@@ -102,7 +102,7 @@
   "b" 'helm-for-files
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'ido-find-file    ;; fast search a file in current directory
+  "f" 'find-file    ;; fast search a file in current directory
   "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
   "g" 'magit-status
   "i" 'helm-semantic-or-imenu
@@ -125,8 +125,8 @@
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
-(define-key evil-normal-state-map (kbd "/") 'swiper)
-(define-key evil-normal-state-map (kbd "?") 'swiper)
+(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
 (define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
 (define-key evil-normal-state-map (kbd "N") 'evil-search-next)
 
@@ -204,8 +204,8 @@
 (setq truncate-partial-width-windows 100)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
-(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -215,7 +215,7 @@
 (custom-set-variables '(helm-ag-insert-at-point 'symbol))
 (custom-set-variables '(helm-follow-mode-persistent t))
 
-(helm-mode 1)
+(helm-mode -1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ido mode
@@ -496,7 +496,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============projectile-configs=============())
 
-(projectile-global-mode)
+;; don't enable projectile for performance considerations.
+(projectile-mode -1)
 (setq projectile-completion-system 'helm)
 ;; (helm-projectile-on)
 
@@ -940,7 +941,7 @@
 
 ; describe key-bindings
 (require 'helm-descbinds)
-(global-set-key (kbd "C-h b") 'helm-descbinds)
+(global-set-key (kbd "C-h b") 'counsel-descbinds)
 
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
