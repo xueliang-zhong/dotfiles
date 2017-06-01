@@ -547,7 +547,8 @@
 
 (defun xueliang-gbranch()
   "run git branch" (interactive)
-  (vc-mode-line (buffer-file-name)) (shell-command "git branch"))
+  (vc-mode-line (buffer-file-name))
+  (ivy-read "Git branch: " (split-string (shell-command-to-string "git branch") "\n")))
 
 (defun xueliang/glog ()
   "run git log, internal function."
