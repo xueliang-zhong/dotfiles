@@ -105,7 +105,8 @@
   "f" 'find-file    ;; fast search a file in current directory
   "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
   "g" 'magit-status
-  "i" 'helm-semantic-or-imenu
+  "i" 'counsel-imenu
+  "I" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
@@ -757,7 +758,8 @@
   (require 'fiplr)
   (find-file (ivy-read (concat "Find File " (fiplr-root) ": ")
        (split-string (shell-command-to-string
-            (concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
+            ;;(concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
+            (concat "ag " (fiplr-root) " -l --nocolor -g \"\" "))  ;; faster than find command.
             "\n"))))
 
 (defun xueliang-top()
