@@ -303,6 +303,7 @@
 (semantic-mode)
 (semantic-add-system-include android-art 'c++-mode)
 (semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
 (semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
 (semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
 
@@ -381,8 +382,8 @@
 (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 5)))
 
 ;; bash reverse-i-search style history search
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'counsel-esh-history)))
-(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'counsel-esh-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-r") 'helm-eshell-history)))
+(add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
 
 ;; begin-of-line, end-of-line in eshell.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
@@ -863,13 +864,6 @@
   (require 'fiplr) (cd (fiplr-root))
   (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
   ;;(cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
-
-(defun xueliang-run-linaro-art-test()
-  "shows command for linaro target test single test, which can be further sent to shell to execute."
-  (interactive)
-  (split-window-horizontally)
-  (find-file "~/workspace/dotfiles/linaro-build-scripts")
-  (xueliang-search-word-at-point))
 
 (defun xueliang-search-word-at-point ()
   "" (interactive) (swiper (thing-at-point 'word)))
