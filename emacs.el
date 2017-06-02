@@ -545,21 +545,12 @@
 (defun xueliang-gstatus ()
   "run git status" (interactive) (shell-command "git status"))
 
-(defun xueliang-gbranch()
-  "run git branch" (interactive)
-  (vc-mode-line (buffer-file-name))
-  (ivy-read "Git branch: " (split-string (shell-command-to-string "git branch") "\n")))
-
-(defun xueliang/glog ()
-  "run git log, internal function."
-  (vc-mode-line (buffer-file-name))  ;; for updating mode-line
-  (if (get-buffer-window shell-output-buffer-name)
-    (switch-to-buffer-other-window shell-output-buffer-name)
-    ;; else
-    (split-window-below) (switch-to-buffer shell-output-buffer-name))
-  (shell-command "git log -n 100 --pretty=\"%Cred%h %Creset * %Cgreen %<(70)%s %Creset| %<(16)%an | %Cgreen%cr\"")
-  (ansi-color-apply-on-region (point-min) (point-max))  ;; display ansi colors (%Cred/green/blue/reset), requres ansi-color.
-  (evil-window-move-very-bottom) (evil-beginning-of-line))
+(defun xueliang-gcheckout-branch()
+  "list git branches, and git checkout selected branch" (interactive)
+  (shell-command-to-string (concat "git checkout "
+       (ivy-read "Git branch: " (split-string (shell-command-to-string "git branch") "\n"))))
+  (vc-mode-line (buffer-file-name)))
+(defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
 (defun xueliang-gdiff ()
   "run git diff HEAD;
@@ -570,17 +561,6 @@
     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
     (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
 
-(defun xueliang-gdiff-revision-at-point ()
-  "run 'git diff' using the revision number at point.
-   workflow: get git revision in output, browse revisions, apply this function." (interactive)
-  (if (null (buffer-file-name (current-buffer)))
-      (funcall (lambda () ;; already in shell command output buffer.
-                 (evil-beginning-of-line)
-                 (shell-command (message "git diff %s " (thing-at-point 'word)))
-                 (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
-      (funcall (lambda () ;; in some other file.
-                 (xueliang/glog) (message "try apply this function in glog.")))))
-
 (defun xueliang-gshow ()
   "run git show" (interactive)
   (require 'fiplr)
@@ -590,15 +570,25 @@
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
 
+(defun xueliang/ivy-glog ()
+  "git log with ivy" (interactive)
+  (car (split-string
+        (ivy-read "Git Log: "
+                  (split-string (shell-command-to-string "git log -n 20 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
+                  :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
+                  :initial-input (thing-at-point 'word)))))
+
+(defun xueliang-gdiff-revision-at-point ()
+  "run 'git diff' using the revision number from ivy glog" (interactive)
+   (shell-command (message "git diff %s " (xueliang/ivy-glog)))
+   (switch-to-buffer-other-window shell-output-buffer-name)
+   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+
 (defun xueliang-gshow-revision-at-point()
-  "run 'git show' using the revision number at point.
-   workflow: get git revision in output, browse revisions, apply this function." (interactive)
-   (if (null (buffer-file-name (current-buffer)))
-       (funcall (lambda () ;; already in shell command output buffer.
-                  (shell-command (message "git show %s " (thing-at-point 'word)))
-                  (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source)))
-       (funcall (lambda () ;; in some other file.
-                  (xueliang/glog) (message "try apply this function in glog.")))))
+  "run 'git show' using the ivy glog" (interactive)
+   (shell-command (message "git show %s " (xueliang/ivy-glog)))
+   (switch-to-buffer-other-window shell-output-buffer-name)
+   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
