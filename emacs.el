@@ -755,7 +755,7 @@
 
 (defun xueliang-top()
   "my top command in emacs" (interactive)
-  (ivy-read "Top: " (split-string (shell-command-to-string "top -b -H -n 1 | tail -n +6") "\n")))
+  (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
