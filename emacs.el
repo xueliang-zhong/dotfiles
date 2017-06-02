@@ -70,7 +70,18 @@
 
 (setq android-root "~/workspace/linaro")
 (setq android-art  (concat android-root "/art"))
+(setq android-bionic (concat android-root "/bionic"))
+(setq android-libcore (concat android-root "/libcore"))
+(setq android-benchmarks (concat android-root "/benchmarks"))
+(setq android-scripts (concat android-root "/scripts"))
 (setq android-vixl (concat android-root "/external/vixl/src"))
+
+(setq xueliang-project-list (list android-art
+                                  android-benchmarks
+                                  android-bionic
+                                  android-libcore
+                                  android-scripts
+                                  android-vixl))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
@@ -747,13 +758,26 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-find-project()
+  "switch project" (interactive)
+  (cd (ivy-read "Project: " xueliang-project-list))
+  (xueliang-find-file-from-pwd))
+
 (defun xueliang-find-file ()
   "my fast find file in project" (interactive)
   (require 'fiplr)
-  (find-file (ivy-read (concat "Find File " (fiplr-root) ": ")
+  (xueliang/find-file (fiplr-root)))
+
+(defun xueliang-find-file-from-pwd ()
+  "my fast find file in project" (interactive)
+  (require 'fiplr)
+  (xueliang/find-file "."))
+
+(defun xueliang/find-file (path)
+  "my fast find file in project"
+  (find-file (ivy-read (concat "Find File " path ": ")
        (split-string (shell-command-to-string
-            ;;(concat "find " (fiplr-root) " \\( -name \"*.git\" -o -name \"\#*\#\" -o -name \"*~\" \\) -prune -o -type f -print "))
-            (concat "ag " (fiplr-root) " -l --nocolor -g \"\" "))  ;; faster than find command.
+            (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
             "\n"))))
 
 (defun xueliang-top()
