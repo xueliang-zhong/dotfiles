@@ -577,7 +577,7 @@
   "git log with ivy" (interactive)
   (car (split-string
         (ivy-read "Git Log: "
-                  (split-string (shell-command-to-string "git log -n 20 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
+                  (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                   :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
                   :initial-input (thing-at-point 'word)))))
 
@@ -613,7 +613,7 @@
   (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
 
 ;; simply calls magit-rebase-interactive.
-(defalias 'xueliang-glog 'magit-rebase-interactive)
+(defalias 'xueliang-glog 'xueliang/ivy-glog)
 (defalias 'xueliang-grebase 'magit-rebase-interactive)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
