@@ -373,6 +373,9 @@
 ;; always show which git branch I'm in.
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
+;; make sure smart-mode-line works better in command line.
+(unless window-system (load-theme 'smart-mode-line-light))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; eshell config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -449,10 +452,10 @@
 (defun =============misc-modes-config=============())
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 
-(if (= (x-display-pixel-width) 1920)
-  (load-theme 'wombat t)        ;; home laptop
-  (load-theme 'anti-zenburn t)  ;; themes that's good for work at office
-)
+(when window-system
+  (if (= (x-display-pixel-width) 1920)
+    (load-theme 'wombat t)          ;; home laptop
+    (load-theme 'anti-zenburn t)))  ;; themes that's good for work at office
 
 ;; useful commands: list-faces-display, helm-colors. Good colors: DarkOliveGreen, SeaGreen
 (set-face-foreground 'font-lock-comment-face "DarkOliveGreen")
@@ -635,7 +638,7 @@
 (set-default-font "Ubuntu Mono")
 
 ;; font size
-(if window-system
+(when window-system
     (if (> (x-display-pixel-width) 2000)
         (set-face-attribute 'default nil :height 120)
         (set-face-attribute 'default nil :height 120)))
