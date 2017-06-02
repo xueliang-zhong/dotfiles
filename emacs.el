@@ -68,20 +68,24 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root "~/workspace/linaro")
-(setq android-art  (concat android-root "/art"))
-(setq android-bionic (concat android-root "/bionic"))
-(setq android-libcore (concat android-root "/libcore"))
+(setq android-root       "~/workspace/linaro")
+(setq android-art        (concat android-root "/art"))
+(setq android-bionic     (concat android-root "/bionic"))
+(setq android-libcore    (concat android-root "/libcore"))
 (setq android-benchmarks (concat android-root "/benchmarks"))
-(setq android-scripts (concat android-root "/scripts"))
-(setq android-vixl (concat android-root "/external/vixl/src"))
+(setq android-scripts    (concat android-root "/scripts"))
+(setq android-vixl       (concat android-root "/external/vixl/src"))
+(setq dot-files          "~/workspace/dotfiles")
+(setq dropbox            "~/workspace/dropbox")
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
-                                  android-bionic
-                                  android-libcore
+                                  ;;android-bionic
+                                  ;;android-libcore
                                   android-scripts
-                                  android-vixl))
+                                  android-vixl
+                                  dot-files
+                                  dropbox))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
@@ -123,6 +127,7 @@
   "k" 'xueliang-google-current-word
   "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
+  "p" 'xueliang-find-project
   "r" 'counsel-recentf
   "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
@@ -612,6 +617,7 @@
 
 (defun xueliang-gwrite-current-buffer ()
   "run git add on current buffer" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git add " (buffer-file-name)))
   (xueliang-gread-current-buffer) ;; gread it again to refresh git-gutter.
   (message "git add: %s" (buffer-file-name)))
