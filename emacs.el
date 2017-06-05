@@ -775,26 +775,30 @@
 (defun =============xueliang-functions=============())
 
 (defun xueliang-find-project()
-  "switch project" (interactive)
+  "switch among my projects" (interactive)
   (cd (ivy-read "Project: " xueliang-project-list))
   (xueliang-find-file-from-pwd))
 
 (defun xueliang-find-file ()
   "my fast find file in project" (interactive)
   (require 'fiplr)
-  (xueliang/find-file (fiplr-root)))
+  (xueliang/find-file (fiplr-root) ""))
 
 (defun xueliang-find-file-from-pwd ()
-  "my fast find file in project" (interactive)
-  (require 'fiplr)
-  (xueliang/find-file "."))
+  "my fast find file in current directory" (interactive)
+  (xueliang/find-file "." ""))
 
-(defun xueliang/find-file (path)
+(defun xueliang-find-file-similar ()
+  "my fast find file with similar file names, e.g. switch between .cc, .h, _test.cc files" (interactive)
+  (xueliang/find-file "." (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
+
+(defun xueliang/find-file (path init-input)
   "my fast find file in project"
   (find-file (ivy-read (concat "Find File " path ": ")
-       (split-string (shell-command-to-string
-            (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
-            "\n"))))
+                       (split-string (shell-command-to-string
+                                      (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
+                                     "\n")
+                       :initial-input init-input)))
 
 (defun xueliang-top()
   "my top command in emacs" (interactive)
@@ -994,7 +998,7 @@
 (global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
 (global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
 
-(global-set-key (kbd "<f9>")  '(lambda() (interactive) (helm-find-files-1 (file-name-sans-extension (buffer-file-name)))))
+(global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
