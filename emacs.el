@@ -68,15 +68,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root       "~/workspace/linaro")
-(setq android-art        (concat android-root "/art"))
-(setq android-bionic     (concat android-root "/bionic"))
-(setq android-libcore    (concat android-root "/libcore"))
-(setq android-benchmarks (concat android-root "/benchmarks"))
-(setq android-scripts    (concat android-root "/scripts"))
-(setq android-vixl       (concat android-root "/external/vixl/src"))
-(setq dot-files          "~/workspace/dotfiles")
-(setq dropbox            "~/workspace/dropbox")
+(setq android-root          "~/workspace/linaro")
+(setq android-art           (concat android-root "/art"))
+(setq android-bionic        (concat android-root "/bionic"))
+(setq android-libcore       (concat android-root "/libcore"))
+(setq android-benchmarks    (concat android-root "/benchmarks"))
+(setq android-scripts       (concat android-root "/scripts"))
+(setq android-vixl          (concat android-root "/external/vixl/src"))
+(setq android-xueliang_test (concat android-root "/xueliang_test"))
+(setq dot-files             "~/workspace/dotfiles")
+(setq dropbox               "~/workspace/dropbox")
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
@@ -84,6 +85,7 @@
                                   ;;android-libcore
                                   android-scripts
                                   android-vixl
+                                  android-xueliang_test
                                   dot-files
                                   dropbox))
 
