@@ -975,9 +975,9 @@
 ;; emacs style kill-line
 (global-set-key (kbd "C-k") 'evil-delete-line)
 
-; Better than (describe-function) and (describe-variable)
-(global-set-key (kbd "C-h f") 'helm-apropos)
-(global-set-key (kbd "C-h v") 'helm-apropos)
+; Use default (describe-function) and (describe-variable) with ivy/counsel.
+;; (global-set-key (kbd "C-h f") 'helm-apropos)
+;; (global-set-key (kbd "C-h v") 'helm-apropos)
 
 ;; good practice for reading code.
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
