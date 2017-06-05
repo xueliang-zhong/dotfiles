@@ -119,7 +119,7 @@
   "E" 'xueliang-eshell-current-line
   "f" 'find-file    ;; fast search a file in current directory
   "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
-  "g" 'magit-status
+  "g" 'xueliang-gstatus
   "i" 'counsel-imenu
   "I" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
@@ -562,10 +562,13 @@
   (shell-command (message "git commit -m \"Various improvements to %s\"" (file-name-nondirectory buffer-file-name))))
 
 (defun xueliang-gstatus ()
-  "run git status" (interactive) (shell-command "git status"))
+  "run git status" (interactive)
+  (xueliang-cd-current-buffer-directory)
+  (shell-command "git status") (switch-to-buffer-other-window shell-output-buffer-name))
 
 (defun xueliang-gcheckout-branch()
   "list git branches, and git checkout selected branch" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (shell-command-to-string (concat "git checkout "
        (ivy-read "Git branch: " (split-string (shell-command-to-string "git branch") "\n"))))
   (vc-mode-line (buffer-file-name)))
@@ -591,15 +594,16 @@
 
 (defun xueliang/ivy-glog ()
   "git log with ivy" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
         (ivy-read "Git Log: "
                   (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                   :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
-                  :initial-input (if xueliang-cword                                      ;; if current word ad point is a string
+                  :initial-input (if xueliang-cword                                      ;; if current word at point is a string
                                      (if (= 0 (string-match "[a-e0-9]+" xueliang-cword)) ;; and it is a git version string
-                                         xueliang-cword                                  ;; use it as initial-input;
-                                         "") "")))))                                     ;; otherwise avoid any initial-input.
+                                         xueliang-cword                                  ;; then use it as initial-input;
+                                         "") "")))))                                     ;; otherwise, avoid giving any initial-input.
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
@@ -615,6 +619,7 @@
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (shell-command (concat "git checkout " (buffer-file-name)))
   (revert-buffer :ignore-auto :noconfirm)
   (message "git checkout: " (buffer-file-name)))
@@ -628,6 +633,7 @@
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
@@ -844,8 +850,9 @@
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
   "cd to directory of current buffer/file." (interactive)
-  (cd (file-name-directory buffer-file-name))
-  (message "pwd: %s" (file-name-directory buffer-file-name)))
+  (when buffer-file-name
+    (cd (file-name-directory buffer-file-name))
+    (message "pwd: %s" (file-name-directory buffer-file-name))))
 
 ; for tag search in android-art project.
 (defun helm-etags-select-android-art() (interactive)
