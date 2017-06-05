@@ -591,11 +591,15 @@
 
 (defun xueliang/ivy-glog ()
   "git log with ivy" (interactive)
+  (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
         (ivy-read "Git Log: "
                   (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                   :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
-                  :initial-input (thing-at-point 'word)))))
+                  :initial-input (if xueliang-cword                                      ;; if current word ad point is a string
+                                     (if (= 0 (string-match "[a-e0-9]+" xueliang-cword)) ;; and it is a git version string
+                                         xueliang-cword                                  ;; use it as initial-input;
+                                         "") "")))))                                     ;; otherwise avoid any initial-input.
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
