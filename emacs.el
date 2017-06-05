@@ -116,7 +116,7 @@
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-dir
   "A" 'xueliang-ag-search-in-project
-  "b" 'helm-for-files
+  "b" 'ivy-switch-buffer-other-window
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'find-file    ;; fast search a file in current directory
@@ -418,7 +418,7 @@
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-e") 'evil-append-line)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-e") 'evil-append-line)))
 
-;; TAB to complete command in eshell, currently I'm using helm style.
+;; TAB to complete command in eshell
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "<tab>") 'completion-at-point)))
 
@@ -907,7 +907,6 @@
   (interactive "P")
   (require 'fiplr) (cd (fiplr-root))
   (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
-  ;;(cd (fiplr-root)) (helm-ag argument)) ;; (helm-ag-insert-at-point 'symbol) setting archives the same initial input effect.
 
 (defun xueliang-search-word-at-point ()
   "" (interactive) (swiper (thing-at-point 'word)))
@@ -944,7 +943,7 @@
   (nlinum-mode 1))
 
 (defun xueliang-htop ()
-  "calls helm-top, but easier for typing." (interactive)
+  "calls top, but easier for typing." (interactive)
   (xueliang-top))
 
 (defun xueliang-highlight-current-word ()
@@ -964,7 +963,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)  ;; counsel-M-x, helm-M-x
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
@@ -983,7 +982,6 @@
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
 
 ; describe key-bindings
-(require 'helm-descbinds)
 (global-set-key (kbd "C-h b") 'counsel-descbinds)
 
 ; good way to learn all completion functions.
@@ -1001,7 +999,7 @@
 (global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
-(global-set-key (kbd "<f10>") 'helm-for-files)        ; find files in project.
+(global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window)        ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
 
