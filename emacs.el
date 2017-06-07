@@ -511,7 +511,7 @@
 (keyfreq-autosave-mode 1)
 
 ;; autopair mode
-(add-hook 'prog-mode-hook '(lambda () (autopair-mode)))
+(add-hook 'prog-mode-hook '(lambda () (autopair-mode -1)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
@@ -664,13 +664,13 @@
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
-(set-default-font "Ubuntu Mono")
+(set-default-font "DejaVu Sans Mono")
 
 ;; font size
 (when window-system
     (if (> (x-display-pixel-width) 2000)
-        (set-face-attribute 'default nil :height 120)
-        (set-face-attribute 'default nil :height 120)))
+        (set-face-attribute 'default nil :height 110)
+        (set-face-attribute 'default nil :height 110)))
 
 ; line/column related
 (column-number-mode)
@@ -917,7 +917,7 @@
   (interactive)
   (if (= (mod xueliang-current-font 2) 0)
       (set-default-font "DejaVu Sans")
-      (set-default-font "Ubuntu Mono"))
+      (set-default-font "DejaVu Sans Mono"))
    (setq xueliang-current-font (+ xueliang-current-font 1)))
 
 (defun xueliang-turn-on-transparency ()
@@ -938,7 +938,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . "Ubuntu Mono")))
+  (setq default-frame-alist '((font . "DejaVu Sans Mono")))
   (make-frame)
   (nlinum-mode 1))
 
@@ -975,8 +975,8 @@
 (global-set-key (kbd "C-k") 'evil-delete-line)
 
 ; Use default (describe-function) and (describe-variable) with ivy/counsel.
-;; (global-set-key (kbd "C-h f") 'helm-apropos)
-;; (global-set-key (kbd "C-h v") 'helm-apropos)
+(global-set-key (kbd "C-h f") 'helm-apropos)
+(global-set-key (kbd "C-h v") 'helm-apropos)
 
 ;; good practice for reading code.
 (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
@@ -999,7 +999,7 @@
 (global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
-(global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window)        ; find files in project.
+(global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window) ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
 
