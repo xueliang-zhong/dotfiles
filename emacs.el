@@ -479,6 +479,14 @@
 (set-face-foreground 'font-lock-comment-face "DarkOliveGreen")
 (set-face-foreground 'font-lock-comment-delimiter-face "DarkOliveGreen")
 
+;; set ivy/counsel faces under anti-zenburn theme
+(set-face-attribute  'ivy-current-match nil :underline nil)
+(set-face-background 'ivy-match-required-face      "MediumSlateBlue")
+(set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
+(set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
+(set-face-background 'ivy-minibuffer-match-face-3  "MediumSeaGreen")
+(set-face-background 'ivy-minibuffer-match-face-4  "SeaGreen")
+
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
