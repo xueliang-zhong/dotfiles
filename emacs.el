@@ -306,26 +306,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============semantic-config=============())
 
-;; semantic mode
-(setq semantic-default-submodes
-      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
-        global-semanticdb-minor-mode          ;; Use a database of parsed tags
-        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
-        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
-        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
-        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
-        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
-        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
-
-(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
-
-(semantic-mode)
-(semantic-add-system-include android-art 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
-(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
-
+;; semantic mode, quite slow.
+;;(setq semantic-default-submodes
+;;      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
+;;        global-semanticdb-minor-mode          ;; Use a database of parsed tags
+;;        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
+;;        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
+;;        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
+;;        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
+;;        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
+;;        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
+;;
+;;(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
+;;
+;;(semantic-mode)
+;;(semantic-add-system-include android-art 'c++-mode)
+;;(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
+;;(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
+;;(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
+;;(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
+;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -480,7 +480,7 @@
 (set-face-foreground 'font-lock-comment-delimiter-face "DarkOliveGreen")
 
 ;; set ivy/counsel faces under anti-zenburn theme
-(set-face-attribute  'ivy-current-match nil :underline nil)
+(set-face-attribute  'ivy-current-match nil :underline t)
 (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
 (set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
 (set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
@@ -647,7 +647,7 @@
   (setq-local gblame-line (line-number-at-pos))
   (shell-command (concat "git blame " (buffer-file-name)))
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
-  (evil-window-move-very-bottom) (hl-line-mode) (toggle-truncate-lines 1))
+  (evil-window-move-very-bottom) (toggle-truncate-lines 1))
 
 ;; simply calls magit-rebase-interactive.
 (defalias 'xueliang-glog 'xueliang/ivy-glog)
