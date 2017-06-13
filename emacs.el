@@ -611,7 +611,7 @@
                   (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                   :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
                   :initial-input (if xueliang-cword                                      ;; if current word at point is a string
-                                     (if (= 0 (string-match "[a-e0-9]+" xueliang-cword)) ;; and it is a git version string
+                                     (if (= 0 (string-match "[a-f0-9]+" xueliang-cword)) ;; and it is a git version string
                                          xueliang-cword                                  ;; then use it as initial-input;
                                          "") "")))))                                     ;; otherwise, avoid giving any initial-input.
 
