@@ -16,6 +16,7 @@
                             company-quickhelp
                             counsel
                             counsel-projectile
+                            eclipse-theme
                             eshell-did-you-mean
                             evil
                             evil-leader
@@ -119,7 +120,7 @@
   "b" 'ivy-switch-buffer-other-window
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'find-file    ;; fast search a file in current directory
+  "f" 'xueliang-find-file    ;; fast search a file in current directory
   "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
   "g" 'xueliang-gstatus
   "i" 'counsel-imenu
