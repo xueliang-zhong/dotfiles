@@ -801,6 +801,7 @@
 
 (defun xueliang-find-file-similar ()
   "my fast find file with similar file names, e.g. switch between .cc, .h, _test.cc files" (interactive)
+  (xueliang-cd-current-buffer-directory)
   (xueliang/find-file "." (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
 
 (defun xueliang/find-file (path init-input)
