@@ -770,6 +770,10 @@
 (define-key evil-insert-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 (define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 
+;; frame window maximize
+(define-key evil-insert-state-map (kbd "C-M-m") 'toggle-frame-maximized)
+(define-key evil-normal-state-map (kbd "C-M-m") 'toggle-frame-maximized)
+
 ;; glasses-mode o^o settings
 (setq glasses-separator "_")
 
