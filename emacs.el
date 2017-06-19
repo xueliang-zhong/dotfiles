@@ -473,13 +473,14 @@
 
 (when window-system
   (if (= (x-display-pixel-width) 1920)
-    (load-theme 'wombat t)          ;; home laptop
+    (load-theme 'tango-dark t)    ;; home laptop
     (load-theme 'tango-dark t)))  ;; themes that's good for work at office
 
 ;; useful commands: list-faces-display, helm-colors.
 ;; tuned for tango-dark theme.
 (set-face-foreground 'default "DarkGrey")
 (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+(set-face-foreground 'font-lock-doc-face "LightSeaGreen")
 (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
 (set-face-foreground 'font-lock-keyword-face "PaleGreen")
 (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
@@ -716,7 +717,7 @@
           '(lambda () (define-key evil-insert-state-local-map (kbd "TAB") '(lambda () (interactive) (insert "  ")))))
 
 ; disable some bars
-(menu-bar-mode 1)
+(menu-bar-mode -1)
 (tool-bar-mode -1)
 (scroll-bar-mode -1)
 
