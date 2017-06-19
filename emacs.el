@@ -393,7 +393,7 @@
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
 ;; make sure smart-mode-line works better in command line.
-(unless window-system (load-theme 'smart-mode-line-light))
+(load-theme 'smart-mode-line-dark t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; eshell config
@@ -455,9 +455,9 @@
 
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
-   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "OrangeRed"))
-   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue"))
-   (propertize " $ " 'face `(:foreground "black")))))
+   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange"))
+   (propertize (eshell/pwd) 'face `(:foreground "SkyBlue"))
+   (propertize " $ " 'face `(:foreground "LightGrey")))))
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -474,20 +474,31 @@
 (when window-system
   (if (= (x-display-pixel-width) 1920)
     (load-theme 'wombat t)          ;; home laptop
-    (load-theme 'anti-zenburn t)))  ;; themes that's good for work at office
+    (load-theme 'tango-dark t)))  ;; themes that's good for work at office
 
-;; useful commands: list-faces-display, helm-colors. Good colors: DarkOliveGreen, SeaGreen
-(set-face-foreground 'font-lock-comment-face "DarkOliveGreen")
-(set-face-foreground 'font-lock-comment-delimiter-face "DarkOliveGreen")
+;; useful commands: list-faces-display, helm-colors.
+;; tuned for tango-dark theme.
+(set-face-foreground 'default "DarkGrey")
+(set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+(set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
+(set-face-foreground 'font-lock-keyword-face "PaleGreen")
+(set-face-foreground 'font-lock-variable-name-face "DarkGrey")
+(set-face-foreground 'font-lock-type-face "DarkGrey")
+(set-face-foreground 'font-lock-builtin-face "DarkGrey")
+(set-face-foreground 'font-lock-negation-char-face "DarkGrey")
+(set-face-foreground 'font-lock-function-name-face "LightGrey")
+(set-face-foreground 'font-lock-warning-face "LightGrey")
+(set-face-foreground 'font-lock-string-face "#ad7fa8")
+(set-face-foreground 'font-lock-constant-face "LightGrey")
 
 ;; set ivy/counsel faces under anti-zenburn theme
-(set-face-attribute  'ivy-current-match nil :underline t)
-(set-face-background 'ivy-match-required-face      "MediumSlateBlue")
-(set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
-(set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
-(set-face-background 'ivy-minibuffer-match-face-3  "MediumSeaGreen")
-(set-face-background 'ivy-minibuffer-match-face-4  "SeaGreen")
-
+;; (set-face-attribute  'ivy-current-match nil :underline t)
+;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
+;; (set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
+;; (set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
+;; (set-face-background 'ivy-minibuffer-match-face-3  "MediumSeaGreen")
+;; (set-face-background 'ivy-minibuffer-match-face-4  "SeaGreen")
+;;
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
@@ -734,9 +745,13 @@
 ;; whitespace mode config
 (require 'whitespace)
 (global-whitespace-mode -1)  ;; don't enable whitespace mode everywhere.
-(add-hook 'prog-mode-hook '(lambda () (whitespace-mode 1)))
 (setq whitespace-line-column 100) ;; limit line length
 (setq whitespace-style '(face trailing lines-tail tabs))
+(set-face-background 'whitespace-line "cyan")
+(set-face-foreground 'whitespace-line "black")
+(add-hook 'c-mode-hook    '(lambda () (whitespace-mode 1)))
+(add-hook 'c++-mode-hook  '(lambda () (whitespace-mode 1)))
+(add-hook 'java-mode-hook '(lambda () (whitespace-mode 1)))
 
 ; '_' as part of word
 (add-hook 'c-mode-hook    '(lambda () (modify-syntax-entry ?_ "w")))
@@ -788,6 +803,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun =============xueliang-functions=============())
+
+(defun xueliang-what-face (pos)
+    (interactive "d")
+        (let ((face (or (get-char-property (point) 'read-face-name)
+            (get-char-property (point) 'face))))
+    (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
