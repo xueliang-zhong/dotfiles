@@ -393,7 +393,7 @@
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
 ;; make sure smart-mode-line works better in command line.
-(load-theme 'smart-mode-line-dark t)
+(load-theme 'smart-mode-line-light t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; eshell config
@@ -487,10 +487,10 @@
 (set-face-foreground 'font-lock-type-face "DarkGrey")
 (set-face-foreground 'font-lock-builtin-face "DarkGrey")
 (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
-(set-face-foreground 'font-lock-function-name-face "LightGrey")
-(set-face-foreground 'font-lock-warning-face "LightGrey")
+(set-face-foreground 'font-lock-function-name-face "DarkGrey")
+(set-face-foreground 'font-lock-warning-face "DarkGrey")
 (set-face-foreground 'font-lock-string-face "#ad7fa8")
-(set-face-foreground 'font-lock-constant-face "LightGrey")
+(set-face-foreground 'font-lock-constant-face "DarkGrey")
 
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
