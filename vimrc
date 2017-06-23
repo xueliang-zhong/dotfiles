@@ -66,7 +66,7 @@ nnoremap Q <esc>
 set nocompatible
 
 " line numbers
-set relativenumber number
+set norelativenumber number
 
 " search
 set hls

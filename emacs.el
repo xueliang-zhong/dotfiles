@@ -115,13 +115,11 @@
 (evil-leader/set-key
   "<SPC>" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
-  "a" 'xueliang-ag-search-in-dir
-  "A" 'xueliang-ag-search-in-project
+  "a" 'xueliang-ag-search-in-project
   "b" 'ivy-switch-buffer-other-window
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
-  "F" 'xueliang-find-file  ;; slower but more powerful than fiplr
   "g" 'xueliang-gstatus
   "i" 'counsel-imenu
   "I" 'helm-semantic-or-imenu
@@ -482,9 +480,9 @@
 (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
 (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
 (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
-(set-face-foreground 'font-lock-keyword-face "PaleGreen")
+(set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
 (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
-(set-face-foreground 'font-lock-type-face "DarkGrey")
+(set-face-foreground 'font-lock-type-face "PaleGreen")
 (set-face-foreground 'font-lock-builtin-face "DarkGrey")
 (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
 (set-face-foreground 'font-lock-function-name-face "DarkGrey")
@@ -577,6 +575,11 @@
 ;; for windows to display diff, put them far-right.
 ;; for windows for the user to do select, put them very-bottom.
 (setq-default shell-output-buffer-name "*Shell Command Output*")
+
+(require 'cl-lib)
+(defun xueliang-sum-numbers-in-region (start end)
+  (interactive "r")
+  (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
 
 (defun xueliang-gcommit ()
   "run git commit.
