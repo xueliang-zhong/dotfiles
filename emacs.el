@@ -306,25 +306,25 @@
 (defun =============semantic-config=============())
 
 ;; semantic mode, quite slow.
-(setq semantic-default-submodes
-      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
-        global-semanticdb-minor-mode          ;; Use a database of parsed tags
-        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
-        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
-        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
-        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
-        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
-        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
-
-(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
-
-(semantic-mode)
-(semantic-reset-system-include)
-(semantic-add-system-include android-art 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
-(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
-
+;; (setq semantic-default-submodes
+;;       '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
+;;         global-semanticdb-minor-mode          ;; Use a database of parsed tags
+;;         global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
+;;         global-semantic-highlight-func-mode   ;; Highlight the name of the current function
+;;         global-semantic-stickyfunc-mode       ;; show the name of the function at the top
+;;         global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
+;;         global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
+;;         global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
+;; 
+;; (add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
+;; 
+;; (semantic-mode)
+;; (semantic-reset-system-include)
+;; (semantic-add-system-include android-art 'c++-mode)
+;; (semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
+;; (semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
+;; (semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
+;; 
 ;; including art runtime files would make semantic quite slow.
 ;;(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
 
