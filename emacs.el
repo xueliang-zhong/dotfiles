@@ -726,6 +726,9 @@
 (add-hook 'prog-mode-hook
           '(lambda () (define-key evil-insert-state-local-map (kbd "TAB") '(lambda () (interactive) (insert "  ")))))
 
+;; cursor setting
+(setq blink-cursor-mode -1)
+
 ; disable some bars
 (menu-bar-mode -1)
 (tool-bar-mode -1)
