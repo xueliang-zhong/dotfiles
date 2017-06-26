@@ -110,6 +110,23 @@
 
 (setq evil-shift-width 2)
 
+(setq evil-mode-line-format 'before)
+
+;; use helm-swoop instead of vim style */# find.
+(define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
+(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
+(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
+
+;; use company use C-n completion.
+(define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; <leader> config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============leader-config=============())
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
@@ -137,19 +154,6 @@
   "x" 'delete-window  ;; common operation.
   "X" 'kill-buffer-and-window  ;; common operation.
 )
-
-(setq evil-mode-line-format 'before)
-
-;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
-(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
-(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
-(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
-(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
-
-;; use company use C-n completion.
-(define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helm config
@@ -229,10 +233,6 @@
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "z=") 'helm-flyspell-correct)))
 
-;; helm-ag config
-(custom-set-variables '(helm-ag-insert-at-point 'symbol))
-(custom-set-variables '(helm-follow-mode-persistent t))
-
 (helm-mode -1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -306,25 +306,28 @@
 (defun =============semantic-config=============())
 
 ;; semantic mode, quite slow.
-;;(setq semantic-default-submodes
-;;      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
-;;        global-semanticdb-minor-mode          ;; Use a database of parsed tags
-;;        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
-;;        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
-;;        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
-;;        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
-;;        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
-;;        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
-;;
-;;(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
-;;
-;;(semantic-mode)
-;;(semantic-add-system-include android-art 'c++-mode)
-;;(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
-;;(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
-;;(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
+(setq semantic-default-submodes
+      '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
+        global-semanticdb-minor-mode          ;; Use a database of parsed tags
+        global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
+        global-semantic-highlight-func-mode   ;; Highlight the name of the current function
+        global-semantic-stickyfunc-mode       ;; show the name of the function at the top
+        global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
+        global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
+        global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
+
+(add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
+
+(semantic-mode)
+(semantic-reset-system-include)
+(semantic-add-system-include android-art 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
+(semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
+
+;; including art runtime files would make semantic quite slow.
 ;;(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
-;;
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -583,9 +586,13 @@
 
 (defun xueliang-gcommit ()
   "run git commit.
-   *** HANDLE WITH CARE !!! only used after gwrite & gstatus ***" (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (shell-command (message "git commit -m \"Various improvements to %s\"" (file-name-nondirectory buffer-file-name))))
+   *** HANDLE WITH CARE !!! ***" (interactive)
+   (xueliang-cd-current-buffer-directory)
+   (shell-command (message "git commit -m \"%s\""
+                           (ivy-read "COMMIT MSG: " (list 
+                                                     (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
+                                                     (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
+                                                     )))))
 
 (defun xueliang-gstatus ()
   "run git status" (interactive)
