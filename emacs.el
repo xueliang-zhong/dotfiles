@@ -300,6 +300,14 @@
 
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
+;; fontify code in code blocks
+(setq org-src-fontify-natively t)
+(set-face-foreground 'org-block-begin-line "LightGrey")
+(set-face-background 'org-block-begin-line "SlateGrey")
+(set-face-background 'org-block-background "DarkSlateGrey")
+(set-face-foreground 'org-block-end-line "LightGrey")
+(set-face-background 'org-block-end-line "SlateGrey")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; semantic mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
