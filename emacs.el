@@ -603,7 +603,9 @@
   "list git branches, and git checkout selected branch" (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command-to-string (concat "git checkout "
-       (ivy-read "Git branch: " (split-string (shell-command-to-string "git branch") "\n"))))
+                                   (ivy-read "Git branch: "
+                                             (split-string (shell-command-to-string "git branch") "\n")
+                                             :preselect "*")))
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
