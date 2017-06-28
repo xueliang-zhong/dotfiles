@@ -305,8 +305,8 @@
 (set-face-background 'org-block-background "DarkSlateGrey")
 (set-face-background 'org-block-begin-line "DarkSlateGrey")
 (set-face-background 'org-block-end-line "DarkSlateGrey")
-(set-face-foreground 'org-block-begin-line "DarkGrey")
-(set-face-foreground 'org-block-end-line "DarkGrey")
+(set-face-foreground 'org-block-begin-line "LightSeaGreen")
+(set-face-foreground 'org-block-end-line "LightSeaGreen")
 (set-face-background 'org-table "DarkSlateGrey")
 (set-face-foreground 'org-table "DarkGrey")
 
