@@ -115,10 +115,12 @@
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
-(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
-(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
-(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
-(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
+
+;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
+;;(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+;;(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
+;;(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
+;;(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -616,6 +618,7 @@
                                    (ivy-read "Git branch: "
                                              (split-string (shell-command-to-string "git branch") "\n")
                                              :preselect "*")))
+  (revert-buffer :ignore-auto :noconfirm)  ;; force reload the file and update git info on mode line.
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
