@@ -48,6 +48,7 @@
                             rainbow-delimiters
                             smart-mode-line
                             smex
+                            telephone-line
                             vdiff
                             vimrc-mode
                             whitespace
@@ -372,41 +373,43 @@
 (setq completion-cycle-threshold 5)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Smart mode-line config
+;; mode-line config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============smart-mode-line-config=============())
+(defun =============telephone-mode-line-config=============())
+(require 'telephone-line)
 
-;; smart mode line
-(require 'smart-mode-line)
-(setq sml/no-confirm-load-theme t)
-(smart-mode-line-enable)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/dotfiles/" ":dotfiles:") t)
+(setq telephone-line-height 20
+      telephone-line-evil-use-short-tag nil)
 
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/aosp/" ":aosp:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/" ":linaro:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/Linaro_Android_Master/" ":linaro:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/" ":workspace:") t)
+(set-face-background 'telephone-line-evil-normal "DimGrey")
+(set-face-attribute  'telephone-line-evil-normal nil :bold nil)
+(set-face-attribute  'telephone-line-evil-insert nil :bold nil)
+(set-face-attribute  'telephone-line-evil-visual nil :bold nil)
+(set-face-foreground 'telephone-line-accent-active "LightGrey")
+(set-face-foreground 'telephone-line-accent-inactive "LightGrey")
 
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/" ":aosp:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/linaro/" ":linaro:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/" ":linaro:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/" ":workspace:") t)
-
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/aosp/external/vixl" ":aosp-vixl:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/linaro/external/vixl/" ":linaro-vixl:") t)
-(add-to-list 'sml/replacer-regexp-list '("^/data/workspace/Linaro_Android_Master/external/vixl/" ":linaro-vixl:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/aosp/external/vixl" ":aosp-vixl:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/linaro/external/vixl/" ":linaro-vixl:") t)
-(add-to-list 'sml/replacer-regexp-list '("^~/workspace/Linaro_Android_Master/external/vixl/" ":linaro-vixl:") t)
-
-;; show which function on mode-line.
-(which-function-mode -1)
+;; only way I can set mode-line faces so far.
+(add-hook 'emacs-startup-hook '(lambda()
+                                 (set-face-background 'mode-line "DeepSkyBlue4")
+                                 (set-face-foreground 'mode-line "LightGrey")))
 
 ;; always show which git branch I'm in.
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
-;; make sure smart-mode-line works better in command line.
-(load-theme 'smart-mode-line-light t)
+;; put all important information on the left side in mode line.
+(setq telephone-line-lhs
+      '((evil   . (telephone-line-evil-tag-segment))
+        (nil    . (telephone-line-airline-position-segment))
+        (accent . (telephone-line-buffer-segment))
+        (nil    . (telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment))
+        (accent . (telephone-line-major-mode-segment))
+        (nil    . (telephone-line-misc-info-segment telephone-line-minor-mode-segment))
+        ))
+
+(setq telephone-line-rhs '())
+
+;; above settings should be called before enabling telephone-line-mode.
+(telephone-line-mode t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; eshell config
@@ -814,7 +817,7 @@
 (define-key evil-insert-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 (define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 
-;; frame window maximize
+;; frame window maximize: also ESC-f10, M-RET.
 (define-key evil-insert-state-map (kbd "C-M-m") 'toggle-frame-maximized)
 (define-key evil-normal-state-map (kbd "C-M-m") 'toggle-frame-maximized)
 
