@@ -391,7 +391,9 @@
 ;; only way I can set mode-line faces so far.
 (add-hook 'emacs-startup-hook '(lambda()
                                  (set-face-background 'mode-line "DeepSkyBlue4")
-                                 (set-face-foreground 'mode-line "LightGrey")))
+                                 (set-face-foreground 'mode-line "LightGrey")
+                                 (set-face-background 'mode-line-inactive "DarkGrey")
+                                 (set-face-foreground 'mode-line-inactive "DimGrey")))
 
 ;; always show which git branch I'm in.
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
@@ -888,8 +890,7 @@
 (defun xueliang-make-android-system-image ()
   "invoke build android system image from andriod-root source tree" (interactive)
   (split-window-below) (evil-window-move-very-bottom) (evil-window-decrease-height 20)
-  (cd android-root) (term "bash")
-  (rename-buffer (concat "*eshell-linaro-make-android-system-image-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
   (insert "lunch 2") (term-send-input)
