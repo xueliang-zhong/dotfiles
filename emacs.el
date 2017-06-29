@@ -880,10 +880,20 @@
  (helm-google (thing-at-point 'word)))
 
 (defun xueliang-linaro-make ()
-  "invoke linaro build scripts easily" (interactive)
+  "invoke linaro host test" (interactive)
   (cd android-root) (xueliang-eshell-pwd)
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+
+(defun xueliang-make-android-system-image ()
+  "invoke build android system image from andriod-root source tree" (interactive)
+  (split-window-below) (evil-window-move-very-bottom) (evil-window-decrease-height 20)
+  (cd android-root) (term "bash")
+  (rename-buffer (concat "*eshell-linaro-make-android-system-image-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert (message "cd %s" android-root)) (term-send-input)
+  (insert "source build/envsetup.sh") (term-send-input)
+  (insert "lunch 2") (term-send-input)
+  (insert "time make -j33") (term-send-input))
 
 (defun xueliang-cnext-compilation-error ()
   "get compilation error easily in current buffer" (interactive)
@@ -1064,8 +1074,9 @@
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
 
-(global-set-key (kbd "<f6>")  'helm-semantic-or-imenu)        ; imenu in current file.
-(global-set-key (kbd "<f7>")  'xueliang-linaro-make)          ; F7 triggers make.
+(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)        ; imenu in current file.
+(global-set-key (kbd "<f7>")   'xueliang-linaro-make)
+(global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window) ; find files in project.
