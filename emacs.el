@@ -494,22 +494,6 @@
     (load-theme 'tango-dark t)    ;; home laptop
     (load-theme 'tango-dark t)))  ;; themes that's good for work at office
 
-;; useful commands: list-faces-display, helm-colors.
-;; tuned for tango-dark theme.
-(set-face-foreground 'default "DarkGrey")
-(set-face-foreground 'font-lock-comment-face "LightSeaGreen")
-(set-face-foreground 'font-lock-doc-face "LightSeaGreen")
-(set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
-(set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
-(set-face-foreground 'font-lock-variable-name-face "DarkGrey")
-(set-face-foreground 'font-lock-type-face "PaleGreen")
-(set-face-foreground 'font-lock-builtin-face "DarkGrey")
-(set-face-foreground 'font-lock-negation-char-face "DarkGrey")
-(set-face-foreground 'font-lock-function-name-face "DarkGrey")
-(set-face-foreground 'font-lock-warning-face "DarkGrey")
-(set-face-foreground 'font-lock-string-face "#ad7fa8")
-(set-face-foreground 'font-lock-constant-face "DarkGrey")
-
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
 ;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
@@ -838,6 +822,22 @@
 ;; Make the color more vim feel like
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vim-feeling-settings=============())
+
+;; Useful commands: list-faces-display, counsel-colors-emacs.
+;; Tuned from tango-dark theme.
+(set-face-foreground 'default "DarkGrey")
+(set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+(set-face-foreground 'font-lock-doc-face "LightSeaGreen")
+(set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
+(set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
+(set-face-foreground 'font-lock-variable-name-face "DarkGrey")
+(set-face-foreground 'font-lock-type-face "PaleGreen")
+(set-face-foreground 'font-lock-builtin-face "DarkGrey")
+(set-face-foreground 'font-lock-negation-char-face "DarkGrey")
+(set-face-foreground 'font-lock-function-name-face "DarkGrey")
+(set-face-foreground 'font-lock-warning-face "DarkGrey")
+(set-face-foreground 'font-lock-string-face "#ad7fa8")
+(set-face-foreground 'font-lock-constant-face "DarkGrey")
 
 ;; make linum more vim like.
 (set-face-foreground 'linum "gold1")
