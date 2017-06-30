@@ -118,10 +118,10 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-;;(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
-;;(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
-;;(define-key evil-normal-state-map (kbd "n") 'evil-search-previous)
-;;(define-key evil-normal-state-map (kbd "N") 'evil-search-next)
+(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "n") 'evil-search-next)
+(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -366,7 +366,7 @@
 (company-statistics-mode)
 
 ;; quick help popup
-(company-quickhelp-mode 1)
+(company-quickhelp-mode -1)
 (setq company-quickhelp-delay 0)
 
 (add-to-list 'completion-styles 'initials t)
@@ -833,6 +833,28 @@
 (add-hook 'org-mode-hook '(lambda ()  (goto-address-prog-mode 1)))
 ;; org mode style open link
 (define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Make the color more vim feel like
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============vim-feeling-settings=============())
+
+;; make linum more vim like.
+(set-face-foreground 'linum "gold1")
+
+;; make the completion colors closer to vim feeling.
+(set-face-background 'company-tooltip "#ad7fa8")
+(set-face-foreground 'company-tooltip-common "black")
+(set-face-background 'company-scrollbar-bg "DimGrey")
+(set-face-background 'company-scrollbar-fg "LightGrey")
+(set-face-background 'company-tooltip-selection "DimGrey")
+(set-face-foreground 'company-tooltip-selection "LightGrey")
+
+;; git gutter colors.
+(set-face-background 'fringe "grey20")
+(set-face-attribute 'git-gutter-fr+-added nil :bold nil)
+(set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
+(set-face-attribute 'git-gutter-fr+-modified nil :bold nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
