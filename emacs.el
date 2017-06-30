@@ -852,6 +852,8 @@
 (set-face-background 'company-scrollbar-fg "LightGrey")
 (set-face-background 'company-tooltip-selection "DimGrey")
 (set-face-foreground 'company-tooltip-selection "LightGrey")
+(set-face-background 'company-preview-common "grey20")
+(set-face-foreground 'company-preview-common "DarkGrey")
 
 ;; git gutter colors.
 (when window-system
