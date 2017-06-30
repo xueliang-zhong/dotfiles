@@ -1055,7 +1055,7 @@
   "invokes htop easier." (interactive)
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key IO_RATE") (term-send-input))
+  (insert "htop --sort-key PERCENT_CPU") (term-send-input))
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
