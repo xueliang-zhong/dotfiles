@@ -732,8 +732,8 @@
 
 ;; cursor setting
 (setq blink-cursor-mode -1)
-(add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1)))
-(add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1)))
+(add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
+(add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
 
 ; disable some bars
 (menu-bar-mode -1)
