@@ -140,7 +140,7 @@
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
-  "g" 'xueliang-gstatus
+  "g" 'magit-status
   "i" 'counsel-imenu
   "I" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
@@ -838,6 +838,8 @@
 (set-face-foreground 'font-lock-warning-face "DarkGrey")
 (set-face-foreground 'font-lock-string-face "#ad7fa8")
 (set-face-foreground 'font-lock-constant-face "DarkGrey")
+
+(require 'diff-mode)
 (set-face-background 'diff-refine-added "DarkOliveGreen")
 
 ;; make linum more vim like.
@@ -867,7 +869,8 @@
 (defun xueliang-what-face (pos)
     (interactive "d")
         (let ((face (or (get-char-property (point) 'read-face-name)
-            (get-char-property (point) 'face))))
+                        (get-char-property (point) 'face))
+                    ))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
 (defun xueliang-find-project()
@@ -1047,8 +1050,10 @@
   (nlinum-mode 1))
 
 (defun xueliang-htop ()
-  "calls top, but easier for typing." (interactive)
-  (xueliang-top))
+  "invokes htop easier." (interactive)
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert "htop --sort-key IO_RATE") (term-send-input))
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
