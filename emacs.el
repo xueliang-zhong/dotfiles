@@ -838,6 +838,7 @@
 (set-face-foreground 'font-lock-warning-face "DarkGrey")
 (set-face-foreground 'font-lock-string-face "#ad7fa8")
 (set-face-foreground 'font-lock-constant-face "DarkGrey")
+(set-face-background 'diff-refine-added "DarkOliveGreen")
 
 ;; make linum more vim like.
 (set-face-foreground 'linum "gold1")
@@ -851,10 +852,11 @@
 (set-face-foreground 'company-tooltip-selection "LightGrey")
 
 ;; git gutter colors.
-(set-face-background 'fringe "grey20")
-(set-face-attribute 'git-gutter-fr+-added nil :bold nil)
-(set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
-(set-face-attribute 'git-gutter-fr+-modified nil :bold nil)
+(when window-system
+  (set-face-background 'fringe "grey20")
+  (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
+  (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
+  (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -911,7 +913,7 @@
 
 (defun xueliang-make-android-system-image ()
   "invoke build android system image from andriod-root source tree" (interactive)
-  (split-window-below) (evil-window-move-very-bottom) (evil-window-decrease-height 20)
+  (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
