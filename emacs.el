@@ -809,6 +809,12 @@
 (define-key evil-insert-state-map (kbd "C-M-m") 'toggle-frame-maximized)
 (define-key evil-normal-state-map (kbd "C-M-m") 'toggle-frame-maximized)
 
+
+
+;; other-frame, make it easier for me to switch between frames/projects.
+(define-key evil-insert-state-map (kbd "C-M-f") 'other-frame)
+(define-key evil-normal-state-map (kbd "C-M-f") 'other-frame)
+
 ;; glasses-mode o^o settings
 (setq glasses-separator "_")
 
@@ -861,6 +867,15 @@
   (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
   (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
   (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
+
+;; helm colors
+(set-face-attribute 'helm-source-header nil :bold nil :height 120 :family "ubuntu mono")
+(set-face-foreground 'helm-source-header "LightGrey")
+(set-face-background 'helm-selection "LightSkyBlue")
+(set-face-foreground 'helm-selection "DarkGrey")
+(set-face-foreground 'helm-helper "LightGrey")
+(set-face-foreground 'helm-header "LightGrey")
+(set-face-foreground 'header-line "LightGrey")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -1051,11 +1066,19 @@
   (make-frame)
   (nlinum-mode 1))
 
-(defun xueliang-htop ()
+(defun xueliang-htop-cpu ()
   "invokes htop easier." (interactive)
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop --sort-key PERCENT_CPU") (term-send-input))
+
+(defun xueliang-htop-io ()
+  "invokes htop easier." (interactive)
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert "htop --sort-key PERCENT_CPU") (term-send-input))
+
+;; (defalias 'xueliang-htop 'xueliang-htop-cpu)
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
@@ -1074,7 +1097,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
