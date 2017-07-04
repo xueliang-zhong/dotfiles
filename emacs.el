@@ -118,8 +118,8 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'xueliang-swiper-forward)
-(define-key evil-normal-state-map (kbd "?") 'xueliang-swiper-backward)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search)
+(define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search)
 (define-key evil-normal-state-map (kbd "n") 'evil-search-next)
 (define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
@@ -883,8 +883,11 @@
 
 (defun =============xueliang-functions=============())
 
-(defun xueliang-fast-search()
+(defun xueliang/fast-search (with-init-input)
+  "My own fast search. And experiment on how ivy can be."
   "My own fast search. And experiment on ivy." (interactive)
+  ;; TODO: for unnamed buffers (like *scratch*), use swiper instead.
+  (add-to-list 'regexp-search-ring (thing-at-point 'symbol))
   (goto-line            ;; jump to that line
    (string-to-number    ;; convert line number string to number
     (car                ;; get line number string
@@ -893,10 +896,18 @@
        ;; read whole buffer contents + line number into ivy
        (ivy-read "Xueliang Fast Search: "
                  (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
-                 :initial-input (thing-at-point 'symbol)
+                 :initial-input (if with-init-input (thing-at-point 'symbol) "")
                  )
-       ) "\t"))
-    )))
+       ) "\t"))))
+  (add-to-list 'regexp-search-ring (car ivy-history)))
+
+(defun xueliang-fast-search-word-at-point()
+  "" (interactive)
+  (xueliang/fast-search t))
+
+(defun xueliang-fast-search()
+  "" (interactive)
+  (xueliang/fast-search nil))
 
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
@@ -1062,7 +1073,7 @@
 
 (defun xueliang-search-word-at-point ()
   "" (interactive)
-  (xueliang-fast-search))
+  (xueliang-fast-search-word-at-point))
   ;;(swiper (thing-at-point 'word)))
 
 (setq-default xueliang-current-font 0)
