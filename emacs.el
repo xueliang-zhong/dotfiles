@@ -886,19 +886,20 @@
 (defun xueliang/fast-search (with-init-input)
   "My own fast search. And experiment on how ivy can be."
   "My own fast search. And experiment on ivy." (interactive)
-  ;; TODO: for unnamed buffers (like *scratch*), use swiper instead.
   (add-to-list 'regexp-search-ring (thing-at-point 'symbol))
-  (goto-line            ;; jump to that line
-   (string-to-number    ;; convert line number string to number
-    (car                ;; get line number string
-     (split-string      ;; split string with '\t', the first element should be line number
-      (string-trim-left ;; remove front whitespace introduced by 'cat -n'
-       ;; read whole buffer contents + line number into ivy
-       (ivy-read "Xueliang Fast Search: "
-                 (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
-                 :initial-input (if with-init-input (thing-at-point 'symbol) "")
-                 )
-       ) "\t"))))
+  (if (null (buffer-file-name))
+    (swiper (if with-init-input (thing-at-point 'symbol) ""))  ;; cannot use following fast search in temp (non-file) buffers.
+    (goto-line            ;; jump to that line
+     (string-to-number    ;; convert line number string to number
+      (car                ;; get line number string
+       (split-string      ;; split string with '\t', the first element should be line number
+        (string-trim-left ;; remove front whitespace introduced by 'cat -n'
+         ;; read whole buffer contents + line number into ivy
+         (ivy-read "Xueliang Fast Search: "
+                   (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
+                   :initial-input (if with-init-input (thing-at-point 'symbol) "")
+                   )
+         ) "\t")))))
   (add-to-list 'regexp-search-ring (car ivy-history)))
 
 (defun xueliang-fast-search-word-at-point()
