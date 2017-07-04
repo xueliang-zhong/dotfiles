@@ -883,17 +883,32 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-fast-search()
+  "My own fast search. And experiment on ivy." (interactive)
+  (goto-line            ;; jump to that line
+   (string-to-number    ;; convert line number string to number
+    (car                ;; get line number string
+     (split-string      ;; split string with '\t', the first element should be line number
+      (string-trim-left ;; remove front whitespace introduced by 'cat -n'
+       ;; read whole buffer contents + line number into ivy
+       (ivy-read "Xueliang Fast Search: "
+                 (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
+                 :initial-input (thing-at-point 'symbol)
+                 )
+       ) "\t"))
+    )))
+
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 50000)
       (swiper)
-      (evil-search-forward)))
+      (xueliang-fast-search)))
 
 (defun xueliang-swiper-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 50000)
       (swiper)
-      (evil-search-backward)))
+      (xueliang-fast-search)))
 
 (defun xueliang-what-face (pos)
     (interactive "d")
@@ -1046,7 +1061,9 @@
   (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
 
 (defun xueliang-search-word-at-point ()
-  "" (interactive) (swiper (thing-at-point 'word)))
+  "" (interactive)
+  (xueliang-fast-search))
+  ;;(swiper (thing-at-point 'word)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
