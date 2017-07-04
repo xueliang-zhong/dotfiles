@@ -84,7 +84,7 @@
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
                                   ;;android-bionic
-                                  ;;android-libcore
+                                  android-libcore
                                   android-scripts
                                   android-vixl
                                   android-xueliang_test
@@ -118,8 +118,8 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
-(define-key evil-normal-state-map (kbd "?") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-swiper-forward)
+(define-key evil-normal-state-map (kbd "?") 'xueliang-swiper-backward)
 (define-key evil-normal-state-map (kbd "n") 'evil-search-next)
 (define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
@@ -883,6 +883,18 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-swiper-forward ()
+  "swiper for small buffers, vim style / for big buffers" (interactive)
+  (if (< (buffer-size) 50000)
+      (swiper)
+      (evil-search-forward)))
+
+(defun xueliang-swiper-backward ()
+  "swiper for small buffers, vim style / for big buffers" (interactive)
+  (if (< (buffer-size) 50000)
+      (swiper)
+      (evil-search-backward)))
+
 (defun xueliang-what-face (pos)
     (interactive "d")
         (let ((face (or (get-char-property (point) 'read-face-name)
@@ -907,7 +919,8 @@
 (defun xueliang-find-file-similar ()
   "my fast find file with similar file names, e.g. switch between .cc, .h, _test.cc files" (interactive)
   (xueliang-cd-current-buffer-directory)
-  (xueliang/find-file "." (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
+  (xueliang/find-file "." (string-remove-suffix "_test"  ;; remove the test suffix for _test.cc files.
+                                                (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))))
 
 (defun xueliang/find-file (path init-input)
   "my fast find file in project"
@@ -1097,7 +1110,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
