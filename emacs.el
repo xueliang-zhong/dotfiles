@@ -951,7 +951,7 @@
 
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
- (helm-google (thing-at-point 'word)))
+  (helm-google (thing-at-point 'symbol)))
 
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
