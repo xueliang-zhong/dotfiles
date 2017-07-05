@@ -114,12 +114,12 @@
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-at-point)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-at-point)
+(define-key evil-normal-state-map (kbd "*") 'xueliang-swiper-forward)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-swiper-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search)
-(define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search-forward)
+(define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search-backward)
 ;;(define-key evil-normal-state-map (kbd "n") 'evil-search-next)
 ;;(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
@@ -935,25 +935,29 @@
     ;;(evil-search-next)  ;; make it highlight immediately, but there is some bug.
 )
 
-(defun xueliang-fast-search-word-at-point()
+(defun xueliang-fast-search-forward()
   "" (interactive)
-  (xueliang/fast-search/simple t))
+  (xueliang/fast-search/simple nil)
+  (evil-search-previous)
+  (isearch-repeat-forward))
 
-(defun xueliang-fast-search()
+(defun xueliang-fast-search-backward()
   "" (interactive)
-  (xueliang/fast-search/simple nil))
+  (xueliang/fast-search/simple nil)
+  (evil-search-previous)
+  (isearch-repeat-backward))
 
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (if (< (buffer-size) 50000)
-      (swiper)
-      (xueliang-fast-search)))
+  (xueliang/fast-search/simple t)
+  (evil-search-previous)
+  (isearch-repeat-forward))
 
 (defun xueliang-swiper-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (if (< (buffer-size) 50000)
-      (swiper)
-      (xueliang-fast-search)))
+  (xueliang/fast-search/simple t)
+  (evil-search-previous)
+  (isearch-repeat-backward))
 
 (defun xueliang-what-face (pos)
     (interactive "d")
@@ -1104,11 +1108,6 @@
   (interactive "P")
   (require 'fiplr) (cd (fiplr-root))
   (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
-
-(defun xueliang-search-word-at-point ()
-  "" (interactive)
-  (xueliang-fast-search-word-at-point))
-  ;;(swiper (thing-at-point 'word)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
