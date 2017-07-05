@@ -120,11 +120,11 @@
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
 (define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search-forward)
 (define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search-backward)
-;;(define-key evil-normal-state-map (kbd "n") 'evil-search-next)
+;;(define-key evil-normal-state-map (kbd "n") 'xueliang-fast-search-history)
 ;;(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
-;; use company use C-n completion.
-(define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
+(define-key evil-normal-state-map (kbd "C-n") 'xueliang-fast-search-history)
+(define-key evil-normal-state-map (kbd "C-p") 'xueliang-fast-search-history)
 
 ;; vim style 'G' (end of buffer)
 (define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
@@ -260,7 +260,7 @@
 (counsel-mode 1)
 
 ;; number of result lines to display
-(setq ivy-height 25)
+(setq ivy-height 15)
 
 ;; enable more stuff
 (setq ivy-use-virtual-buffers t)
@@ -912,12 +912,13 @@
   (swiper (if with-init-input (thing-at-point 'symbol) ""))
 )
 
-(defun xueliang/fast-search (with-init-input)
+(defun xueliang/fast-search (init-input)
   "My own fast search. And experiment on ivy."
-  (add-to-list 'regexp-search-ring (thing-at-point 'symbol))
+  (add-to-list 'regexp-search-ring init-input)
   (if (null (buffer-file-name))
-    (swiper (if with-init-input (thing-at-point 'symbol) ""))  ;; cannot use following fast search in temp (non-file) buffers.
+    (swiper (if init-input init-input ""))  ;; cannot use following fast search in temp (non-file) buffers.
     (xueliang-cd-current-buffer-directory)
+    (unhighlight-regexp t) (highlight-regexp init-input 'lazy-highlight)  ;; highlight the search word.
     (goto-line            ;; jump to that line
      (string-to-number    ;; convert line number string to number
       (car                ;; get line number string
@@ -926,38 +927,34 @@
          ;; read whole buffer contents + line number into ivy
          (ivy-read "Xueliang Fast Search: "
                    (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
-                   :initial-input (if with-init-input (thing-at-point 'symbol) "")
+                   :initial-input (if init-input init-input "")
                    :preselect (number-to-string (line-number-at-pos))  ;; make the behavior more vim /? search like.
                    )
          ) "\t"))))
     (add-to-list 'regexp-search-ring  ;; add search history to evil /? search
                  (replace-regexp-in-string " " ".*" (car ivy-history))))  ;; make sure evil's /? search understands the swiper style fuzzy search.
-    ;;(evil-search-next)  ;; make it highlight immediately, but there is some bug.
+    (unhighlight-regexp t) (highlight-regexp (car ivy-history) 'lazy-highlight)  ;; highlight the search word; note that search word may be different from init-input.
 )
 
 (defun xueliang-fast-search-forward()
   "" (interactive)
-  (xueliang/fast-search/simple nil)
-  (evil-search-previous)
-  (isearch-repeat-forward))
+  (xueliang/fast-search nil))
 
 (defun xueliang-fast-search-backward()
   "" (interactive)
-  (xueliang/fast-search/simple nil)
-  (evil-search-previous)
-  (isearch-repeat-backward))
+  (xueliang/fast-search nil))
+
+(defun xueliang-fast-search-history()
+  "" (interactive)
+  (xueliang/fast-search (car ivy-history)))
 
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search/simple t)
-  (evil-search-previous)
-  (isearch-repeat-forward))
+  (xueliang/fast-search (thing-at-point 'symbol)))
 
 (defun xueliang-swiper-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search/simple t)
-  (evil-search-previous)
-  (isearch-repeat-backward))
+  (xueliang/fast-search (thing-at-point 'symbol)))
 
 (defun xueliang-what-face (pos)
     (interactive "d")
@@ -1216,4 +1213,4 @@
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (add-to-list 'load-path "~/.emacs.d/xueliang/")
-(xueliang-monitor-linaro-art)
+;;(xueliang-monitor-linaro-art)
