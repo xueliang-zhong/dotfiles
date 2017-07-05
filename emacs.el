@@ -891,8 +891,20 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-monitor-linaro-art ()
+  "Important Linaro ART related to monitor daily." (interactive)
+  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
+  (org-open-link-from-string "http://snapshots.linaro.org/android/android-generic-build/")
+  (org-open-link-from-string "https://art-reports.linaro.org")
+  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
+  (org-open-link-from-string "https://dev-private-review.linaro.org")
+  (org-open-link-from-string "https://android-review.linaro.org/")
+  (org-open-link-from-string "https://android-review.googlesource.com/")
+  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55&quickFilter=433")
+)
+
 (defun xueliang/fast-search/simple (with-init-input)
-  "simplified version based on swiper"
+  "simplified fast-search version based on swiper"
   (when with-init-input (add-to-list 'regexp-search-ring (thing-at-point 'symbol)))
   (swiper (if with-init-input (thing-at-point 'symbol) ""))
 )
@@ -1202,3 +1214,4 @@
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (add-to-list 'load-path "~/.emacs.d/xueliang/")
+(xueliang-monitor-linaro-art)
