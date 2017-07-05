@@ -891,6 +891,12 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang/fast-search/simple (with-init-input)
+  "simplified version based on swiper"
+  (when with-init-input (add-to-list 'regexp-search-ring (thing-at-point 'symbol)))
+  (swiper (if with-init-input (thing-at-point 'symbol) ""))
+)
+
 (defun xueliang/fast-search (with-init-input)
   "My own fast search. And experiment on ivy."
   (add-to-list 'regexp-search-ring (thing-at-point 'symbol))
@@ -911,16 +917,16 @@
          ) "\t"))))
     (add-to-list 'regexp-search-ring  ;; add search history to evil /? search
                  (replace-regexp-in-string " " ".*" (car ivy-history))))  ;; make sure evil's /? search understands the swiper style fuzzy search.
-    (evil-search-next)  ;; make it highlight immediately.
+    ;;(evil-search-next)  ;; make it highlight immediately, but there is some bug.
 )
 
 (defun xueliang-fast-search-word-at-point()
   "" (interactive)
-  (xueliang/fast-search t))
+  (xueliang/fast-search/simple t))
 
 (defun xueliang-fast-search()
   "" (interactive)
-  (xueliang/fast-search nil))
+  (xueliang/fast-search/simple nil))
 
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
