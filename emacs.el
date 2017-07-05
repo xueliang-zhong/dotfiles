@@ -120,8 +120,8 @@
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
 (define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search)
 (define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search)
-(define-key evil-normal-state-map (kbd "n") 'evil-search-next)
-(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
+;;(define-key evil-normal-state-map (kbd "n") 'evil-search-next)
+;;(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
 
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
@@ -877,6 +877,14 @@
 (set-face-foreground 'helm-header "LightGrey")
 (set-face-foreground 'header-line "LightGrey")
 
+;; vim /? search
+(set-face-foreground 'evil-ex-search "black")
+(set-face-background 'evil-ex-search "yellow2")
+(set-face-foreground 'isearch "black")
+(set-face-background 'isearch "yellow2")
+(set-face-foreground 'lazy-highlight "black")
+(set-face-background 'lazy-highlight "yellow4")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -884,11 +892,11 @@
 (defun =============xueliang-functions=============())
 
 (defun xueliang/fast-search (with-init-input)
-  "My own fast search. And experiment on how ivy can be."
-  "My own fast search. And experiment on ivy." (interactive)
+  "My own fast search. And experiment on ivy."
   (add-to-list 'regexp-search-ring (thing-at-point 'symbol))
   (if (null (buffer-file-name))
     (swiper (if with-init-input (thing-at-point 'symbol) ""))  ;; cannot use following fast search in temp (non-file) buffers.
+    (xueliang-cd-current-buffer-directory)
     (goto-line            ;; jump to that line
      (string-to-number    ;; convert line number string to number
       (car                ;; get line number string
@@ -898,9 +906,13 @@
          (ivy-read "Xueliang Fast Search: "
                    (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
                    :initial-input (if with-init-input (thing-at-point 'symbol) "")
+                   :preselect (number-to-string (line-number-at-pos))  ;; make the behavior more vim /? search like.
                    )
-         ) "\t")))))
-  (add-to-list 'regexp-search-ring (car ivy-history)))
+         ) "\t"))))
+    (add-to-list 'regexp-search-ring  ;; add search history to evil /? search
+                 (replace-regexp-in-string " " ".*" (car ivy-history))))  ;; make sure evil's /? search understands the swiper style fuzzy search.
+    (evil-search-next)  ;; make it highlight immediately.
+)
 
 (defun xueliang-fast-search-word-at-point()
   "" (interactive)
