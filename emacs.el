@@ -126,6 +126,9 @@
 ;; use company use C-n completion.
 (define-key evil-insert-state-map (kbd "C-n") 'company-manual-begin)
 
+;; vim style 'G' (end of buffer)
+(define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <leader> config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
