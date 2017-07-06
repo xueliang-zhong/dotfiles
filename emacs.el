@@ -114,8 +114,8 @@
 (setq evil-mode-line-format 'before)
 
 ;; use helm-swoop instead of vim style */# find.
-(define-key evil-normal-state-map (kbd "*") 'xueliang-swiper-forward)
-(define-key evil-normal-state-map (kbd "#") 'xueliang-swiper-backward)
+(define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-forward)
+(define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
 (define-key evil-normal-state-map (kbd "/") 'evil-search-forward)
@@ -895,6 +895,12 @@
 (set-face-foreground 'lazy-highlight "black")
 (set-face-background 'lazy-highlight "yellow4")
 
+;; Occur window colors
+(set-face-foreground 'underline "black")
+(set-face-background 'underline "yellow2")
+(set-face-foreground 'match "black")
+(set-face-background 'match "yellow4")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -960,16 +966,16 @@
   "" (interactive)
   (xueliang/fast-search/simple (car swiper-history)))
 
-(defun xueliang-swiper-forward ()
+(defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search/simple (thing-at-point 'symbol))
-  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-forward) ;; set search direction.
+  (evil-search-word-forward 1 (thing-at-point 'symbol))
+  (occur (thing-at-point 'symbol))
 )
 
-(defun xueliang-swiper-backward ()
+(defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search/simple (thing-at-point 'symbol))
-  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-backward) ;; set search direction.
+  (evil-search-word-backward 1 (thing-at-point 'symbol))
+  (occur (thing-at-point 'symbol))
 )
 
 (defun xueliang-what-face (pos)
