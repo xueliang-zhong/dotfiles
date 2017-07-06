@@ -118,13 +118,20 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-swiper-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'xueliang-fast-search-forward)
-(define-key evil-normal-state-map (kbd "?") 'xueliang-fast-search-backward)
-;;(define-key evil-normal-state-map (kbd "n") 'xueliang-fast-search-history)
-;;(define-key evil-normal-state-map (kbd "N") 'evil-search-previous)
+(define-key evil-normal-state-map (kbd "/") 'evil-search-forward)
+(define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 (define-key evil-normal-state-map (kbd "C-n") 'xueliang-fast-search-history)
 (define-key evil-normal-state-map (kbd "C-p") 'xueliang-fast-search-history)
+
+;; give the old vim style /? search a more swiper way: space key inserts ".*"
+(define-key isearch-mode-map (kbd "<SPC>") '(lambda() (interactive) (isearch-printing-char 46 1) (isearch-printing-char 42 1)))
+
+;; emacs style search
+(global-set-key (kbd "C-s") 'xueliang-fast-search-forward)
+
+;; like vim, ESC also removes highlight.
+(define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive) (evil-force-normal-state) (unhighlight-regexp t)))
 
 ;; vim style 'G' (end of buffer)
 (define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
@@ -906,10 +913,11 @@
   (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55&quickFilter=433")
 )
 
-(defun xueliang/fast-search/simple (with-init-input)
+(defun xueliang/fast-search/simple (init-input)
   "simplified fast-search version based on swiper"
-  (when with-init-input (add-to-list 'regexp-search-ring (thing-at-point 'symbol)))
-  (swiper (if with-init-input (thing-at-point 'symbol) ""))
+  (when init-input (add-to-list 'regexp-search-ring (thing-at-point 'symbol)))
+  (swiper (if init-input init-input ""))
+  (unhighlight-regexp t) (highlight-regexp (car swiper-history) 'lazy-highlight)  ;; highlight the search word; note that search word may be different from init-input.
 )
 
 (defun xueliang/fast-search (init-input)
@@ -938,23 +946,31 @@
 
 (defun xueliang-fast-search-forward()
   "" (interactive)
-  (xueliang/fast-search nil))
+  (xueliang/fast-search/simple nil)
+  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-forward) ;; set search direction.
+)
 
 (defun xueliang-fast-search-backward()
   "" (interactive)
-  (xueliang/fast-search nil))
+  (xueliang/fast-search/simple nil)
+  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-backward) ;; set search direction.
+)
 
 (defun xueliang-fast-search-history()
   "" (interactive)
-  (xueliang/fast-search (car ivy-history)))
+  (xueliang/fast-search/simple (car swiper-history)))
 
 (defun xueliang-swiper-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search (thing-at-point 'symbol)))
+  (xueliang/fast-search/simple (thing-at-point 'symbol))
+  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-forward) ;; set search direction.
+)
 
 (defun xueliang-swiper-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (xueliang/fast-search (thing-at-point 'symbol)))
+  (xueliang/fast-search/simple (thing-at-point 'symbol))
+  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-backward) ;; set search direction.
+)
 
 (defun xueliang-what-face (pos)
     (interactive "d")
@@ -1184,7 +1200,7 @@
 (global-set-key (kbd "C-h v") 'helm-apropos)
 
 ;; good practice for reading code.
-(global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
+;; (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
 
 ; describe key-bindings
 (global-set-key (kbd "C-h b") 'counsel-descbinds)
