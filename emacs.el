@@ -128,7 +128,7 @@
 (define-key isearch-mode-map (kbd "<SPC>") '(lambda() (interactive) (isearch-printing-char 46 1) (isearch-printing-char 42 1)))
 
 ;; emacs style search
-(global-set-key (kbd "C-s") 'xueliang-fast-search-forward)
+(global-set-key (kbd "C-s") 'xueliang-fast-search-word)
 
 ;; like vim, ESC also removes highlight.
 (define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive) (evil-force-normal-state) (unhighlight-regexp t)))
@@ -950,9 +950,9 @@
     (unhighlight-regexp t) (highlight-regexp (car ivy-history) 'lazy-highlight)  ;; highlight the search word; note that search word may be different from init-input.
 )
 
-(defun xueliang-fast-search-forward()
+(defun xueliang-fast-search-word()
   "" (interactive)
-  (xueliang/fast-search/simple nil)
+  (xueliang/fast-search/simple (thing-at-point 'symbol))
   (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-forward) ;; set search direction.
 )
 
