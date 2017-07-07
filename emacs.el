@@ -127,14 +127,99 @@
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
 (define-key isearch-mode-map (kbd "<SPC>") '(lambda() (interactive) (isearch-printing-char 46 1) (isearch-printing-char 42 1)))
 
+(defun xueliang-isearch-char (char) (interactive)
+       (isearch-printing-char char 1)
+       (when (> (length isearch-string) 0)
+         (occur isearch-string)))
+
+;; narrow while typing during searching
+(define-key isearch-mode-map (kbd "A") '(lambda() (interactive) (xueliang-isearch-char 65)))
+(define-key isearch-mode-map (kbd "B") '(lambda() (interactive) (xueliang-isearch-char 66)))
+(define-key isearch-mode-map (kbd "C") '(lambda() (interactive) (xueliang-isearch-char 67)))
+(define-key isearch-mode-map (kbd "D") '(lambda() (interactive) (xueliang-isearch-char 68)))
+(define-key isearch-mode-map (kbd "E") '(lambda() (interactive) (xueliang-isearch-char 69)))
+(define-key isearch-mode-map (kbd "F") '(lambda() (interactive) (xueliang-isearch-char 70)))
+(define-key isearch-mode-map (kbd "G") '(lambda() (interactive) (xueliang-isearch-char 71)))
+(define-key isearch-mode-map (kbd "H") '(lambda() (interactive) (xueliang-isearch-char 72)))
+(define-key isearch-mode-map (kbd "I") '(lambda() (interactive) (xueliang-isearch-char 73)))
+(define-key isearch-mode-map (kbd "J") '(lambda() (interactive) (xueliang-isearch-char 74)))
+(define-key isearch-mode-map (kbd "K") '(lambda() (interactive) (xueliang-isearch-char 75)))
+(define-key isearch-mode-map (kbd "L") '(lambda() (interactive) (xueliang-isearch-char 76)))
+(define-key isearch-mode-map (kbd "M") '(lambda() (interactive) (xueliang-isearch-char 77)))
+(define-key isearch-mode-map (kbd "N") '(lambda() (interactive) (xueliang-isearch-char 78)))
+(define-key isearch-mode-map (kbd "O") '(lambda() (interactive) (xueliang-isearch-char 79)))
+(define-key isearch-mode-map (kbd "P") '(lambda() (interactive) (xueliang-isearch-char 80)))
+(define-key isearch-mode-map (kbd "Q") '(lambda() (interactive) (xueliang-isearch-char 81)))
+(define-key isearch-mode-map (kbd "R") '(lambda() (interactive) (xueliang-isearch-char 82)))
+(define-key isearch-mode-map (kbd "S") '(lambda() (interactive) (xueliang-isearch-char 83)))
+(define-key isearch-mode-map (kbd "T") '(lambda() (interactive) (xueliang-isearch-char 84)))
+(define-key isearch-mode-map (kbd "U") '(lambda() (interactive) (xueliang-isearch-char 85)))
+(define-key isearch-mode-map (kbd "V") '(lambda() (interactive) (xueliang-isearch-char 86)))
+(define-key isearch-mode-map (kbd "W") '(lambda() (interactive) (xueliang-isearch-char 87)))
+(define-key isearch-mode-map (kbd "X") '(lambda() (interactive) (xueliang-isearch-char 88)))
+(define-key isearch-mode-map (kbd "Y") '(lambda() (interactive) (xueliang-isearch-char 89)))
+(define-key isearch-mode-map (kbd "Z") '(lambda() (interactive) (xueliang-isearch-char 90)))
+(define-key isearch-mode-map (kbd "a") '(lambda() (interactive) (xueliang-isearch-char 97)))
+(define-key isearch-mode-map (kbd "b") '(lambda() (interactive) (xueliang-isearch-char 98)))
+(define-key isearch-mode-map (kbd "c") '(lambda() (interactive) (xueliang-isearch-char 99)))
+(define-key isearch-mode-map (kbd "d") '(lambda() (interactive) (xueliang-isearch-char 100)))
+(define-key isearch-mode-map (kbd "e") '(lambda() (interactive) (xueliang-isearch-char 101)))
+(define-key isearch-mode-map (kbd "f") '(lambda() (interactive) (xueliang-isearch-char 102)))
+(define-key isearch-mode-map (kbd "g") '(lambda() (interactive) (xueliang-isearch-char 103)))
+(define-key isearch-mode-map (kbd "h") '(lambda() (interactive) (xueliang-isearch-char 104)))
+(define-key isearch-mode-map (kbd "i") '(lambda() (interactive) (xueliang-isearch-char 105)))
+(define-key isearch-mode-map (kbd "j") '(lambda() (interactive) (xueliang-isearch-char 106)))
+(define-key isearch-mode-map (kbd "k") '(lambda() (interactive) (xueliang-isearch-char 107)))
+(define-key isearch-mode-map (kbd "l") '(lambda() (interactive) (xueliang-isearch-char 108)))
+(define-key isearch-mode-map (kbd "m") '(lambda() (interactive) (xueliang-isearch-char 109)))
+(define-key isearch-mode-map (kbd "n") '(lambda() (interactive) (xueliang-isearch-char 110)))
+(define-key isearch-mode-map (kbd "o") '(lambda() (interactive) (xueliang-isearch-char 111)))
+(define-key isearch-mode-map (kbd "p") '(lambda() (interactive) (xueliang-isearch-char 112)))
+(define-key isearch-mode-map (kbd "q") '(lambda() (interactive) (xueliang-isearch-char 113)))
+(define-key isearch-mode-map (kbd "r") '(lambda() (interactive) (xueliang-isearch-char 114)))
+(define-key isearch-mode-map (kbd "s") '(lambda() (interactive) (xueliang-isearch-char 115)))
+(define-key isearch-mode-map (kbd "t") '(lambda() (interactive) (xueliang-isearch-char 116)))
+(define-key isearch-mode-map (kbd "u") '(lambda() (interactive) (xueliang-isearch-char 117)))
+(define-key isearch-mode-map (kbd "v") '(lambda() (interactive) (xueliang-isearch-char 118)))
+(define-key isearch-mode-map (kbd "w") '(lambda() (interactive) (xueliang-isearch-char 119)))
+(define-key isearch-mode-map (kbd "x") '(lambda() (interactive) (xueliang-isearch-char 120)))
+(define-key isearch-mode-map (kbd "y") '(lambda() (interactive) (xueliang-isearch-char 121)))
+(define-key isearch-mode-map (kbd "z") '(lambda() (interactive) (xueliang-isearch-char 122)))
+
+;; give the old vim style /? search another improvement: with occur window.
+(define-key isearch-mode-map (kbd "<return>") '(lambda() (interactive)
+                                                 (when (> (length isearch-string) 1)
+                                                   (occur isearch-string))
+                                                 (isearch-exit)
+                                              ))
+
 ;; emacs style search
 (global-set-key (kbd "C-s") 'xueliang-fast-search-word)
 
 ;; like vim, ESC also removes highlight.
-(define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive) (evil-force-normal-state) (unhighlight-regexp t)))
+(define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive)
+                                                      (evil-force-normal-state)
+                                                      (unhighlight-regexp t)
+                                                      (when (get-buffer-window "*Occur*")
+                                                        (switch-to-buffer-other-window "*Occur*")
+                                                        (kill-buffer-and-window))
+                                                      ))
 
 ;; vim style 'G' (end of buffer)
 (define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
+
+(defun xueliang-search-next-and-update-occur() (interactive)
+       (evil-search-next 1)
+       (when (get-buffer-window "*Occur*")
+         ;; the following code makes the occur window a mini map of searching.
+         (setq xueliang-highlight-line (line-number-at-pos))
+         (switch-to-buffer-other-window "*Occur*")
+         (unhighlight-regexp t) (highlight-regexp (message "^[ ]*%d:.*$" xueliang-highlight-line) 'ivy-current-match)
+         (other-window -1))
+)
+
+(define-key evil-normal-state-map (kbd "n") 'xueliang-search-next-and-update-occur)
+(define-key evil-normal-state-map (kbd "<tab>") 'xueliang-search-next-and-update-occur)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <leader> config
@@ -546,6 +631,9 @@
 ;; autopair mode
 (add-hook 'prog-mode-hook '(lambda () (autopair-mode -1)))
 
+;; winner mode
+(winner-mode 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -809,17 +897,17 @@
 (define-key evil-insert-state-map (kbd "C-M-h")  'windmove-left)
 (define-key evil-insert-state-map (kbd "C-M-l") 'windmove-right)
 
-;; window resize (Ctrl Alt +/-)
+;; window resize (Ctrl Alt +/-/0)
 (define-key evil-insert-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
 (define-key evil-normal-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
 (define-key evil-insert-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 (define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
+(define-key evil-insert-state-map (kbd "C-M-0") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
+(define-key evil-normal-state-map (kbd "C-M-0") '(lambda () (interactive) (balance-windows)))
 
 ;; frame window maximize: also ESC-f10, M-RET.
 (define-key evil-insert-state-map (kbd "C-M-m") 'toggle-frame-maximized)
 (define-key evil-normal-state-map (kbd "C-M-m") 'toggle-frame-maximized)
-
-
 
 ;; other-frame, make it easier for me to switch between frames/projects.
 (define-key evil-insert-state-map (kbd "C-M-f") 'other-frame)
