@@ -219,7 +219,6 @@
 )
 
 (define-key evil-normal-state-map (kbd "n") 'xueliang-search-next-and-update-occur)
-(define-key evil-normal-state-map (kbd "<tab>") 'xueliang-search-next-and-update-occur)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <leader> config
