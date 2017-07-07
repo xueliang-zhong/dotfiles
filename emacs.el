@@ -193,6 +193,12 @@
                                                  (isearch-exit)
                                               ))
 
+;; narrow the searching candidates when delete.
+(define-key isearch-mode-map (kbd "DEL") '(lambda() (interactive)
+                                                    (isearch-delete-char)
+                                                    (when (> (length isearch-string) 0)
+                                                      (occur isearch-string))))
+
 ;; emacs style search
 (global-set-key (kbd "C-s") 'xueliang-fast-search-word)
 
