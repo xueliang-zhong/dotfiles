@@ -202,13 +202,23 @@
 ;; emacs style search
 (global-set-key (kbd "C-s") 'xueliang-fast-search-word)
 
+(defun xueliang-close-occur-window()
+  "A robust functiont close occur window & buffer."
+  (setq xueliang-current-buffer (buffer-name (current-buffer)))
+  (when (get-buffer-window "*Occur*")
+    (switch-to-buffer-other-window "*Occur*")  ;; switch to the occur buffer window
+    (evil-switch-to-windows-last-buffer)       ;; go back to the previous buffer if it was changed by occur
+    (if (null (get-buffer-window "*Occur*"))   ;; check if occur is still there, which it means that window is created by occur
+        (switch-to-buffer-other-window xueliang-current-buffer)
+        (kill-buffer-and-window))              ;; close that occur window, if it was created by occur.
+    )
+)
+
 ;; like vim, ESC also removes highlight.
 (define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive)
                                                       (evil-force-normal-state)
                                                       (unhighlight-regexp t)
-                                                      (when (get-buffer-window "*Occur*")
-                                                        (switch-to-buffer-other-window "*Occur*")
-                                                        (kill-buffer-and-window))
+                                                      (xueliang-close-occur-window)
                                                       ))
 
 ;; vim style 'G' (end of buffer)
