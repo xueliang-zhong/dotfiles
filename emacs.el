@@ -129,8 +129,7 @@
 
 ;; give the old vim style /? search another improvement: with occur window.
 (define-key isearch-mode-map (kbd "<return>") '(lambda() (interactive)
-                                                 (when (> (length isearch-string) 1)
-                                                   (occur isearch-string))
+                                                 ;;(when (> (length isearch-string) 1) (occur isearch-string))
                                                  (isearch-exit)
                                               ))
 
@@ -1008,13 +1007,13 @@
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (evil-search-word-forward 1 (thing-at-point 'symbol))
-  (occur (thing-at-point 'symbol))
+  ;;(occur (thing-at-point 'symbol))
 )
 
 (defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (evil-search-word-backward 1 (thing-at-point 'symbol))
-  (occur (thing-at-point 'symbol))
+  ;;(occur (thing-at-point 'symbol))
 )
 
 (defun xueliang-what-face (pos)
