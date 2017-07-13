@@ -1207,7 +1207,7 @@
   "invokes htop easier." (interactive)
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key PERCENT_CPU") (term-send-input))
+  (insert "htop --sort-key IO") (term-send-input))
 
 ;; (defalias 'xueliang-htop 'xueliang-htop-cpu)
 
