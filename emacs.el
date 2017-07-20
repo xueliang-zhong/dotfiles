@@ -114,7 +114,7 @@
 (setq evil-mode-line-format 'before)
 
 ;; Same behavior on last line as vim.
-(define-key evil-normal-state-map (kbd "j") '(lambda() (interactive) (if (< (+ (line-number-at-pos) 1) (line-number-at-pos (point-max)))
+(define-key evil-normal-state-map (kbd "j") '(lambda() (interactive) (if (<= (+ (line-number-at-pos) 1) (line-number-at-pos (point-max)))
                                                                          (evil-next-line)
                                                                          (message "Last line of buffer.")
                                                                        )))
