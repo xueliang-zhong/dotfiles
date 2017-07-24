@@ -451,8 +451,8 @@
 ;; put all important information on the left side in mode line.
 (setq telephone-line-lhs
       '((evil   . (telephone-line-evil-tag-segment))
-        (nil    . (telephone-line-airline-position-segment))
         (accent . (telephone-line-buffer-segment))
+        (evil    . (telephone-line-airline-position-segment))
         (nil    . (telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment))
         (accent . (telephone-line-major-mode-segment))
         (nil    . (telephone-line-misc-info-segment telephone-line-minor-mode-segment))
@@ -1207,13 +1207,15 @@
   "invokes htop easier." (interactive)
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key PERCENT_CPU") (term-send-input))
+  (insert "htop --sort-key PERCENT_CPU") (term-send-input)
+  (other-window -1))
 
 (defun xueliang-htop-io ()
   "invokes htop easier." (interactive)
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key IO") (term-send-input))
+  (insert "htop --sort-key IO") (term-send-input)
+  (other-window -1))
 
 ;; (defalias 'xueliang-htop 'xueliang-htop-cpu)
 
