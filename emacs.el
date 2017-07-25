@@ -1065,6 +1065,10 @@
   "google current word" (interactive)
   (helm-google (thing-at-point 'symbol)))
 
+(defun xueliang-linaro-gdb ()
+  "invoke gdb linaro tree" (interactive)
+  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
   (cd android-root) (xueliang-eshell-pwd)
@@ -1268,7 +1272,10 @@
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
 
-(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)        ; imenu in current file.
+(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
+
+;; visual studio style make and debug.
+(global-set-key (kbd "<f5>") 'xueliang-linaro-gdb)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
