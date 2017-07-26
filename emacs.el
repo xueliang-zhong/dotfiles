@@ -114,10 +114,10 @@
 (setq evil-mode-line-format 'before)
 
 ;; Same behavior on last line as vim.
-(define-key evil-normal-state-map (kbd "j") '(lambda() (interactive) (if (<= (+ (line-number-at-pos) 1) (line-number-at-pos (point-max)))
-                                                                         (evil-next-line)
-                                                                         (message "Last line of buffer.")
-                                                                       )))
+;(define-key evil-normal-state-map (kbd "j") '(lambda() (interactive) (if (<= (+ (line-number-at-pos) 1) (line-number-at-pos (point-max)))
+;                                                                         (evil-next-line)
+;                                                                         (message "Last line of buffer.")
+;                                                                       )))
 
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-forward)
@@ -161,8 +161,8 @@
                                                       (xueliang-close-occur-window)
                                                       ))
 
-;; vim style 'G' (end of buffer)
-(define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
+;; vim style 'G' (end of buffer): doesn't work well in eshell.
+;; (define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
 
 (defun xueliang-search-next-and-update-occur() (interactive)
        (evil-search-next 1)
@@ -788,9 +788,9 @@
 (add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
 (add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
 
-; disable some bars
-(menu-bar-mode -1)
-(tool-bar-mode -1)
+; some bars settings
+(menu-bar-mode 1)
+(tool-bar-mode 1)
 (scroll-bar-mode -1)
 
 ; show match parentheses
