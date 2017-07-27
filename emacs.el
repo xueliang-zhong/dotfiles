@@ -1067,7 +1067,11 @@
 
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
+  (require 'gdb-mi)
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+
+;; avoid company-complete being annoying in gdb mode.
+(add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
 
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
