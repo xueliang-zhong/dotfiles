@@ -286,6 +286,9 @@
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "z=") 'helm-flyspell-correct)))
 
+;; in helm-top, avoid killing process by mistake.
+(add-hook 'helm-top-after-init-hook '(lambda () (define-key helm-top-map (kbd "RET") 'helm-next-line))) 
+
 (helm-mode -1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1225,7 +1228,7 @@
   (insert "htop --sort-key IO") (term-send-input)
   (other-window -1))
 
-;; (defalias 'xueliang-htop 'xueliang-htop-cpu)
+(defalias 'xueliang-htop 'helm-top)
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
