@@ -956,14 +956,16 @@
 
 (defun xueliang-monitor-linaro-art ()
   "Important Linaro ART related to monitor daily." (interactive)
+  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
   (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
-  (org-open-link-from-string "http://snapshots.linaro.org/android/android-generic-build/")
   (org-open-link-from-string "https://art-reports.linaro.org")
   (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
   (org-open-link-from-string "https://dev-private-review.linaro.org")
   (org-open-link-from-string "https://android-review.linaro.org/")
   (org-open-link-from-string "https://android-review.googlesource.com/")
   (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55&quickFilter=433")
+  ;; other useful linaro links:
+  ;; http://snapshots.linaro.org/android/android-generic-build/
 )
 
 (defun xueliang/fast-search/simple (init-input)
