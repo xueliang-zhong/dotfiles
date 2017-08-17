@@ -140,7 +140,8 @@
                                               ))
 
 ;; emacs style search
-(global-set-key (kbd "C-s") 'xueliang-fast-search-word)
+;;(global-set-key (kbd "C-s") 'xueliang-fast-search-word)
+(global-set-key (kbd "C-s") 'helm-swoop)
 
 (defun xueliang-close-occur-window()
   "A robust functiont close occur window & buffer."
@@ -183,7 +184,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'ivy-switch-buffer
+  "<SPC>" 'helm-for-files
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
   "b" 'ivy-switch-buffer-other-window
@@ -191,15 +192,15 @@
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
   "g" 'magit-status
-  "i" 'counsel-imenu
+  "i" 'helm-semantic-or-imenu
   "I" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
-  "m" 'counsel-bookmark
+  "m" 'helm-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "p" 'xueliang-find-project
-  "r" 'counsel-recentf
+  "r" 'helm-recentf
   "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
@@ -925,7 +926,7 @@
   (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
 
 ;; helm colors
-(set-face-attribute 'helm-source-header nil :bold nil :height 120 :family "ubuntu mono")
+(set-face-attribute 'helm-source-header nil :bold nil :height 150 :family "ubuntu mono")
 (set-face-foreground 'helm-source-header "LightGrey")
 (set-face-background 'helm-selection "LightSkyBlue")
 (set-face-foreground 'helm-selection "DarkGrey")
@@ -1249,7 +1250,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
