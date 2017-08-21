@@ -358,16 +358,6 @@
 
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
-;; fontify code in code blocks and tables
-(setq org-src-fontify-natively t)
-(set-face-background 'org-block-background "DarkSlateGrey")
-(set-face-background 'org-block-begin-line "DarkSlateGrey")
-(set-face-background 'org-block-end-line "DarkSlateGrey")
-(set-face-foreground 'org-block-begin-line "LightSeaGreen")
-(set-face-foreground 'org-block-end-line "LightSeaGreen")
-(set-face-background 'org-table "DarkSlateGrey")
-(set-face-foreground 'org-table "DarkGrey")
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; semantic mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -944,6 +934,16 @@
   (set-face-foreground 'lazy-highlight "black")
   (set-face-background 'lazy-highlight "yellow4")
 
+  ;; fontify code in code blocks and tables
+  (setq org-src-fontify-natively t)
+  (set-face-background 'org-block-background "DarkSlateGrey")
+  (set-face-background 'org-block-begin-line "DarkSlateGrey")
+  (set-face-background 'org-block-end-line "DarkSlateGrey")
+  (set-face-foreground 'org-block-begin-line "LightSeaGreen")
+  (set-face-foreground 'org-block-end-line "LightSeaGreen")
+  (set-face-background 'org-table "DarkSlateGrey")
+  (set-face-foreground 'org-table "DarkGrey")
+
   ;; Occur window colors
   (set-face-attribute 'underline nil :bold t :height 160 :family "DejaVu Sans Mono")
   (set-face-foreground 'underline "black")
@@ -967,7 +967,7 @@
   (set-face-background 'diff-refine-added "DarkOliveGreen")
 
   ;; make linum more vim like.
-  (set-face-foreground 'linum "MediumBlue")
+  (set-face-foreground 'linum "DarkSlateBlue")
 
   ;; git gutter colors.
   (when window-system
@@ -986,6 +986,16 @@
   (set-face-background 'company-preview-common "grey20")
   (set-face-foreground 'company-preview-common "DarkGrey")
 
+  ;; fontify code in code blocks and tables
+  (setq org-src-fontify-natively t)
+  (set-face-background 'org-block-background "DarkGrey")
+  (set-face-background 'org-block-begin-line "DarkGrey")
+  (set-face-background 'org-block-end-line "DarkGrey")
+  (set-face-foreground 'org-block-begin-line "SeaGreen")
+  (set-face-foreground 'org-block-end-line "SeaGreen")
+  (set-face-background 'org-table "DarkSlateGrey")
+  (set-face-foreground 'org-table "DarkGrey")
+
   ;; helm colors
   (set-face-foreground 'helm-M-x-key "DarkOrange3")
 )
@@ -1000,14 +1010,20 @@
 
 (defun xueliang-monitor-linaro-art ()
   "Important Linaro ART related to monitor daily." (interactive)
+  ;; gerrit code reviews for ART/Android
   (org-open-link-from-string "https://dev-private-review.linaro.org")
   (org-open-link-from-string "https://android-review.linaro.org/")
   (org-open-link-from-string "https://android-review.googlesource.com/")
+  ;; daily build tests for ART/Android
   (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
   (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
   (org-open-link-from-string "https://art-reports.linaro.org")
-  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
+  ;; documents, BKMs, manuals, 
+  (org-open-link-from-string "https://projects.linaro.org/browse/LMG-390")
   (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
+  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
+  (org-open-link-from-string "http://armv8.arm.com/")
+  (org-open-link-from-string "https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8")
   ;; other useful linaro links:
   ;; http://snapshots.linaro.org/android/android-generic-build/
 )
