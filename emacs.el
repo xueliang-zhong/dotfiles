@@ -337,6 +337,7 @@
 
 (require 'org-bullets)
 (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+(setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
 
 ;; add dotty support in org-babel
 (org-babel-do-load-languages (quote org-babel-load-languages)
@@ -527,9 +528,9 @@
 
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
-   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange"))
-   (propertize (eshell/pwd) 'face `(:foreground "SkyBlue"))
-   (propertize " $ " 'face `(:foreground "LightGrey")))))
+   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange
+   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue
+   (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -546,7 +547,7 @@
 (when window-system
   (if (= (x-display-pixel-width) 1920)
     (load-theme 'tango-dark t)    ;; home laptop
-    (load-theme 'tango-dark t)))  ;; themes that's good for work at office
+    (load-theme 'anti-zenburn t)))  ;; themes that's good for work at office
 
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
@@ -886,68 +887,110 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vim-feeling-settings=============())
 
-;; Useful commands: list-faces-display, counsel-colors-emacs.
-;; Tuned from tango-dark theme.
-(set-face-foreground 'default "DarkGrey")
-(set-face-foreground 'font-lock-comment-face "LightSeaGreen")
-(set-face-foreground 'font-lock-doc-face "LightSeaGreen")
-(set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
-(set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
-(set-face-foreground 'font-lock-variable-name-face "DarkGrey")
-(set-face-foreground 'font-lock-type-face "PaleGreen")
-(set-face-foreground 'font-lock-builtin-face "DarkGrey")
-(set-face-foreground 'font-lock-negation-char-face "DarkGrey")
-(set-face-foreground 'font-lock-function-name-face "DarkGrey")
-(set-face-foreground 'font-lock-warning-face "DarkGrey")
-(set-face-foreground 'font-lock-string-face "#ad7fa8")
-(set-face-foreground 'font-lock-constant-face "DarkGrey")
+(defun xueliang/faces-for-dark-theme()
+  ;; Useful commands: list-faces-display, counsel-colors-emacs.
+  ;; Tuned from tango-dark theme.
+  (set-face-foreground 'default "DarkGrey")
+  (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
+  (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-type-face "PaleGreen")
+  (set-face-foreground 'font-lock-builtin-face "DarkGrey")
+  (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
+  (set-face-foreground 'font-lock-function-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-warning-face "DarkGrey")
+  (set-face-foreground 'font-lock-string-face "#ad7fa8")
+  (set-face-foreground 'font-lock-constant-face "DarkGrey")
 
-(require 'diff-mode)
-(set-face-background 'diff-refine-added "DarkOliveGreen")
+  (require 'diff-mode)
+  (set-face-background 'diff-refine-added "DarkOliveGreen")
 
-;; make linum more vim like.
-(set-face-foreground 'linum "gold1")
+  ;; make linum more vim like.
+  (set-face-foreground 'linum "gold1")
 
-;; make the completion colors closer to vim feeling.
-(set-face-background 'company-tooltip "#ad7fa8")
-(set-face-foreground 'company-tooltip-common "black")
-(set-face-background 'company-scrollbar-bg "DimGrey")
-(set-face-background 'company-scrollbar-fg "LightGrey")
-(set-face-background 'company-tooltip-selection "DimGrey")
-(set-face-foreground 'company-tooltip-selection "LightGrey")
-(set-face-background 'company-preview-common "grey20")
-(set-face-foreground 'company-preview-common "DarkGrey")
+  ;; make the completion colors closer to vim feeling.
+  (set-face-background 'company-tooltip "#ad7fa8")
+  (set-face-foreground 'company-tooltip-common "black")
+  (set-face-background 'company-scrollbar-bg "DimGrey")
+  (set-face-background 'company-scrollbar-fg "LightGrey")
+  (set-face-background 'company-tooltip-selection "DimGrey")
+  (set-face-foreground 'company-tooltip-selection "LightGrey")
+  (set-face-background 'company-preview-common "grey20")
+  (set-face-foreground 'company-preview-common "DarkGrey")
 
-;; git gutter colors.
-(when window-system
-  (set-face-background 'fringe "grey20")
-  (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
-  (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
-  (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
+  ;; git gutter colors.
+  (when window-system
+    (set-face-background 'fringe "grey20")
+    (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
 
-;; helm colors
-(set-face-attribute 'helm-source-header nil :bold nil :height 150 :family "ubuntu mono")
-(set-face-foreground 'helm-source-header "LightGrey")
-(set-face-background 'helm-selection "LightSkyBlue")
-(set-face-foreground 'helm-selection "DarkGrey")
-(set-face-foreground 'helm-helper "LightGrey")
-(set-face-foreground 'helm-header "LightGrey")
-(set-face-foreground 'header-line "LightGrey")
+  ;; helm colors
+  (set-face-attribute 'helm-source-header nil :bold nil :height 150 :family "ubuntu mono")
+  (set-face-foreground 'helm-source-header "LightGrey")
+  (set-face-background 'helm-selection "LightSkyBlue")
+  (set-face-foreground 'helm-selection "DarkGrey")
+  (set-face-foreground 'helm-helper "LightGrey")
+  (set-face-foreground 'helm-header "LightGrey")
+  (set-face-foreground 'header-line "LightGrey")
 
-;; vim /? search
-(set-face-foreground 'evil-ex-search "black")
-(set-face-background 'evil-ex-search "yellow2")
-(set-face-foreground 'isearch "black")
-(set-face-background 'isearch "yellow2")
-(set-face-foreground 'lazy-highlight "black")
-(set-face-background 'lazy-highlight "yellow4")
+  ;; vim /? search
+  (set-face-foreground 'evil-ex-search "black")
+  (set-face-background 'evil-ex-search "yellow2")
+  (set-face-foreground 'isearch "black")
+  (set-face-background 'isearch "yellow2")
+  (set-face-foreground 'lazy-highlight "black")
+  (set-face-background 'lazy-highlight "yellow4")
 
-;; Occur window colors
-(set-face-attribute 'underline nil :bold t :height 160 :family "DejaVu Sans Mono")
-(set-face-foreground 'underline "black")
-(set-face-background 'underline "yellow4")
-(set-face-foreground 'match "black")
-(set-face-background 'match "yellow4")
+  ;; Occur window colors
+  (set-face-attribute 'underline nil :bold t :height 160 :family "DejaVu Sans Mono")
+  (set-face-foreground 'underline "black")
+  (set-face-background 'underline "yellow4")
+  (set-face-foreground 'match "black")
+  (set-face-background 'match "yellow4")
+)
+
+(defun xueliang/faces-for-light-theme()
+  (set-default-font "ubuntu mono")
+  (set-face-attribute 'default nil :height 120)
+
+  ;; Useful commands: list-faces-display, counsel-colors-emacs.
+  ;; Tuned from tango-dark theme.
+  (set-face-foreground 'font-lock-comment-face "DarkGreen")
+  (set-face-foreground 'font-lock-doc-face "DarkGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
+  ;;(set-face-foreground 'font-lock-string-face "#ad7fa8")
+
+  (require 'diff-mode)
+  (set-face-background 'diff-refine-added "DarkOliveGreen")
+
+  ;; make linum more vim like.
+  (set-face-foreground 'linum "MediumBlue")
+
+  ;; git gutter colors.
+  (when window-system
+    (set-face-background 'fringe "#c0c0c0")
+    (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
+
+  ;; make the completion colors closer to vim feeling.
+  (set-face-background 'company-tooltip "#ad7fa8")
+  (set-face-foreground 'company-tooltip-common "black")
+  (set-face-background 'company-scrollbar-bg "DimGrey")
+  (set-face-background 'company-scrollbar-fg "LightGrey")
+  (set-face-background 'company-tooltip-selection "DimGrey")
+  (set-face-foreground 'company-tooltip-selection "LightGrey")
+  (set-face-background 'company-preview-common "grey20")
+  (set-face-foreground 'company-preview-common "DarkGrey")
+
+  ;; helm colors
+  (set-face-foreground 'helm-M-x-key "DarkOrange3")
+)
+
+(xueliang/faces-for-light-theme)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -957,14 +1000,14 @@
 
 (defun xueliang-monitor-linaro-art ()
   "Important Linaro ART related to monitor daily." (interactive)
-  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
-  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
-  (org-open-link-from-string "https://art-reports.linaro.org")
-  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
   (org-open-link-from-string "https://dev-private-review.linaro.org")
   (org-open-link-from-string "https://android-review.linaro.org/")
   (org-open-link-from-string "https://android-review.googlesource.com/")
-  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55&quickFilter=433")
+  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
+  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
+  (org-open-link-from-string "https://art-reports.linaro.org")
+  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
+  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
   ;; other useful linaro links:
   ;; http://snapshots.linaro.org/android/android-generic-build/
 )
@@ -1213,7 +1256,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . "DejaVu Sans Mono")))
+  (setq default-frame-alist '((font . "ubuntu mono"))) ;; DejaVu Sans Mono
   (make-frame)
   (nlinum-mode 1))
 
