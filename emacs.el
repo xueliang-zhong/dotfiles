@@ -219,6 +219,7 @@
 (require 'helm-chrome)
 (require 'helm-projectile)
 
+(setq helm-split-window-default-side 'below)
 (setq helm-split-window-in-side-p t) ; open helm buffer inside current window
 (setq helm-mode-fuzzy-match nil)
 (setq helm-ff-file-name-history-use-recentf nil)
@@ -260,9 +261,9 @@
 (define-key helm-map (kbd "C-<up>")   '(lambda() (interactive) (helm-previous-line) (helm-execute-persistent-action)))
 (define-key helm-map (kbd "C-<down>") '(lambda() (interactive) (helm-next-line) (helm-execute-persistent-action)))
 
-(setq helm-autoresize-max-height 40)
-(setq helm-autoresize-min-height 15)
-(helm-autoresize-mode -1)
+(setq helm-autoresize-max-height 30)
+(setq helm-autoresize-min-height 30)
+(helm-autoresize-mode 1)
 
 ;; if this value is t, split window inside the current window
 (setq helm-swoop-split-with-multiple-windows nil)
@@ -960,16 +961,13 @@
   (set-face-attribute 'default nil :height 110)
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
-  ;; Tuned from tango-dark theme.
   (set-face-foreground 'font-lock-comment-face "DarkGreen")
   (set-face-foreground 'font-lock-doc-face "DarkGreen")
   (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
-  ;;(set-face-foreground 'font-lock-string-face "#ad7fa8")
 
   (require 'diff-mode)
   (set-face-background 'diff-refine-added "DarkOliveGreen")
 
-  ;; make linum more vim like.
   (set-face-foreground 'linum "DarkSlateBlue")
 
   ;; git gutter colors.
@@ -990,7 +988,6 @@
   (set-face-foreground 'company-preview-common "DarkGrey")
 
   ;; Org mode colors
-  ;; fontify code in code blocks and tables
   (set-face-foreground 'org-done "DarkSlateGrey")
   (setq org-src-fontify-natively t)
   (set-face-background 'org-block-background "DarkGrey")
@@ -1004,6 +1001,14 @@
   ;; helm colors
   (require 'helm-command)
   (set-face-foreground 'helm-M-x-key "DarkOrange3")
+  (set-face-background 'helm-selection "LightSkyBlue")
+  (set-face-background 'helm-selection-line "LightSkyBlue")
+  (set-face-background 'helm-match "PaleGreen3")
+
+  ;; flyspell
+  (require 'flyspell)
+  (set-face-foreground 'flyspell-incorrect "DarkRed")
+  (set-face-foreground 'flyspell-duplicate "DarkRed")
 )
 
 (xueliang/faces-for-light-theme)
