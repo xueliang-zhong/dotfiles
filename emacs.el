@@ -417,6 +417,9 @@
 (add-to-list 'completion-styles 'initials t)
 (setq completion-cycle-threshold 5)
 
+;; having a stable completion in c++ mode is more important than having a fancy one.
+(add-hook 'c++-mode-hook '(lambda ()
+                            (setq-local company-backends '(company-dabbrev-code))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; mode-line config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -953,8 +956,8 @@
 )
 
 (defun xueliang/faces-for-light-theme()
-  (set-default-font "ubuntu mono")
-  (set-face-attribute 'default nil :height 120)
+  (set-default-font "DejaVu Sans Mono")
+  (set-face-attribute 'default nil :height 110)
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
   ;; Tuned from tango-dark theme.
@@ -986,7 +989,9 @@
   (set-face-background 'company-preview-common "grey20")
   (set-face-foreground 'company-preview-common "DarkGrey")
 
+  ;; Org mode colors
   ;; fontify code in code blocks and tables
+  (set-face-foreground 'org-done "DarkSlateGrey")
   (setq org-src-fontify-natively t)
   (set-face-background 'org-block-background "DarkGrey")
   (set-face-background 'org-block-begin-line "DarkGrey")
@@ -997,6 +1002,7 @@
   (set-face-foreground 'org-table "DarkGrey")
 
   ;; helm colors
+  (require 'helm-command)
   (set-face-foreground 'helm-M-x-key "DarkOrange3")
 )
 
@@ -1272,7 +1278,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . "ubuntu mono"))) ;; DejaVu Sans Mono
+  (setq default-frame-alist '((font . "DejaVu Sans Mono"))) ;; DejaVu Sans Mono, ubuntu mono
   (make-frame)
   (nlinum-mode 1))
 
@@ -1357,4 +1363,3 @@
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (add-to-list 'load-path "~/.emacs.d/xueliang/")
-;;(xueliang-monitor-linaro-art)
