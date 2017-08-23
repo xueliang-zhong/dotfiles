@@ -281,8 +281,8 @@
 (setq truncate-partial-width-windows 100)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
-(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
