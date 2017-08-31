@@ -280,6 +280,11 @@
 ;; avoid wrap in helm-swoop window
 (setq truncate-partial-width-windows 100)
 
+;; limit candidate number to improve helm's performance.
+;; however, sometimes it's nice to know the total number of candiates (total proccesses, files, etc),
+;; for these scenarios, ivy seems to be a better.
+(setq helm-candidate-number-limit 200)
+
 ;; quite useful to see what I've deleted.
 (define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
 (define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
@@ -522,9 +527,9 @@
 
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
-   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange
-   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue
-   (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey
+   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange, DarkOrange3
+   (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
+   (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -541,7 +546,7 @@
 (when window-system
   (if (= (x-display-pixel-width) 1920)
     (load-theme 'tango-dark t)    ;; home laptop
-    (load-theme 'anti-zenburn t)))  ;; themes that's good for work at office
+    (load-theme 'tango-dark t)))  ;; themes that's good for work at office
 
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
@@ -692,7 +697,7 @@
                   :initial-input (if xueliang-cword                                      ;; if current word at point is a string
                                      (if (= 0 (string-match "[a-f0-9]+" xueliang-cword)) ;; and it is a git version string
                                          xueliang-cword                                  ;; then use it as initial-input;
-                                         "") "")))))                                     ;; otherwise, avoid giving any initial-input.
+                                       "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
@@ -1011,7 +1016,7 @@
   (set-face-foreground 'flyspell-duplicate "DarkRed")
 )
 
-(xueliang/faces-for-light-theme)
+(xueliang/faces-for-dark-theme)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -1107,7 +1112,7 @@
 
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
-  (cd (ivy-read "Project: " xueliang-project-list))
+  (cd (helm-comp-read "Project: " xueliang-project-list))
   (xueliang-find-file-from-pwd))
 
 (defun xueliang-find-file ()
@@ -1133,9 +1138,8 @@
                                      "\n")
                        :initial-input init-input)))
 
-(defun xueliang-top()
-  "my top command in emacs" (interactive)
-  (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
+;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
+(defalias 'xueliang-top 'helm-top)
 
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
@@ -1145,6 +1149,13 @@
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+
+(defun xueliang-linaro-repo-sync ()
+  "invoke gdb linaro tree" (interactive)
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert (message "cd %s" android-root)) (term-send-input)
+  (insert (message "repo sync -j33" android-root)) (term-send-input))
 
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
@@ -1320,7 +1331,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
