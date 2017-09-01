@@ -127,9 +127,6 @@
 (define-key evil-normal-state-map (kbd "/") 'evil-search-forward)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
-(define-key evil-normal-state-map (kbd "C-n") 'xueliang-fast-search-history)
-(define-key evil-normal-state-map (kbd "C-p") 'xueliang-fast-search-history)
-
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
 (define-key isearch-mode-map (kbd "<SPC>") '(lambda() (interactive) (isearch-printing-char 46 1) (isearch-printing-char 42 1)))
 
@@ -140,7 +137,6 @@
                                               ))
 
 ;; emacs style search
-;;(global-set-key (kbd "C-s") 'xueliang-fast-search-word)
 (global-set-key (kbd "C-s") 'helm-swoop)
 
 (defun xueliang-close-occur-window()
@@ -1043,53 +1039,6 @@
   ;; other useful linaro links:
   ;; http://snapshots.linaro.org/android/android-generic-build/
 )
-
-(defun xueliang/fast-search/simple (init-input)
-  "simplified fast-search version based on swiper"
-  (when init-input (add-to-list 'regexp-search-ring (thing-at-point 'symbol)))
-  (swiper (if init-input init-input ""))
-  (unhighlight-regexp t) (highlight-regexp (car swiper-history) 'lazy-highlight)  ;; highlight the search word; note that search word may be different from init-input.
-)
-
-(defun xueliang/fast-search (init-input)
-  "My own fast search. And experiment on ivy."
-  (add-to-list 'regexp-search-ring init-input)
-  (if (null (buffer-file-name))
-    (swiper (if init-input init-input ""))  ;; cannot use following fast search in temp (non-file) buffers.
-    (xueliang-cd-current-buffer-directory)
-    (unhighlight-regexp t) (highlight-regexp init-input 'lazy-highlight)  ;; highlight the search word.
-    (goto-line            ;; jump to that line
-     (string-to-number    ;; convert line number string to number
-      (car                ;; get line number string
-       (split-string      ;; split string with '\t', the first element should be line number
-        (string-trim-left ;; remove front whitespace introduced by 'cat -n'
-         ;; read whole buffer contents + line number into ivy
-         (ivy-read "Xueliang Fast Search: "
-                   (split-string (shell-command-to-string (concat "cat -n " (buffer-name))) "\n")
-                   :initial-input (if init-input init-input "")
-                   :preselect (number-to-string (line-number-at-pos))  ;; make the behavior more vim /? search like.
-                   )
-         ) "\t"))))
-    (add-to-list 'regexp-search-ring  ;; add search history to evil /? search
-                 (replace-regexp-in-string " " ".*" (car ivy-history))))  ;; make sure evil's /? search understands the swiper style fuzzy search.
-    (unhighlight-regexp t) (highlight-regexp (car ivy-history) 'lazy-highlight)  ;; highlight the search word; note that search word may be different from init-input.
-)
-
-(defun xueliang-fast-search-word()
-  "" (interactive)
-  (xueliang/fast-search/simple (thing-at-point 'symbol))
-  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-forward) ;; set search direction.
-)
-
-(defun xueliang-fast-search-backward()
-  "" (interactive)
-  (xueliang/fast-search/simple nil)
-  (run-at-time 0.1 nil 'keyboard-quit) (isearch-repeat-backward) ;; set search direction.
-)
-
-(defun xueliang-fast-search-history()
-  "" (interactive)
-  (xueliang/fast-search/simple (car swiper-history)))
 
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
