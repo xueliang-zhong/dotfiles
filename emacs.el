@@ -1121,7 +1121,8 @@
   (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
-  (insert "lunch 2") (term-send-input)
+  ;;(insert "lunch 2") (term-send-input)
+  (insert "lunch aosp_angler-userdebug") (term-send-input)
   (insert "time make -j33") (term-send-input))
 
 (defun xueliang-cnext-compilation-error ()
