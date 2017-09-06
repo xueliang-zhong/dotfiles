@@ -1097,7 +1097,8 @@
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
-  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
 
 (defun xueliang-linaro-repo-sync ()
   "invoke gdb linaro tree" (interactive)

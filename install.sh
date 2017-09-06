@@ -49,6 +49,10 @@ ln -s /usr/bin/gnome-terminal ~/bin/terminal
 # dropbox
 ln -s ~/Dropbox ~/workspace/dropbox
 
+# gdb
+rm -f ~/.gdbinit
+ln -s `pwd`/gdbinit ~/.gdbinit 
+
 # DONE
 echo DONE
 
