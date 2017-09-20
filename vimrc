@@ -138,10 +138,10 @@ exe "cs add ".expand(android_src)."/art/cscope.out"
 set cscopequickfix=s-,c-,d-,i-,t-,e-
 
 " Hard to type things
-iabbrev --> →
-iabbrev <-- ←
-iabbrev ^^  ↑
-iabbrev VV  ↓
+"iabbrev --> →
+"iabbrev <-- ←
+"iabbrev ^^  ↑
+"iabbrev VV  ↓
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands

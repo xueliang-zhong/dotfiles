@@ -124,7 +124,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'evil-search-forward)
+(define-key evil-normal-state-map (kbd "/") 'helm-swoop-without-pre-input)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -697,6 +697,7 @@
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
+   (when (buffer-file-name) (xueliang-cd-current-buffer-directory))
    (shell-command (message "git diff %s " (xueliang/ivy-glog)))
    (switch-to-buffer-other-window shell-output-buffer-name)
    (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
@@ -859,6 +860,9 @@
 (define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 (define-key evil-insert-state-map (kbd "C-M-0") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
 (define-key evil-normal-state-map (kbd "C-M-0") '(lambda () (interactive) (balance-windows)))
+
+;; make sure I have same behavior like org mode, M-RET doesn't maximize the frame/window.
+(define-key evil-normal-state-map (kbd "M-RET") 'evil-ret)
 
 ;; frame window maximize: also ESC-f10, M-RET.
 (define-key evil-insert-state-map (kbd "C-M-m") 'toggle-frame-maximized)
@@ -1042,14 +1046,18 @@
 
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (evil-search-word-forward 1 (thing-at-point 'symbol))
-  ;;(occur (thing-at-point 'symbol))
+  (if (< (buffer-size) 10000000) ;; 10MB limit
+      (helm-swoop-symble-pre-input)
+      (evil-search-word-forward 1 (thing-at-point 'symbol))
+  )
 )
 
 (defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
-  (evil-search-word-backward 1 (thing-at-point 'symbol))
-  ;;(occur (thing-at-point 'symbol))
+  (if (< (buffer-size) 10000000) ;; 10MB limit
+      (helm-swoop-symble-pre-input)
+      (evil-search-word-backward 1 (thing-at-point 'symbol))
+  )
 )
 
 (defun xueliang-what-face (pos)
@@ -1070,7 +1078,7 @@
   (xueliang/find-file (fiplr-root) ""))
 
 (defun xueliang-find-file-from-pwd ()
-  "my fast find file in current directory" (interactive)
+
   (xueliang/find-file "." ""))
 
 (defun xueliang-find-file-similar ()
@@ -1097,8 +1105,8 @@
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
-  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
-  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
+  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
 
 (defun xueliang-linaro-repo-sync ()
   "invoke gdb linaro tree" (interactive)
@@ -1112,7 +1120,7 @@
 
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
-  (cd android-root) (xueliang-eshell-pwd)
+  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
@@ -1122,8 +1130,8 @@
   (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
-  ;;(insert "lunch 2") (term-send-input)
-  (insert "lunch aosp_angler-userdebug") (term-send-input)
+  (insert "lunch 2") (term-send-input)
+  ;;(insert "lunch aosp_angler-userdebug") (term-send-input)
   (insert "time make -j33") (term-send-input))
 
 (defun xueliang-cnext-compilation-error ()
@@ -1215,8 +1223,10 @@
 (defun xueliang-ag-search-in-project(argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
+  (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  (helm-do-grep-ag (thing-at-point 'word)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
@@ -1251,10 +1261,8 @@
 
 (defun xueliang-htop-cpu ()
   "invokes htop easier." (interactive)
-  (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key PERCENT_CPU") (term-send-input)
-  (other-window -1))
+  (insert "htop -d 10 --sort-key PERCENT_CPU") (term-send-input))
 
 (defun xueliang-htop-io ()
   "invokes htop easier." (interactive)
