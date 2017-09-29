@@ -137,7 +137,7 @@
                                               ))
 
 ;; emacs style search
-(global-set-key (kbd "C-s") 'helm-swoop)
+(global-set-key (kbd "C-s") 'isearch-forward-regexp)
 
 (defun xueliang-close-occur-window()
   "A robust functiont close occur window & buffer."
@@ -183,6 +183,7 @@
   "<SPC>" 'helm-for-files
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
+  "A" 'helm-resume
   "b" 'ivy-switch-buffer-other-window
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
@@ -527,11 +528,6 @@
    (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
    (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
 (setq eshell-highlight-prompt nil)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; vdiff mode
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============vdiff-mode-config=============())
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
@@ -934,6 +930,7 @@
   (set-face-foreground 'helm-helper "LightGrey")
   (set-face-foreground 'helm-header "LightGrey")
   (set-face-foreground 'header-line "LightGrey")
+  (set-face-foreground 'helm-grep-file "MediumPurple1")
 
   ;; vim /? search
   (set-face-foreground 'evil-ex-search "black")
@@ -1118,6 +1115,13 @@
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
 
+(defun xueliang-linaro-art-target-test ()
+  "invoke linaro host test" (interactive)
+  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*eshell-linaro-art-target-test-optimizing" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  ;;(insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
+
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
   (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
@@ -1214,11 +1218,6 @@
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-(defun xueliang-ag-search-in-dir(argument)
-  "search in dir using ag"
-  (interactive "P")
-  (counsel-ag (thing-at-point 'word))) ;; counsel-ag is better than helm is that it allows initial input to play with.
-
 ; search in project using ag
 (defun xueliang-ag-search-in-project(argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
@@ -1226,7 +1225,7 @@
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
   ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
-  (helm-do-grep-ag (thing-at-point 'word)))
+  (helm-do-grep-ag (thing-at-point 'symbol)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
