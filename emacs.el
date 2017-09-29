@@ -1021,26 +1021,6 @@
 
 (defun =============xueliang-functions=============())
 
-(defun xueliang-monitor-linaro-art ()
-  "Important Linaro ART related to monitor daily." (interactive)
-  ;; gerrit code reviews for ART/Android
-  (org-open-link-from-string "https://dev-private-review.linaro.org")
-  (org-open-link-from-string "https://android-review.linaro.org/")
-  (org-open-link-from-string "https://android-review.googlesource.com/")
-  ;; daily build tests for ART/Android
-  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
-  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
-  (org-open-link-from-string "https://art-reports.linaro.org")
-  ;; documents, BKMs, manuals, 
-  (org-open-link-from-string "https://projects.linaro.org/browse/LMG-390")
-  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
-  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
-  (org-open-link-from-string "http://armv8.arm.com/")
-  (org-open-link-from-string "https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8")
-  ;; other useful linaro links:
-  ;; http://snapshots.linaro.org/android/android-generic-build/
-)
-
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
@@ -1099,44 +1079,8 @@
   "google current word" (interactive)
   (helm-google (thing-at-point 'symbol)))
 
-(defun xueliang-linaro-gdb ()
-  "invoke gdb linaro tree" (interactive)
-  (require 'gdb-mi)
-  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
-  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
-
-(defun xueliang-linaro-repo-sync ()
-  "invoke gdb linaro tree" (interactive)
-  (split-window-below) (evil-window-move-very-bottom)
-  (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert (message "cd %s" android-root)) (term-send-input)
-  (insert (message "repo sync -j33" android-root)) (term-send-input))
-
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
-
-(defun xueliang-linaro-art-target-test ()
-  "invoke linaro host test" (interactive)
-  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-art-target-test-optimizing" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  ;;(insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
-  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
-
-(defun xueliang-linaro-make ()
-  "invoke linaro host test" (interactive)
-  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
-
-(defun xueliang-make-android-system-image ()
-  "invoke build android system image from andriod-root source tree" (interactive)
-  (split-window-below) (evil-window-move-very-bottom)
-  (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert (message "cd %s" android-root)) (term-send-input)
-  (insert "source build/envsetup.sh") (term-send-input)
-  (insert "lunch 2") (term-send-input)
-  ;;(insert "lunch aosp_angler-userdebug") (term-send-input)
-  (insert "time make -j33") (term-send-input))
 
 (defun xueliang-cnext-compilation-error ()
   "get compilation error easily in current buffer" (interactive)
@@ -1282,6 +1226,70 @@
   (newline-and-indent)
   (insert (buffer-file-name))
   (save-excursion (newline-and-indent)))
+
+(defun =============xueliang-linaro-development=============())
+
+(defun xueliang-monitor-linaro-art ()
+  "Important Linaro ART related to monitor daily." (interactive)
+  ;; gerrit code reviews for ART/Android
+  (org-open-link-from-string "https://dev-private-review.linaro.org")
+  (org-open-link-from-string "https://android-review.linaro.org/")
+  (org-open-link-from-string "https://android-review.googlesource.com/")
+  ;; daily build tests for ART/Android
+  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
+  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
+  (org-open-link-from-string "https://art-reports.linaro.org")
+  ;; documents, BKMs, manuals, 
+  (org-open-link-from-string "https://projects.linaro.org/browse/LMG-390")
+  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
+  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
+  (org-open-link-from-string "http://armv8.arm.com/")
+  (org-open-link-from-string "https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8")
+  ;; other useful linaro links:
+  ;; http://snapshots.linaro.org/android/android-generic-build/
+)
+
+(defun xueliang-linaro-art-target-test ()
+  "invoke linaro host test" (interactive)
+  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*eshell-linaro-art-target-test-optimizing" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  ;;(insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
+
+(defun xueliang-linaro-make ()
+  "invoke linaro host test" (interactive)
+  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+
+(defun xueliang-make-android-system-image ()
+  "invoke build android system image from andriod-root source tree" (interactive)
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert (message "cd %s" android-root)) (term-send-input)
+  (insert "source build/envsetup.sh") (term-send-input)
+  (insert "lunch 2") (term-send-input)
+  ;;(insert "lunch aosp_angler-userdebug") (term-send-input)
+  (insert "time make -j33") (term-send-input))
+
+(defun xueliang-linaro-gdb ()
+  "invoke gdb linaro tree" (interactive)
+  (require 'gdb-mi)
+  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
+
+(defun xueliang-linaro-repo-sync ()
+  "invoke gdb linaro tree" (interactive)
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert (message "cd %s" android-root)) (term-send-input)
+  (insert (message "repo sync -j33" android-root)) (term-send-input))
+
+(defun xueliang-cfg-analyze-c1visualizer-irhydra ()
+  "analyze ART generated .cfg file" (interactive)
+  (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer")
+  ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
