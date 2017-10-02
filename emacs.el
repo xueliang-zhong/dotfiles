@@ -931,6 +931,9 @@
   (set-face-foreground 'helm-header "LightGrey")
   (set-face-foreground 'header-line "LightGrey")
   (set-face-foreground 'helm-grep-file "MediumPurple1")
+  ;; helm swoop
+  (set-face-background 'helm-swoop-target-word-face "grey20")
+  (set-face-foreground 'helm-swoop-target-word-face "LightGoldenrod2")
 
   ;; vim /? search
   (set-face-foreground 'evil-ex-search "black")
@@ -1287,9 +1290,15 @@
 
 (defun xueliang-cfg-analyze-c1visualizer-irhydra ()
   "analyze ART generated .cfg file" (interactive)
-  (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer")
   ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
-)
+  (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
+
+(defun xueliang-linaro-art-HInstruction-visitors ()
+  "show ART compiler's HInstruction visitors easily" (interactive)
+  (helm-swoop :$query "void visit ([a-z]*"))
+
+(add-hook 'c-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
+(add-hook 'c++-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
@@ -1328,8 +1337,6 @@
 ; <f5> .. <f8> : with in buffer : coding, development, tags,
 ; <f9> .. <f12>: with in project: buffer, find in project, related.
 (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
-
-(global-set-key (kbd "<f6>") 'helm-semantic-or-imenu)
 
 ;; visual studio style make and debug.
 (global-set-key (kbd "<f5>") 'xueliang-linaro-gdb)
