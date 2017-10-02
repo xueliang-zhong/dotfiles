@@ -525,8 +525,8 @@
 ;; eshell prompt configs
 (setq eshell-prompt-function (lambda () (concat
    (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange, DarkOrange3
-   (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
-   (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
+   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue, MediumBlue
+   (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey, black
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -538,7 +538,7 @@
 (when window-system
   (if (= (x-display-pixel-width) 1920)
     (load-theme 'tango-dark t)    ;; home laptop
-    (load-theme 'tango-dark t)))  ;; themes that's good for work at office
+    (load-theme 'anti-zenburn t)))  ;; themes that's good for work at office
 
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
@@ -748,8 +748,8 @@
 (setq inhibit-splash-screen nil)
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
-;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono"
-(set-default-font "DejaVu Sans Mono")
+;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "Monospace"
+(set-default-font "Monospace")
 
 ;; font size
 (when window-system
@@ -962,7 +962,7 @@
 )
 
 (defun xueliang/faces-for-light-theme()
-  (set-default-font "DejaVu Sans Mono")
+  (set-default-font "Monospace")
   (set-face-attribute 'default nil :height 110)
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
@@ -1016,7 +1016,7 @@
   (set-face-foreground 'flyspell-duplicate "DarkRed")
 )
 
-(xueliang/faces-for-dark-theme)
+(xueliang/faces-for-light-theme)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -1201,7 +1201,7 @@
   "create a new emacsclient window frame, with nice fonts."
   (interactive)
   (nlinum-mode -1)  ;; a temp fix for the bug: Invalid face linum.
-  (setq default-frame-alist '((font . "DejaVu Sans Mono"))) ;; DejaVu Sans Mono, ubuntu mono
+  (setq default-frame-alist '((font . "Monospace"))) ;; DejaVu Sans Mono, ubuntu mono
   (make-frame)
   (nlinum-mode 1))
 
@@ -1295,7 +1295,7 @@
 
 (defun xueliang-linaro-art-HInstruction-visitors ()
   "show ART compiler's HInstruction visitors easily" (interactive)
-  (helm-swoop :$query "void visit ([a-z]*"))
+  (helm-swoop :$query "void visit ([a-z]* "))
 
 (add-hook 'c-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
 (add-hook 'c++-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
