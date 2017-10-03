@@ -585,6 +585,10 @@
 ;; winner mode
 (winner-mode 1)
 
+;; show program structure of my emacs.el.
+(add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
+                                              evil-normal-state-local-map (kbd "<f6>")
+                                              '(lambda() (interactive) (helm-swoop :$query "(defun =[=]* ")))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -668,6 +672,9 @@
   (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
     (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
+
+(defalias 'xueliang-gdiff-staged 'magit-diff-staged)
+(defalias 'xueliang-gdiff-UNSTAGED 'magit-diff-unstaged)
 
 (defun xueliang-gshow ()
   "run git show" (interactive)
@@ -1333,16 +1340,16 @@
 ;; work with <leader>-j (jump to tag), and Ctrl-t to jump back.
 (define-key evil-normal-state-map (kbd "C-t") 'helm-all-mark-rings)
 
-; <f1> .. <f4> :
-; <f5> .. <f8> : with in buffer : coding, development, tags,
-; <f9> .. <f12>: with in project: buffer, find in project, related.
+;; <f1> .. <f4> :
 (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
 
-;; visual studio style make and debug.
-(global-set-key (kbd "<f5>") 'xueliang-linaro-gdb)
+;; <f5> .. <f8> :
+;; code development related: debug/test, program structure, build.
+(global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
+; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window) ; find files in project.
 (global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
