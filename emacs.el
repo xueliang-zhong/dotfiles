@@ -183,7 +183,6 @@
   "<SPC>" 'helm-for-files
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
-  "A" 'helm-resume
   "b" 'ivy-switch-buffer-other-window
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
@@ -1173,13 +1172,14 @@
    (evil-goto-line) (evil-append-line 1))
 
 ; search in project using ag
-(defun xueliang-ag-search-in-project(argument)
+(defun xueliang-ag-search-in-project (argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  (kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
   (helm-do-grep-ag (thing-at-point 'symbol)))
+  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
