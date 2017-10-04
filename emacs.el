@@ -1214,15 +1214,13 @@
 
 (defun xueliang-htop-cpu ()
   "invokes htop easier." (interactive)
-  (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (term "bash") (rename-buffer (concat "*htop-CPU%-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop -d 10 --sort-key PERCENT_CPU") (term-send-input))
 
 (defun xueliang-htop-io ()
   "invokes htop easier." (interactive)
-  (split-window-below) (evil-window-move-very-bottom)
-  (term "bash") (rename-buffer (concat "*htop-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop --sort-key IO") (term-send-input)
-  (other-window -1))
+  (term "bash") (rename-buffer (concat "*htop-IO-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert "htop -d 10 --sort-key IO") (term-send-input))
 
 (defalias 'xueliang-htop 'helm-top)
 
