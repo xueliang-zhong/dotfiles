@@ -663,16 +663,16 @@
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
-(defun xueliang-gdiff ()
-  "run git diff HEAD;
-   use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (shell-command "git diff HEAD")
-  (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
-    (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-    (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
+;; (defun xueliang-gdiff ()
+;;   "run git diff HEAD;
+;;    use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
+;;   (xueliang-cd-current-buffer-directory)
+;;   (shell-command "git diff HEAD")
+;;   (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
+;;     (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
+;;     (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
 
-(defalias 'xueliang-gdiff-staged 'magit-diff-staged)
+(defalias 'xueliang-gdiff 'magit-diff-staged)
 (defalias 'xueliang-gdiff-UNSTAGED 'magit-diff-unstaged)
 
 (defun xueliang-gshow ()
