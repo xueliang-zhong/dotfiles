@@ -1283,8 +1283,9 @@
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
+  ;; build and regenerate the test case before starting gdb.
+  (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
-  ;;(cd android-root) (gdb-many-windows) (gdb "gdb -i=mi"))
 
 (defun xueliang-linaro-repo-sync ()
   "invoke gdb linaro tree" (interactive)
