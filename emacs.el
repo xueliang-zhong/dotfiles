@@ -584,10 +584,6 @@
 ;; winner mode
 (winner-mode 1)
 
-;; show program structure of my emacs.el.
-(add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
-                                              evil-normal-state-local-map (kbd "<f6>")
-                                              '(lambda() (interactive) (helm-swoop :$query "(defun =[=]* ")))))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1299,13 +1295,6 @@
   ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
   (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
 
-(defun xueliang-linaro-art-HInstruction-visitors ()
-  "show ART compiler's HInstruction visitors easily" (interactive)
-  (helm-swoop :$query "void visit ([a-z]* "))
-
-(add-hook 'c-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
-(add-hook 'c++-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f6>") 'xueliang-linaro-art-HInstruction-visitors)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1347,6 +1336,27 @@
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
+
+;; <f6> shows program structure in various languages.
+(add-hook 'c-mode-hook '(lambda () (define-key
+                                     evil-normal-state-local-map (kbd "<f6>")
+                                     '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
+
+(add-hook 'c++-mode-hook '(lambda () (define-key
+                                       evil-normal-state-local-map (kbd "<f6>")
+                                       '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
+
+(add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
+                                              evil-normal-state-local-map (kbd "<f6>")
+                                              '(lambda() (interactive) (helm-swoop :$query "(defun =[=]* ")))))
+
+(add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
+                                              (kbd "<f6>")
+                                              '(lambda() (interactive) (helm-swoop :$query "modified ")))))
+
+(add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
+                                        (kbd "<f6>")
+                                        '(lambda() (interactive) (helm-swoop :$query "diff ")))))
 
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
