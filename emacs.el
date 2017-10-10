@@ -682,7 +682,7 @@
 
 (defun xueliang/ivy-glog ()
   "git log with ivy" (interactive)
-  (xueliang-cd-current-buffer-directory)
+  (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
   (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
         (ivy-read "Git Log: "
@@ -695,16 +695,18 @@
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
-   (when (buffer-file-name) (xueliang-cd-current-buffer-directory))
+   (when (buffer-file-name) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
    (shell-command (message "git diff %s " (xueliang/ivy-glog)))
+   ;;(magit-diff (xueliang/ivy-glog))
    (switch-to-buffer-other-window shell-output-buffer-name)
    (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gshow-revision-at-point()
   "run 'git show' using the ivy glog" (interactive)
-   (shell-command (message "git show %s " (xueliang/ivy-glog)))
-   (switch-to-buffer-other-window shell-output-buffer-name)
-   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+  (shell-command (message "git show %s " (xueliang/ivy-glog)))
+  ;;(magit-show-commit (xueliang/ivy-glog))
+  (switch-to-buffer-other-window shell-output-buffer-name)
+  (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
