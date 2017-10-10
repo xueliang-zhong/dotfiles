@@ -292,6 +292,13 @@
 ;; in helm-top, avoid killing process by mistake.
 (add-hook 'helm-top-after-init-hook '(lambda () (define-key helm-top-map (kbd "RET") 'helm-next-line))) 
 
+;; make helm window always stay at the bottom, just like a mini buffer.
+(add-to-list 'display-buffer-alist
+                    `(,(rx bos "*helm" (* not-newline) "*" eos)
+                         (display-buffer-in-side-window)
+                         (inhibit-same-window . t)
+                         (window-height . 0.4)))
+
 (helm-mode -1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -638,10 +645,10 @@
    *** HANDLE WITH CARE !!! ***" (interactive)
    (xueliang-cd-current-buffer-directory)
    (shell-command (message "git commit -m \"%s\""
-                           (ivy-read "COMMIT MSG: " (list 
-                                                     (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
-                                                     (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
-                                                     )))))
+                           (helm-comp-read "COMMIT MSG: " (list 
+                                                           (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
+                                                           (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
+                                                           )))))
 
 (defun xueliang-gstatus ()
   "run git status" (interactive)
@@ -652,9 +659,9 @@
   "list git branches, and git checkout selected branch" (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command-to-string (concat "git checkout "
-                                   (ivy-read "Git branch: "
-                                             (split-string (shell-command-to-string "git branch") "\n")
-                                             :preselect "*")))
+                                   (helm-comp-read "Git branch: "
+                                                   (split-string (shell-command-to-string "git branch") "\n")
+                                                   :preselect "*")))
   (revert-buffer :ignore-auto :noconfirm)  ;; force reload the file and update git info on mode line.
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
@@ -685,13 +692,13 @@
   (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
   (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
-        (ivy-read "Git Log: "
-                  (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
-                  :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
-                  :initial-input (if xueliang-cword                                      ;; if current word at point is a string
-                                     (if (= 0 (string-match "[a-f0-9]+" xueliang-cword)) ;; and it is a git version string
-                                         xueliang-cword                                  ;; then use it as initial-input;
-                                       "") "")))))                                       ;; otherwise, avoid giving any initial-input.
+        (helm-comp-read "Git Log: "
+                        (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
+                        :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
+                        :initial-input (if xueliang-cword                                      ;; if current word at point is a string
+                                           (if (= 0 (string-match "[a-f0-9]+" xueliang-cword)) ;; and it is a git version string
+                                               xueliang-cword                                  ;; then use it as initial-input;
+                                             "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
@@ -1073,11 +1080,11 @@
 
 (defun xueliang/find-file (path init-input)
   "my fast find file in project"
-  (find-file (ivy-read (concat "Find File " path ": ")
-                       (split-string (shell-command-to-string
-                                      (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
-                                     "\n")
-                       :initial-input init-input)))
+  (find-file (helm-comp-read (concat "Find File " path ": ")
+                             (split-string (shell-command-to-string
+                                            (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
+                                           "\n")
+                             :initial-input init-input)))
 
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
@@ -1303,7 +1310,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
