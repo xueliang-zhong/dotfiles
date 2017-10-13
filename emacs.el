@@ -689,6 +689,7 @@
 
 (defun xueliang/ivy-glog ()
   "git log with ivy" (interactive)
+  (require 'fiplr)
   (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
   (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
@@ -1239,6 +1240,20 @@
   (newline-and-indent)
   (insert (buffer-file-name))
   (save-excursion (newline-and-indent)))
+
+(defun xueliang-daily-websites ()
+  (interactive)
+  ;; Work
+  (org-open-link-from-string "https://mail.google.com/mail/u/0/#inbox")
+  (org-open-link-from-string "https://mail.google.com/mail/u/1/#inbox")
+  (org-open-link-from-string "https://outlook.office.com/owa/")
+  (org-open-link-from-string "https://outlook.office.com/owa/?path=/calendar/view/Week")
+
+  ;; Net working
+  (org-open-link-from-string "https://secure.skype.com/portal/overview")
+  (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
+  (org-open-link-from-string "https://www.yammer.com/arm.com/")
+)
 
 (defun =============xueliang-linaro-development=============())
 
