@@ -1173,7 +1173,8 @@
 (setq-default eshell-buffer-number 0)
 (defun xueliang-eshell-pwd ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
-   (setq eshell-buffer-number (+ eshell-buffer-number 1))
+   (xueliang-cd-current-buffer-directory)
+   (setq eshell-buffer-number (% (+ eshell-buffer-number 1) 10))  ;; eshell number 0-9.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
@@ -1240,6 +1241,49 @@
   (newline-and-indent)
   (insert (buffer-file-name))
   (save-excursion (newline-and-indent)))
+
+(setq xueliang-weblink-list (list
+                             ;; Code & Development
+                             "Google_Source   https://android-review.googlesource.com/"
+                             "Scripts_Review  https://android-review.linaro.org/"
+                             "ART_Code_Review https://dev-private-review.linaro.org"
+                             "VXL_Code_Review https://review.linaro.org"
+                             "Linaro_Epics    https://projects.linaro.org/browse/LMG-390"
+                             "Linaro_Kanban   https://projects.linaro.org/secure/RapidBoard.jspa"
+
+                             ;; Daily build status
+                             "ART_Reports     https://art-reports.linaro.org"
+                             "AOSP_Monitor    https://build.chromium.org/p/client.art/console"
+                             "ART_Monitor     https://ci.linaro.org/view/ART-monitor/"
+
+                             ;; Documents
+                             "ART_Cheat_Sheet https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8"
+                             "ARMv8           http://armv8.arm.com/"
+                             "Linaro_ART_CI   https://wiki.linaro.org/Internal/LMG/ART-CI"
+                             "Source          https://source.android.com/"
+                             "Linux_Perf      http://www.brendangregg.com/linuxperf.html"
+
+                             ;; Mails, Office
+                             "Gmail           https://mail.google.com/mail/u/0/#inbox"
+                             "Linaro_Gmail    https://mail.google.com/mail/u/1/#inbox"
+                             "ARM_Mail        https://outlook.office.com/owa/"
+                             "ARM_Calendar    https://outlook.office.com/owa/?path=/calendar/view/Week"
+
+                             ;; Chats & networking
+                             "Skype_Web       https://secure.skype.com/portal/overview"
+                             "Hipchat_Web     https://hipchat.arm.com/chat/room/176"
+                             "Yammer          https://www.yammer.com/arm.com/"
+                             "Images          http://snapshots.linaro.org/android/android-generic-build/"
+
+                             ;; At work
+                             "Lunch           http://menu.cambridge.arm.com/"
+                             "Music           https://www.amazon.co.uk/gp/dmusic/promotions/PrimeMusic"
+                             "Google_Keep     https://keep.google.com"
+                             ))
+
+(defun xueliang-helm-open-link ()
+  "" (interactive)
+  (org-open-link-from-string (car (cdr (split-string (helm-comp-read "Link: " xueliang-weblink-list))))))
 
 (defun xueliang-daily-websites ()
   (interactive)
@@ -1335,6 +1379,9 @@
 
 ;; emacs style kill-line
 (global-set-key (kbd "C-k") 'evil-delete-line)
+
+;; same as the key in chrome
+(global-set-key (kbd "C-q") 'xueliang-helm-open-link)
 
 ; Use default (describe-function) and (describe-variable) with ivy/counsel.
 (global-set-key (kbd "C-h f") 'helm-apropos)
