@@ -92,6 +92,12 @@
                                   dropbox))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; my own plugin
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(add-to-list 'load-path "~/Dropbox/emacs/")
+(require 'xzhong)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============evil-config=============())
@@ -1242,45 +1248,6 @@
   (insert (buffer-file-name))
   (save-excursion (newline-and-indent)))
 
-(setq xueliang-weblink-list (list
-                             ;; Code & Development
-                             "Google_Source   https://android-review.googlesource.com/"
-                             "Scripts_Review  https://android-review.linaro.org/"
-                             "ART_Code_Review https://dev-private-review.linaro.org"
-                             "VXL_Code_Review https://review.linaro.org"
-                             "Linaro_Epics    https://projects.linaro.org/browse/LMG-390"
-                             "Linaro_Kanban   https://projects.linaro.org/secure/RapidBoard.jspa"
-
-                             ;; Daily build status
-                             "ART_Reports     https://art-reports.linaro.org"
-                             "AOSP_Monitor    https://build.chromium.org/p/client.art/console"
-                             "ART_Monitor     https://ci.linaro.org/view/ART-monitor/"
-
-                             ;; Documents
-                             "ART_Cheat_Sheet https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8"
-                             "ARMv8           http://armv8.arm.com/"
-                             "Linaro_ART_CI   https://wiki.linaro.org/Internal/LMG/ART-CI"
-                             "Source          https://source.android.com/"
-                             "Linux_Perf      http://www.brendangregg.com/linuxperf.html"
-
-                             ;; Mails, Office
-                             "Gmail           https://mail.google.com/mail/u/0/#inbox"
-                             "Linaro_Gmail    https://mail.google.com/mail/u/1/#inbox"
-                             "ARM_Mail        https://outlook.office.com/owa/"
-                             "ARM_Calendar    https://outlook.office.com/owa/?path=/calendar/view/Week"
-
-                             ;; Chats & networking
-                             "Skype_Web       https://secure.skype.com/portal/overview"
-                             "Hipchat_Web     https://hipchat.arm.com/chat/room/176"
-                             "Yammer          https://www.yammer.com/arm.com/"
-                             "Images          http://snapshots.linaro.org/android/android-generic-build/"
-
-                             ;; At work
-                             "Lunch           http://menu.cambridge.arm.com/"
-                             "Music           https://www.amazon.co.uk/gp/dmusic/promotions/PrimeMusic"
-                             "Google_Keep     https://keep.google.com"
-                             ))
-
 (defun xueliang-helm-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string (helm-comp-read "Link: " xueliang-weblink-list))))))
@@ -1298,6 +1265,11 @@
   (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
+
+(defun xueliang-daily-websites-ALL ()
+  "Open all of them" (interactive)
+  (dolist (link xueliang-weblink-list)
+  (org-open-link-from-string (car (cdr (split-string link))))))
 
 (defun =============xueliang-linaro-development=============())
 
@@ -1323,15 +1295,16 @@
 
 (defun xueliang-linaro-art-target-test ()
   "invoke linaro host test" (interactive)
-  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-art-target-test-optimizing" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  ;;(insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+  (insert "cd $android-root") (eshell-send-input)
   (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
 
 (defun xueliang-linaro-make ()
   "invoke linaro host test" (interactive)
-  (cd android-root) (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert "cd $android-root") (eshell-send-input)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
 (defun xueliang-make-android-system-image ()
@@ -1432,10 +1405,5 @@
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window) ; find files in project.
-(global-set-key (kbd "<f11>") 'helm-chrome-bookmarks)
+(global-set-key (kbd "<f11>") 'xueliang-helm-open-link)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; my own plugin
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(add-to-list 'load-path "~/.emacs.d/xueliang/")
