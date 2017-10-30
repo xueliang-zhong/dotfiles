@@ -11,6 +11,7 @@
 (defvar xueliang/packages '(
                             anti-zenburn-theme
                             autopair
+                            ace-window
                             company
                             company-statistics
                             company-quickhelp
@@ -1404,6 +1405,6 @@
 
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
-(global-set-key (kbd "<f10>") 'ivy-switch-buffer-other-window) ; find files in project.
+(global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'xueliang-helm-open-link)
 (global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
