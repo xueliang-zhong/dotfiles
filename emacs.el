@@ -546,13 +546,6 @@
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
-; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
-
-(when window-system
-  (if (= (x-display-pixel-width) 1920)
-    (load-theme 'tango-dark t)    ;; home laptop
-    (load-theme 'anti-zenburn t)  ;; themes that's good for work at office
-))
 
 ;; set ivy/counsel faces under anti-zenburn theme
 ;; (set-face-attribute  'ivy-current-match nil :underline t)
@@ -897,12 +890,15 @@
 ;; org mode style open link
 (define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Make the color more vim feel like
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============vim-feeling-settings=============())
+(defun =============theme-color-settings=============())
 
-(defun xueliang/faces-for-dark-theme()
+(defun xueliang/dark-theme()
+  "Make the color more vim feel like"
+  (load-theme 'tango-dark t)
+
+  (set-default-font "Monospace")
+  (set-face-attribute 'default nil :height 110)
+
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
   ;; Tuned from tango-dark theme.
   (set-face-foreground 'default "DarkGrey")
@@ -981,7 +977,9 @@
   (set-face-background 'match "yellow4")
 )
 
-(defun xueliang/faces-for-light-theme()
+(defun xueliang/light-theme()
+  (load-theme 'anti-zenburn t)
+
   (set-default-font "Monospace")
   (set-face-attribute 'default nil :height 110)
 
@@ -1036,7 +1034,12 @@
   (set-face-foreground 'flyspell-duplicate "DarkRed")
 )
 
-(xueliang/faces-for-light-theme)
+; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
+(when window-system
+  (if (= (x-display-pixel-width) 1920)
+    (xueliang/dark-theme)   ;; home laptop
+    (xueliang/light-theme)  ;; themes that's good for work at office
+))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
