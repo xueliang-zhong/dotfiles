@@ -531,6 +531,10 @@
   (require 'fiplr)
   (cd (fiplr-root)))
 
+(defun eshell/cdandroid-root ()
+  "cd to project root"
+  (cd android-root))
+
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
@@ -1292,7 +1296,6 @@
   (org-open-link-from-string "https://projects.linaro.org/browse/LMG-390")
   (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
   (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
-  (org-open-link-from-string "http://armv8.arm.com/")
   (org-open-link-from-string "https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8")
   ;; other useful linaro links:
   ;; http://snapshots.linaro.org/android/android-generic-build/
@@ -1322,6 +1325,13 @@
   ;;(insert "lunch aosp_angler-userdebug") (term-send-input)
   (insert "time make -j33") (term-send-input))
 
+(defun xueliang-linaro-make-ALL ()
+  "save me some time in building" (interactive)
+  ;; just make, don't sync - repo sync may delete my local changes.
+  (xueliang-linaro-make)
+  (xueliang-make-android-system-image)
+) 
+
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
@@ -1329,12 +1339,20 @@
   (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
 
-(defun xueliang-linaro-repo-sync ()
-  "invoke gdb linaro tree" (interactive)
+(defun xueliang/linaro-repo-sync (sync-cmd-string)
+  "repo sync linaro tree"
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
-  (insert (message "repo sync -j33" android-root)) (term-send-input))
+  (insert sync-cmd-string) (term-send-input))
+
+(defun xueliang-linaro-repo-sync ()
+  "repo sync linaro tree" (interactive)
+  (xueliang/linaro-repo-sync "repo sync -j33"))
+
+(defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
+  "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
+  (xueliang/linaro-repo-sync "repo sync -d -m /home/xuezho01/workspace/linaro/pinned-manifest.xml -j33"))
 
 (defun xueliang-cfg-analyze-c1visualizer-irhydra ()
   "analyze ART generated .cfg file" (interactive)
