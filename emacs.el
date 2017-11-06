@@ -1329,8 +1329,9 @@
   "save me some time in building" (interactive)
   ;; just make, don't sync - repo sync may delete my local changes.
   (xueliang-linaro-make)
+  (sleep-for 2000)  ;; wait, avoid triggering multiple build tasks.
   (xueliang-make-android-system-image)
-) 
+)
 
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
