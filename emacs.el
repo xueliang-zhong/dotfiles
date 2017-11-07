@@ -535,6 +535,19 @@
   "cd to project root"
   (cd android-root))
 
+(defun eshell/e (file-name)
+  "handle large files better"
+  (if (> (string-to-number (car (split-string (shell-command-to-string (message "du -sm %s" file-name)))))
+         30)
+      (shell-command (message "gnome-terminal -e \"vim %s \"" file-name))
+      (find-file-other-window file-name)))
+
+(defun eshell/vimdiff (file1 file2)
+  (shell-command (message "gnome-terminal -e \"vimdiff %s %s\"" file1 file2)))
+
+(defalias 'eshell/vi 'eshell/e)
+(defalias 'eshell/vim 'eshell/e)
+
 ;; Ctrl-d just simply closes the eshell window.
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
@@ -1328,9 +1341,9 @@
 (defun xueliang-linaro-make-ALL ()
   "save me some time in building" (interactive)
   ;; just make, don't sync - repo sync may delete my local changes.
-  (xueliang-linaro-make)
-  (sleep-for 2000)  ;; wait, avoid triggering multiple build tasks.
   (xueliang-make-android-system-image)
+  (sleep-for 3600)  ;; wait, avoid triggering multiple build tasks.
+  (xueliang-linaro-make)
 )
 
 (defun xueliang-linaro-gdb ()
