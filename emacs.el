@@ -79,16 +79,22 @@
 (setq android-scripts       (concat android-root "/scripts"))
 (setq android-vixl          (concat android-root "/external/vixl/src"))
 (setq android-xueliang_test (concat android-root "/xueliang_test"))
+(setq android-build         (concat android-root "/build"))
+(setq android-device        (concat android-root "/device"))
+(setq android-dalvik        (concat android-root "/dalvik"))
 (setq dot-files             "~/workspace/dotfiles")
 (setq dropbox               "~/workspace/dropbox")
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
-                                  ;;android-bionic
+                                  android-bionic
                                   android-libcore
                                   android-scripts
                                   android-vixl
                                   android-xueliang_test
+                                  android-build
+                                  android-device
+                                  android-dalvik
                                   dot-files
                                   dropbox))
 
@@ -705,13 +711,12 @@
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
 
-(defun xueliang/ivy-glog ()
+(defun xueliang-glog (&optional xueliang-cword)
   "git log with ivy" (interactive)
   (require 'fiplr)
   (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
-  (setq-local xueliang-cword (thing-at-point 'word))
   (car (split-string
-        (helm-comp-read "Git Log: "
+        (ivy-read "Git Log: "
                         (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                         :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
                         :initial-input (if xueliang-cword                                      ;; if current word at point is a string
@@ -722,15 +727,15 @@
 (defun xueliang-gdiff-revision-at-point ()
   "run 'git diff' using the revision number from ivy glog" (interactive)
    (when (buffer-file-name) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
-   (shell-command (message "git diff %s " (xueliang/ivy-glog)))
-   ;;(magit-diff (xueliang/ivy-glog))
+   (shell-command (message "git diff %s " (xueliang-glog (thing-at-point 'word))))
+   ;;(magit-diff (xueliang-glog))
    (switch-to-buffer-other-window shell-output-buffer-name)
    (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gshow-revision-at-point()
   "run 'git show' using the ivy glog" (interactive)
-  (shell-command (message "git show %s " (xueliang/ivy-glog)))
-  ;;(magit-show-commit (xueliang/ivy-glog))
+  (shell-command (message "git show %s " (xueliang-glog (thing-at-point 'word))))
+  ;;(magit-show-commit (xueliang-glog))
   (switch-to-buffer-other-window shell-output-buffer-name)
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
@@ -757,7 +762,6 @@
   (evil-window-move-very-bottom) (toggle-truncate-lines 1))
 
 ;; simply calls magit-rebase-interactive.
-(defalias 'xueliang-glog 'xueliang/ivy-glog)
 (defalias 'xueliang-grebase 'magit-rebase-interactive)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1089,7 +1093,7 @@
 
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
-  (cd (helm-comp-read "Project: " xueliang-project-list))
+  (cd (ivy-read "Project: " xueliang-project-list))
   (xueliang-find-file-from-pwd))
 
 (defun xueliang-find-file ()
@@ -1328,15 +1332,42 @@
   (insert "cd $android-root") (eshell-send-input)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
-(defun xueliang-make-android-system-image ()
-  "invoke build android system image from andriod-root source tree" (interactive)
+(defun xueliang/make-android-system-image (lunch-target)
+  "invoke build android system image from andriod-root source tree"
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
-  (insert "lunch 2") (term-send-input)
-  ;;(insert "lunch aosp_angler-userdebug") (term-send-input)
+  (insert (concat "lunch " lunch-target)) (term-send-input)
   (insert "time make -j33") (term-send-input))
+
+(defun xueliang-make-android-system-image ()
+  "Choose from build targets" (interactive)
+  (xueliang/make-android-system-image
+   (ivy-read "Lunch Targets: " (list
+                                      ;; common ones
+                                      "aosp_arm64-eng"
+                                      "hikey960-userdebug"
+                                      "aosp_angler-userdebug"
+                                      "-------------------------------"
+                                      ;; also useful
+                                      "arm_krait-eng"
+                                      "arm_v7_v8-eng"
+                                      "armv8-eng"
+                                      "aosp_arm64-eng"
+                                      "aosp_x86_64-eng"
+                                      "silvermont-eng"
+                                      "aosp_marlin-userdebug"
+                                      "aosp_marlin_svelte-userdebug"
+                                      "aosp_sailfish-userdebug"
+                                      "aosp_muskie-userdebug"
+                                      "aosp_walleye-userdebug"
+                                      "aosp_walleye_test-userdebug"
+                                      "aosp_taimen-userdebug"
+                                      "aosp_angler-userdebug"
+                                      "aosp_bullhead-userdebug"
+                                      "aosp_bullhead_svelte-userdebug"
+                                      ))))
 
 (defun xueliang-linaro-make-ALL ()
   "save me some time in building" (interactive)
