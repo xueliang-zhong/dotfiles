@@ -558,11 +558,6 @@
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d") 'delete-window)))
 (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-d") 'delete-window)))
 
-;; eshell prompt configs
-(setq eshell-prompt-function (lambda () (concat
-   (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange, DarkOrange3
-   (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue, MediumBlue
-   (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey, black
 (setq eshell-highlight-prompt nil)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -918,7 +913,14 @@
   (load-theme 'tango-dark t)
 
   (set-default-font "Monospace")
-  (set-face-attribute 'default nil :height 110)
+  (set-face-attribute 'default nil :height 130)
+
+  ;; eshell prompt configs
+  (setq eshell-prompt-function (lambda () (concat
+                                           (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange")) ;; orange, DarkOrange3
+                                           (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
+                                           (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
+  (setq eshell-highlight-prompt nil)
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
   ;; Tuned from tango-dark theme.
@@ -1004,6 +1006,12 @@
   (set-default-font "Monospace")
   (set-face-attribute 'default nil :height 110)
 
+  ;; eshell prompt configs
+  (setq eshell-prompt-function (lambda () (concat
+                                           (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange, DarkOrange3
+                                           (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue, MediumBlue
+                                           (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey, black
+
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
   (set-face-foreground 'font-lock-comment-face "DarkGreen")
   (set-face-foreground 'font-lock-doc-face "DarkGreen")
@@ -1057,7 +1065,7 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  (if (= (x-display-pixel-width) 1920)
+  (if (> (x-display-pixel-width) 1920)
     (xueliang/dark-theme)   ;; home laptop
     (xueliang/light-theme)  ;; themes that's good for work at office
 ))
