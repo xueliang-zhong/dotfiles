@@ -1080,7 +1080,7 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  (if (> (x-display-pixel-width) 1920)
+  (if (< (x-display-pixel-width) 1920)
     (xueliang/dark-theme)   ;; home laptop
     (xueliang/light-theme)  ;; themes that's good for work at office
 ))
