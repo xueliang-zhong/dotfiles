@@ -17,6 +17,7 @@
                             company-quickhelp
                             counsel
                             counsel-projectile
+                            dakrone-theme
                             eclipse-theme
                             eshell-did-you-mean
                             evil
@@ -909,8 +910,8 @@
 (defun =============theme-color-settings=============())
 
 (defun xueliang/dark-theme()
-  "Make the color more vim feel like"
-  (load-theme 'tango-dark t)
+  "Make the color more vim feel like" (interactive)
+  (load-theme 'dakrone t)
 
   (set-default-font "Monospace")
   (set-face-attribute 'default nil :height 130)
@@ -928,7 +929,7 @@
   (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
   (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
   (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
-  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod2")
+  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod3")
   (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
   (set-face-foreground 'font-lock-type-face "PaleGreen")
   (set-face-foreground 'font-lock-builtin-face "DarkGrey")
@@ -956,14 +957,15 @@
 
   ;; git gutter colors.
   (when window-system
-    (set-face-background 'fringe "grey20")
+    (set-face-background 'fringe "grey9")
     (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
     (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
     (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
 
   ;; helm colors
-  (set-face-attribute 'helm-source-header nil :bold nil :height 150 :family "ubuntu mono")
-  (set-face-foreground 'helm-source-header "LightGrey")
+  (set-face-attribute 'helm-source-header nil :bold nil :height 200 :family "ubuntu mono")
+  (set-face-foreground 'helm-source-header "grey90")
+  (set-face-background 'helm-source-header "DodgerBlue")
   (set-face-background 'helm-selection "LightSkyBlue")
   (set-face-foreground 'helm-selection "DarkGrey")
   (set-face-foreground 'helm-helper "LightGrey")
@@ -991,6 +993,19 @@
   (set-face-foreground 'org-block-end-line "LightSeaGreen")
   (set-face-background 'org-table "DarkSlateGrey")
   (set-face-foreground 'org-table "DarkGrey")
+
+  ;; org levels settings: no bold or extra large fonts.
+  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-4 nil :bold nil)
+  (set-face-attribute 'org-level-5 nil :bold nil)
+  (set-face-attribute 'org-level-6 nil :bold nil)
+  (set-face-attribute 'org-level-7 nil :bold nil)
+  (set-face-attribute 'org-level-8 nil :bold nil)
+
+  (set-face-foreground 'org-link "SteelBlue1")
+  (set-face-foreground 'link "SteelBlue1")
 
   ;; Occur window colors
   (set-face-attribute 'underline nil :bold t :height 160 :family "DejaVu Sans Mono")
