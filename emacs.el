@@ -728,11 +728,12 @@
    (switch-to-buffer-other-window shell-output-buffer-name)
    (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
-(defun xueliang-gshow-revision-at-point()
+(defun xueliang-gshow-revision-at-point ()
   "run 'git show' using the ivy glog" (interactive)
   (shell-command (message "git show %s " (xueliang-glog (thing-at-point 'word))))
-  ;;(magit-show-commit (xueliang-glog))
-  (switch-to-buffer-other-window shell-output-buffer-name)
+  (if (get-buffer-window shell-output-buffer-name)
+      (select-window (get-buffer-window shell-output-buffer-name))
+      (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gread-current-buffer ()
