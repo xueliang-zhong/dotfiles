@@ -698,14 +698,14 @@
 ;; (defalias 'xueliang-gdiff 'magit-diff-staged)
 (defalias 'xueliang-gdiff-UNSTAGED 'magit-diff-unstaged)
 
-(defun xueliang-gshow ()
-  "run git show" (interactive)
-  (require 'fiplr)
-  (xueliang-cd-current-buffer-directory)
-  (cd (fiplr-root))
-  (shell-command "git show")
-  (switch-to-buffer-other-window shell-output-buffer-name)
-  (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
+;; (defun xueliang-gshow ()
+;;   "run git show" (interactive)
+;;   (require 'fiplr)
+;;   (xueliang-cd-current-buffer-directory)
+;;   (cd (fiplr-root))
+;;   (shell-command "git show")
+;;   (switch-to-buffer-other-window shell-output-buffer-name)
+;;   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
 
 (defun xueliang-glog (&optional xueliang-cword)
   "git log with ivy" (interactive)
@@ -728,13 +728,25 @@
    (switch-to-buffer-other-window shell-output-buffer-name)
    (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
-(defun xueliang-gshow-revision-at-point ()
-  "run 'git show' using the ivy glog" (interactive)
-  (shell-command (message "git show %s " (xueliang-glog (thing-at-point 'word))))
+(defun xueliang/gdiff-window ()
+  "show a diff window at the right side."
   (if (get-buffer-window shell-output-buffer-name)
       (select-window (get-buffer-window shell-output-buffer-name))
       (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+
+(defun xueliang-gshow ()
+  "run 'git show' using the ivy glog" (interactive)
+  (shell-command (message "git show %s " (xueliang-glog)))
+  (xueliang/gdiff-window))
+
+(defun xueliang-gshow-revision-at-point-OPEN-GERRIT-REVIEW ()
+  "run 'git show' using the ivy glog" (interactive)
+  (setq git-revision-string (thing-at-point 'word))
+  (when git-revision-string
+    (shell-command (message "git show %s " git-revision-string))
+    (xueliang/gdiff-window)
+    (org-open-link-from-string (concat "https://android-review.googlesource.com/#/q/" git-revision-string))))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
@@ -1277,11 +1289,13 @@
 
 (defun xueliang-htop-cpu ()
   "invokes htop easier." (interactive)
+  (split-window-below) (evil-window-move-very-bottom) (evil-window-increase-height 30)
   (term "bash") (rename-buffer (concat "*htop-CPU%-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop -d 10 --sort-key PERCENT_CPU") (term-send-input))
 
 (defun xueliang-htop-io ()
   "invokes htop easier." (interactive)
+  (split-window-below) (evil-window-move-very-bottom) (evil-window-increase-height 30)
   (term "bash") (rename-buffer (concat "*htop-IO-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop -d 10 --sort-key IO") (term-send-input))
 

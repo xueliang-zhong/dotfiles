@@ -28,3 +28,4 @@ echo scripts/tests/test_art_target.sh --64bit --single-test test-art-target-run-
 echo scripts/tests/test_art_target.sh --64bit --single-test test-art-target-run-test-ndebug-prebuild-optimizing-no-relocate-ntrace-cms-checkjni-picimage-npictest-ndebuggable-no-jvmti-706-checker-scheduler64
 echo scripts/tests/test_art_target.sh --64bit --keep-failures --single-test test-art-target-run-test-ndebug-prebuild-optimizing-no-relocate-ntrace-cms-checkjni-picimage-npictest-ndebuggable-no-jvmti-706-checker-scheduler64
 echo scripts/tests/test_art_target.sh --64bit --single-test test-art-target-run-test-debug-prebuild-optimizing-no-relocate-ntrace-gcstress-checkjni-picimage-npictest-ndebuggable-no-jvmti-667-checker-simd-alignment64
+echo scripts/benchmarks/benchmarks_run_target.sh --mode 64 --cpu big
