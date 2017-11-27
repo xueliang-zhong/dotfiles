@@ -698,15 +698,6 @@
 ;; (defalias 'xueliang-gdiff 'magit-diff-staged)
 (defalias 'xueliang-gdiff-UNSTAGED 'magit-diff-unstaged)
 
-;; (defun xueliang-gshow ()
-;;   "run git show" (interactive)
-;;   (require 'fiplr)
-;;   (xueliang-cd-current-buffer-directory)
-;;   (cd (fiplr-root))
-;;   (shell-command "git show")
-;;   (switch-to-buffer-other-window shell-output-buffer-name)
-;;   (evil-window-move-far-right) (diff-mode) (evil-next-line 10) (diff-goto-source))
-
 (defun xueliang-glog (&optional xueliang-cword)
   "git log with ivy" (interactive)
   (require 'fiplr)
