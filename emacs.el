@@ -737,7 +737,13 @@
   (when git-revision-string
     (shell-command (message "git show %s " git-revision-string))
     (xueliang/gdiff-window)
-    (org-open-link-from-string (concat "https://android-review.googlesource.com/#/q/" git-revision-string))))
+    (org-open-link-from-string (concat
+                                (ivy-read "Select Gerrit: "
+                                          (list
+                                          "https://android-review.googlesource.com/#/q/"
+                                          "https://dev-private-review.linaro.org/#/q/"
+                                          ))
+                                git-revision-string))))
 
 (defun xueliang-gread-current-buffer ()
   "run git checkout on current buffer" (interactive)
@@ -1149,9 +1155,12 @@
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
 
+(defalias 'xueliang-google 'helm-google-suggest)
+
 (defun xueliang-google-current-word ()
   "google current word" (interactive)
-  (helm-google (thing-at-point 'symbol)))
+  ;;(helm-google (thing-at-point 'symbol))
+ (org-open-link-from-string (concat "https://www.google.co.uk/search?q=" (thing-at-point 'symbol))))
 
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
@@ -1328,7 +1337,7 @@
 
 (defun =============xueliang-linaro-development=============())
 
-(defun xueliang-monitor-linaro-art ()
+(defun xueliang-monitor-linaro-art-websites ()
   "Important Linaro ART related to monitor daily." (interactive)
   ;; gerrit code reviews for ART/Android
   (org-open-link-from-string "https://dev-private-review.linaro.org")
@@ -1503,4 +1512,4 @@
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'xueliang-helm-open-link)
-(global-set-key (kbd "<f12>") 'helm-google-suggest)   ;; F12 - search the web with google.
+(global-set-key (kbd "<f12>") 'xueliang-google-current-word)   ;; F12 - search the web with google.
