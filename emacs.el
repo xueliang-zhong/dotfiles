@@ -802,9 +802,8 @@
 
 ;; high-light line for programming and org.
 (require 'hl-line+)
-(add-hook 'prog-mode-hook '(lambda () (hl-line-mode -1)))
+(add-hook 'prog-mode-hook '(lambda () (hl-line-mode 1)))
 (add-hook 'org-mode-hook  '(lambda () (hl-line-mode -1)))  ;; don't enable hl-line in org-mode.
-(set-face-background hl-line-face "gray25")
 
 ;; nlinum/nlinum-relative for programming and org.
 ;; cost lots of CPU. And nlinum-relative-mode is even more CPU consuming.
@@ -916,6 +915,14 @@
 (add-hook 'org-mode-hook '(lambda ()  (goto-address-prog-mode 1)))
 ;; org mode style open link
 (define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
+
+;; Keep emacs configs updated on my Linux & Windows machines.
+;; on Linux keep saving emacs.el to dropbox;
+;; on Windows keep reading init.el from dropbox.
+(if (string-equal system-type "gnu/linux")
+  (copy-file "~/workspace/dotfiles/emacs.el" "~/Dropbox/emacs/init.el" t)
+  ;; (copy-file "~/Dropbox/emacs/init.el" "C:\Users\Xueliang\AppData\Roaming\init.el" t)
+)
 
 (defun =============theme-color-settings=============())
 
@@ -1086,6 +1093,9 @@
   (require 'flyspell)
   (set-face-foreground 'flyspell-incorrect "DarkRed")
   (set-face-foreground 'flyspell-duplicate "DarkRed")
+
+  ;; highlight line
+  (set-face-background hl-line-face "grey78")
 )
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
@@ -1487,7 +1497,7 @@
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
-;; <f6> shows program structure in various languages.
+;; <f6> shows program/output/content structure in various languages.
 (add-hook 'c-mode-hook '(lambda () (define-key
                                      evil-normal-state-local-map (kbd "<f6>")
                                      '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
@@ -1507,6 +1517,11 @@
 (add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f6>")
                                         '(lambda() (interactive) (helm-swoop :$query "diff ")))))
+
+;; for my repo-sync terminal
+(add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
+                                        (kbd "<f6>")
+                                        '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
 
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
