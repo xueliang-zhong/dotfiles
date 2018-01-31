@@ -1,5 +1,5 @@
 (require 'package)
-(add-to-list 'package-archives '("org" . "http://orgmode.org/elpa/"))
+(add-to-list 'package-archives '("org" . "https://orgmode.org/elpa/"))
 (add-to-list 'package-archives '("melpa" . "http://melpa.org/packages/"))
 (setq package-enable-at-startup nil)
 (package-initialize)
@@ -67,6 +67,15 @@
 ;; check at emacs start up, make sure all packages are ready to use.
 (xueliang-reinstall-packages)
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Keep emacs configs updated on my Linux & Windows machines.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; on Linux keep saving emacs.el to dropbox;
+;; on Windows keep reading init.el from dropbox.
+(if (string-equal system-type "gnu/linux")
+    (copy-file "~/workspace/dotfiles/emacs.el" "~/Dropbox/emacs/init.el" t)
+    (when (string-equal system-type "windows-nt") (copy-file "C:/Users/xueliang/Dropbox/emacs/init.el" "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -102,7 +111,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(add-to-list 'load-path "~/Dropbox/emacs/")
+(if (string-equal system-type "gnu/linux")
+    (add-to-list 'load-path "~/Dropbox/emacs/")
+    (when (string-equal system-type "windows-nt") (add-to-list 'load-path "C:/Users/xueliang/Dropbox/emacs/")))
 (require 'xzhong)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -916,14 +927,6 @@
 ;; org mode style open link
 (define-key evil-normal-state-map (kbd "C-c C-o") 'goto-address-at-point)
 
-;; Keep emacs configs updated on my Linux & Windows machines.
-;; on Linux keep saving emacs.el to dropbox;
-;; on Windows keep reading init.el from dropbox.
-(if (string-equal system-type "gnu/linux")
-  (copy-file "~/workspace/dotfiles/emacs.el" "~/Dropbox/emacs/init.el" t)
-  ;; (copy-file "~/Dropbox/emacs/init.el" "C:\Users\Xueliang\AppData\Roaming\init.el" t)
-)
-
 (defun =============theme-color-settings=============())
 
 (defun xueliang/dark-theme()
@@ -1035,8 +1038,13 @@
 (defun xueliang/light-theme()
   (load-theme 'anti-zenburn t)
 
-  (set-default-font "Monospace")
-  (set-face-attribute 'default nil :height 110)
+  (when (string-equal system-type "gnu/linux")
+    (set-default-font "Monospace")
+    (set-face-attribute 'default nil :height 110))
+
+  (when (string-equal system-type "windows-nt")
+    (set-default-font "Consolas")
+    (set-face-attribute 'default nil :height 120))
 
   ;; eshell prompt configs
   (setq eshell-prompt-function (lambda () (concat
@@ -1100,8 +1108,8 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  (if (< (x-display-pixel-width) 1920)
-    (xueliang/dark-theme)   ;; home laptop
+  (if (<= (x-display-pixel-width) 1920)
+    (xueliang/light-theme)   ;; home laptop
     (xueliang/light-theme)  ;; themes that's good for work at office
 ))
 
