@@ -1173,12 +1173,12 @@
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
 
-(defalias 'xueliang-google 'helm-google-suggest)
-
-(defun xueliang-google-current-word ()
-  "google current word" (interactive)
-  ;;(helm-google (thing-at-point 'symbol))
- (org-open-link-from-string (concat "https://www.google.co.uk/search?q=" (thing-at-point 'symbol))))
+; No need, just select and helm-google.
+;(defalias 'xueliang-google 'helm-google-suggest)
+;(defun xueliang-google-current-word ()
+;  "google current word" (interactive)
+; ;;(helm-google (thing-at-point 'symbol)))
+; (org-open-link-from-string (concat "https://www.google.co.uk/search?q=" (thing-at-point 'symbol))))
 
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
@@ -1535,4 +1535,4 @@
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'xueliang-helm-open-link)
-(global-set-key (kbd "<f12>") 'xueliang-google-current-word)   ;; F12 - search the web with google.
+(global-set-key (kbd "<f12>") 'helm-google)   ;; F12 - search the web with google.
