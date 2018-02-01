@@ -1381,11 +1381,13 @@
   (insert "cd $android-root") (eshell-send-input)
   (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
 
-(defun xueliang-linaro-make ()
+(defun xueliang-linaro-make-test-art-host ()
   "invoke linaro host test" (interactive)
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
+  (insert "./prebuilts/sdk/tools/jack-admin kill-server") (eshell-send-input) (sleep-for 2)  ;; workaround for jack server time out issue.
+  (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
 (defun xueliang/make-android-system-image (lunch-target)
@@ -1430,8 +1432,7 @@
   ;; just make, don't sync - repo sync may delete my local changes.
   (xueliang-make-android-system-image)
   (sleep-for 3600)  ;; wait, avoid triggering multiple build tasks.
-  (xueliang-linaro-make)
-)
+  (xueliang-linaro-make-test-art-host))
 
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
@@ -1502,7 +1503,7 @@
 ;; <f5> .. <f8> :
 ;; code development related: debug/test, program structure, build.
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
-(global-set-key (kbd "<f7>")   'xueliang-linaro-make)
+(global-set-key (kbd "<f7>")   'xueliang-linaro-make-test-art-host)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
 ;; <f6> shows program/output/content structure in various languages.
