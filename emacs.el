@@ -1532,6 +1532,10 @@
                                         (kbd "<f6>")
                                         '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
 
+;; for selecting date easily in my daily.org
+(add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
+                                        (kbd "<f6>")
+                                        '(lambda() (interactive) (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))))))
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ace-window)
