@@ -1135,6 +1135,10 @@
   )
 )
 
+(defun xueliang-untabify-replaced-all-TAB() (interactive)
+   "easily replace all TAB in current buffer with spaces."
+   (untabify (point-min) (point-max)))
+
 (defun xueliang-what-face (pos)
     (interactive "d")
         (let ((face (or (get-char-property (point) 'read-face-name)
@@ -1389,6 +1393,13 @@
   (insert "./prebuilts/sdk/tools/jack-admin kill-server") (eshell-send-input) (sleep-for 2)  ;; workaround for jack server time out issue.
   (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
+
+(defun xueliang-restart-android-jack-server ()
+  "workaround for now to restart Android JACK server and speed up my tests" (interactive)
+  (xueliang-eshell-pwd)
+  (insert "cd $android-root") (eshell-send-input)
+  (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)   ;; workaround for jack server time out issue.
+  (kill-buffer-and-window))
 
 (defun xueliang/make-android-system-image (lunch-target)
   "invoke build android system image from andriod-root source tree"
