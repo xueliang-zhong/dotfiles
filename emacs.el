@@ -15,6 +15,7 @@
                             company
                             company-statistics
                             company-quickhelp
+                            confluence
                             counsel
                             counsel-projectile
                             dakrone-theme
@@ -795,8 +796,8 @@
 (setq echo-keystrokes 0.1)
 (setq redisplay-dont-pause t)  ;; improve display performance
 
-;; hide welcome screen
-(setq inhibit-splash-screen nil)
+;; hide welcome screen, so that I can all daily-websites immediate after emacs started.
+(setq inhibit-splash-screen t)
 
 ;; requires build emacs with: ./configure --with-x-toolkit=gtk
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "Monospace"
