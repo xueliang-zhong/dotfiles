@@ -149,7 +149,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'helm-swoop-without-pre-input)
+(define-key evil-normal-state-map (kbd "/") 'swiper)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -205,7 +205,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'helm-for-files
+  "<SPC>" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
   "b" 'ivy-switch-buffer-other-window
@@ -213,15 +213,15 @@
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
   "g" 'magit-status
-  "i" 'helm-semantic-or-imenu
-  "I" 'helm-semantic-or-imenu
+  "i" 'counsel-imenu
+  "I" 'counsel-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
-  "m" 'helm-bookmark
+  "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "p" 'xueliang-find-project
-  "r" 'helm-recentf
+  "r" 'counsel-recentf
   "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
@@ -307,8 +307,8 @@
 (setq helm-candidate-number-limit 200)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
-(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -676,7 +676,7 @@
    *** HANDLE WITH CARE !!! ***" (interactive)
    (xueliang-cd-current-buffer-directory)
    (shell-command (message "git commit -m \"%s\""
-                           (helm-comp-read "COMMIT MSG: " (list 
+                           (ivy-read "COMMIT MSG: " (list 
                                                            (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
                                                            (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                            )))))
@@ -690,7 +690,7 @@
   "list git branches, and git checkout selected branch" (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command-to-string (concat "git checkout "
-                                   (helm-comp-read "Git branch: "
+                                   (ivy-read "Git branch: "
                                                    (split-string (shell-command-to-string "git branch") "\n")
                                                    :preselect "*")))
   (revert-buffer :ignore-auto :noconfirm)  ;; force reload the file and update git info on mode line.
@@ -1092,6 +1092,12 @@
   (set-face-background 'helm-selection-line "LightSkyBlue")
   (set-face-background 'helm-match "PaleGreen3")
 
+  ;; ivy colors
+  (set-face-background 'ivy-minibuffer-match-face-1 "#c0c0c0")
+  (set-face-background 'ivy-minibuffer-match-face-2 "LightSkyBlue")
+  (set-face-background 'ivy-minibuffer-match-face-3 "LightSkyBlue")
+  (set-face-background 'ivy-minibuffer-match-face-4 "LightSkyBlue")
+
   ;; flyspell
   (require 'flyspell)
   (set-face-foreground 'flyspell-incorrect "DarkRed")
@@ -1114,7 +1120,7 @@
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
-      (helm-swoop-symble-pre-input)
+      (swiper (thing-at-point 'symbol)) ;; (helm-swoop-symble-pre-input)
       (evil-search-word-forward 1 (thing-at-point 'symbol))
   )
 )
@@ -1122,7 +1128,7 @@
 (defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
-      (helm-swoop-symble-pre-input)
+      (swiper (thing-at-point 'symbol)) ;; (helm-swoop-symble-pre-input)
       (evil-search-word-backward 1 (thing-at-point 'symbol))
   )
 )
@@ -1267,8 +1273,8 @@
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
   (kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
-  (helm-do-grep-ag (thing-at-point 'symbol)))
-  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  ;;(helm-do-grep-ag (thing-at-point 'symbol)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
@@ -1328,7 +1334,7 @@
 
 (defun xueliang-helm-open-link ()
   "" (interactive)
-  (org-open-link-from-string (car (cdr (split-string (helm-comp-read "Link: " xueliang-weblink-list))))))
+  (org-open-link-from-string (car (cdr (split-string (ivy-read "Link: " xueliang-weblink-list))))))
 
 (defun xueliang-daily-websites ()
   (interactive)
@@ -1470,7 +1476,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'helm-M-x)
+(global-set-key (kbd "M-x") 'counsel-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
