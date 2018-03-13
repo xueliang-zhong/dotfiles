@@ -38,7 +38,6 @@
                             helm-swoop
                             helm-themes
                             heroku-theme
-                            hl-line+
                             ivy
                             ivy-historian
                             keyfreq
@@ -812,11 +811,6 @@
 ; line/column related
 (column-number-mode)
 
-;; high-light line for programming and org.
-(require 'hl-line+)
-(add-hook 'prog-mode-hook '(lambda () (hl-line-mode 1)))
-(add-hook 'org-mode-hook  '(lambda () (hl-line-mode -1)))  ;; don't enable hl-line in org-mode.
-
 ;; nlinum/nlinum-relative for programming and org.
 ;; cost lots of CPU. And nlinum-relative-mode is even more CPU consuming.
 (require 'nlinum)
@@ -1102,9 +1096,6 @@
   (require 'flyspell)
   (set-face-foreground 'flyspell-incorrect "DarkRed")
   (set-face-foreground 'flyspell-duplicate "DarkRed")
-
-  ;; highlight line
-  (set-face-background hl-line-face "grey78")
 )
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
