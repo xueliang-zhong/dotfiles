@@ -1547,9 +1547,10 @@
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f6>")
-                                        '(lambda() (interactive) (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))))))
+                                        '(lambda() (interactive)
+                                           (org-shifttab) (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))))))
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ace-window)
-(global-set-key (kbd "<f11>") 'xueliang-helm-open-link)
-(global-set-key (kbd "<f12>") 'helm-google)   ;; F12 - search the web with google.
+(global-set-key (kbd "<f11>") 'helm-google)
+(global-set-key (kbd "<f12>") 'xueliang-helm-open-link)
