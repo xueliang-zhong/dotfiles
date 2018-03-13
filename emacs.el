@@ -1545,7 +1545,10 @@
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f6>")
                                         '(lambda() (interactive)
-                                           (org-shifttab) (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))))))
+                                           (org-shifttab)
+                                           (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))
+                                           (org-cycle)
+                                           ))))
 ; <f9> .. <f12>: 
 (global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
 (global-set-key (kbd "<f10>") 'ace-window)
