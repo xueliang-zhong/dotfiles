@@ -39,6 +39,7 @@
                             helm-themes
                             heroku-theme
                             ivy
+                            ivy-rich
                             ivy-historian
                             keyfreq
                             magit
@@ -149,7 +150,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'swiper)
+(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -359,6 +360,13 @@
 
 ;; Make sure C-a C-k work in ivy mode as well.
 (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
+
+;; Make counsel-grep case insensitive.
+(setq counsel-grep-base-command "grep -inE '%s' %s")
+
+;; Better ivy switch buffer.
+(require 'ivy-rich)
+(ivy-set-display-transformer 'ivy-switch-buffer 'ivy-rich-switch-buffer-transformer)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode config
@@ -1166,7 +1174,7 @@
 
 (defun xueliang/find-file (path init-input)
   "my fast find file in project"
-  (find-file (helm-comp-read (concat "Find File " path ": ")
+  (find-file (ivy-read (concat "Find File " path ": ")
                              (split-string (shell-command-to-string
                                             (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
                                            "\n")
