@@ -759,9 +759,10 @@
     (org-open-link-from-string (concat
                                 (ivy-read "Select Gerrit: "
                                           (list
+                                          "about:blank"
                                           "https://android-review.googlesource.com/#/q/"
-                                          "https://dev-private-review.linaro.org/#/q/"
-                                          ))
+                                          "https://dev-private-review.linaro.org/#/q/")
+                                          :preselect "blank")
                                 git-revision-string))))
 
 (defun xueliang-gread-current-buffer ()
