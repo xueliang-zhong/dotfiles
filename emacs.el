@@ -612,6 +612,10 @@
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
 
+;; Make sure emacs opens link with google-chrome on my Linux.
+(when (string-equal system-type "gnu/linux")
+  (setq browse-url-browser-function 'browse-url-generic browse-url-generic-program "google-chrome"))
+
 ;; graphviz-dot-mode
 ;; build and preview current dot file.
 (add-hook 'graphviz-dot-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-c C-c") '(lambda () (interactive) (recompile) (graphviz-dot-preview)))))
