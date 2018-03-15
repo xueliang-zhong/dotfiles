@@ -346,7 +346,8 @@
 (counsel-mode 1)
 
 ;; number of result lines to display
-(setq ivy-height 15)
+(setq ivy-fixed-height-minibuffer t)
+(setq ivy-height 20)
 
 ;; enable more stuff
 (setq ivy-use-virtual-buffers t)
@@ -1526,23 +1527,23 @@
 ;; <f6> shows program/output/content structure in various languages.
 (add-hook 'c-mode-hook '(lambda () (define-key
                                      evil-normal-state-local-map (kbd "<f6>")
-                                     '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
+                                     '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
 
 (add-hook 'c++-mode-hook '(lambda () (define-key
                                        evil-normal-state-local-map (kbd "<f6>")
-                                       '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
+                                       '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
 
 (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
                                               evil-normal-state-local-map (kbd "<f6>")
-                                              '(lambda() (interactive) (helm-swoop :$query "(defun =[=]* ")))))
+                                              '(lambda() (interactive) (swiper "(defun =[=]* ")))))
 
 (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                               (kbd "<f6>")
-                                              '(lambda() (interactive) (helm-swoop :$query "modified ")))))
+                                              '(lambda() (interactive) (swiper "modified ")))))
 
 (add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f6>")
-                                        '(lambda() (interactive) (helm-swoop :$query "diff ")))))
+                                        '(lambda() (interactive) (swiper "^diff ")))))
 
 ;; for my repo-sync terminal
 (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
@@ -1554,7 +1555,7 @@
                                         (kbd "<f6>")
                                         '(lambda() (interactive)
                                            (org-shifttab)
-                                           (helm-swoop :$query (format-time-string "<%Y-%m-%d" (current-time)))
+                                           (swiper (format-time-string "<%Y-%m-%d" (current-time)))
                                            (org-cycle)
                                            ))))
 ; <f9> .. <f12>: 
