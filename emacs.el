@@ -1563,8 +1563,10 @@
                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
                                            (org-cycle)
                                            ))))
-; <f9> .. <f12>: 
-(global-set-key (kbd "<f9>")  'xueliang-find-file-similar)
+; <f9> .. <f12>:
+(global-set-key (kbd "<f9>")  'counsel-find-file)
+(global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
+
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'helm-google)
 (global-set-key (kbd "<f12>") 'xueliang-helm-open-link)
