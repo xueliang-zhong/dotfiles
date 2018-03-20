@@ -1131,6 +1131,10 @@
 
 (defun =============xueliang-functions=============())
 
+(defun xueliang-flush-blank-lines (start end)
+  "Remove blank lines in selected lines." (interactive "r")
+   (flush-lines "^\\s-*$" start end nil))
+
 (defun xueliang-search-word-forward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
