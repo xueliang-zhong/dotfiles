@@ -1290,8 +1290,8 @@
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
   (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  ;;(kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
   ;;(helm-do-grep-ag (thing-at-point 'symbol)))
 
 (setq-default xueliang-current-font 0)
