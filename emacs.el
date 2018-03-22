@@ -1573,4 +1573,5 @@
 
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'helm-google)
+(global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
 (global-set-key (kbd "<f12>") 'xueliang-helm-open-link)
