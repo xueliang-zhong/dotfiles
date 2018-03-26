@@ -1350,6 +1350,10 @@
   (insert (buffer-file-name))
   (save-excursion (newline-and-indent)))
 
+(defun xueliang-terminal-shell ()
+  "start my terminal, e.g. gnome-terminal." (interactive)
+  (start-process "my-shell" nil "~/bin/terminal"))
+
 (defun xueliang-helm-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string (ivy-read "Link: " xueliang-weblink-list))))))
