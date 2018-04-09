@@ -846,7 +846,7 @@
 
 ; some bars settings
 (menu-bar-mode 1)
-(tool-bar-mode 1)
+(tool-bar-mode -1)
 (scroll-bar-mode -1)
 
 ; show match parentheses
@@ -1337,7 +1337,8 @@
   (term "bash") (rename-buffer (concat "*htop-IO-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop -d 10 --sort-key IO") (term-send-input))
 
-(defalias 'xueliang-htop 'helm-top)
+(defalias 'xueliang-htop 'xueliang-htop-cpu)
+(defalias 'xueliang-helm-htop 'helm-top)
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
@@ -1575,7 +1576,7 @@
                                            (org-cycle)
                                            ))))
 ; <f9> .. <f12>:
-(global-set-key (kbd "<f9>")  'counsel-find-file)
+(global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
 (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
 
 (global-set-key (kbd "<f10>") 'ace-window)
