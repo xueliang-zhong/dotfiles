@@ -68,15 +68,6 @@
 ;; check at emacs start up, make sure all packages are ready to use.
 (xueliang-reinstall-packages)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Keep emacs configs updated on my Linux & Windows machines.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; on Linux keep saving emacs.el to dropbox;
-;; on Windows keep reading init.el from dropbox.
-(if (string-equal system-type "gnu/linux")
-    (copy-file "~/workspace/dotfiles/emacs.el" "~/Dropbox/emacs/init.el" t)
-    (when (string-equal system-type "windows-nt") (copy-file "C:/Users/xueliang/Dropbox/emacs/init.el" "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,6 +86,8 @@
 (setq android-dalvik        (concat android-root "/dalvik"))
 (setq dot-files             "~/workspace/dotfiles")
 (setq dropbox               "~/workspace/dropbox")
+(when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
+(when (string-equal system-type "windows-nt") (setq dropbox-home "C:/Users/xueliang/Dropbox/"))
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
@@ -109,13 +102,62 @@
                                   dot-files
                                   dropbox))
 
+(setq xueliang-public-weblink-list
+      (list
+       ;; Code & Development
+       "Google_AOSP_Code_Review                      https://android-review.googlesource.com/"
+       "Linaro_ART_Jira_Kanban                       https://projects.linaro.org/secure/RapidBoard.jspa"
+       "Linaro_Jira_Epics_ART_Efforts_LMG-390        https://projects.linaro.org/browse/LMG-390"
+
+       ;; Daily builds 
+       "ART_Reports                                  https://art-reports.linaro.org"
+       "Google_AOSP_ART_Monitor                      https://build.chromium.org/p/client.art/console"
+       "Images                                       http://snapshots.linaro.org/android/android-generic-build/"
+       "LAVA                                         https://validation.linaro.org/scheduler/device_type/nexus5x"
+       "Linaro_ART_Monitor_TargeTest_gtest           https://ci.linaro.org/view/ART-monitor/"
+
+       ;; Documents
+       "Android_Source                               https://source.android.com/"
+       "Dalvik_Byte_Code                             https://source.android.com/devices/tech/dalvik/dalvik-bytecode"
+       "Linaro_ART_CI                                https://wiki.linaro.org/Internal/LMG/ART-CI"
+       "Linux_Perf                                   http://www.brendangregg.com/linuxperf.html"
+
+       ;; Mails, Office, Calendar
+       "ARM_Calendar                                 https://outlook.office.com/owa/?path=/calendar/view/Week"
+       "ARM_Mail                                     https://outlook.office.com/owa/"
+       "Gmail                                        https://mail.google.com/mail/u/0/#inbox"
+       "Linaro_Gmail                                 https://mail.google.com/mail/u/1/#inbox"
+
+       ;; Chats
+       "Skype_Web                                    https://secure.skype.com/portal/overview"
+       "Yammer                                       https://www.yammer.com/arm.com/"
+       "Wechat_Weixin_QQ                             https://web.wechat.com"
+
+       ;; Life
+       "Amazon_Shopping                              https://www.amazon.co.uk"
+       "Amazon_Music                                 https://www.amazon.co.uk/gp/dmusic/promotions/PrimeMusic"
+       "Google_Keep                                  https://keep.google.com"
+       "Google_Calendar                              https://calendar.google.com/calendar/"
+       "Google_Drive                                 https://drive.google.com"
+       "Google_Map                                   https://www.google.com/maps"
+       "Google_Doc                                   https://doc.google.com"
+       "Google_Input_Tools                           https://www.google.com/inputtools/try/"
+       "Google_Translate                             https://translate.google.co.uk/"
+       "Google_Hangouts                              https://hangouts.google.com/"
+       "Google_News                                  https://news.google.com/news/"
+       "Youtube                                      https://www.youtube.com"
+       "Cambridge_Weather                            http://www.bbc.co.uk/weather/2653941"
+       "Barclaycard                                  https://www.barclaycard.co.uk/personal"
+       "UK_Drive_AA_Driving_School                   https://www.theaa.com/driving-school/"
+       ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(if (string-equal system-type "gnu/linux")
-    (add-to-list 'load-path "~/Dropbox/emacs/")
-    (when (string-equal system-type "windows-nt") (add-to-list 'load-path "C:/Users/xueliang/Dropbox/emacs/")))
-(require 'xzhong)
+(when (file-exists-p dropbox-home)
+  (add-to-list 'load-path (concat dropbox-home "/emacs"))
+  (require 'xzhong)
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
@@ -649,11 +691,8 @@
 (setq projectile-enable-caching nil)
 
 (setq projectile-globally-ignored-directories
-   (append '(
-    ".dropbox.cache"
-    "dropbox/.dropbox.cache"
-    "dropbox"
-    ) projectile-globally-ignored-directories))
+      (append '(".dropbox.cache" "dropbox/.dropbox.cache" "dropbox")
+              projectile-globally-ignored-directories))
 
 ;; TODO: ignore file names begining with # or . and ignore file names ending with # or ~
 (setq projectile-globally-ignored-files
@@ -1358,9 +1397,12 @@
     (delete-window (get-buffer-window "*Async Shell Command*"))))
   ;;(start-process "my-shell" nil "~/bin/terminal"))
 
-(defun xueliang-helm-open-link ()
+(defun xueliang-open-link ()
   "" (interactive)
-  (org-open-link-from-string (car (cdr (split-string (ivy-read "Link: " xueliang-weblink-list))))))
+  (org-open-link-from-string (car (cdr (split-string
+                                        (ivy-read "Link: " (append xueliang-private-weblink-list xueliang-public-weblink-list))
+                                        ))))
+)
 
 (defun xueliang-daily-websites ()
   (interactive)
@@ -1375,11 +1417,6 @@
   (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
-
-(defun xueliang-daily-websites-ALL ()
-  "Open all of them" (interactive)
-  (dolist (link xueliang-weblink-list)
-  (org-open-link-from-string (car (cdr (split-string link))))))
 
 (defun =============xueliang-linaro-development=============())
 
@@ -1582,4 +1619,14 @@
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'helm-google)
 (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
-(global-set-key (kbd "<f12>") 'xueliang-helm-open-link)
+(global-set-key (kbd "<f12>") 'xueliang-open-link)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Keep emacs configs updated on my Linux & Windows machines.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(when (file-exists-p dropbox-home)
+  ;; on Linux keep saving emacs.el --> dropbox;
+  (when (string-equal system-type "gnu/linux") (copy-file (concat dot-files "/emacs.el") (concat dropbox-home "emacs/init.el") t))
+  ;; on Windows keep reading init.el <-- dropbox.
+  (when (string-equal system-type "windows-nt") (copy-file (concat dropbox-home "emacs/init.el") "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t))
+)
