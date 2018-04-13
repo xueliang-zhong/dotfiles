@@ -878,15 +878,13 @@
 (add-hook 'prog-mode-hook
           '(lambda () (define-key evil-insert-state-local-map (kbd "TAB") '(lambda () (interactive) (insert "  ")))))
 
-;; cursor setting
+;; cursor, bar settings
 (setq blink-cursor-mode -1)
-(add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
-(add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1)))
-
-; some bars settings
+(add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1) (tool-bar-mode -1)))
+(add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1) (tool-bar-mode -1)))
 (menu-bar-mode 1)
-(tool-bar-mode -1)
-(scroll-bar-mode -1)
+
+(add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 
 ; show match parentheses
 (show-paren-mode)
@@ -1510,6 +1508,7 @@
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
   ;; build and regenerate the test case before starting gdb.
+  (tool-bar-mode 1)
   (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
 
