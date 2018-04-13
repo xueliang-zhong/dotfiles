@@ -1157,10 +1157,12 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  (if (<= (x-display-pixel-width) 1920)
-    (xueliang/light-theme)   ;; home laptop
-    (xueliang/light-theme)  ;; themes that's good for work at office
-))
+  ;; at work
+  (xueliang/light-theme)
+   ;; home laptop
+  (when (<= (x-display-pixel-height) 768)
+    (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
