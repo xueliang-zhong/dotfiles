@@ -444,34 +444,6 @@
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; semantic mode config
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============semantic-config=============())
-
-;; semantic mode, quite slow.
-;; (setq semantic-default-submodes
-;;       '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
-;;         global-semanticdb-minor-mode          ;; Use a database of parsed tags
-;;         global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
-;;         global-semantic-highlight-func-mode   ;; Highlight the name of the current function
-;;         global-semantic-stickyfunc-mode       ;; show the name of the function at the top
-;;         global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
-;;         global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
-;;         global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
-;; 
-;; (add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
-;; 
-;; (semantic-mode)
-;; (semantic-reset-system-include)
-;; (semantic-add-system-include android-art 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
-;; 
-;; including art runtime files would make semantic quite slow.
-;;(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============company-config=============())
@@ -628,14 +600,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
 
-;; set ivy/counsel faces under anti-zenburn theme
-;; (set-face-attribute  'ivy-current-match nil :underline t)
-;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
-;; (set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
-;; (set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
-;; (set-face-background 'ivy-minibuffer-match-face-3  "MediumSeaGreen")
-;; (set-face-background 'ivy-minibuffer-match-face-4  "SeaGreen")
-;;
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
@@ -732,7 +696,6 @@
                                                            (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
                                                            (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                            )))))
-
 (defun xueliang-gstatus ()
   "run git status" (interactive)
   (xueliang-cd-current-buffer-directory)
@@ -1144,10 +1107,12 @@
   (set-face-background 'helm-match "PaleGreen3")
 
   ;; ivy colors
+  (set-face-attribute  'ivy-current-match nil :underline t)
   (set-face-background 'ivy-minibuffer-match-face-1 "#c0c0c0")
   (set-face-background 'ivy-minibuffer-match-face-2 "LightSkyBlue")
   (set-face-background 'ivy-minibuffer-match-face-3 "LightSkyBlue")
   (set-face-background 'ivy-minibuffer-match-face-4 "LightSkyBlue")
+;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
 
   ;; flyspell
   (require 'flyspell)
