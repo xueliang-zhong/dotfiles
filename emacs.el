@@ -1125,7 +1125,7 @@
   ;; at work
   (xueliang/light-theme)
    ;; home laptop
-  (when (<= (x-display-pixel-height) 768)
+  (when (<= (x-display-pixel-height) 1080)
     (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
 )
 
