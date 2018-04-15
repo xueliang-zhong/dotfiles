@@ -127,6 +127,7 @@
        "ARM_Mail                                     https://outlook.office.com/owa/"
        "Gmail                                        https://mail.google.com/mail/u/0/#inbox"
        "Linaro_Gmail                                 https://mail.google.com/mail/u/1/#inbox"
+       "World_Global_Time_Clock_Meeting_Planner      https://www.timeanddate.com/worldclock/meetingtime.html?iso=20180415&p1=1234&p2=283&p3=33&p4=43&p5=24&p6=179"
 
        ;; Chats
        "Skype_Web                                    https://secure.skype.com/portal/overview"
