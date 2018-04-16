@@ -974,11 +974,12 @@
 
   ;; make the completion colors closer to vim feeling.
   (set-face-background 'company-tooltip "#ad7fa8")
+  ;;(set-face-background 'company-tooltip "grey60")
   (set-face-foreground 'company-tooltip-common "black")
+  (set-face-background 'company-tooltip-selection "grey47")
+  (set-face-foreground 'company-tooltip-selection "LightGrey")
   (set-face-background 'company-scrollbar-bg "DimGrey")
   (set-face-background 'company-scrollbar-fg "LightGrey")
-  (set-face-background 'company-tooltip-selection "DimGrey")
-  (set-face-foreground 'company-tooltip-selection "LightGrey")
   (set-face-background 'company-preview-common "grey20")
   (set-face-foreground 'company-preview-common "DarkGrey")
 
