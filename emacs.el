@@ -68,15 +68,6 @@
 ;; check at emacs start up, make sure all packages are ready to use.
 (xueliang-reinstall-packages)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Keep emacs configs updated on my Linux & Windows machines.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; on Linux keep saving emacs.el to dropbox;
-;; on Windows keep reading init.el from dropbox.
-(if (string-equal system-type "gnu/linux")
-    (copy-file "~/workspace/dotfiles/emacs.el" "~/Dropbox/emacs/init.el" t)
-    (when (string-equal system-type "windows-nt") (copy-file "C:/Users/xueliang/Dropbox/emacs/init.el" "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t)))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's vars
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -95,6 +86,8 @@
 (setq android-dalvik        (concat android-root "/dalvik"))
 (setq dot-files             "~/workspace/dotfiles")
 (setq dropbox               "~/workspace/dropbox")
+(when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
+(when (string-equal system-type "windows-nt") (setq dropbox-home "C:/Users/xueliang/Dropbox/"))
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
@@ -109,13 +102,63 @@
                                   dot-files
                                   dropbox))
 
+(setq xueliang-public-weblink-list
+      (list
+       ;; Code & Development
+       "Google_AOSP_Code_Review                      https://android-review.googlesource.com/"
+       "Linaro_ART_Jira_Kanban                       https://projects.linaro.org/secure/RapidBoard.jspa"
+       "Linaro_Jira_Epics_ART_Efforts_LMG-390        https://projects.linaro.org/browse/LMG-390"
+
+       ;; Daily builds 
+       "ART_Reports                                  https://art-reports.linaro.org"
+       "Google_AOSP_ART_Monitor                      https://build.chromium.org/p/client.art/console"
+       "Images                                       http://snapshots.linaro.org/android/android-generic-build/"
+       "LAVA                                         https://validation.linaro.org/scheduler/device_type/nexus5x"
+       "Linaro_ART_Monitor_TargeTest_gtest           https://ci.linaro.org/view/ART-monitor/"
+
+       ;; Documents
+       "Android_Source                               https://source.android.com/"
+       "Dalvik_Byte_Code                             https://source.android.com/devices/tech/dalvik/dalvik-bytecode"
+       "Linaro_ART_CI                                https://wiki.linaro.org/Internal/LMG/ART-CI"
+       "Linux_Perf                                   http://www.brendangregg.com/linuxperf.html"
+
+       ;; Mails, Office, Calendar
+       "ARM_Calendar                                 https://outlook.office.com/owa/?path=/calendar/view/Week"
+       "ARM_Mail                                     https://outlook.office.com/owa/"
+       "Gmail                                        https://mail.google.com/mail/u/0/#inbox"
+       "Linaro_Gmail                                 https://mail.google.com/mail/u/1/#inbox"
+       "World_Global_Time_Clock_Meeting_Planner      https://www.timeanddate.com/worldclock/meetingtime.html?iso=20180415&p1=1234&p2=283&p3=33&p4=43&p5=24&p6=179"
+
+       ;; Chats
+       "Skype_Web                                    https://secure.skype.com/portal/overview"
+       "Yammer                                       https://www.yammer.com/arm.com/"
+       "Wechat_Weixin_QQ                             https://web.wechat.com"
+
+       ;; Life
+       "Amazon_Shopping                              https://www.amazon.co.uk"
+       "Amazon_Music                                 https://www.amazon.co.uk/gp/dmusic/promotions/PrimeMusic"
+       "Google_Keep                                  https://keep.google.com"
+       "Google_Calendar                              https://calendar.google.com/calendar/"
+       "Google_Drive                                 https://drive.google.com"
+       "Google_Map                                   https://www.google.com/maps"
+       "Google_Doc                                   https://doc.google.com"
+       "Google_Input_Tools                           https://www.google.com/inputtools/try/"
+       "Google_Translate                             https://translate.google.co.uk/"
+       "Google_Hangouts                              https://hangouts.google.com/"
+       "Google_News                                  https://news.google.com/news/"
+       "Youtube                                      https://www.youtube.com"
+       "Cambridge_Weather                            http://www.bbc.co.uk/weather/2653941"
+       "Barclaycard                                  https://www.barclaycard.co.uk/personal"
+       "UK_Drive_AA_Driving_School                   https://www.theaa.com/driving-school/"
+       ))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(if (string-equal system-type "gnu/linux")
-    (add-to-list 'load-path "~/Dropbox/emacs/")
-    (when (string-equal system-type "windows-nt") (add-to-list 'load-path "C:/Users/xueliang/Dropbox/emacs/")))
-(require 'xzhong)
+(when (file-exists-p dropbox-home)
+  (add-to-list 'load-path (concat dropbox-home "/emacs"))
+  (require 'xzhong)
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Evil config
@@ -402,34 +445,6 @@
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; semantic mode config
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============semantic-config=============())
-
-;; semantic mode, quite slow.
-;; (setq semantic-default-submodes
-;;       '(global-semantic-idle-scheduler-mode   ;; Perform semantic actions during idle time
-;;         global-semanticdb-minor-mode          ;; Use a database of parsed tags
-;;         global-semantic-decoration-mode       ;; Decorate buffers with additional semantic information
-;;         global-semantic-highlight-func-mode   ;; Highlight the name of the current function
-;;         global-semantic-stickyfunc-mode       ;; show the name of the function at the top
-;;         global-semantic-idle-summary-mode     ;; Generate a summary of the current tag when idle
-;;         global-semantic-idle-breadcrumbs-mode ;; Show a breadcrumb of location during idle time
-;;         global-semantic-mru-bookmark-mode))   ;; Switch to recently changed tags with semantic-mrub-switch-tags
-;; 
-;; (add-hook 'prog-mode-hook '(lambda () (semantic-mode)))
-;; 
-;; (semantic-mode)
-;; (semantic-reset-system-include)
-;; (semantic-add-system-include android-art 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler") 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler/driver") 'c++-mode)
-;; (semantic-add-system-include (concat android-art "/compiler/optimizing") 'c++-mode)
-;; 
-;; including art runtime files would make semantic quite slow.
-;;(semantic-add-system-include (concat android-art "/runtime") 'c++-mode)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============company-config=============())
@@ -586,14 +601,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============misc-modes-config=============())
 
-;; set ivy/counsel faces under anti-zenburn theme
-;; (set-face-attribute  'ivy-current-match nil :underline t)
-;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
-;; (set-face-background 'ivy-minibuffer-match-face-1  "LightGrey")
-;; (set-face-background 'ivy-minibuffer-match-face-2  "LightSeaGreen")
-;; (set-face-background 'ivy-minibuffer-match-face-3  "MediumSeaGreen")
-;; (set-face-background 'ivy-minibuffer-match-face-4  "SeaGreen")
-;;
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
 
@@ -649,11 +656,8 @@
 (setq projectile-enable-caching nil)
 
 (setq projectile-globally-ignored-directories
-   (append '(
-    ".dropbox.cache"
-    "dropbox/.dropbox.cache"
-    "dropbox"
-    ) projectile-globally-ignored-directories))
+      (append '(".dropbox.cache" "dropbox/.dropbox.cache" "dropbox")
+              projectile-globally-ignored-directories))
 
 ;; TODO: ignore file names begining with # or . and ignore file names ending with # or ~
 (setq projectile-globally-ignored-files
@@ -693,7 +697,6 @@
                                                            (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
                                                            (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                            )))))
-
 (defun xueliang-gstatus ()
   "run git status" (interactive)
   (xueliang-cd-current-buffer-directory)
@@ -1106,10 +1109,12 @@
   (set-face-background 'helm-match "PaleGreen3")
 
   ;; ivy colors
+  (set-face-attribute  'ivy-current-match nil :underline t)
   (set-face-background 'ivy-minibuffer-match-face-1 "#c0c0c0")
   (set-face-background 'ivy-minibuffer-match-face-2 "LightSkyBlue")
   (set-face-background 'ivy-minibuffer-match-face-3 "LightSkyBlue")
   (set-face-background 'ivy-minibuffer-match-face-4 "LightSkyBlue")
+;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
 
   ;; flyspell
   (require 'flyspell)
@@ -1119,10 +1124,12 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  (if (<= (x-display-pixel-width) 1920)
-    (xueliang/light-theme)   ;; home laptop
-    (xueliang/light-theme)  ;; themes that's good for work at office
-))
+  ;; at work
+  (xueliang/light-theme)
+   ;; home laptop
+  (when (<= (x-display-pixel-height) 1080)
+    (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
@@ -1357,9 +1364,12 @@
     (delete-window (get-buffer-window "*Async Shell Command*"))))
   ;;(start-process "my-shell" nil "~/bin/terminal"))
 
-(defun xueliang-helm-open-link ()
+(defun xueliang-open-link ()
   "" (interactive)
-  (org-open-link-from-string (car (cdr (split-string (ivy-read "Link: " xueliang-weblink-list))))))
+  (org-open-link-from-string (car (cdr (split-string
+                                        (ivy-read "Link: " (append xueliang-private-weblink-list xueliang-public-weblink-list))
+                                        ))))
+)
 
 (defun xueliang-daily-websites ()
   (interactive)
@@ -1374,11 +1384,6 @@
   (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
-
-(defun xueliang-daily-websites-ALL ()
-  "Open all of them" (interactive)
-  (dolist (link xueliang-weblink-list)
-  (org-open-link-from-string (car (cdr (split-string link))))))
 
 (defun =============xueliang-linaro-development=============())
 
@@ -1582,4 +1587,14 @@
 (global-set-key (kbd "<f10>") 'ace-window)
 (global-set-key (kbd "<f11>") 'helm-google)
 (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
-(global-set-key (kbd "<f12>") 'xueliang-helm-open-link)
+(global-set-key (kbd "<f12>") 'xueliang-open-link)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Keep emacs configs updated on my Linux & Windows machines.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(when (file-exists-p dropbox-home)
+  ;; on Linux keep saving emacs.el --> dropbox;
+  (when (string-equal system-type "gnu/linux") (copy-file (concat dot-files "/emacs.el") (concat dropbox-home "emacs/init.el") t))
+  ;; on Windows keep reading init.el <-- dropbox.
+  (when (string-equal system-type "windows-nt") (copy-file (concat dropbox-home "emacs/init.el") "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t))
+)
