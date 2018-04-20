@@ -1367,7 +1367,7 @@
 (defun xueliang-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string
-                                        (ivy-read "Link: " (append xueliang-private-weblink-list xueliang-public-weblink-list))
+                                        (ivy-read "Link: " (append xueliang-public-weblink-list xueliang-private-weblink-list))
                                         ))))
 )
 
@@ -1381,7 +1381,6 @@
 
   ;; Net working
   (org-open-link-from-string "https://secure.skype.com/portal/overview")
-  (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
 
