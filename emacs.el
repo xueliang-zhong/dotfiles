@@ -1359,7 +1359,7 @@
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
-  (start-process "my-shell" nil "~/bin/terminal")
+  (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
   ;;(async-shell-command "~/bin/terminal")
   ;;(when (get-buffer-window "*Async Shell Command*")
   ;;(delete-window (get-buffer-window "*Async Shell Command*")))
