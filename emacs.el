@@ -1359,15 +1359,16 @@
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
-  (async-shell-command "~/bin/terminal")
-  (when (get-buffer-window "*Async Shell Command*")
-    (delete-window (get-buffer-window "*Async Shell Command*"))))
-  ;;(start-process "my-shell" nil "~/bin/terminal"))
+  (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
+  ;;(async-shell-command "~/bin/terminal")
+  ;;(when (get-buffer-window "*Async Shell Command*")
+  ;;(delete-window (get-buffer-window "*Async Shell Command*")))
+)
 
 (defun xueliang-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string
-                                        (ivy-read "Link: " (append xueliang-private-weblink-list xueliang-public-weblink-list))
+                                        (ivy-read "Link: " (append xueliang-public-weblink-list xueliang-private-weblink-list))
                                         ))))
 )
 
@@ -1381,7 +1382,6 @@
 
   ;; Net working
   (org-open-link-from-string "https://secure.skype.com/portal/overview")
-  (org-open-link-from-string "https://hipchat.arm.com/chat/room/176")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
 
@@ -1569,6 +1569,7 @@
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make-test-art-host)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
+(global-set-key (kbd "<f8>")   'xueliang-terminal-shell)
 
 ;; <f6> shows program/output/content structure in various languages.
 (add-hook 'c-mode-hook '(lambda () (define-key
@@ -1605,6 +1606,7 @@
                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
                                            (org-cycle)
                                            ))))
+
 ; <f9> .. <f12>:
 (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
 (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
