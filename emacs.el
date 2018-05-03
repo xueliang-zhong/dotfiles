@@ -1387,6 +1387,30 @@
 
 (defun =============xueliang-linaro-development=============())
 
+(defun xueliang-ART-CODE-development () (interactive)
+  ;; Google AOSP Upstream, Google, Linaro, Intel, MIPS, etc.
+  (org-open-link-from-string "https://android-review.googlesource.com/dashboard/self")
+  (org-open-link-from-string "https://android-review.googlesource.com/q/project:platform/art")
+  (org-open-link-from-string "https://android-review.googlesource.com/q/project:platform/external/vixl")
+  (org-open-link-from-string "https://android-review.googlesource.com/q/author:mips+project:platform/art")
+  (org-open-link-from-string "https://android-review.googlesource.com/q/author:imgtec+project:platform/art")
+  (org-open-link-from-string "https://android-review.googlesource.com/q/author:intel+project:platform/art")
+
+  ;; Linaro/ARM code reviews
+  (org-open-link-from-string "https://dev-private-review.linaro.org")
+  (org-open-link-from-string "https://review.linaro.org/#/q/project:arm/vixl")
+  (org-open-link-from-string "https://android-review.linaro.org/")
+
+  ;; Buildbots/Monitors, Google, Linaro, Intel, MIPS, etc.
+  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
+  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
+  (org-open-link-from-string "https://art-reports.linaro.org")
+  (org-open-link-from-string "https://dmz-portal.mips.com/android/builders/")
+
+  ;; Linaro ART Kanban
+  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55")
+)
+
 (defun xueliang-monitor-linaro-art-websites ()
   "Important Linaro ART related to monitor daily." (interactive)
   ;; gerrit code reviews for ART/Android
@@ -1577,6 +1601,7 @@
                                         (kbd "<f6>")
                                         '(lambda() (interactive)
                                            (org-shifttab)
+                                           (evil-goto-first-line)
                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
                                            (org-cycle)
                                            ))))
