@@ -1350,19 +1350,13 @@
   "makes highlight-regexp easier" (interactive)
   (highlight-regexp (thing-at-point 'word)))
 
-(defun xueliang/pwd-string ()
+(defun xueliang-pwd-string ()
   "get pwd string of current file-buffer easily."
-  (interactive)
-  (newline-and-indent)
-  (insert (buffer-file-name))
-  (save-excursion (newline-and-indent)))
+  (interactive) (kill-new (ivy-read "PWD: " (list (buffer-file-name)))))
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
   (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
-  ;;(async-shell-command "~/bin/terminal")
-  ;;(when (get-buffer-window "*Async Shell Command*")
-  ;;(delete-window (get-buffer-window "*Async Shell Command*")))
 )
 
 (defun xueliang-open-link ()
