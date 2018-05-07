@@ -643,7 +643,8 @@
 (winner-mode 1)
 
 ;; don't make sound on windows.
-(setq visible-bell 1)
+(when (string-equal system-type "windows-nt")
+  (setq visible-bell t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
@@ -1182,7 +1183,6 @@
   (xueliang/find-file (fiplr-root) ""))
 
 (defun xueliang-find-file-from-pwd ()
-
   (xueliang/find-file "." ""))
 
 (defun xueliang-find-file-similar ()
