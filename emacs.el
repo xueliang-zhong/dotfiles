@@ -642,6 +642,9 @@
 ;; winner mode
 (winner-mode 1)
 
+;; don't make sound on windows.
+(setq visible-bell 1)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1357,6 +1360,12 @@
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
   (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
+)
+
+(defun xueliang-dropbox-status ()
+  "check dropbox status quickly" (interactive)
+  (xueliang-eshell-pwd)
+  (insert "dropbox status") (eshell-send-input)
 )
 
 (defun xueliang-open-link ()
