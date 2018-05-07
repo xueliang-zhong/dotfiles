@@ -1182,7 +1182,6 @@
   (xueliang/find-file (fiplr-root) ""))
 
 (defun xueliang-find-file-from-pwd ()
-
   (xueliang/find-file "." ""))
 
 (defun xueliang-find-file-similar ()
