@@ -253,6 +253,7 @@
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
   "b" 'ivy-switch-buffer-other-window
+  "c" 'xueliang-switch-to-*scratch*
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
@@ -823,12 +824,6 @@
 ;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "Monospace"
 (set-default-font "Monospace")
 
-;; font size
-(when window-system
-    (if (> (x-display-pixel-width) 2000)
-        (set-face-attribute 'default nil :height 110)
-        (set-face-attribute 'default nil :height 110)))
-
 ; line/column related
 (column-number-mode)
 
@@ -1055,7 +1050,7 @@
 
   (when (string-equal system-type "gnu/linux")
     (set-default-font "Monospace")
-    (set-face-attribute 'default nil :height 110))
+    (set-face-attribute 'default nil :height 130))
 
   (when (string-equal system-type "windows-nt")
     (set-default-font "Consolas")
@@ -1151,6 +1146,12 @@
       (swiper (thing-at-point 'symbol)) ;; (helm-swoop-symble-pre-input)
       (evil-search-word-forward 1 (thing-at-point 'symbol))
   )
+)
+
+(defun xueliang-switch-to-*scratch* ()
+  "open switch buffer quickly" (interactive)
+  (switch-to-buffer-other-window "*scratch*")
+   (evil-goto-line) (evil-append-line 1)
 )
 
 (defun xueliang-search-word-backward ()
