@@ -1508,7 +1508,7 @@
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
   ;; build and regenerate the test case before starting gdb.
-  (tool-bar-mode 1)
+  (tool-bar-mode -1)
   (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
 
@@ -1576,37 +1576,38 @@
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-make-test-art-host)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
-(global-set-key (kbd "<f8>")   'xueliang-terminal-shell)
+(global-set-key (kbd "<f6>")   'xueliang-terminal-shell)
 
-;; <f6> shows program/output/content structure in various languages.
+;; Magic key <f8>
+;; <f8> shows program/output/content structure in various languages.
 (add-hook 'c-mode-hook '(lambda () (define-key
-                                     evil-normal-state-local-map (kbd "<f6>")
+                                     evil-normal-state-local-map (kbd "<f8>")
                                      '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
 
 (add-hook 'c++-mode-hook '(lambda () (define-key
-                                       evil-normal-state-local-map (kbd "<f6>")
+                                       evil-normal-state-local-map (kbd "<f8>")
                                        '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
 
 (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
-                                              evil-normal-state-local-map (kbd "<f6>")
+                                              evil-normal-state-local-map (kbd "<f8>")
                                               '(lambda() (interactive) (swiper "(defun =[=]* ")))))
 
 (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                              (kbd "<f6>")
+                                              (kbd "<f8>")
                                               '(lambda() (interactive) (swiper "modified ")))))
 
 (add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                        (kbd "<f6>")
+                                        (kbd "<f8>")
                                         '(lambda() (interactive) (swiper "^diff ")))))
 
 ;; for my repo-sync terminal
 (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                        (kbd "<f6>")
+                                        (kbd "<f8>")
                                         '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
 
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                        (kbd "<f6>")
+                                        (kbd "<f8>")
                                         '(lambda() (interactive)
                                            (org-shifttab)
                                            (evil-goto-first-line)
