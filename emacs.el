@@ -1152,7 +1152,7 @@
   "open switch buffer quickly" (interactive)
   (switch-to-buffer-other-window "*scratch*")
   (evil-goto-line) (evil-append-line 1)
-  (insert "\n")
+  (when (> (buffer-size) 1) (insert "\n"))
   (insert ";; This buffer is for text that is not saved, and for Lisp evaluation.")
   (insert "\n\n")
 )
