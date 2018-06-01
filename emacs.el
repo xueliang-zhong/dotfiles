@@ -1467,7 +1467,9 @@
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
   (insert (concat "lunch " lunch-target)) (term-send-input)
-  (insert "time make -j33") (term-send-input))
+  (insert "time make dx -j33") (term-send-input)
+  (insert "time make -j33") (term-send-input)
+)
 
 (defun xueliang-make-android-system-image ()
   "Choose from build targets" (interactive)
@@ -1603,7 +1605,7 @@
 ;; for my repo-sync terminal
 (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f8>")
-                                        '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
+                                        '(lambda() (interactive) (swiper "Fetching projects ")))))
 
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
