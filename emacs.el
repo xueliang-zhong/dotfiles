@@ -111,7 +111,7 @@
 
        ;; Daily builds 
        "ART_Reports                                  https://art-reports.linaro.org"
-       "Google_AOSP_ART_Monitor                      https://build.chromium.org/p/client.art/console"
+       "Google_AOSP_ART_Monitor_BuildBot             https://build.chromium.org/p/client.art/console"
        "Images                                       http://snapshots.linaro.org/android/android-generic-build/"
        "LAVA                                         https://validation.linaro.org/scheduler/device_type/nexus5x"
        "Linaro_ART_Monitor_TargeTest_gtest           https://ci.linaro.org/view/ART-monitor/"
@@ -1467,7 +1467,9 @@
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
   (insert (concat "lunch " lunch-target)) (term-send-input)
-  (insert "time make -j33") (term-send-input))
+  (insert "time make dx -j33") (term-send-input)
+  (insert "time make -j33") (term-send-input)
+)
 
 (defun xueliang-make-android-system-image ()
   "Choose from build targets" (interactive)
@@ -1519,9 +1521,9 @@
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert sync-cmd-string) (term-send-input))
 
-(defun xueliang-linaro-repo-sync ()
-  "repo sync linaro tree" (interactive)
-  (xueliang/linaro-repo-sync "repo sync -j33"))
+;; (defun xueliang-linaro-repo-sync ()
+;;   "repo sync linaro tree" (interactive)
+;;   (xueliang/linaro-repo-sync "repo sync -j33"))
 
 (defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
   "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
@@ -1614,7 +1616,7 @@
 ;; for my repo-sync terminal
 (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f8>")
-                                        '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
+                                        '(lambda() (interactive) (swiper "Fetching projects ")))))
 
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
