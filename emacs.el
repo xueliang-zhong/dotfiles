@@ -1532,6 +1532,17 @@
   ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
   (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
 
+(defun xueliang-markdown-to-slides-with-odpdown ()
+  "use odpdown to convert current .md file to libreoffice slides."
+  (interactive)
+  (shell-command
+   (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal"
+            (buffer-file-name)
+            (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))
+   ))
+  (shell-command (message "libreoffice %s.odp" (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's key bindings
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
