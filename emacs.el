@@ -1350,8 +1350,10 @@
   (term "bash") (rename-buffer (concat "*htop-IO-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "htop -d 10 --sort-key IO") (term-send-input))
 
+;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-htop 'xueliang-htop-cpu)
 (defalias 'xueliang-helm-htop 'helm-top)
+(defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
