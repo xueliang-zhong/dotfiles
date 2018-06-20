@@ -1620,6 +1620,10 @@
                                         (kbd "<f8>")
                                         '(lambda() (interactive) (swiper "Fetching projects ")))))
 
+(add-hook 'markdown-mode-hook '(lambda () (define-key evil-normal-state-local-map
+                                            (kbd "<f8>")
+                                            '(lambda() (interactive) (swiper "^#")))))
+
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f8>")
