@@ -1674,7 +1674,8 @@
                                            (org-shifttab)
                                            (evil-goto-first-line)
                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
-                                           (org-cycle)
+                                           (org-sort-entries t ?o)
+                                           (org-cycle) (org-cycle)
                                            ))))
 
 ; <f9> .. <f12>:
