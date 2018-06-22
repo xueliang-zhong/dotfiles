@@ -1394,6 +1394,34 @@
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
 )
 
+(defun xuelinag-bold-text (start end)
+  (interactive "r")
+  (xueliang-tag-word-or-region "*" "*")
+)
+
+(defun xueliang-tag-word-or-region (text-begin text-end)
+  "Surround current word or region with given text."
+  (interactive "sStart tag: \nsEnd tag: ")
+  (let (pos1 pos2 bds)
+    (if (and transient-mark-mode mark-active)
+        (progn
+          (goto-char (region-end))
+          (insert text-end)
+          (goto-char (region-beginning))
+          (insert text-begin))
+      (progn
+        (setq bds (bounds-of-thing-at-point 'symbol))
+        (goto-char (cdr bds))
+        (insert text-end)
+        (goto-char (car bds))
+        (insert text-begin)))))
+
+(defun xueliang-google-translate-region () (interactive)
+   (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
+     (replace-regexp-in-string "[/ \n]" "%20"              ;; replace some special character with space.
+        (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
+))))
+
 (defun =============xueliang-linaro-development=============())
 
 (defun xueliang-ART-CODE-development () (interactive)
@@ -1558,8 +1586,7 @@
   (when (string-equal "md" (file-name-extension (buffer-file-name)))
      (setq-local xueliang-file-name (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))
      (shell-command (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal" (buffer-file-name) xueliang-file-name))
-     (shell-command (message "soffice --convert-to pdf %s.odp" xueliang-file-name))
-     (shell-command (message "thunar %s.pdf" xueliang-file-name))
+     (shell-command (message "soffice --convert-to pdf %s.odp && evince %s.pdf" xueliang-file-name xueliang-file-name))
   )
 )
 
