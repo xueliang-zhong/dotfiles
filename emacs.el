@@ -744,7 +744,8 @@
                                              "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
 (defun xueliang-gdiff-revision-at-point ()
-  "run 'git diff' using the revision number from ivy glog" (interactive)
+   "run 'git diff' using the revision number from ivy glog" (interactive)
+   (require 'fiplr)
    (when (buffer-file-name) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
    (shell-command (message "git diff %s " (xueliang-glog (thing-at-point 'word))))
    ;;(magit-diff (xueliang-glog))
