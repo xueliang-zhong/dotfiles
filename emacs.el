@@ -1422,6 +1422,12 @@
         (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
 ))))
 
+(defun xueliang-linaro-LMG-tickets-in-markdown ()
+   "Makes Linaro tickets pretty in markdown reports.\nChange 'LMG-390' to 'https://projects.linaro.org/browse/LMG-390'" (interactive)
+   (while (re-search-forward "LMG-[0-9]*" nil t)
+     (replace-match "[\\&](https://projects.linaro.org/browse/\\&)" t))
+)
+
 (defun =============xueliang-linaro-development=============())
 
 (defun xueliang-ART-CODE-development () (interactive)
