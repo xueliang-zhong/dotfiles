@@ -1425,8 +1425,14 @@
 
 (defun xueliang-linaro-LMG-tickets-in-markdown ()
    "Makes Linaro tickets pretty in markdown reports.\nChange 'LMG-390' to 'https://projects.linaro.org/browse/LMG-390'" (interactive)
-   (while (re-search-forward "LMG-[0-9]*" nil t)
-     (replace-match "[\\&](https://projects.linaro.org/browse/\\&)" t))
+   (evil-goto-first-line)
+   (while (re-search-forward "LMG-[0-9]*" nil t) (replace-match "[\\&](https://projects.linaro.org/browse/\\&)" t))
+   (evil-goto-first-line)
+   (while (re-search-forward "^Epic" nil t) (replace-match "  -" t))
+   (evil-goto-first-line)
+   (while (re-search-forward "^Story" nil t) (replace-match "  -" t))
+   (evil-goto-first-line)
+   (while (re-search-forward "^Sub-task" nil t) (replace-match "  -" t))
 )
 
 (defun =============xueliang-linaro-development=============())
