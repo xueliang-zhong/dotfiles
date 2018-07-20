@@ -73,17 +73,18 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root          "~/workspace/linaro")
-(setq android-art           (concat android-root "/art"))
-(setq android-bionic        (concat android-root "/bionic"))
-(setq android-libcore       (concat android-root "/libcore"))
-(setq android-benchmarks    (concat android-root "/benchmarks"))
-(setq android-scripts       (concat android-root "/scripts"))
-(setq android-vixl          (concat android-root "/external/vixl/src"))
-(setq android-xueliang_test (concat android-root "/xueliang_test"))
-(setq android-build         (concat android-root "/build"))
-(setq android-device        (concat android-root "/device"))
-(setq android-dalvik        (concat android-root "/dalvik"))
+(setq android-root            "~/workspace/linaro")
+(setq android-art             (concat android-root "/art"))
+(setq android-bionic          (concat android-root "/bionic"))
+(setq android-libcore         (concat android-root "/libcore"))
+(setq android-benchmarks      (concat android-root "/benchmarks"))
+(setq android-scripts         (concat android-root "/scripts"))
+(setq android-vixl            (concat android-root "/external/vixl/src"))
+(setq android-xueliang_test   (concat android-root "/xueliang_test"))
+(setq android-build           (concat android-root "/build"))
+(setq android-device          (concat android-root "/device"))
+(setq android-dalvik          (concat android-root "/dalvik"))
+(setq android-frameworks-base (concat android-root "/frameworks/base"))
 (setq dot-files             "~/workspace/dotfiles")
 (setq dropbox               "~/workspace/dropbox")
 (when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
@@ -99,6 +100,7 @@
                                   android-build
                                   android-device
                                   android-dalvik
+                                  android-frameworks-base
                                   dot-files
                                   dropbox))
 
@@ -114,7 +116,6 @@
        "Google_AOSP_ART_Monitor_BuildBot             https://build.chromium.org/p/client.art/console"
        "Images                                       http://snapshots.linaro.org/android/android-generic-build/"
        "LAVA                                         https://validation.linaro.org/scheduler/device_type/nexus5x"
-       "Linaro_ART_Monitor_TargeTest_gtest           https://ci.linaro.org/view/ART-monitor/"
 
        ;; Documents
        "Android_Source                               https://source.android.com/"
@@ -1419,7 +1420,7 @@
 
 (defun xueliang-google-translate-region () (interactive)
    (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
-     (replace-regexp-in-string "[/ \n]" "%20"              ;; replace some special character with space.
+     (replace-regexp-in-string "[/ \n()]" "%20"            ;; replace some special character with space.
         (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
 ))))
 
