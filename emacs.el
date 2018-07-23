@@ -194,7 +194,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'xueliang-swiper-or-grep-or-occur)
+(define-key evil-normal-state-map (kbd "/") 'helm-occur)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -250,7 +250,7 @@
 (setq-default xueliang-leader-key "<SPC>")
 (evil-leader/set-leader xueliang-leader-key)
 (evil-leader/set-key
-  "<SPC>" 'ivy-switch-buffer
+  "<SPC>" 'helm-for-files
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
   "b" 'ivy-switch-buffer-other-window
@@ -259,15 +259,15 @@
   "E" 'xueliang-eshell-current-line
   "f" 'xueliang-find-file    ;; fast search a file in current directory
   "g" 'magit-status
-  "i" 'counsel-imenu
-  "I" 'counsel-imenu
+  "i" 'helm-semantic-or-imenu
+  "I" 'helm-semantic-or-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
   "J" 'semantic-complete-jump ;; J means 'jump to tag'
   "k" 'xueliang-google-current-word
-  "m" 'counsel-bookmark
+  "m" 'helm-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "p" 'xueliang-find-project
-  "r" 'counsel-recentf
+  "r" 'helm-recentf
   "s" 'xueliang-eshell-pwd  ;; s means 'shell'
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
@@ -353,8 +353,8 @@
 (setq helm-candidate-number-limit 200)
 
 ;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
-(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-normal-state-map (kbd "M-y") 'helm-show-kill-ring)
+(define-key evil-insert-state-map (kbd "M-y") 'helm-show-kill-ring)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -402,7 +402,7 @@
 (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
 
 ;; I don't like the default "^" for M-x command.
-(add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
+(add-to-list 'ivy-initial-inputs-alist '(helm-M-x . ""))
 
 ;; Make sure C-a C-k work in ivy mode as well.
 (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
@@ -699,7 +699,7 @@
    *** HANDLE WITH CARE !!! ***" (interactive)
    (xueliang-cd-current-buffer-directory)
    (shell-command (message "git commit -m \"%s\""
-                           (ivy-read "COMMIT MSG: " (list 
+                           (helm-comp-read "COMMIT MSG: " (list 
                                                            (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
                                                            (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                            )))))
@@ -712,7 +712,7 @@
   "list git branches, and git checkout selected branch" (interactive)
   (xueliang-cd-current-buffer-directory)
   (shell-command-to-string (concat "git checkout "
-                                   (ivy-read "Git branch: "
+                                   (helm-comp-read "Git branch: "
                                                    (split-string (shell-command-to-string "git branch") "\n")
                                                    :preselect "*")))
   (revert-buffer :ignore-auto :noconfirm)  ;; force reload the file and update git info on mode line.
@@ -736,7 +736,7 @@
   (require 'fiplr)
   (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
   (car (split-string
-        (ivy-read "Git Log: "
+        (helm-comp-read "Git Log: "
                         (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
                         :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
                         :initial-input (if xueliang-cword                                      ;; if current word at point is a string
@@ -772,7 +772,7 @@
     (shell-command (message "git show %s " git-revision-string))
     (xueliang/gdiff-window)
     (org-open-link-from-string (concat
-                                (ivy-read "Select Gerrit: "
+                                (helm-comp-read "Select Gerrit: "
                                           (list
                                           "about:blank"
                                           "https://android-review.googlesource.com/#/q/"
@@ -1159,12 +1159,6 @@
   (insert "\n\n")
 )
 
-(defun xueliang-swiper-or-grep-or-occur()
-  "To make sure / works better on both Linux & Windows machines" (interactive)
-  (when (string-equal system-type "gnu/linux") (counsel-grep-or-swiper))
-  (when (string-equal system-type "windows-nt") (helm-occur))
-)
-
 (defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
@@ -1186,13 +1180,16 @@
 
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
-  (cd (ivy-read "Project: " xueliang-project-list))
+  (cd (helm-comp-read "Project: " xueliang-project-list))
   (xueliang-find-file-from-pwd))
 
 (defun xueliang-find-file ()
   "my fast find file in project" (interactive)
   (require 'fiplr)
-  (xueliang/find-file (fiplr-root) ""))
+  (if (string-equal system-type "windows-nt")
+      (projectile-find-file)
+      (xueliang/find-file (fiplr-root) ""))
+)
 
 (defun xueliang-find-file-from-pwd ()
   (xueliang/find-file "." ""))
@@ -1205,13 +1202,13 @@
 
 (defun xueliang/find-file (path init-input)
   "my fast find file in project"
-  (find-file (ivy-read (concat "Find File " path ": ")
+  (find-file (helm-comp-read (concat "Find File " path ": ")
                              (split-string (shell-command-to-string
                                             (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
                                            "\n")
                              :initial-input init-input)))
 
-;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
+;;(defun xueliang-top() "my top command in emacs" (interactive) (helm-comp-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
 
 ; No need, just select and helm-google.
@@ -1311,9 +1308,9 @@
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
   ;;(kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
-  ;;(helm-do-grep-ag (thing-at-point 'symbol)))
+  (helm-do-grep-ag (thing-at-point 'symbol)))
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
@@ -1369,7 +1366,7 @@
 
 (defun xueliang-pwd-string ()
   "get pwd string of current file-buffer easily."
-  (interactive) (kill-new (ivy-read "PWD: " (list (buffer-file-name)))))
+  (interactive) (kill-new (helm-comp-read "PWD: " (list (buffer-file-name)))))
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
@@ -1385,7 +1382,7 @@
 (defun xueliang-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string
-                                        (ivy-read "Link: " (append xueliang-public-weblink-list xueliang-private-weblink-list))
+                                        (helm-comp-read "Link: " (append xueliang-public-weblink-list xueliang-private-weblink-list))
                                         ))))
 )
 
@@ -1524,7 +1521,7 @@
 (defun xueliang-make-android-system-image ()
   "Choose from build targets" (interactive)
   (xueliang/make-android-system-image
-   (ivy-read "Lunch Targets: " (list
+   (helm-comp-read "Lunch Targets: " (list
                                       ;; common ones
                                       "aosp_arm64-eng"
                                       "hikey960-userdebug"
@@ -1616,7 +1613,7 @@
 (defun =============xueliang-key-bindings=============())
 
 ; Nice M-x
-(global-set-key (kbd "M-x") 'counsel-M-x)
+(global-set-key (kbd "M-x") 'helm-M-x)
 
 ; vim way of page up, the original universal argument is <leader>-u.
 (global-set-key (kbd "C-u") 'evil-scroll-page-up)
@@ -1638,7 +1635,7 @@
 ;; (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
 
 ; describe key-bindings
-(global-set-key (kbd "C-h b") 'counsel-descbinds)
+(global-set-key (kbd "C-h b") 'helm-descbinds)
 
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -1699,7 +1696,7 @@
                                            ))))
 
 ; <f9> .. <f12>:
-(global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
+(global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (helm-find-files-1 (file-name-directory (buffer-file-name)))))
 (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
 
 (global-set-key (kbd "<f10>") 'ace-window)
