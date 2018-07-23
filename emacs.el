@@ -194,7 +194,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+(define-key evil-normal-state-map (kbd "/") 'xueliang-swiper-or-grep-or-occur)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -1157,6 +1157,12 @@
   (when (> (buffer-size) 1) (insert "\n"))
   (insert ";; This buffer is for text that is not saved, and for Lisp evaluation.")
   (insert "\n\n")
+)
+
+(defun xueliang-swiper-or-grep-or-occur()
+  "To make sure / works better on both Linux & Windows machines" (interactive)
+  (when (string-equal system-type "gnu/linux") (counsel-grep-or-swiper))
+  (when (string-equal system-type "windows-nt") (helm-occur))
 )
 
 (defun xueliang-search-word-backward ()
