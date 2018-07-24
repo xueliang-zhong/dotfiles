@@ -446,6 +446,13 @@
 
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
+;; Make sure M-RET behaves correctly on Windows system.
+(when (string-equal system-type "windows-nt")
+  (add-hook 'org-mode-hook '(lambda ()
+     (define-key evil-normal-state-map (kbd "M-RET") 'org-meta-return)
+     (define-key evil-insert-state-map (kbd "M-RET") 'org-meta-return)
+)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Company config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1048,6 +1055,8 @@
 )
 
 (defun xueliang/light-theme()
+  (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
+
   (load-theme 'anti-zenburn t)
 
   (when (string-equal system-type "gnu/linux")
