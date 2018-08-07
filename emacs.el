@@ -323,8 +323,9 @@
 (define-key helm-map (kbd "C-f")       'helm-next-page)
 (define-key helm-map (kbd "C-b")       'helm-previous-page)
 
-;; C-SPC to mark candidates and M-w to send 'em to current buffer.
-(define-key helm-map (kbd "M-w")       'helm-copy-to-buffer)
+;; Make similar behavior to ivy.
+;; M-w to mark all candidates and send 'em to current buffer.
+(define-key helm-map (kbd "M-w")       '(lambda() (interactive) (helm-mark-all) (helm-copy-to-buffer)))
 
 ;; use the helm-swoop style preview.
 ;; because helm-execute-persistent-action kills processes in helm-top, that's why it is bound to Ctrl-Up/Down.
