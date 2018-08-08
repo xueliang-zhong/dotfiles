@@ -194,7 +194,7 @@
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
 
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
-(define-key evil-normal-state-map (kbd "/") 'helm-occur)
+(define-key evil-normal-state-map (kbd "/") 'helm-swoop-without-pre-input)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
 
 ;; give the old vim style /? search a more swiper way: space key inserts ".*"
@@ -323,9 +323,18 @@
 (define-key helm-map (kbd "C-f")       'helm-next-page)
 (define-key helm-map (kbd "C-b")       'helm-previous-page)
 
-;; Make similar behavior to ivy.
+;; Similar behavior to ivy.
 ;; M-w to mark all candidates and send 'em to current buffer.
-(define-key helm-map (kbd "M-w")       '(lambda() (interactive) (helm-mark-all) (helm-copy-to-buffer)))
+(defun xueliang-helm-copy-to-scratch-buffer ()
+  (helm-run-after-exit (lambda (marked-candidates)
+                         (switch-to-buffer-other-window "*scratch*")
+                         (evil-goto-line) (evil-append-line 1)
+                         (insert "\n\n\n")
+                         (insert (mapconcat (lambda (c) (format "%s" c)) marked-candidates "\n"))
+                         (evil-beginning-of-line) (evil-normal-state))
+                       (helm-marked-candidates)))
+
+(define-key helm-map (kbd "M-w")       '(lambda() (interactive) (helm-mark-all) (xueliang-helm-copy-to-scratch-buffer)))
 
 ;; use the helm-swoop style preview.
 ;; because helm-execute-persistent-action kills processes in helm-top, that's why it is bound to Ctrl-Up/Down.
