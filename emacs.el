@@ -1325,14 +1325,30 @@
    (evil-goto-line) (evil-append-line 1))
 
 ; search in project using ag
+(setq helm-ag-insert-at-point 'symbol)
+
 (defun xueliang-ag-search-in-project (argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  ;;(counsel-ag (thing-at-point 'word))) ;; counsel-ag allows initial input to play with.
+
+  ;; Best so far, but slow in large projects.
+  ;;(counsel-ag (thing-at-point 'word)) ;; counsel-ag allows initial input to play with.
+
+  ;; This option has pre-input, but doesn't work with SPACE in search.
+  ;;(helm-projectile-ag)
+
+  ;; This option has pre-input, but doesn't work with SPACE in search.
+  ;;(helm-do-ag (fiplr-root))
+
+  ;; This options works fine, provides both pre-input and SPACE support.
+  (helm-projectile-grep-or-ack)
+
+  ;; This option requires the kill-ring workaround.
   ;;(kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
-  (helm-do-grep-ag (thing-at-point 'symbol)))
+  ;;(helm-do-grep-ag (thing-at-point 'symbol))
+ )
 
 (setq-default xueliang-current-font 0)
 (defun xueliang-switch-fonts ()
