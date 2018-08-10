@@ -1164,14 +1164,6 @@
   "Remove blank lines in selected lines." (interactive "r")
    (flush-lines "^\\s-*$" start end nil))
 
-(defun xueliang-search-word-forward ()
-  "swiper for small buffers, vim style / for big buffers" (interactive)
-  (if (< (buffer-size) 10000000) ;; 10MB limit
-      (swiper (thing-at-point 'symbol)) ;; (helm-swoop-symble-pre-input)
-      (evil-search-word-forward 1 (thing-at-point 'symbol))
-  )
-)
-
 (defun xueliang-switch-to-*scratch* ()
   "open switch buffer quickly" (interactive)
   (switch-to-buffer-other-window "*scratch*")
@@ -1181,10 +1173,20 @@
   (insert "\n\n")
 )
 
+(defun xueliang-search-word-forward ()
+  "swiper for small buffers, vim style / for big buffers" (interactive)
+  (if (< (buffer-size) 10000000) ;; 10MB limit
+      ;;  (swiper (thing-at-point 'symbol))
+      (helm-swoop-symble-pre-input)
+      (evil-search-word-forward 1 (thing-at-point 'symbol))
+  )
+)
+
 (defun xueliang-search-word-backward ()
   "swiper for small buffers, vim style / for big buffers" (interactive)
   (if (< (buffer-size) 10000000) ;; 10MB limit
-      (swiper (thing-at-point 'symbol)) ;; (helm-swoop-symble-pre-input)
+      ;;  (swiper (thing-at-point 'symbol))
+      (helm-swoop-symble-pre-input)
       (evil-search-word-backward 1 (thing-at-point 'symbol))
   )
 )
@@ -1343,7 +1345,7 @@
   ;;(helm-do-ag (fiplr-root))
 
   ;; This options works fine, provides both pre-input and SPACE support.
-  (helm-projectile-grep-or-ack)
+  (helm-projectile-ack) 
 
   ;; This option requires the kill-ring workaround.
   ;;(kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
