@@ -1267,7 +1267,10 @@
 ; Help to make code reviews easier; requires cpplint.py in $PATH.
 (defun xueliang-art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
-  (setq-local cpplint-cmd-and-options "cpplint.py --filter=-whitespace/line_length,-build/include ")
+  (setq-local cpplint-cmd-and-options
+              (concat android-root
+                      "/external/google-styleguide/cpplint/cpplint.py "
+                      "--filter=-whitespace/line_length,-build/include "))
   (shell-command (concat cpplint-cmd-and-options (buffer-file-name)))
   (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-very-bottom) (compilation-mode))
@@ -1536,8 +1539,9 @@
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
-  (insert "./prebuilts/sdk/tools/jack-admin kill-server") (eshell-send-input) (sleep-for 2)  ;; workaround for jack server time out issue.
-  (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)
+  ;;; workaround for jack server time out issue, which has been removed from latest android tree?
+  ;;; (insert "./prebuilts/sdk/tools/jack-admin kill-server") (eshell-send-input) (sleep-for 2)
+  ;;; (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
 (defun xueliang-restart-android-jack-server ()
