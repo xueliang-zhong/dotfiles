@@ -1413,10 +1413,18 @@
   (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
 )
 
+(defun xueliang-eshell-quick-command (str)
+  (xueliang-eshell-pwd) (insert str) (eshell-send-input)
+)
+
+(defun xueliang-dev-machine-temperature ()
+  "check temperature" (interactive)
+  (xueliang-eshell-quick-command "cat /sys/class/thermal/thermal_zone*/temp")
+)
+
 (defun xueliang-dropbox-status ()
   "check dropbox status quickly" (interactive)
-  (xueliang-eshell-pwd)
-  (insert "dropbox status") (eshell-send-input)
+  (xueliang-eshell-quick-command "dropbox status")
 )
 
 (defun xueliang-open-link ()
@@ -1697,32 +1705,32 @@
 ;; <f8> shows program/output/content structure in various languages.
 (add-hook 'c-mode-hook '(lambda () (define-key
                                      evil-normal-state-local-map (kbd "<f8>")
-                                     '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
+                                     '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
 
 (add-hook 'c++-mode-hook '(lambda () (define-key
                                        evil-normal-state-local-map (kbd "<f8>")
-                                       '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
+                                       '(lambda() (interactive) (helm-swoop :$query "void visit ([a-z]* ")))))
 
 (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
                                               evil-normal-state-local-map (kbd "<f8>")
-                                              '(lambda() (interactive) (swiper "(defun =[=]* ")))))
+                                              '(lambda() (interactive) (helm-swoop :$query "(defun =[=]* ")))))
 
 (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                               (kbd "<f8>")
-                                              '(lambda() (interactive) (swiper "modified ")))))
+                                              '(lambda() (interactive) (helm-swoop :$query "modified ")))))
 
 (add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f8>")
-                                        '(lambda() (interactive) (swiper "^diff ")))))
+                                        '(lambda() (interactive) (helm-swoop :$query "^diff ")))))
 
 ;; for my repo-sync terminal
 (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                         (kbd "<f8>")
-                                        '(lambda() (interactive) (swiper "Fetching projects ")))))
+                                        '(lambda() (interactive) (helm-swoop :$query "Fetching projects ")))))
 
 (add-hook 'markdown-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                             (kbd "<f8>")
-                                            '(lambda() (interactive) (swiper "^#")))))
+                                            '(lambda() (interactive) (helm-swoop :$query "^#")))))
 
 ;; for selecting date easily in my daily.org
 (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
@@ -1730,7 +1738,9 @@
                                         '(lambda() (interactive)
                                            (org-shifttab)
                                            (evil-goto-first-line)
-                                           (swiper (format-time-string "<%Y-%m-%d" (current-time)))
+                                           ;;(helm-swoop :$query
+                                           (helm-swoop :$query
+                                            (format-time-string "<%Y-%m-%d" (current-time)))
                                            (org-sort-entries t ?o)
                                            (org-cycle) (org-cycle)
                                            ))))
