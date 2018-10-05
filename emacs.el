@@ -995,6 +995,9 @@
   (set-face-background 'org-table "DarkSlateGrey")
   (set-face-foreground 'org-table "DarkGrey")
 
+  ;; ivy
+  (set-face-attribute 'ivy-current-match nil :bold nil)
+
   ;; make linum more vim like.
   (set-face-foreground 'linum "gold1")
 
