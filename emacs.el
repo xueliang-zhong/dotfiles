@@ -867,7 +867,7 @@
 (setq blink-cursor-mode -1)
 (add-hook 'prog-mode-hook '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1) (tool-bar-mode -1)))
 (add-hook 'org-mode-hook  '(lambda () (blink-cursor-mode -1) (scroll-bar-mode -1) (tool-bar-mode -1)))
-(menu-bar-mode 1)
+(menu-bar-mode -1)
 
 (add-hook 'prog-mode-hook '(lambda () (nlinum-mode 1)))
 
@@ -960,12 +960,74 @@
 
 (defun =============theme-color-settings=============())
 
+(defun xueliang/minimal-dark-theme()
+  "Make the color more vim feel like" (interactive)
+  ;;(load-theme 'dakrone t)
+  (load-theme 'zenburn t)
+
+  (when (string-equal system-type "gnu/linux")
+    (set-default-font "Monospace")
+    (set-face-attribute 'default nil :height 130))
+
+  (when (string-equal system-type "windows-nt")
+    (set-default-font "Consolas")
+    (set-face-attribute 'default nil :height 120))
+
+  ;; eshell prompt configs
+  (setq eshell-prompt-function (lambda () (concat
+                                           (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange")) ;; orange, DarkOrange3
+                                           (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
+                                           (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
+  (setq eshell-highlight-prompt nil)
+
+  ;; Useful commands: list-faces-display, counsel-colors-emacs.
+  (set-face-foreground 'default "DarkGrey")
+  (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod3")
+  (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-type-face "PaleGreen")
+  (set-face-foreground 'font-lock-builtin-face "DarkGrey")
+  (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
+  (set-face-foreground 'font-lock-function-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-warning-face "DarkGrey")
+  (set-face-foreground 'font-lock-string-face "#ad7fa8")
+  (set-face-foreground 'font-lock-constant-face "DarkGrey")
+
+  (set-face-foreground 'org-link "SteelBlue1")
+  (set-face-foreground 'link "SteelBlue1")
+
+  (require 'diff-mode)
+  (set-face-background 'diff-refine-added "DarkOliveGreen")
+
+  ;; make linum more vim like.
+  (set-face-foreground 'linum "gold1")
+
+  ;; git gutter colors.
+  (when window-system
+    (set-face-background 'fringe "grey24")
+    (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
+    (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
+
+  ;; fontify code in code blocks and tables
+  (setq org-src-fontify-natively t)
+  (set-face-background 'org-table "DarkSlateGrey")
+  (set-face-foreground 'org-table "DarkGrey")
+)
+
 (defun xueliang/dark-theme()
   "Make the color more vim feel like" (interactive)
-  (load-theme 'dakrone t)
+  (load-theme 'zenburn t)
 
-  (set-default-font "Monospace")
-  (set-face-attribute 'default nil :height 130)
+  (when (string-equal system-type "gnu/linux")
+    (set-default-font "Monospace")
+    (set-face-attribute 'default nil :height 130))
+
+  (when (string-equal system-type "windows-nt")
+    (set-default-font "Consolas")
+    (set-face-attribute 'default nil :height 120))
 
   ;; eshell prompt configs
   (setq eshell-prompt-function (lambda () (concat
@@ -1009,7 +1071,7 @@
 
   ;; git gutter colors.
   (when window-system
-    (set-face-background 'fringe "grey9")
+    (set-face-background 'fringe "grey23")
     (set-face-attribute 'git-gutter-fr+-added nil :bold nil)
     (set-face-attribute 'git-gutter-fr+-deleted nil :bold nil)
     (set-face-attribute 'git-gutter-fr+-modified nil :bold nil))
@@ -1148,10 +1210,10 @@
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
   ;; at work
-  (xueliang/light-theme)
+  (xueliang/minimal-dark-theme)
    ;; home laptop
   (when (<= (x-display-pixel-height) 1080)
-    (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
+    (xueliang/minimal-dark-theme) (set-face-attribute 'default nil :height 140))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
