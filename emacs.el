@@ -1011,6 +1011,10 @@
   (set-face-foreground 'org-table "DarkGrey")
 
   ;; ivy
+  (set-face-background 'ivy-minibuffer-match-face-1 "DarkSlateGrey")
+  (set-face-background 'ivy-minibuffer-match-face-2 "#2B2B2B")
+  (set-face-background 'ivy-minibuffer-match-face-3 "#2B2B2B")
+  (set-face-background 'ivy-minibuffer-match-face-4 "#2B2B2B")
   (set-face-attribute 'ivy-current-match nil :bold nil)
 
   ;; make linum more vim like.
