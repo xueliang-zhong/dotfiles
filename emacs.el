@@ -961,7 +961,7 @@
 (defun =============theme-color-settings=============())
 
 (defun xueliang/minimal-dark-theme()
-  "Make the color feel better to my eyes, with minimal tweaks." (interactive)
+  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
   (load-theme 'zenburn t)
 
   (when (string-equal system-type "gnu/linux")
@@ -972,6 +972,27 @@
     (set-default-font "Consolas")
     (set-face-attribute 'default nil :height 120))
 
+  ;; basic settings
+  ;; colours
+  (set-face-foreground 'default "DarkGrey")
+  (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
+  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod3")
+  (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-type-face "PaleGreen")
+  (set-face-foreground 'font-lock-builtin-face "DarkGrey")
+  (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
+  (set-face-foreground 'font-lock-function-name-face "DarkGrey")
+  (set-face-foreground 'font-lock-warning-face "DarkGrey")
+  (set-face-foreground 'font-lock-string-face "#ad7fa8")
+  (set-face-foreground 'font-lock-constant-face "DarkGrey")
+  (set-face-foreground 'link "SteelBlue1")
+  ;; no bold
+  (set-face-attribute 'font-lock-keyword-face nil :bold nil)
+  (set-face-attribute 'font-lock-builtin-face nil :bold nil)
+  (set-face-attribute 'link nil :bold nil)
+
   ;; eshell prompt configs
   (setq eshell-prompt-function (lambda () (concat
                                            (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange")) ;; orange, DarkOrange3
@@ -979,12 +1000,6 @@
                                            (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
   (setq eshell-highlight-prompt nil)
 
-  (set-face-foreground 'link "SteelBlue1")
-
-  ;; no bold
-  (set-face-attribute 'font-lock-keyword-face nil :bold nil)
-  (set-face-attribute 'font-lock-builtin-face nil :bold nil)
-  (set-face-attribute 'link nil :bold nil)
 
   ;; org mode
   (setq org-src-fontify-natively t)
