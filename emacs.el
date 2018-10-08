@@ -509,6 +509,15 @@
 (setq telephone-line-height 20
       telephone-line-evil-use-short-tag nil)
 
+(if (string-equal system-type "windows-nt")
+    ;; flat mode-line on windows
+    (setq telephone-line-primary-left-separator 'telephone-line-flat
+          telephone-line-primary-right-separator 'telephone-line-flat)
+    ;; beatiful mode-line on other systems
+    (setq telephone-line-primary-left-separator 'telephone-line-halfcos-left
+          telephone-line-primary-right-separator 'telephone-line-halfcos-left)
+)
+
 (set-face-background 'telephone-line-evil-normal "DimGrey")
 (set-face-attribute  'telephone-line-evil-normal nil :bold nil)
 (set-face-attribute  'telephone-line-evil-insert nil :bold nil)
