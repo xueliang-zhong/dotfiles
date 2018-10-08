@@ -41,6 +41,7 @@
                             ivy
                             ivy-rich
                             ivy-historian
+                            json-mode
                             keyfreq
                             magit
                             markdown-mode+
@@ -630,7 +631,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============misc-modes-config=============())
+(defun =============other-misc-modes-config=============())
 
 ;; transparency
 (set-frame-parameter (selected-frame) 'alpha '(100 . 100))
@@ -676,6 +677,9 @@
 ;; don't make sound on windows.
 (when (string-equal system-type "windows-nt")
   (setq visible-bell t))
+
+;; files and their major modes.
+(add-to-list 'auto-mode-alist '("Android.bp" . json-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; projectile configs
@@ -1580,7 +1584,7 @@
 (defun xueliang-linaro-art-gtest-asan-test ()
   (interactive)
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-make-art-gtest-asan-test" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (rename-buffer (concat "*eshell-linaro-make-art-gtest-asan-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
   (insert "art/test/testrunner/run_build_test_target.py -j33 art-gtest-asan") (eshell-send-input)
 )
