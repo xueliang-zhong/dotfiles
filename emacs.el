@@ -431,7 +431,7 @@
 ;; Org mode config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============org-config=============())
-(setq org-todo-keywords '((sequence "TODO" "PROGRESS" "ON-GOING-EFFORT" "DONE")))
+(setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
 
 ;; Don't add a time stamp line to the 'DONE' task.
 (setq org-log-done nil)
@@ -1016,6 +1016,7 @@
   (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
   (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
   (set-face-foreground 'org-link "SteelBlue1")
+  (set-face-foreground 'org-done "SpringGreen")
   (set-face-background 'org-table "DarkSlateGrey")
   (set-face-foreground 'org-table "DarkGrey")
 
@@ -1211,11 +1212,11 @@
 
   ;; ivy colors
   (set-face-attribute  'ivy-current-match nil :underline t)
-  (set-face-background 'ivy-minibuffer-match-face-1 "#c0c0c0")
-  (set-face-background 'ivy-minibuffer-match-face-2 "LightSkyBlue")
-  (set-face-background 'ivy-minibuffer-match-face-3 "LightSkyBlue")
-  (set-face-background 'ivy-minibuffer-match-face-4 "LightSkyBlue")
-;; (set-face-background 'ivy-match-required-face      "MediumSlateBlue")
+  (set-face-background 'ivy-minibuffer-match-face-1 "grey67") ;; LemonChiffon2
+  (set-face-background 'ivy-minibuffer-match-face-2 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-3 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-4 "grey67")
+  (set-face-background 'ivy-match-required-face     "grey67")
 
   ;; flyspell
   (require 'flyspell)
@@ -1226,10 +1227,10 @@
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
   ;; at work
-  (xueliang/minimal-dark-theme)
+  (xueliang/light-theme)
    ;; home laptop
   (when (<= (x-display-pixel-height) 1080)
-    (xueliang/minimal-dark-theme) (set-face-attribute 'default nil :height 140))
+    (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
