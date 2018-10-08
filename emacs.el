@@ -1359,26 +1359,12 @@
   (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-very-bottom) (compilation-mode))
 
-; Help to make cross-project search easier.
-(defun xueliang-ag-vixl (arg)
-  "look for WORD in VIXL using ag searcher" (interactive "P")
-  (cd android-vixl) (counsel-ag arg))
-
-; Help to make cross-project search easier.
-(defun xueliang-ag-art (arg)
-  "look for WORD in Android ART using ag searcher" (interactive "P")
-  (cd android-art) (counsel-ag arg))
-
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
   "cd to directory of current buffer/file." (interactive)
   (when buffer-file-name
     (cd (file-name-directory buffer-file-name))
     (message "pwd: %s" (file-name-directory buffer-file-name))))
-
-; for tag search in android-art project.
-(defun helm-etags-select-android-art() (interactive)
-   (cd android-art) (helm-etags-select t))
 
 ;; this is for easier code reading and help drawing flowgraph of the coode (dot graph)
 (defun xueliang-send-current-line-to-scratch ()
