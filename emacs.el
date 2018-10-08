@@ -1202,6 +1202,7 @@
   (set-face-foreground 'org-block-end-line "SeaGreen")
   (set-face-background 'org-table "DarkSlateGrey")
   (set-face-foreground 'org-table "DarkGrey")
+  (set-face-foreground 'org-todo "brown")
 
   ;; helm colors
   (require 'helm-command)
@@ -1516,17 +1517,22 @@
                                         ))))
 )
 
+(defun xueliang-art-proj-monitor () (interactive)
+  (when (string-equal system-type "gnu/linux")
+    (start-process "my-art-proj-monitor" nil "google-chrome" (concat dropbox-home "art_proj_monitor.svg")))
+)
+
 (defun xueliang-daily-websites ()
   (interactive)
   ;; Work
   (org-open-link-from-string "https://mail.google.com/mail/u/0/#inbox")
   (org-open-link-from-string "https://mail.google.com/mail/u/1/#inbox")
   (org-open-link-from-string "https://outlook.office.com/owa/")
-  (org-open-link-from-string "https://outlook.office.com/owa/?path=/calendar/view/Week")
-
   ;; Net working
   (org-open-link-from-string "https://secure.skype.com/portal/overview")
   (org-open-link-from-string "https://www.yammer.com/arm.com/")
+  ;; Proj monitor
+  (xueliang-art-proj-monitor)
 )
 
 (defun xuelinag-bold-text (start end)
@@ -1570,49 +1576,6 @@
 )
 
 (defun =============xueliang-linaro-development=============())
-
-(defun xueliang-ART-CODE-development () (interactive)
-  ;; Google AOSP Upstream, Google, Linaro, Intel, MIPS, etc.
-  (org-open-link-from-string "https://android-review.googlesource.com/dashboard/self")
-  (org-open-link-from-string "https://android-review.googlesource.com/q/project:platform/art")
-  (org-open-link-from-string "https://android-review.googlesource.com/q/project:platform/external/vixl")
-  (org-open-link-from-string "https://android-review.googlesource.com/q/author:mips+project:platform/art")
-  (org-open-link-from-string "https://android-review.googlesource.com/q/author:imgtec+project:platform/art")
-  (org-open-link-from-string "https://android-review.googlesource.com/q/author:intel+project:platform/art")
-
-  ;; Linaro/ARM code reviews
-  (org-open-link-from-string "https://dev-private-review.linaro.org")
-  (org-open-link-from-string "https://review.linaro.org/#/q/project:arm/vixl")
-  (org-open-link-from-string "https://android-review.linaro.org/")
-
-  ;; Buildbots/Monitors, Google, Linaro, Intel, MIPS, etc.
-  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
-  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
-  (org-open-link-from-string "https://art-reports.linaro.org")
-  (org-open-link-from-string "https://dmz-portal.mips.com/android/builders/")
-
-  ;; Linaro ART Kanban
-  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa?rapidView=55")
-)
-
-(defun xueliang-monitor-linaro-art-websites ()
-  "Important Linaro ART related to monitor daily." (interactive)
-  ;; gerrit code reviews for ART/Android
-  (org-open-link-from-string "https://dev-private-review.linaro.org")
-  (org-open-link-from-string "https://android-review.linaro.org/")
-  (org-open-link-from-string "https://android-review.googlesource.com/")
-  ;; daily build tests for ART/Android
-  (org-open-link-from-string "https://ci.linaro.org/view/ART-monitor/")
-  (org-open-link-from-string "https://build.chromium.org/p/client.art/console")
-  (org-open-link-from-string "https://art-reports.linaro.org")
-  ;; documents, BKMs, manuals, 
-  (org-open-link-from-string "https://projects.linaro.org/browse/LMG-390")
-  (org-open-link-from-string "https://projects.linaro.org/secure/RapidBoard.jspa")
-  (org-open-link-from-string "https://wiki.linaro.org/Internal/LMG/ART-CI")
-  (org-open-link-from-string "https://docs.google.com/document/d/1LLRtpbuUM6ggBUsmyBV_S_5nER5CAx1PFfAltVbMPO8")
-  ;; other useful linaro links:
-  ;; http://snapshots.linaro.org/android/android-generic-build/
-)
 
 (defun xueliang-linaro-art-target-test ()
   "invoke linaro host test" (interactive)
