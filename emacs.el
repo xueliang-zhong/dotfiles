@@ -752,17 +752,25 @@
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
-(defun xueliang-gdiff ()
- "run git diff HEAD;
-  use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
- (xueliang-cd-current-buffer-directory)
- (shell-command "git diff HEAD")
- (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
-   (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-   (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
+;; (defun xueliang-gdiff ()
+;;  "run git diff HEAD;
+;;   use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
+;;  (xueliang-cd-current-buffer-directory)
+;;  (shell-command "git diff HEAD")
+;;  (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
+;;    (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
+;;    (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
+;;
 
-;; (defalias 'xueliang-gdiff 'magit-diff-staged)
-(defalias 'xueliang-gdiff-UNSTAGED 'magit-diff-unstaged)
+;; similar behavior as org mode.
+(require 'magit-status)
+(define-key magit-status-mode-map (kbd "TAB") 'magit-section-cycle)
+(define-key magit-status-mode-map (kbd "<tab>") 'magit-section-cycle)
+(require 'magit-diff)
+(define-key magit-diff-mode-map (kbd "TAB") 'magit-section-cycle)
+(define-key magit-diff-mode-map (kbd "<tab>") 'magit-section-cycle)
+
+(defalias 'xueliang-gdiff 'magit-diff-working-tree)
 
 (defun xueliang-glog (&optional xueliang-cword)
   "git log with ivy" (interactive)
@@ -1553,6 +1561,32 @@
         (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
 ))))
 
+(defun xueliang-markdown-to-slides-with-odpdown ()
+  "use odpdown to convert current .md file to libreoffice slides."
+  (interactive)
+  (when (string-equal "md" (file-name-extension (buffer-file-name)))
+    (shell-command
+     (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal"
+              (buffer-file-name)
+              (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))
+     ))
+    (start-process "markdown-to-slides"
+                   nil
+                   "libreoffice"
+                   (message "%s.odp" (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
+  )
+)
+
+(defun xueliang-markdown-to-PDF-slides ()
+  "Use odpdown/soffice to convert current markdown .md file to PDF slides."
+  (interactive)
+  (when (string-equal "md" (file-name-extension (buffer-file-name)))
+     (setq-local xueliang-file-name (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))
+     (shell-command (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal" (buffer-file-name) xueliang-file-name))
+     (shell-command (message "soffice --convert-to pdf %s.odp && evince %s.pdf" xueliang-file-name xueliang-file-name))
+  )
+)
+
 (defun xueliang-linaro-LMG-tickets-in-markdown ()
    "Makes Linaro tickets pretty in markdown reports.\nChange 'LMG-390' to 'https://projects.linaro.org/browse/LMG-390'" (interactive)
    (evil-goto-first-line)
@@ -1673,30 +1707,12 @@
   ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
   (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
 
-(defun xueliang-markdown-to-slides-with-odpdown ()
-  "use odpdown to convert current .md file to libreoffice slides."
-  (interactive)
-  (when (string-equal "md" (file-name-extension (buffer-file-name)))
-    (shell-command
-     (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal"
-              (buffer-file-name)
-              (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))
-     ))
-    (start-process "markdown-to-slides"
-                   nil
-                   "libreoffice"
-                   (message "%s.odp" (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
-  )
-)
-
-(defun xueliang-markdown-to-PDF-slides ()
-  "Use odpdown/soffice to convert current markdown .md file to PDF slides."
-  (interactive)
-  (when (string-equal "md" (file-name-extension (buffer-file-name)))
-     (setq-local xueliang-file-name (file-name-sans-extension (file-name-nondirectory (buffer-file-name))))
-     (shell-command (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal" (buffer-file-name) xueliang-file-name))
-     (shell-command (message "soffice --convert-to pdf %s.odp && evince %s.pdf" xueliang-file-name xueliang-file-name))
-  )
+(defun xueliang-clean-android-linaro-mv-rm-out-files () (interactive)
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*mv-rm-out-" (format-time-string "%H:%M:%S*" (current-time)) "*"))
+  (insert "cd $android-root") (eshell-send-input)
+  (insert (concat "mv out ~/rubish/out.") (format-time-string "%Y-%m-%d-%H_%M_%S" (current-time))) (eshell-send-input)
+  (eshell/x)
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1797,13 +1813,3 @@
 (global-set-key (kbd "<f11>") 'helm-google)
 (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
 (global-set-key (kbd "<f12>") 'xueliang-open-link)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Keep emacs configs updated on my Linux & Windows machines.
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(when (file-exists-p dropbox-home)
-  ;; on Linux keep saving emacs.el --> dropbox;
-  (when (string-equal system-type "gnu/linux") (copy-file (concat dot-files "/emacs.el") (concat dropbox-home "emacs/init.el") t))
-  ;; on Windows keep reading init.el <-- dropbox.
-  (when (string-equal system-type "windows-nt") (copy-file (concat dropbox-home "emacs/init.el") "c:/Users/xueliang/AppData/Roaming/.emacs.d/init.el" t))
-)
