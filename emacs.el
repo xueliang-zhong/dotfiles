@@ -722,11 +722,6 @@
 ;; for windows for the user to do select, put them very-bottom.
 (setq-default shell-output-buffer-name "*Shell Command Output*")
 
-(require 'cl-lib)
-(defun xueliang-sum-numbers-in-region (start end)
-  (interactive "r")
-  (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
-
 (defun xueliang-gcommit ()
   "run git commit.
    *** HANDLE WITH CARE !!! ***" (interactive)
@@ -752,26 +747,6 @@
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
-;; (defun xueliang-gdiff ()
-;;  "run git diff HEAD;
-;;   use C-M-i to browse diff hunks; C-c C-c to jump to source code." (interactive)
-;;  (xueliang-cd-current-buffer-directory)
-;;  (shell-command "git diff HEAD")
-;;  (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
-;;    (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-;;    (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7)))
-;;
-
-;; similar behavior as org mode.
-(require 'magit-status)
-(define-key magit-status-mode-map (kbd "TAB") 'magit-section-cycle)
-(define-key magit-status-mode-map (kbd "<tab>") 'magit-section-cycle)
-(require 'magit-diff)
-(define-key magit-diff-mode-map (kbd "TAB") 'magit-section-cycle)
-(define-key magit-diff-mode-map (kbd "<tab>") 'magit-section-cycle)
-
-(defalias 'xueliang-gdiff 'magit-diff-working-tree)
-
 (defun xueliang-glog (&optional xueliang-cword)
   "git log with ivy" (interactive)
   (require 'fiplr)
@@ -785,14 +760,36 @@
                                                xueliang-cword                                  ;; then use it as initial-input;
                                              "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
+(defun xueliang-gdiff ()
+ "run git diff HEAD" (interactive)
+  (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
+  (magit-diff-working-tree) (evil-next-line 7)
+;;
+;; my alternative implementation:
+;; (shell-command "git diff HEAD")
+;; (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
+;;  (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
+;; (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7))
+)
+
 (defun xueliang-gdiff-revision-at-point ()
    "run 'git diff' using the revision number from ivy glog" (interactive)
-   (require 'fiplr)
-   (when (buffer-file-name) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
-   (shell-command (message "git diff %s " (xueliang-glog (thing-at-point 'word))))
-   ;;(magit-diff (xueliang-glog))
-   (switch-to-buffer-other-window shell-output-buffer-name)
-   (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+   (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
+   (magit-diff (xueliang-glog)) (evil-next-line 7)
+;;
+;; my alternative implementation:
+;; (shell-command (message "git diff %s " (xueliang-glog (thing-at-point 'word))))
+;; (switch-to-buffer-other-window shell-output-buffer-name)
+;; (evil-window-move-far-right) (diff-mode) (evil-next-line 10)
+)
+
+;; similar behavior as org mode.
+(require 'magit-status)
+(define-key magit-status-mode-map (kbd "TAB") 'magit-section-cycle)
+(define-key magit-status-mode-map (kbd "<tab>") 'magit-section-cycle)
+(require 'magit-diff)
+(define-key magit-diff-mode-map (kbd "TAB") 'magit-section-cycle)
+(define-key magit-diff-mode-map (kbd "<tab>") 'magit-section-cycle)
 
 (defun xueliang/gdiff-window ()
   "show a diff window at the right side."
@@ -803,15 +800,18 @@
 
 (defun xueliang-gshow ()
   "run 'git show' using the ivy glog" (interactive)
-  (shell-command (message "git show %s " (xueliang-glog)))
-  (xueliang/gdiff-window))
+  (magit-show-commit (xueliang-glog)) (evil-next-line 17)
+;;
+;; my alternative implementation:
+;; (shell-command (message "git show %s " (xueliang-glog))) (xueliang/gdiff-window)
+)
 
 (defun xueliang-gshow-revision-at-point-OPEN-GERRIT-REVIEW ()
   "run 'git show' using the ivy glog" (interactive)
   (setq git-revision-string (thing-at-point 'word))
   (when git-revision-string
-    (shell-command (message "git show %s " git-revision-string))
-    (xueliang/gdiff-window)
+    (magit-show-commit git-revision-string) (evil-next-line 17)
+;;  (shell-command (message "git show %s " git-revision-string)) (xueliang/gdiff-window)
     (org-open-link-from-string (concat
                                 (ivy-read "Select Gerrit: "
                                           (list
@@ -1252,6 +1252,11 @@
 
 (defun =============xueliang-functions=============())
 
+(require 'cl-lib)
+(defun xueliang-sum-numbers-in-region (start end)
+  (interactive "r")
+  (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
+
 (defun xueliang-flush-blank-lines (start end)
   "Remove blank lines in selected lines." (interactive "r")
    (flush-lines "^\\s-*$" start end nil))
@@ -1477,9 +1482,9 @@
   (insert "htop -d 10 --sort-key IO") (term-send-input))
 
 ;; make it easier for me to remember & type some commands.
-(defalias 'xueliang-htop 'xueliang-htop-cpu)
 (defalias 'xueliang-helm-htop 'helm-top)
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
+(defalias 'xueliang-eval-region 'eval-region)
 
 (defun xueliang-highlight-current-word ()
   "makes highlight-regexp easier" (interactive)
