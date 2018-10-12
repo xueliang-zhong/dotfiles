@@ -106,55 +106,6 @@
                                   dot-files
                                   dropbox))
 
-(setq xueliang-public-weblink-list
-      (list
-       ;; Code & Development
-       "Google_AOSP_Code_Review                      https://android-review.googlesource.com/"
-       "Linaro_ART_Jira_Kanban                       https://projects.linaro.org/secure/RapidBoard.jspa"
-       "Linaro_Jira_Epics_ART_Efforts_LMG-390        https://projects.linaro.org/browse/LMG-390"
-
-       ;; Daily builds 
-       "ART_Reports                                  https://art-reports.linaro.org"
-       "Google_AOSP_ART_Monitor_BuildBot             https://build.chromium.org/p/client.art/console"
-       "Images                                       http://snapshots.linaro.org/android/android-generic-build/"
-       "LAVA                                         https://validation.linaro.org/scheduler/device_type/nexus5x"
-
-       ;; Documents
-       "Android_Source                               https://source.android.com/"
-       "Dalvik_Byte_Code                             https://source.android.com/devices/tech/dalvik/dalvik-bytecode"
-       "Linaro_ART_CI                                https://wiki.linaro.org/Internal/LMG/ART-CI"
-       "Linux_Perf                                   http://www.brendangregg.com/linuxperf.html"
-
-       ;; Mails, Office, Calendar
-       "ARM_Calendar                                 https://outlook.office.com/owa/?path=/calendar/view/Week"
-       "ARM_Mail                                     https://outlook.office.com/owa/"
-       "Gmail                                        https://mail.google.com/mail/u/0/#inbox"
-       "Linaro_Gmail                                 https://mail.google.com/mail/u/1/#inbox"
-       "World_Global_Time_Clock_Meeting_Planner      https://www.timeanddate.com/worldclock/meetingtime.html?p1=1234&p2=283&p3=33&p4=43&p5=24&p6=179"
-
-       ;; Chats
-       "Skype_Web                                    https://secure.skype.com/portal/overview"
-       "Yammer                                       https://www.yammer.com/arm.com/"
-       "Wechat_Weixin_QQ                             https://web.wechat.com"
-
-       ;; Life
-       "Amazon_Shopping                              https://www.amazon.co.uk"
-       "Amazon_Music                                 https://www.amazon.co.uk/gp/dmusic/promotions/PrimeMusic"
-       "Google_Keep                                  https://keep.google.com"
-       "Google_Calendar                              https://calendar.google.com/calendar/"
-       "Google_Drive                                 https://drive.google.com"
-       "Google_Map                                   https://www.google.com/maps"
-       "Google_Doc                                   https://doc.google.com"
-       "Google_Input_Tools                           https://www.google.com/inputtools/try/"
-       "Google_Translate                             https://translate.google.co.uk/"
-       "Google_Hangouts                              https://hangouts.google.com/"
-       "Google_News                                  https://news.google.com/news/"
-       "Youtube                                      https://www.youtube.com"
-       "Cambridge_Weather                            http://www.bbc.co.uk/weather/2653941"
-       "Barclaycard                                  https://www.barclaycard.co.uk/personal"
-       "UK_Drive_AA_Driving_School                   https://www.theaa.com/driving-school/"
-       ))
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1106,13 +1057,6 @@
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
 
-; No need, just select and helm-google.
-;(defalias 'xueliang-google 'helm-google-suggest)
-;(defun xueliang-google-current-word ()
-;  "google current word" (interactive)
-; ;;(helm-google (thing-at-point 'symbol)))
-; (org-open-link-from-string (concat "https://www.google.co.uk/search?q=" (thing-at-point 'symbol))))
-
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
 
@@ -1290,7 +1234,7 @@
 (defun xueliang-open-link ()
   "" (interactive)
   (org-open-link-from-string (car (cdr (split-string
-                                        (ivy-read "Link: " (append xueliang-public-weblink-list xueliang-private-weblink-list))
+                                        (ivy-read "Link: " xueliang-private-weblink-list)
                                         ))))
 )
 
@@ -1480,10 +1424,6 @@
   (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert sync-cmd-string) (term-send-input))
-
-;; (defun xueliang-linaro-repo-sync ()
-;;   "repo sync linaro tree" (interactive)
-;;   (xueliang/linaro-repo-sync "repo sync -j33"))
 
 (defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
   "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
