@@ -829,8 +829,8 @@
 ; wrap long lines
 (set-default 'truncate-lines t)
 
-; bold font
-(set-face-bold 'bold t)
+; no bold font by default
+(set-face-bold 'bold nil)
 
 ; mouse
 (xterm-mouse-mode 1)
@@ -941,11 +941,10 @@
 
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
-  ;; at work
+  ;; for work & home computers, same theme.
   (xueliang-minimal-dark-theme)
-   ;; home laptop
-  (when (<= (x-display-pixel-height) 1080)
-    (xueliang-minimal-dark-theme) (set-face-attribute 'default nil :height 140))
+  ;; home laptop
+  (when (<= (x-display-pixel-height) 1080) (set-face-attribute 'default nil :height 140))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
