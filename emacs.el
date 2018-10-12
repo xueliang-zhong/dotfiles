@@ -136,12 +136,6 @@
 
 (setq evil-mode-line-format 'before)
 
-;; Same behavior on last line as vim.
-;(define-key evil-normal-state-map (kbd "j") '(lambda() (interactive) (if (<= (+ (line-number-at-pos) 1) (line-number-at-pos (point-max)))
-;                                                                         (evil-next-line)
-;                                                                         (message "Last line of buffer.")
-;                                                                       )))
-
 ;; use helm-swoop instead of vim style */# find.
 (define-key evil-normal-state-map (kbd "*") 'xueliang-search-word-forward)
 (define-key evil-normal-state-map (kbd "#") 'xueliang-search-word-backward)
@@ -162,23 +156,10 @@
 ;; emacs style search
 (global-set-key (kbd "C-s") 'isearch-forward-regexp)
 
-(defun xueliang-close-occur-window()
-  "A robust functiont close occur window & buffer."
-  (setq xueliang-current-buffer (buffer-name (current-buffer)))
-  (when (get-buffer-window "*Occur*")
-    (switch-to-buffer-other-window "*Occur*")  ;; switch to the occur buffer window
-    (evil-switch-to-windows-last-buffer)       ;; go back to the previous buffer if it was changed by occur
-    (if (null (get-buffer-window "*Occur*"))   ;; check if occur is still there, which it means that window is created by occur
-        (switch-to-buffer-other-window xueliang-current-buffer)
-        (kill-buffer-and-window))              ;; close that occur window, if it was created by occur.
-    )
-)
-
 ;; like vim, ESC also removes highlight.
 (define-key evil-normal-state-map (kbd "<escape>") '(lambda() (interactive)
                                                       (evil-force-normal-state)
                                                       (unhighlight-regexp t)
-                                                      (xueliang-close-occur-window)
                                                       ))
 
 ;; vim style 'G' (end of buffer): doesn't work well in eshell.
