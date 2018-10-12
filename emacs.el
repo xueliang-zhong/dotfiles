@@ -688,14 +688,12 @@
 
 ;; don't enable projectile for performance considerations.
 (projectile-mode -1)
-(setq projectile-completion-system 'helm)
-;; (helm-projectile-on)
 
 (setq projectile-require-project-root nil)
 (setq projectile-enable-caching nil)
 
 (setq projectile-globally-ignored-directories
-      (append '(".dropbox.cache" "dropbox/.dropbox.cache" "dropbox")
+      (append '(".dropbox.cache" "dropbox/.dropbox.cache" "dropbox (Case Conflict)")
               projectile-globally-ignored-directories))
 
 ;; TODO: ignore file names begining with # or . and ignore file names ending with # or ~
@@ -1302,14 +1300,18 @@
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
   (cd (ivy-read "Project: " xueliang-project-list))
-  (xueliang-find-file-from-pwd))
+  (counsel-projectile-find-file)
+;;  (xueliang-find-file-from-pwd)
+)
 
 (defun xueliang-find-file ()
   "my fast find file in project" (interactive)
-  (require 'fiplr)
-  (if (string-equal system-type "windows-nt")
-      (projectile-find-file)
-      (xueliang/find-file (fiplr-root) ""))
+  (counsel-projectile-find-file)
+;;
+;;  (require 'fiplr)
+;;  (if (string-equal system-type "windows-nt")
+;;      (projectile-find-file)
+;;      (xueliang/find-file (fiplr-root) "")
 )
 
 (defun xueliang-find-file-from-pwd ()
@@ -1602,6 +1604,14 @@
    (while (re-search-forward "^Story" nil t) (replace-match "  -" t))
    (evil-goto-first-line)
    (while (re-search-forward "^Sub-task" nil t) (replace-match "  -" t))
+)
+
+(defun xueliang-rm-clean-home-rubish () (interactive)
+  (xueliang-eshell-quick-command (concat "rm -rf ~/rubish/out." (format-time-string "%Y-%m-%d-*" (current-time))))
+)
+
+(defun xueliang-df () (interactive)
+  (xueliang-eshell-quick-command "df -h /data")
 )
 
 (defun =============xueliang-linaro-development=============())
