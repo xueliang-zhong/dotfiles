@@ -52,6 +52,7 @@
                             rainbow-delimiters
                             smart-mode-line
                             smex
+                            spacemacs-theme
                             telephone-line
                             vdiff
                             vimrc-mode
@@ -981,7 +982,8 @@
 
 (defun xueliang/minimal-dark-theme()
   "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
-  (load-theme 'zenburn t)
+  ;;(load-theme 'zenburn t)
+  (load-theme 'spacemacs-dark t)
 
   (when (string-equal system-type "gnu/linux")
     (set-default-font "Monospace")
@@ -1156,6 +1158,23 @@
   (set-face-background 'match "yellow4")
 )
 
+(defun xueliang/minimal-light-theme()
+  (load-theme 'spacemacs-light t)
+
+  (when (string-equal system-type "gnu/linux")
+    (set-default-font "Monospace")
+    (set-face-attribute 'default nil :height 130))
+
+  (when (string-equal system-type "windows-nt")
+    (set-default-font "Consolas")
+    (set-face-attribute 'default nil :height 120))
+
+  ;; org levels settings: no bold or extra large fonts.
+  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
+)
+
 (defun xueliang/light-theme()
   (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
 
@@ -1169,16 +1188,16 @@
     (set-default-font "Consolas")
     (set-face-attribute 'default nil :height 120))
 
+  ;; Basic color configs
+  (set-face-foreground 'font-lock-comment-face "DarkGreen")
+  (set-face-foreground 'font-lock-doc-face "DarkGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
+
   ;; eshell prompt configs
   (setq eshell-prompt-function (lambda () (concat
                                            (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "DarkOrange3")) ;; orange, DarkOrange3
                                            (propertize (eshell/pwd) 'face `(:foreground "MediumBlue")) ;; SkyBlue, MediumBlue
                                            (propertize " $ " 'face `(:foreground "black"))))) ;; LightGrey, black
-
-  ;; Useful commands: list-faces-display, counsel-colors-emacs.
-  (set-face-foreground 'font-lock-comment-face "DarkGreen")
-  (set-face-foreground 'font-lock-doc-face "DarkGreen")
-  (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
 
   (require 'diff-mode)
   (set-face-background 'diff-refine-added "DarkOliveGreen")
@@ -1199,7 +1218,7 @@
   (set-face-background 'company-scrollbar-fg "LightGrey")
   (set-face-background 'company-tooltip-selection "DimGrey")
   (set-face-foreground 'company-tooltip-selection "LightGrey")
-  (set-face-background 'company-preview-common "grey20")
+  (set-face-background 'company-preview-common "grey67")
   (set-face-foreground 'company-preview-common "DarkGrey")
 
   ;; Org mode colors
@@ -1238,10 +1257,10 @@
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
   ;; at work
-  (xueliang/light-theme)
+  (xueliang/minimal-light-theme)
    ;; home laptop
   (when (<= (x-display-pixel-height) 1080)
-    (xueliang/light-theme) (set-face-attribute 'default nil :height 140))
+    (xueliang/minimal-light-theme) (set-face-attribute 'default nil :height 140))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
