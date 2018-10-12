@@ -980,75 +980,7 @@
 
 (defun =============theme-color-settings=============())
 
-(defun xueliang/minimal-dark-theme()
-  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
-  ;;(load-theme 'zenburn t)
-  (load-theme 'spacemacs-dark t)
-
-  (when (string-equal system-type "gnu/linux")
-    (set-default-font "Monospace")
-    (set-face-attribute 'default nil :height 130))
-
-  (when (string-equal system-type "windows-nt")
-    (set-default-font "Consolas")
-    (set-face-attribute 'default nil :height 120))
-
-  ;; basic settings
-  ;; colours
-  (set-face-foreground 'default "DarkGrey")
-  (set-face-foreground 'font-lock-comment-face "LightSeaGreen")
-  (set-face-foreground 'font-lock-doc-face "LightSeaGreen")
-  (set-face-foreground 'font-lock-comment-delimiter-face "LightSeaGreen")
-  (set-face-foreground 'font-lock-keyword-face "LightGoldenrod3")
-  (set-face-foreground 'font-lock-variable-name-face "DarkGrey")
-  (set-face-foreground 'font-lock-type-face "PaleGreen")
-  (set-face-foreground 'font-lock-builtin-face "DarkGrey")
-  (set-face-foreground 'font-lock-negation-char-face "DarkGrey")
-  (set-face-foreground 'font-lock-function-name-face "DarkGrey")
-  (set-face-foreground 'font-lock-warning-face "DarkGrey")
-  (set-face-foreground 'font-lock-string-face "#ad7fa8")
-  (set-face-foreground 'font-lock-constant-face "DarkGrey")
-  (set-face-foreground 'link "SteelBlue1")
-  ;; no bold
-  (set-face-attribute 'font-lock-keyword-face nil :bold nil)
-  (set-face-attribute 'font-lock-builtin-face nil :bold nil)
-  (set-face-attribute 'link nil :bold nil)
-
-  ;; eshell prompt configs
-  (setq eshell-prompt-function (lambda () (concat
-                                           (propertize (format-time-string "[%a %d %b, %H:%M] " (current-time)) 'face `(:foreground "orange")) ;; orange, DarkOrange3
-                                           (propertize (eshell/pwd) 'face `(:foreground "SkyBlue")) ;; SkyBlue, MediumBlue
-                                           (propertize " $ " 'face `(:foreground "LightGrey"))))) ;; LightGrey, black
-  (setq eshell-highlight-prompt nil)
-
-
-  ;; org mode
-  (setq org-src-fontify-natively t)
-  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
-  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
-  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
-  (set-face-foreground 'org-link "SteelBlue1")
-  (set-face-foreground 'org-done "SpringGreen")
-  (set-face-background 'org-table "DarkSlateGrey")
-  (set-face-foreground 'org-table "DarkGrey")
-
-  ;; ivy
-  (set-face-background 'ivy-minibuffer-match-face-1 "DarkSlateGrey")
-  (set-face-background 'ivy-minibuffer-match-face-2 "#2B2B2B")
-  (set-face-background 'ivy-minibuffer-match-face-3 "#2B2B2B")
-  (set-face-background 'ivy-minibuffer-match-face-4 "#2B2B2B")
-  (set-face-attribute 'ivy-current-match nil :bold nil)
-
-  ;; make linum more vim like.
-  (set-face-foreground 'linum "gold1")
-
-  ;; git gutter colors.
-  (when window-system (set-face-background 'fringe "grey25"))
-)
-
-(defun xueliang/minimal-light-theme()
-  (load-theme 'spacemacs-light t)
-
+(defun xueliang/minimal-theme()
   (when (string-equal system-type "gnu/linux")
     (set-default-font "Monospace")
     (set-face-attribute 'default nil :height 130))
@@ -1063,13 +995,25 @@
   (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
 )
 
+(defun xueliang-minimal-dark-theme()
+  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
+  (load-theme 'spacemacs-dark t)
+  (xueliang/minimal-theme)
+)
+
+(defun xueliang-minimal-light-theme()
+  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
+  (load-theme 'spacemacs-light t)
+  (xueliang/minimal-theme)
+)
+
 ; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
 (when window-system
   ;; at work
-  (xueliang/minimal-light-theme)
+  (xueliang-minimal-dark-theme)
    ;; home laptop
   (when (<= (x-display-pixel-height) 1080)
-    (xueliang/minimal-light-theme) (set-face-attribute 'default nil :height 140))
+    (xueliang-minimal-dark-theme) (set-face-attribute 'default nil :height 140))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
