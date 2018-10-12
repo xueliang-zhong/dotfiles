@@ -90,7 +90,7 @@
 (setq dot-files             "~/workspace/dotfiles")
 (setq dropbox               "~/workspace/dropbox")
 (when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
-(when (string-equal system-type "windows-nt") (setq dropbox-home "C:/Users/xueliang/Dropbox/"))
+(when (string-equal system-type "windows-nt") (setq dropbox-home "c:/Users/xuezho01/Dropbox/"))
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
