@@ -87,8 +87,8 @@
 (setq android-device          (concat android-root "/device"))
 (setq android-dalvik          (concat android-root "/dalvik"))
 (setq android-frameworks-base (concat android-root "/frameworks/base"))
-(setq dot-files             "~/workspace/dotfiles")
-(setq dropbox               "~/workspace/dropbox")
+(setq dot-files               "~/workspace/dotfiles")
+(setq dropbox                 "~/workspace/dropbox")
 (when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
 (when (string-equal system-type "windows-nt") (setq dropbox-home "c:/Users/xuezho01/Dropbox/"))
 
@@ -162,21 +162,6 @@
                                                       (unhighlight-regexp t)
                                                       ))
 
-;; vim style 'G' (end of buffer): doesn't work well in eshell.
-;; (define-key evil-normal-state-map (kbd "G") '(lambda() (interactive) (goto-char (- (point-max) 1)) (move-beginning-of-line 1)))
-
-(defun xueliang-search-next-and-update-occur() (interactive)
-       (evil-search-next 1)
-       (when (get-buffer-window "*Occur*")
-         ;; the following code makes the occur window a mini map of searching.
-         (setq xueliang-highlight-line (line-number-at-pos))
-         (switch-to-buffer-other-window "*Occur*")
-         (unhighlight-regexp t) (highlight-regexp (message "^[ ]*%d:.*$" xueliang-highlight-line) 'ivy-current-match)
-         (other-window -1))
-)
-
-(define-key evil-normal-state-map (kbd "n") 'xueliang-search-next-and-update-occur)
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <leader> config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -206,6 +191,8 @@
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
+  "w/" 'split-window-horizontally
+  "w-" 'split-window-vertically
   "x" 'delete-window  ;; common operation.
   "X" 'kill-buffer-and-window  ;; common operation.
 )
@@ -298,10 +285,6 @@
 ;; however, sometimes it's nice to know the total number of candiates (total proccesses, files, etc),
 ;; for these scenarios, ivy seems to be a better.
 (setq helm-candidate-number-limit 200)
-
-;; quite useful to see what I've deleted.
-(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
-(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
 
 ;; include flyspell-mode into helm as well.
 (add-hook 'flyspell-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "C-M-i") 'helm-flyspell-correct)))
@@ -1446,11 +1429,12 @@
 (global-set-key (kbd "C-h f") 'helm-apropos)
 (global-set-key (kbd "C-h v") 'helm-apropos)
 
-;; good practice for reading code.
-;; (global-set-key (kbd "C-s") 'xueliang-send-current-line-to-scratch)
+;; quite useful to see what I've deleted.
+(define-key evil-normal-state-map (kbd "M-y") 'counsel-yank-pop)
+(define-key evil-insert-state-map (kbd "M-y") 'counsel-yank-pop)
 
 ; describe key-bindings
-(global-set-key (kbd "C-h b") 'helm-descbinds)
+(global-set-key (kbd "C-h b") 'counsel-descbinds)
 
 ; good way to learn all completion functions.
 (global-set-key (kbd "M-/") 'hippie-expand)
