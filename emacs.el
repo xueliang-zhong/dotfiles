@@ -75,7 +75,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============vars=============())
 
-(setq android-root            "~/workspace/linaro")
+(when (string-equal system-type "gnu/linux") (setq xueliang-home "~"))
+(when (string-equal system-type "windows-nt")
+  (when (file-exists-p "c:/Users/xuezho01") (setq xueliang-home "c:/Users/xuezho01"))
+  (when (file-exists-p "c:/Users/xueliang") (setq xueliang-home "c:/Users/xueliang")))
+(setq dot-files               (concat xueliang-home "/workspace/dotfiles"))
+(setq dropbox-home            (concat xueliang-home "/Dropbox/"))
+(setq android-root            (concat xueliang-home "/workspace/linaro"))
 (setq android-art             (concat android-root "/art"))
 (setq android-bionic          (concat android-root "/bionic"))
 (setq android-libcore         (concat android-root "/libcore"))
@@ -87,10 +93,6 @@
 (setq android-device          (concat android-root "/device"))
 (setq android-dalvik          (concat android-root "/dalvik"))
 (setq android-frameworks-base (concat android-root "/frameworks/base"))
-(setq dot-files               "~/workspace/dotfiles")
-(setq dropbox                 "~/workspace/dropbox")
-(when (string-equal system-type "gnu/linux") (setq dropbox-home "~/Dropbox/"))
-(when (string-equal system-type "windows-nt") (setq dropbox-home "c:/Users/xuezho01/Dropbox/"))
 
 (setq xueliang-project-list (list android-art
                                   android-benchmarks
@@ -104,7 +106,7 @@
                                   android-dalvik
                                   android-frameworks-base
                                   dot-files
-                                  dropbox))
+                                  dropbox-home))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; my own plugin
@@ -982,9 +984,8 @@
 
 (defun xueliang-find-project()
   "switch among my projects" (interactive)
-  (cd (ivy-read "Project: " xueliang-project-list))
+  (find-file (ivy-read "Project: " xueliang-project-list))
   (counsel-projectile-find-file)
-;;  (xueliang-find-file-from-pwd)
 )
 
 (defun xueliang-find-file ()
