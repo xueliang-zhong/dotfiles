@@ -628,10 +628,7 @@
 ;; xueliang git
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============xueliang-git-config/functions=============())
-;; xueliang's Git helper functions/commands.
 
-;; for windows to display diff, put them far-right.
-;; for windows for the user to do select, put them very-bottom.
 (setq-default shell-output-buffer-name "*Shell Command Output*")
 
 (defun xueliang-gcommit ()
@@ -659,8 +656,8 @@
   (vc-mode-line (buffer-file-name)))
 (defalias 'xueliang-gbranch 'xueliang-gcheckout-branch)
 
-(defun xueliang-glog (&optional xueliang-cword)
-  "git log with ivy" (interactive)
+(defun xueliang/glog (&optional xueliang-cword)
+  "git log with ivy"
   (require 'fiplr)
   (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
   (car (split-string
@@ -687,10 +684,10 @@
 (defun xueliang-gdiff-revision-at-point ()
    "run 'git diff' using the revision number from ivy glog" (interactive)
    (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
-   (magit-diff (xueliang-glog)) (evil-next-line 7)
+   (magit-diff (xueliang/glog)) (evil-next-line 7)
 ;;
 ;; my alternative implementation:
-;; (shell-command (message "git diff %s " (xueliang-glog (thing-at-point 'word))))
+;; (shell-command (message "git diff %s " (xueliang/glog (thing-at-point 'word))))
 ;; (switch-to-buffer-other-window shell-output-buffer-name)
 ;; (evil-window-move-far-right) (diff-mode) (evil-next-line 10)
 )
@@ -712,10 +709,10 @@
 
 (defun xueliang-gshow ()
   "run 'git show' using the ivy glog" (interactive)
-  (magit-show-commit (xueliang-glog)) (evil-next-line 17)
+  (magit-show-commit (xueliang/glog)) (evil-next-line 17)
 ;;
 ;; my alternative implementation:
-;; (shell-command (message "git show %s " (xueliang-glog))) (xueliang/gdiff-window)
+;; (shell-command (message "git show %s " (xueliang/glog))) (xueliang/gdiff-window)
 )
 
 (defun xueliang-gshow-revision-at-point-OPEN-GERRIT-REVIEW ()
@@ -755,8 +752,8 @@
   (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
   (evil-window-move-very-bottom) (toggle-truncate-lines 1))
 
-;; simply calls magit-rebase-interactive.
 (defalias 'xueliang-grebase 'magit-rebase-interactive)
+(defalias 'xueliang-glog 'magit-log-all)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang global settings
