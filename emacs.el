@@ -131,9 +131,6 @@
 (require 'evil-leader)
 (global-evil-leader-mode)
 
-;;(require 'evil-matchit)
-;;(global-evil-matchit-mode -1)
-
 (setq evil-shift-width 2)
 
 (setq evil-mode-line-format 'before)
@@ -145,15 +142,6 @@
 ;; swiper is slow, for quick searching with '/' and '?', I'm still keeping the old vim way.
 (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
 (define-key evil-normal-state-map (kbd "?") 'evil-search-backward)
-
-;; give the old vim style /? search a more swiper way: space key inserts ".*"
-(define-key isearch-mode-map (kbd "<SPC>") '(lambda() (interactive) (isearch-printing-char 46 1) (isearch-printing-char 42 1)))
-
-;; give the old vim style /? search another improvement: with occur window.
-(define-key isearch-mode-map (kbd "<return>") '(lambda() (interactive)
-                                                 ;;(when (> (length isearch-string) 1) (occur isearch-string))
-                                                 (isearch-exit)
-                                              ))
 
 ;; emacs style search
 (global-set-key (kbd "C-s") 'isearch-forward-regexp)
@@ -193,7 +181,6 @@
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
-  "x" 'delete-window  ;; common operation.
   "X" 'kill-buffer-and-window  ;; common operation.
 )
 
@@ -320,14 +307,6 @@
                          (window-height . 0.4)))
 
 (helm-mode -1)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; ido mode
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============ido-config=============())
-(setq ido-enable-flex-matching t)
-(setq ido-everywhere nil)
-(ido-mode -1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; ivy config
@@ -796,10 +775,6 @@
 ;; hide welcome screen, so that I can all daily-websites immediate after emacs started.
 (setq inhibit-splash-screen t)
 
-;; requires build emacs with: ./configure --with-x-toolkit=gtk
-;; good fonts: "Liberation Mono", "DejaVu Sans Mono", "Droid Sans Mono", "Ubuntu Mono", "Monospace"
-(set-default-font "Monospace")
-
 ; line/column related
 (column-number-mode)
 
@@ -1020,15 +995,6 @@
   (compilation-mode)
   (compilation-previous-error 1))
 
-; Help to make upate TAGS of the project I'm working on easier.
-(defun xueliang-update-tags-art ()
-  "update etags/TAGS of Android ART project" (interactive)
-  (cd android-art) (shell-command "ctag"))
-
-(defun xueliang-update-tags-vixl ()
-  "update etags/TAGS of Android VIXL project" (interactive)
-  (cd android-vixl) (shell-command "ctag"))
-
 ; Help to make code reviews easier; requires cpplint.py in $PATH.
 (defun xueliang-art-cpplint ()
   "invokes AOSP/art/tools/cpplint.py on current buffer" (interactive)
@@ -1088,37 +1054,8 @@
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-
-  ;; Best so far, but slow in large projects.
   (counsel-ag (thing-at-point 'word)) ;; counsel-ag allows initial input to play with.
-
-  ;; This option has pre-input, but doesn't work with SPACE in search.
-  ;;(helm-projectile-ag)
-
-  ;; This option has pre-input, but doesn't work with SPACE in search.
-  ;;(helm-do-ag (fiplr-root))
-
-  ;; This options works fine, provides both pre-input and SPACE support.
-  ;; (helm-projectile-ack) 
-
-  ;; This option requires the kill-ring workaround.
-  ;;(kill-ring-save (point) (+ (point) (length (thing-at-point 'symbol))))   ;; so that it can be pasted in helm using shift-insert.
-  ;;(helm-do-grep-ag (thing-at-point 'symbol))
  )
-
-(setq-default xueliang-current-font 0)
-(defun xueliang-switch-fonts ()
-  "it's nice to be able to switch between pretty fonts.\nEspecially for writing emails, docs, and code."
-  (interactive)
-  (if (= (mod xueliang-current-font 2) 0)
-      (set-default-font "DejaVu Sans")
-      (set-default-font "DejaVu Sans Mono"))
-   (setq xueliang-current-font (+ xueliang-current-font 1)))
-
-(defun xueliang-turn-on-transparency ()
-  "turn on transparency easier for any eamcs frames."
-  (interactive)
-  (set-frame-parameter (selected-frame) 'alpha '(100 . 100)))
 
 (setq-default xueliang-current-narrow 1)
 (defun xueliang-toggle-narrow-to-defun-widen ()
@@ -1168,18 +1105,15 @@
 )
 
 (defun xueliang-eshell-quick-command (str)
-  (xueliang-eshell-pwd) (insert str) (eshell-send-input)
-)
+  (xueliang-eshell-pwd) (insert str) (eshell-send-input))
 
 (defun xueliang-dev-machine-temperature ()
   "check temperature" (interactive)
-  (xueliang-eshell-quick-command "cat /sys/class/thermal/thermal_zone*/temp")
-)
+  (xueliang-eshell-quick-command "cat /sys/class/thermal/thermal_zone*/temp"))
 
 (defun xueliang-dropbox-status ()
   "check dropbox status quickly" (interactive)
-  (xueliang-eshell-quick-command "dropbox status")
-)
+  (xueliang-eshell-quick-command "dropbox status"))
 
 (defun xueliang-open-link ()
   "" (interactive)
@@ -1234,22 +1168,6 @@
         (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
 ))))
 
-(defun xueliang-markdown-to-slides-with-odpdown ()
-  "use odpdown to convert current .md file to libreoffice slides."
-  (interactive)
-  (when (string-equal "md" (file-name-extension (buffer-file-name)))
-    (shell-command
-     (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal"
-              (buffer-file-name)
-              (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))
-     ))
-    (start-process "markdown-to-slides"
-                   nil
-                   "libreoffice"
-                   (message "%s.odp" (file-name-sans-extension (file-name-nondirectory (buffer-file-name)))))
-  )
-)
-
 (defun xueliang-markdown-to-PDF-slides ()
   "Use odpdown/soffice to convert current markdown .md file to PDF slides."
   (interactive)
@@ -1258,18 +1176,6 @@
      (shell-command (message "odpdown %s -p0 ~/workspace/dropbox/arm.otp %s.odp --break-master Title --content-master Normal" (buffer-file-name) xueliang-file-name))
      (shell-command (message "soffice --convert-to pdf %s.odp && evince %s.pdf" xueliang-file-name xueliang-file-name))
   )
-)
-
-(defun xueliang-linaro-LMG-tickets-in-markdown ()
-   "Makes Linaro tickets pretty in markdown reports.\nChange 'LMG-390' to 'https://projects.linaro.org/browse/LMG-390'" (interactive)
-   (evil-goto-first-line)
-   (while (re-search-forward "LMG-[0-9]*" nil t) (replace-match "[\\&](https://projects.linaro.org/browse/\\&)" t))
-   (evil-goto-first-line)
-   (while (re-search-forward "^Epic" nil t) (replace-match "  -" t))
-   (evil-goto-first-line)
-   (while (re-search-forward "^Story" nil t) (replace-match "  -" t))
-   (evil-goto-first-line)
-   (while (re-search-forward "^Sub-task" nil t) (replace-match "  -" t))
 )
 
 (defun xueliang-rm-clean-home-rubish () (interactive)
@@ -1302,9 +1208,6 @@
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
-  ;;; workaround for jack server time out issue, which has been removed from latest android tree?
-  ;;; (insert "./prebuilts/sdk/tools/jack-admin kill-server") (eshell-send-input) (sleep-for 2)
-  ;;; (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)
   (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
 
 (defun xueliang-restart-android-jack-server ()
@@ -1408,9 +1311,6 @@
 
 ;; emacs style kill-line
 (global-set-key (kbd "C-k") 'evil-delete-line)
-
-;; same as the key in chrome
-(global-set-key (kbd "C-q") 'xueliang-helm-open-link)
 
 ; Use default (describe-function) and (describe-variable) with ivy/counsel.
 (global-set-key (kbd "C-h f") 'helm-apropos)
