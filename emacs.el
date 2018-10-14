@@ -1191,28 +1191,8 @@
   (rename-buffer (concat "*eshell-linaro-make-art-gtest-asan-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
   (insert "art/test/testrunner/run_build_test_target.py -j33 art-gtest-asan") (eshell-send-input)
+  ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
 )
-
-(defun xueliang-linaro-art-target-test ()
-  "invoke linaro host test" (interactive)
-  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-art-target-test-optimizing" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "cd $android-root") (eshell-send-input)
-  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input))
-
-(defun xueliang-linaro-make-test-art-host ()
-  "invoke linaro host test" (interactive)
-  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-make-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "cd $android-root") (eshell-send-input)
-  (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input))
-
-(defun xueliang-restart-android-jack-server ()
-  "workaround for now to restart Android JACK server and speed up my tests" (interactive)
-  (xueliang-eshell-pwd)
-  (insert "cd $android-root") (eshell-send-input)
-  (insert "./prebuilts/sdk/tools/jack-admin start-server") (eshell-send-input) (sleep-for 2)   ;; workaround for jack server time out issue.
-  (kill-buffer-and-window))
 
 (defun xueliang/make-android-system-image (lunch-target)
   "invoke build android system image from andriod-root source tree"
@@ -1253,13 +1233,6 @@
                                       "aosp_bullhead_svelte-userdebug"
                                       ))))
 
-(defun xueliang-linaro-make-ALL ()
-  "save me some time in building" (interactive)
-  ;; just make, don't sync - repo sync may delete my local changes.
-  (xueliang-make-android-system-image)
-  (sleep-for 3600)  ;; wait, avoid triggering multiple build tasks.
-  (xueliang-linaro-make-test-art-host))
-
 (defun xueliang-linaro-gdb ()
   "invoke gdb linaro tree" (interactive)
   (require 'gdb-mi)
@@ -1267,13 +1240,6 @@
   (tool-bar-mode -1)
   (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
   (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
-
-(defun xueliang/linaro-repo-sync (sync-cmd-string)
-  "repo sync linaro tree"
-  (split-window-below) (evil-window-move-very-bottom)
-  (term "bash") (rename-buffer (concat "*repo-sync-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert (message "cd %s" android-root)) (term-send-input)
-  (insert sync-cmd-string) (term-send-input))
 
 (defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
   "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
