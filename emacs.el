@@ -873,7 +873,7 @@
   (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas"))
 
-  (if (<= (x-display-pixel-height) 1080)
+  (if (<= (display-pixel-height) 1080)
      (set-face-attribute 'default nil :height 140)  ;; laptop
      (set-face-attribute 'default nil :height 130)) ;; workstation
 
