@@ -1448,9 +1448,10 @@
 ;; <f5> .. <f8> :
 ;; code development related: debug/test, program structure, build.
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
+(global-set-key (kbd "<f6>")   'xueliang-eshell-pwd)
+(global-set-key (kbd "C-<f6>") 'xueliang-terminal-shell)
 (global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-asan-test)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
-(global-set-key (kbd "<f6>")   'xueliang-terminal-shell)
 
 ;; Magic key <f8>
 ;; <f8> shows program/output/content structure in various languages.
