@@ -897,39 +897,26 @@
 (defun =============theme-color-settings=============())
 
 (defun xueliang/minimal-theme()
-  (when (string-equal system-type "gnu/linux")
-    (set-default-font "Monospace")
-    (set-face-attribute 'default nil :height 130))
+  "Make the colors feel better in my eyes, with minimal tweaks to original theme."
+  (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
+  (when (string-equal system-type "windows-nt") (set-default-font "Consolas"))
 
-  (when (string-equal system-type "windows-nt")
-    (set-default-font "Consolas")
-    (set-face-attribute 'default nil :height 120))
+  (if (<= (x-display-pixel-height) 1080)
+     (set-face-attribute 'default nil :height 140)  ;; laptop
+     (set-face-attribute 'default nil :height 130)) ;; workstation
 
-  ;; org levels settings: no bold or extra large fonts.
   (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
   (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
   (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
 )
 
-(defun xueliang-minimal-dark-theme()
-  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
-  (load-theme 'spacemacs-dark t)
-  (xueliang/minimal-theme)
-)
+(defun xueliang-minimal-dark-theme() (interactive)
+  (load-theme 'spacemacs-dark t) (xueliang/minimal-theme))
 
-(defun xueliang-minimal-light-theme()
-  "Make the colors feel better in my eyes, with minimal tweaks to original theme." (interactive)
-  (load-theme 'spacemacs-light t)
-  (xueliang/minimal-theme)
-)
+(defun xueliang-minimal-light-theme() (interactive)
+  (load-theme 'spacemacs-light t) (xueliang/minimal-theme))
 
-; default theme good themes: tango-dark, zenburn, monokai, wombat, heroku, anti-zenburn
-(when window-system
-  ;; for work & home computers, same theme.
-  (xueliang-minimal-dark-theme)
-  ;; home laptop
-  (when (<= (x-display-pixel-height) 1080) (set-face-attribute 'default nil :height 140))
-)
+(xueliang-minimal-dark-theme)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
