@@ -206,6 +206,10 @@
   "wj" 'evil-window-move-very-bottom
   "wk" 'evil-window-move-very-top
   "wx" 'delete-window
+  ;; windows resize
+  "w0" 'balance-windows
+  "w-" '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20))
+  "w=" '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -865,24 +869,6 @@
 
 ;; auto revert buffers
 (global-auto-revert-mode 1)
-
-;; window move
-(define-key evil-normal-state-map (kbd "C-M-k")    'windmove-up)
-(define-key evil-normal-state-map (kbd "C-M-j")  'windmove-down)
-(define-key evil-normal-state-map (kbd "C-M-h")  'windmove-left)
-(define-key evil-normal-state-map (kbd "C-M-l") 'windmove-right)
-(define-key evil-insert-state-map (kbd "C-M-k")    'windmove-up)
-(define-key evil-insert-state-map (kbd "C-M-j")  'windmove-down)
-(define-key evil-insert-state-map (kbd "C-M-h")  'windmove-left)
-(define-key evil-insert-state-map (kbd "C-M-l") 'windmove-right)
-
-;; window resize (Ctrl Alt +/-/0)
-(define-key evil-insert-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
-(define-key evil-normal-state-map (kbd "C-M--") '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20)))
-(define-key evil-insert-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
-(define-key evil-normal-state-map (kbd "C-M-=") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
-(define-key evil-insert-state-map (kbd "C-M-0") '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20)))
-(define-key evil-normal-state-map (kbd "C-M-0") '(lambda () (interactive) (balance-windows)))
 
 ;; make sure I have same behavior like org mode, M-RET doesn't maximize the frame/window.
 (define-key evil-normal-state-map (kbd "M-RET") 'evil-ret)
