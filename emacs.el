@@ -1185,10 +1185,10 @@
 
 (defun =============xueliang-linaro-development=============())
 
-(defun xueliang-linaro-art-gtest-asan-test ()
+(defun xueliang-linaro-art-gtest-host ()
   (interactive)
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-make-art-gtest-asan-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
+  (rename-buffer (concat "*eshell-linaro-make-art-gtest-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
   (insert "art/test/testrunner/run_build_test_target.py -j33 art-gtest-asan") (eshell-send-input)
   ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
@@ -1300,7 +1300,7 @@
 (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
 (global-set-key (kbd "<f6>")   'xueliang-eshell-pwd)
 (global-set-key (kbd "C-<f6>") 'xueliang-terminal-shell)
-(global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-asan-test)
+(global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-host)
 (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
 
 ;; Magic key <f8>
