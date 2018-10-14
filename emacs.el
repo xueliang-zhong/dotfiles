@@ -199,19 +199,21 @@
 
 ;; w for windows commands
 (evil-leader/set-key
+  ;; select/switch windows
   "ww" 'ace-window
-  "w/" 'split-window-horizontally
-  "w-" 'split-window-vertically
+  ;; window splits
+  "wvs" 'split-window-horizontally
+  "wsp" 'split-window-vertically
+  ;; windows resize
+  "w0" 'balance-windows
+  "w-" '(lambda () (interactive) (evil-window-decrease-height 50) (evil-window-decrease-width 50))
+  "w=" '(lambda () (interactive) (evil-window-increase-height 50) (evil-window-increase-width 50))
   ;; window move commands, similar to vim's C-W-h/j/k/l moves.
   "wl" 'evil-window-move-far-right
   "wh" 'evil-window-move-far-left
   "wj" 'evil-window-move-very-bottom
   "wk" 'evil-window-move-very-top
   "wx" 'delete-window
-  ;; windows resize
-  "w0" 'balance-windows
-  "w-" '(lambda () (interactive) (evil-window-decrease-height 20) (evil-window-decrease-width 20))
-  "w=" '(lambda () (interactive) (evil-window-increase-height 20) (evil-window-increase-width 20))
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
