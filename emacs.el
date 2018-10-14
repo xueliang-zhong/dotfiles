@@ -191,10 +191,21 @@
   "t" 'undo-tree-visualize  ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
-  "w/" 'split-window-horizontally
-  "w-" 'split-window-vertically
   "x" 'delete-window  ;; common operation.
   "X" 'kill-buffer-and-window  ;; common operation.
+)
+
+;; w for windows commands
+(evil-leader/set-key
+  "ww" 'ace-window
+  "w/" 'split-window-horizontally
+  "w-" 'split-window-vertically
+  ;; window move commands, similar to vim's C-W-h/j/k/l moves.
+  "wl" 'evil-window-move-far-right
+  "wh" 'evil-window-move-far-left
+  "wj" 'evil-window-move-very-bottom
+  "wk" 'evil-window-move-very-top
+  "wx" 'delete-window
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -560,8 +571,8 @@
   (global-git-gutter+-mode))
 
 (require 'guide-key)
-(setq guide-key/guide-key-sequence (list xueliang-leader-key "C-h" "C-x" "C-x c" "C-x n" "C-c" "C-c p"))
-(setq guide-key/idle-delay 1.0)
+(setq guide-key/guide-key-sequence (list "SPC" "SPC w" "C-h" "C-x" "C-x c" "C-x n" "C-c" "C-c p"))
+(setq guide-key/idle-delay 0.3)
 (setq guide-key/popup-window-position 'bottom)
 (guide-key-mode 1)  ; Enable guide-key-mode
 
