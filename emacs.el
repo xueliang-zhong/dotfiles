@@ -808,7 +808,7 @@
 (set-default 'truncate-lines t)
 
 ; no bold font by default
-(set-face-bold 'bold nil)
+(set-face-bold 'bold t)
 
 ; mouse
 (xterm-mouse-mode 1)
@@ -892,9 +892,10 @@
 (defun xueliang-minimal-light-theme() (interactive)
   (load-theme 'spacemacs-light t) (xueliang/minimal-theme))
 
-(if (string-equal system-type "windows-nt")
-  (xueliang-minimal-dark-theme)  ;; works great on my windows laptop.
-  (xueliang-minimal-light-theme))
+(if (and (string-equal system-type "gnu/linux") (> (display-pixel-height) 1080))
+    (xueliang-minimal-light-theme)  ;; only for big screen at work.
+    (xueliang-minimal-dark-theme)   ;; works great on all my laptops: windows & linux.
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
