@@ -57,6 +57,7 @@
                             vdiff
                             vimrc-mode
                             whitespace
+                            which-key
                             zenburn-theme
                             ))
 
