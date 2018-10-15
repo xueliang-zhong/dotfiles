@@ -27,7 +27,6 @@
                             fiplr
                             git-gutter-fringe+
                             graphviz-dot-mode
-                            guide-key
                             helm
                             helm-ag
                             helm-chrome
@@ -455,16 +454,17 @@
 (add-hook 'prog-mode-hook '(lambda () (vc-mode-line (buffer-file-name))))
 
 ;; put all important information on the left side in mode line.
-(setq telephone-line-lhs
-      '((evil   . (telephone-line-evil-tag-segment))
-        (accent . (telephone-line-buffer-segment))
-        (evil    . (telephone-line-airline-position-segment))
-        (nil    . (telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment))
-        (accent . (telephone-line-major-mode-segment))
-        (nil    . (telephone-line-misc-info-segment telephone-line-minor-mode-segment))
-        ))
+(setq telephone-line-lhs '(
+   (evil   . (telephone-line-evil-tag-segment))
+   (accent . (telephone-line-buffer-segment))
+   (nil    . (telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment))
+   (accent . (telephone-line-major-mode-segment))
+   (nil    . (telephone-line-misc-info-segment telephone-line-minor-mode-segment))
+))
 
-(setq telephone-line-rhs '())
+(setq telephone-line-rhs '(
+   (evil . (telephone-line-airline-position-segment))
+))
 
 ;; above settings should be called before enabling telephone-line-mode.
 (telephone-line-mode t)
@@ -892,7 +892,9 @@
 (defun xueliang-minimal-light-theme() (interactive)
   (load-theme 'spacemacs-light t) (xueliang/minimal-theme))
 
-(xueliang-minimal-light-theme)
+(if (string-equal system-type "windows-nt")
+  (xueliang-minimal-dark-theme)  ;; works great on my windows laptop.
+  (xueliang-minimal-light-theme))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
