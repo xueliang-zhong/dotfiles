@@ -458,7 +458,7 @@
    (evil   . (telephone-line-evil-tag-segment))
    (accent . (telephone-line-buffer-segment))
    (nil    . (telephone-line-vc-segment telephone-line-erc-modified-channels-segment telephone-line-process-segment))
-   (accent . (telephone-line-major-mode-segment))
+   (evil .   (telephone-line-major-mode-segment))
    (nil    . (telephone-line-misc-info-segment telephone-line-minor-mode-segment))
 ))
 
