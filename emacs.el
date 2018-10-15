@@ -189,8 +189,8 @@
   ;; select/switch windows
   "ww" 'ace-window
   ;; window splits
-  "wvs" 'split-window-horizontally
-  "wsp" 'split-window-vertically
+  "ws" 'split-window-below
+  "wv" 'split-window-right
   ;; windows resize
   "w0" 'balance-windows
   "w-" '(lambda () (interactive) (evil-window-decrease-height 50) (evil-window-decrease-width 50))
@@ -200,7 +200,10 @@
   "wh" 'evil-window-move-far-left
   "wj" 'evil-window-move-very-bottom
   "wk" 'evil-window-move-very-top
+  "wd" 'delete-window  ;; same as spacemacs
   "wx" 'delete-window
+  ;; frames
+  "wF" 'xueliang-make-frame
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -340,7 +343,7 @@
 
 ;; Better ivy switch buffer.
 (require 'ivy-rich)
-(ivy-set-display-transformer 'ivy-switch-buffer 'ivy-rich-switch-buffer-transformer)
+(ivy-rich-mode 1)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Org mode config
@@ -888,7 +891,7 @@
 (defun xueliang-minimal-light-theme() (interactive)
   (load-theme 'spacemacs-light t) (xueliang/minimal-theme))
 
-(xueliang-minimal-dark-theme)
+(xueliang-minimal-light-theme)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
