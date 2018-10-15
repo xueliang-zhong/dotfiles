@@ -152,7 +152,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; <leader> config
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defun =============leader-config=============())
+(defun =============leader-general-config=============())
 
 (require 'general)
 (general-evil-setup t)
@@ -161,11 +161,8 @@
   "SPC" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
-  "b" 'ivy-switch-buffer-other-window
-  "c" 'xueliang-switch-to-*scratch*
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
-  "f" 'xueliang-find-file    ;; fast search a file in current directory
   "i" 'counsel-imenu
   "I" 'counsel-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
@@ -173,7 +170,6 @@
   "k" 'xueliang-google-current-word
   "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
-  "p" 'xueliang-find-project
   "r" 'counsel-recentf
   "t" 'undo-tree-visualize     ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
@@ -181,20 +177,34 @@
   "X" 'kill-buffer-and-window  ;; common operation.
 )
 
-;; w for windows commands
+;; b for buffer commands
+(nvmap :prefix "SPC"
+  "bs" 'xueliang-open-scratch-buffer
+  "bw" 'read-only-mode
+)
+
+;; g for git commands
 (nvmap :prefix "SPC"
   "gb" 'xueliang-gblame-current-buffer
+  "gd" 'xueliang-gdiff
   "gg" 'magit-status
   "gl" 'xueliang-glog
+)
+
+;; p for project commands
+(nvmap :prefix "SPC"
+  "pf" 'xueliang-find-file    ;; fast search a file in current directory
+  "pp" 'xueliang-switch-project
 )
 
 ;; s for search commands
 (nvmap :prefix "SPC"
   "sa" 'xueliang-ag-search-in-project
   "sg" 'counsel-grep-or-swiper
-  "ss" 'swiper
+  "ss" 'counsel-grep-or-swiper
 )
 
+;; w for windows commands
 (nvmap :prefix "SPC"
   ;; select/switch windows
   "ww" 'ace-window
@@ -922,7 +932,7 @@
   "Remove blank lines in selected lines." (interactive "r")
    (flush-lines "^\\s-*$" start end nil))
 
-(defun xueliang-switch-to-*scratch* ()
+(defun xueliang-open-scratch-buffer ()
   "open switch buffer quickly" (interactive)
   (switch-to-buffer-other-window "*scratch*")
   (evil-goto-line) (evil-append-line 1)
@@ -960,7 +970,7 @@
                     ))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
-(defun xueliang-find-project()
+(defun xueliang-switch-project()
   "switch among my projects" (interactive)
   (find-file (ivy-read "Project: " xueliang-project-list))
   (counsel-projectile-find-file)
