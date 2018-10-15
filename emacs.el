@@ -193,15 +193,17 @@
 
 ;; p for project commands
 (nvmap :prefix "SPC"
-  "pf" 'xueliang-find-file    ;; fast search a file in current directory
+  "pf" 'xueliang-find-file            ;; fast search a file in current directory
   "pp" 'xueliang-switch-project
 )
 
 ;; s for search commands
 (nvmap :prefix "SPC"
   "sa" 'xueliang-ag-search-in-project
-  "sg" 'counsel-grep-or-swiper
+  "sg" 'counsel-projectile-grep       ;; works on windows
   "ss" 'counsel-grep-or-swiper
+  "*"  'xueliang-ag-search-in-project ;; similar to '*' in file
+  "/"  'counsel-projectile-grep       ;; similar to '/' in file
 )
 
 ;; w for windows commands
