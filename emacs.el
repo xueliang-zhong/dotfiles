@@ -177,8 +177,8 @@
   "n" 'xueliang-toggle-narrow-to-defun-widen
   "p" 'xueliang-find-project
   "r" 'counsel-recentf
-  "s" 'xueliang-eshell-pwd  ;; s means 'shell'
-  "t" 'undo-tree-visualize  ;; very useful function
+  "s" 'counsel-grep-or-swiper  ;; s means 'search'
+  "t" 'undo-tree-visualize     ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
   "X" 'kill-buffer-and-window  ;; common operation.
@@ -560,11 +560,11 @@
   (require 'git-gutter-fringe+)
   (global-git-gutter+-mode))
 
-(require 'guide-key)
-(setq guide-key/guide-key-sequence (list "SPC" "SPC w" "C-h" "C-x" "C-x c" "C-x n" "C-c" "C-c p"))
-(setq guide-key/idle-delay 0.3)
-(setq guide-key/popup-window-position 'bottom)
-(guide-key-mode 1)  ; Enable guide-key-mode
+(require 'which-key)
+(which-key-mode)
+(which-key-setup-side-window-bottom)
+(setq which-key-idle-delay 0.3)
+;; (which-key-setup-minibuffer)
 
 ; said to make emacs faster
 (remove-hook 'find-file-hooks 'vc-find-file-hook)
