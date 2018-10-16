@@ -700,6 +700,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang-eshell-quick-command "df -h /data")
 )
 
+(defun xueliang-load-my-private-funcs () (interactive)
+  (when (file-exists-p dropbox-home) (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong))
+)
+
 (defun =============xueliang-linaro-development=============())
 
 (defun xueliang-linaro-art-gtest-host ()
