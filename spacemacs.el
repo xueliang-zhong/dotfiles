@@ -31,6 +31,7 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
+     markdown
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
@@ -348,6 +349,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; leader key settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (spacemacs/set-leader-keys "SPC" 'ivy-switch-buffer)
+  (spacemacs/set-leader-keys "*" 'xueliang-search-in-project)
+  (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "gd" 'magit-diff-working-tree)
 
@@ -462,6 +465,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
+
+(defun xueliang-search-in-project (argument)
+  "search in project using ag; use fiplr to goto the root dir of the project"
+  (interactive "P")
+  (xueliang-cd-current-buffer-directory)
+  (require 'fiplr) (cd (fiplr-root))
+  (counsel-ag (thing-at-point 'word)) ;; counsel-ag allows initial input to play with.
+)
 
 (defun xueliang-flush-blank-lines (start end)
   "Remove blank lines in selected lines." (interactive "r")
