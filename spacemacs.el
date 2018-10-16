@@ -388,6 +388,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   (set-default 'truncate-lines t)
+  (global-nlinum-mode 1)
   (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
   (set-face-attribute 'default nil :height 130)
 
@@ -765,6 +766,108 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert (concat "mv out ~/rubish/out.") (format-time-string "%Y-%m-%d-%H_%M_%S" (current-time))) (eshell-send-input)
   (eshell/x)
 )
+
+(defun =============xueliang-git-config/functions=============())
+
+(setq-default shell-output-buffer-name "*Shell Command Output*")
+
+(defun xueliang-gcommit ()
+  "run git commit.
+   *** HANDLE WITH CARE !!! ***" (interactive)
+   (xueliang-cd-current-buffer-directory)
+   (shell-command (message "git commit -m \"%s\""
+                           (ivy-read "COMMIT MSG: " (list 
+                                                     (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
+                                                     (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
+                                                     )))))
+
+(defun xueliang/glog (&optional xueliang-cword)
+  "git log with ivy"
+  (require 'fiplr)
+  (xueliang-cd-current-buffer-directory) (cd (fiplr-root))
+  (car (split-string
+        (ivy-read "Git Log: "
+                        (split-string (shell-command-to-string "git log -n 100 --pretty=\"%h * %<(70)%s | %<(16)%an | %cr\"") "\n")
+                        :preselect "|"  ;; this makes sure that the first candidate in the log is pre-selected.
+                        :initial-input (if xueliang-cword                                      ;; if current word at point is a string
+                                           (if (= 0 (string-match "[a-f0-9]+" xueliang-cword)) ;; and it is a git version string
+                                               xueliang-cword                                  ;; then use it as initial-input;
+                                             "") "")))))                                       ;; otherwise, avoid giving any initial-input.
+
+(defun xueliang-gdiff ()
+ "run git diff HEAD" (interactive)
+  (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
+  (magit-diff-working-tree) (evil-next-line 7)
+;;
+;; my alternative implementation:
+;; (shell-command "git diff HEAD")
+;; (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
+;;  (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
+;; (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7))
+)
+
+(defun xueliang-gdiff-revision-at-point ()
+   "run 'git diff' using the revision number from ivy glog" (interactive)
+   (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
+   (magit-diff (xueliang/glog)) (evil-next-line 7)
+;;
+;; my alternative implementation:
+;; (shell-command (message "git diff %s " (xueliang/glog (thing-at-point 'word))))
+;; (switch-to-buffer-other-window shell-output-buffer-name)
+;; (evil-window-move-far-right) (diff-mode) (evil-next-line 10)
+)
+
+(defun xueliang/gdiff-window ()
+  "show a diff window at the right side."
+  (if (get-buffer-window shell-output-buffer-name)
+      (select-window (get-buffer-window shell-output-buffer-name))
+      (switch-to-buffer-other-window shell-output-buffer-name))
+  (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
+
+(defun xueliang-gshow ()
+  "run 'git show' using the ivy glog" (interactive)
+  (magit-show-commit (xueliang/glog)) (evil-next-line 17)
+;;
+;; my alternative implementation:
+;; (shell-command (message "git show %s " (xueliang/glog))) (xueliang/gdiff-window)
+)
+
+(defun xueliang-gshow-revision-at-point-OPEN-GERRIT-REVIEW ()
+  "run 'git show' using the ivy glog" (interactive)
+  (setq git-revision-string (thing-at-point 'word))
+  (when git-revision-string
+    (magit-show-commit git-revision-string) (evil-next-line 17)
+;;  (shell-command (message "git show %s " git-revision-string)) (xueliang/gdiff-window)
+    (org-open-link-from-string (concat
+                                (ivy-read "Select Gerrit: "
+                                          (list
+                                          "about:blank"
+                                          "https://android-review.googlesource.com/#/q/"
+                                          "https://dev-private-review.linaro.org/#/q/")
+                                          :preselect "blank")
+                                git-revision-string))))
+
+(defun xueliang-gread-current-buffer ()
+  "run git checkout on current buffer" (interactive)
+  (xueliang-cd-current-buffer-directory)
+  (shell-command (concat "git checkout " (buffer-file-name)))
+  (revert-buffer :ignore-auto :noconfirm)
+  (message "git checkout: " (buffer-file-name)))
+
+(defun xueliang-gwrite-current-buffer ()
+  "run git add on current buffer" (interactive)
+  (xueliang-cd-current-buffer-directory)
+  (shell-command (concat "git add " (buffer-file-name)))
+  (xueliang-gread-current-buffer) ;; gread it again to refresh git-gutter.
+  (message "git add: %s" (buffer-file-name)))
+
+(defun xueliang-gblame-current-buffer ()
+  "run git blame on current buffer, esp. current line" (interactive)
+  (xueliang-cd-current-buffer-directory)
+  (setq-local gblame-line (line-number-at-pos))
+  (shell-command (concat "git blame " (buffer-file-name)))
+  (goto-line gblame-line (switch-to-buffer-other-window shell-output-buffer-name))
+  (evil-window-move-very-bottom) (toggle-truncate-lines 1))
 
 (defun =============xueliang-eshell-functions=============())
 
