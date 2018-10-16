@@ -154,15 +154,96 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (defun =============leader-general-config=============())
 
-(require 'general)
-(general-evil-setup t)
-
-(nvmap :prefix "SPC"
-  "SPC" 'ivy-switch-buffer
+;; (require 'general)
+;; (general-evil-setup t)
+;;
+;; (nvmap :prefix "SPC"
+;;   "SPC" 'ivy-switch-buffer
+;;   "]" 'semantic-ia-fast-jump
+;;   "a" 'xueliang-ag-search-in-project
+;;   "e" 'xueliang-eshell
+;;   "E" 'xueliang-eshell-current-line
+;;   "i" 'counsel-imenu
+;;   "I" 'counsel-imenu
+;;   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
+;;   "J" 'semantic-complete-jump ;; J means 'jump to tag'
+;;   "k" 'xueliang-google-current-word
+;;   "m" 'counsel-bookmark
+;;   "n" 'xueliang-toggle-narrow-to-defun-widen
+;;   "r" 'counsel-recentf
+;;   "t" 'undo-tree-visualize     ;; very useful function
+;;   "S" 'xueliang-send-current-line-to-scratch
+;;   "u" 'universal-argument
+;;   "X" 'kill-buffer-and-window  ;; common operation.
+;; )
+;;
+;; ;; b for buffer commands
+;; (nvmap :prefix "SPC"
+;;   "bs" 'xueliang-open-scratch-buffer
+;;   "bw" 'read-only-mode
+;; )
+;;
+;; ;; g for git commands
+;; (nvmap :prefix "SPC"
+;;   "gb" 'xueliang-gblame-current-buffer
+;;   "gd" 'xueliang-gdiff
+;;   "gg" 'magit-status
+;;   "gl" 'xueliang-glog
+;; )
+;;
+;; ;; p for project commands
+;; (nvmap :prefix "SPC"
+;;   "pf" 'xueliang-find-file            ;; fast search a file in current directory
+;;   "pp" 'xueliang-switch-project
+;; )
+;;
+;; ;; s for search commands
+;; (nvmap :prefix "SPC"
+;;   "sa" 'xueliang-ag-search-in-project
+;;   "sg" 'counsel-projectile-grep       ;; works on windows
+;;   "ss" 'counsel-grep-or-swiper
+;;   "*"  'xueliang-ag-search-in-project ;; similar to '*' in file
+;;   "/"  'counsel-projectile-grep       ;; similar to '/' in file
+;; )
+;;
+;; w for windows commands
+;; (nvmap :prefix "SPC"
+;;   ;; select/switch windows
+;;   "ww" 'ace-window
+;;   ;; window splits
+;;   "ws" 'split-window-below
+;;   "wv" 'split-window-right
+;;   ;; windows resize
+;;   "w0" 'balance-windows
+;;   "w-" '(lambda () (interactive) (evil-window-decrease-height 50) (evil-window-decrease-width 50))
+;;   "w=" '(lambda () (interactive) (evil-window-increase-height 50) (evil-window-increase-width 50))
+;;   ;; window move commands, similar to vim's C-W-h/j/k/l moves.
+;;   "wl" 'evil-window-move-far-right
+;;   "wh" 'evil-window-move-far-left
+;;   "wj" 'evil-window-move-very-bottom
+;;   "wk" 'evil-window-move-very-top
+;;   "wd" 'delete-window  ;; same as spacemacs
+;;   "wx" 'delete-window
+;;   ;; frames
+;;   "wF" 'xueliang-make-frame
+;; )
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; <leader> config
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(defun =============leader-config=============())
+(setq-default xueliang-leader-key "<SPC>")
+(evil-leader/set-leader xueliang-leader-key)
+(evil-leader/set-key
+  "<SPC>" 'ivy-switch-buffer
   "]" 'semantic-ia-fast-jump
   "a" 'xueliang-ag-search-in-project
+  "b" 'ivy-switch-buffer-other-window
+  "c" 'xueliang-switch-to-*scratch*
   "e" 'xueliang-eshell
   "E" 'xueliang-eshell-current-line
+  "f" 'xueliang-find-file    ;; fast search a file in current directory
+  "g" 'magit-status
   "i" 'counsel-imenu
   "I" 'counsel-imenu
   "j" 'semantic-ia-fast-jump  ;; j means 'jump to tag'
@@ -170,44 +251,17 @@
   "k" 'xueliang-google-current-word
   "m" 'counsel-bookmark
   "n" 'xueliang-toggle-narrow-to-defun-widen
+  "p" 'xueliang-find-project
   "r" 'counsel-recentf
+  "s" 'counsel-grep-or-swiper  ;; s means 'search'
   "t" 'undo-tree-visualize     ;; very useful function
   "S" 'xueliang-send-current-line-to-scratch
   "u" 'universal-argument
   "X" 'kill-buffer-and-window  ;; common operation.
 )
 
-;; b for buffer commands
-(nvmap :prefix "SPC"
-  "bs" 'xueliang-open-scratch-buffer
-  "bw" 'read-only-mode
-)
-
-;; g for git commands
-(nvmap :prefix "SPC"
-  "gb" 'xueliang-gblame-current-buffer
-  "gd" 'xueliang-gdiff
-  "gg" 'magit-status
-  "gl" 'xueliang-glog
-)
-
-;; p for project commands
-(nvmap :prefix "SPC"
-  "pf" 'xueliang-find-file            ;; fast search a file in current directory
-  "pp" 'xueliang-switch-project
-)
-
-;; s for search commands
-(nvmap :prefix "SPC"
-  "sa" 'xueliang-ag-search-in-project
-  "sg" 'counsel-projectile-grep       ;; works on windows
-  "ss" 'counsel-grep-or-swiper
-  "*"  'xueliang-ag-search-in-project ;; similar to '*' in file
-  "/"  'counsel-projectile-grep       ;; similar to '/' in file
-)
-
 ;; w for windows commands
-(nvmap :prefix "SPC"
+(evil-leader/set-key
   ;; select/switch windows
   "ww" 'ace-window
   ;; window splits
