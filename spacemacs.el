@@ -377,6 +377,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
+  ;; No bold & big titles
+  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
   ;; org-bullets-mode
   (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
   (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
@@ -394,6 +398,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (set-default 'truncate-lines t)
   (global-nlinum-mode 1)
   (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
+  (when (string-equal system-type "windows-nt") (set-default-font "Consolas"))
   (set-face-attribute 'default nil :height 130)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
