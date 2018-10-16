@@ -309,6 +309,24 @@ executes.
  This function is mostly useful for variables that need to be set
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
+  (when (string-equal system-type "gnu/linux") (setq xueliang-home "~"))
+  (when (string-equal system-type "windows-nt")
+    (when (file-exists-p "c:/Users/xuezho01") (setq xueliang-home "c:/Users/xuezho01"))
+    (when (file-exists-p "c:/Users/xueliang") (setq xueliang-home "c:/Users/xueliang")))
+  (setq dot-files               (concat xueliang-home "/workspace/dotfiles"))
+  (setq dropbox-home            (concat xueliang-home "/Dropbox/"))
+  (setq android-root            (concat xueliang-home "/workspace/linaro"))
+  (setq android-art             (concat android-root "/art"))
+  (setq android-bionic          (concat android-root "/bionic"))
+  (setq android-libcore         (concat android-root "/libcore"))
+  (setq android-benchmarks      (concat android-root "/benchmarks"))
+  (setq android-scripts         (concat android-root "/scripts"))
+  (setq android-vixl            (concat android-root "/external/vixl/src"))
+  (setq android-xueliang_test   (concat android-root "/xueliang_test"))
+  (setq android-build           (concat android-root "/build"))
+  (setq android-device          (concat android-root "/device"))
+  (setq android-dalvik          (concat android-root "/dalvik"))
+  (setq android-frameworks-base (concat android-root "/frameworks/base"))
   )
 
 (defun dotspacemacs/user-config ()
@@ -316,24 +334,26 @@ before packages are loaded. If you are unsure, you should try in setting them in
    This function is called at the very end of Spacemacs initialization after layers configuration.
    This is the place where most of your configurations should be done.
    Unless it is explicitly specified that a variable should be set before a package is loaded,you should place your code here."
-  (define-key evil-normal-state-map (kbd "<f4>") 'kill-buffer-and-window)
-  (set-default 'truncate-lines t)
-  (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
-  (set-face-attribute 'default nil :height 130)
 
-  ;; Evil Mode everywhere.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; evil settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq evil-emacs-state-modes nil)
   (setq evil-insert-state-modes nil)
   (setq evil-motion-state-modes nil)
   (setq evil-shift-width 2)
   (setq evil-mode-line-format 'before)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; leader key settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (spacemacs/set-leader-keys "SPC" 'ivy-switch-buffer)
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "gd" 'magit-diff-working-tree)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; number of result lines to display
   (setq ivy-fixed-height-minibuffer t)
   (setq ivy-height 20)
@@ -351,12 +371,29 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; Better ivy switch buffer.
   (ivy-rich-mode 1)
 
-  ;; global settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Org-mode config
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
+  ;; Don't add a time stamp line to the 'DONE' task.
+  (setq org-log-done nil)
+  ;; org-bullets-mode
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+  (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
+  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; global settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
+  (set-default 'truncate-lines t)
+  (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
+  (set-face-attribute 'default nil :height 130)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
   (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
   ;; <f5> .. <f8> :
@@ -410,6 +447,16 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>") 'xueliang-open-link)
 )
+
+(defun =============xueliang-functions=============())
+
+(defun xueliang-sum-numbers-in-region (start end)
+  (interactive "r")
+  (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
+
+(defun xueliang-flush-blank-lines (start end)
+  "Remove blank lines in selected lines." (interactive "r")
+  (flush-lines "^\\s-*$" start end nil))
 
 (defun xueliang-open-scratch-buffer ()
   "open switch buffer quickly" (interactive)
@@ -643,6 +690,123 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-df () (interactive)
   (xueliang-eshell-quick-command "df -h /data")
 )
+
+(defun =============xueliang-linaro-development=============())
+
+(defun xueliang-linaro-art-gtest-host ()
+  (interactive)
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*eshell-linaro-make-art-gtest-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
+  (insert "cd $android-root") (eshell-send-input)
+  (insert "art/test/testrunner/run_build_test_target.py -j33 art-gtest-asan") (eshell-send-input)
+  ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
+)
+
+(defun xueliang/make-android-system-image (lunch-target)
+  "invoke build android system image from andriod-root source tree"
+  (split-window-below) (evil-window-move-very-bottom)
+  (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
+  (insert (message "cd %s" android-root)) (term-send-input)
+  (insert "source build/envsetup.sh") (term-send-input)
+  (insert (concat "lunch " lunch-target)) (term-send-input)
+  (insert "time make dx -j33") (term-send-input)
+  (insert "time make -j33") (term-send-input)
+)
+
+(defun xueliang-make-android-system-image ()
+  "Choose from build targets" (interactive)
+  (xueliang/make-android-system-image
+   (ivy-read "Lunch Targets: " (list
+                                      ;; common ones
+                                      "aosp_arm64-eng"
+                                      "hikey960-userdebug"
+                                      "aosp_angler-userdebug"
+                                      "-------------------------------"
+                                      ;; also useful
+                                      "arm_krait-eng"
+                                      "arm_v7_v8-eng"
+                                      "armv8-eng"
+                                      "aosp_arm64-eng"
+                                      "aosp_x86_64-eng"
+                                      "silvermont-eng"
+                                      "aosp_marlin-userdebug"
+                                      "aosp_marlin_svelte-userdebug"
+                                      "aosp_sailfish-userdebug"
+                                      "aosp_muskie-userdebug"
+                                      "aosp_walleye-userdebug"
+                                      "aosp_walleye_test-userdebug"
+                                      "aosp_taimen-userdebug"
+                                      "aosp_angler-userdebug"
+                                      "aosp_bullhead-userdebug"
+                                      "aosp_bullhead_svelte-userdebug"
+                                      ))))
+
+(defun xueliang-linaro-gdb ()
+  "invoke gdb linaro tree" (interactive)
+  (require 'gdb-mi)
+  ;; build and regenerate the test case before starting gdb.
+  (tool-bar-mode -1)
+  (cd android-xueliang_test) (shell-command (concat android-xueliang_test "/run.sh"))
+  (cd android-root) (gdb-many-windows) (gdb "gdb -i=mi -x gdb.init"))
+
+(defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
+  "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
+  (xueliang/linaro-repo-sync "repo sync -d -m /home/xuezho01/workspace/linaro/pinned-manifest.xml -j33"))
+
+(defun xueliang-cfg-analyze-c1visualizer-irhydra ()
+  "analyze ART generated .cfg file" (interactive)
+  ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
+  (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
+
+(defun xueliang-clean-android-linaro-mv-rm-out-files () (interactive)
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*mv-rm-out-" (format-time-string "%H:%M:%S*" (current-time)) "*"))
+  (insert "cd $android-root") (eshell-send-input)
+  (insert (concat "mv out ~/rubish/out.") (format-time-string "%Y-%m-%d-%H_%M_%S" (current-time))) (eshell-send-input)
+  (eshell/x)
+)
+
+(defun =============xueliang-eshell-functions=============())
+
+;; Avoid clearing the whole buffer when typing clear in eshell.
+(defun eshell/clear ()
+  "Clear the eshell buffer."
+  (dotimes (i 5) (eshell-send-input)))
+
+(defun eshell/ec ()
+  "create emacsclient frame from eshell."
+  (xueliang-make-frame))
+
+(defun eshell/gcommit (arg)
+  "make git commit easier."
+  (shell-command (message "git commit -m \"%s\"" arg)))
+
+(defun eshell/x ()
+  "exit eshell and close the window."
+  (insert "exit") (eshell-send-input)
+  (delete-window))
+
+(defun eshell/cdroot ()
+  "cd to project root"
+  (require 'fiplr)
+  (cd (fiplr-root)))
+
+(defun eshell/cdandroid-root ()
+  "cd to project root"
+  (cd android-root))
+
+(defun eshell/e (file-name)
+  "handle large files better"
+  (if (> (string-to-number (car (split-string (shell-command-to-string (message "du -sm %s" file-name)))))
+         30)
+      (shell-command (message "gnome-terminal -e \"vim %s \"" file-name))
+      (find-file-other-window file-name)))
+
+(defun eshell/vimdiff (file1 file2)
+  (shell-command (message "gnome-terminal -e \"vimdiff %s %s\"" file1 file2)))
+
+(defalias 'eshell/vi 'eshell/e)
+(defalias 'eshell/vim 'eshell/e)
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
