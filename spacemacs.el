@@ -21,7 +21,7 @@ values."
    ;; variable `dotspacemacs-configuration-layers' to install it.
    ;; (default 'unused)
    dotspacemacs-enable-lazy-installation 'unused
-   ;; If non-nil then Spacemacs will ask for confirmation before installing
+   ;; If non-nil then Spacemacs will~/.spacemacs ask for confirmation before installing
    ;; a layer lazily. (default t)
    dotspacemacs-ask-for-lazy-installation t
    ;; If non-nil layers with lazy install support are lazy installed.
@@ -396,8 +396,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   (set-default 'truncate-lines t)
   (global-nlinum-mode 1)
-  (when (string-equal system-type "gnu/linux") (set-default-font "Monospace"))
-  (when (string-equal system-type "windows-nt") (set-default-font "Consolas"))
+  (when (string-equal system-type "gnu/linux") (load-theme 'spacemacs-light t) (set-default-font "Monospace"))
+  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
   (set-face-attribute 'default nil :height 130)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
