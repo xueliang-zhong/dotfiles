@@ -49,7 +49,7 @@ values."
             shell-default-position 'bottom
             shell-default-shell 'eshell)
      spell-checking
-     smex
+     ;; smex
      syntax-checking
      themes-megapack
      version-control
@@ -61,6 +61,7 @@ values."
    dotspacemacs-additional-packages
    '(
      fiplr
+     json-mode
      ivy-rich
      helm-google
     )
@@ -395,8 +396,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; my functions.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (file-exists-p dropbox-home)
-    (add-to-list 'load-path (concat dropbox-home "/emacs"))
-    (require 'xzhong))
+     (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -811,7 +811,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                                xueliang-cword                                  ;; then use it as initial-input;
                                              "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
-(defun xueliang-gdiff () "run git diff HEAD (redirect to magit-status)" (interactive) (magit-status))
+(defalias 'xueliang-gdiff 'magit-status)
 
 (defun xueliang-gdiff-revision-at-point ()
    "run 'git diff' using the revision number from ivy glog" (interactive)
