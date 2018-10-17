@@ -42,12 +42,14 @@ values."
      git
      ivy
      markdown
+     nlinum
      org
      (shell :variables
             shell-default-height 30
             shell-default-position 'bottom
             shell-default-shell 'eshell)
      spell-checking
+     smex
      syntax-checking
      themes-megapack
      version-control
@@ -133,7 +135,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(spacemacs-light sanityinc-tomorrow-blue spacemacs-dark )
+   dotspacemacs-themes '(anti-zenburn spacemacs-light spacemacs-dark )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -188,7 +190,7 @@ values."
    ;; Size (in MB) above which spacemacs will prompt to open the large file
    ;; literally to avoid performance issues. Opening a file literally means that
    ;; no major mode or minor modes are active. (default is 1)
-   dotspacemacs-large-file-size 1
+   dotspacemacs-large-file-size 5
    ;; Location where to auto-save files. Possible values are `original' to
    ;; auto-save the file in-place, `cache' to auto-save the file to another
    ;; file stored in the cache directory and `nil' to disable auto-saving.
@@ -265,7 +267,7 @@ values."
    ;;                       text-mode
    ;;   :size-limit-kb 1000)
    ;; (default nil)
-   dotspacemacs-line-numbers t
+   dotspacemacs-line-numbers nil
    ;; Code folding method. Possible values are `evil' and `origami'.
    ;; (default 'evil)
    dotspacemacs-folding-method 'evil
@@ -311,7 +313,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (when (file-exists-p "c:/Users/xuezho01") (setq xueliang-home "c:/Users/xuezho01"))
     (when (file-exists-p "c:/Users/xueliang") (setq xueliang-home "c:/Users/xueliang")))
   (setq dot-files               (concat xueliang-home "/workspace/dotfiles"))
-  (setq dropbox-home            (concat xueliang-home "/Dropbox/"))
+  (setq dropbox-home            (concat xueliang-home "/Dropbox"))
   (setq android-root            (concat xueliang-home "/workspace/linaro"))
   (setq android-xueliang_test   (concat android-root "/xueliang_test"))
   )
@@ -385,13 +387,28 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq projectile-project-search-path '("~/workspace/linaro"))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; auto completion / company settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (setq company-idle-delay 0)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; my functions.
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (when (file-exists-p dropbox-home)
+    (add-to-list 'load-path (concat dropbox-home "/emacs"))
+    (require 'xzhong))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
+  ;; nowrap
   (set-default 'truncate-lines t)
-  ;;(when (string-equal system-type "gnu/linux") (load-theme 'spacemacs-light t) (set-default-font "Monospace"))
-  ;;(when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
+  ;; line numbers
+  (add-hook 'prog-mode-hook 'nlinum-mode)
+  (add-hook 'org-mode-hook  'nlinum-mode)
+  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
   ;;(set-face-attribute 'default nil :height 130)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -589,18 +606,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-
-(defun xueliang-htop-cpu ()
-  "invokes htop easier." (interactive)
-  (split-window-below) (evil-window-move-very-bottom) (evil-window-increase-height 30)
-  (term "bash") (rename-buffer (concat "*htop-CPU%-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop -d 10 --sort-key PERCENT_CPU") (term-send-input))
-
-(defun xueliang-htop-io ()
-  "invokes htop easier." (interactive)
-  (split-window-below) (evil-window-move-very-bottom) (evil-window-increase-height 30)
-  (term "bash") (rename-buffer (concat "*htop-IO-" (format-time-string "%H:%M:%S" (current-time)) "*"))
-  (insert "htop -d 10 --sort-key IO") (term-send-input))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
+(defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO"))
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-helm-htop 'helm-top)
@@ -640,7 +647,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-art-proj-monitor () (interactive)
   (when (string-equal system-type "gnu/linux")
-    (start-process "my-art-proj-monitor" nil "google-chrome" (concat dropbox-home "art_proj_monitor.svg")))
+    (start-process "my-art-proj-monitor" nil "google-chrome" (concat dropbox-home "/art_proj_monitor.svg")))
 )
 
 (defun xueliang-daily-websites ()
@@ -700,10 +707,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-df () (interactive)
   (xueliang-eshell-quick-command "df -h /data")
-)
-
-(defun xueliang-load-my-private-funcs () (interactive)
-  (when (file-exists-p dropbox-home) (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong))
 )
 
 (defun =============xueliang-linaro-development=============())
@@ -790,7 +793,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    *** HANDLE WITH CARE !!! ***" (interactive)
    (xueliang-cd-current-buffer-directory)
    (shell-command (message "git commit -m \"%s\""
-                           (ivy-read "COMMIT MSG: " (list 
+                           (ivy-read "COMMIT MSG: " (list
                                                      (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
                                                      (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                      )))))
@@ -808,27 +811,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                                xueliang-cword                                  ;; then use it as initial-input;
                                              "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
-(defun xueliang-gdiff ()
- "run git diff HEAD" (interactive)
-  (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
-  (magit-diff-working-tree) (evil-next-line 7)
-;;
-;; my alternative implementation:
-;; (shell-command "git diff HEAD")
-;; (if (= (buffer-size (switch-to-buffer-other-window shell-output-buffer-name)) 0)
-;;  (kill-buffer-and-window) ;; kill the buffer that we just switched to, should be the shell output buffer window.
-;; (evil-window-move-far-right) (diff-mode) (view-mode) (evil-next-line 7))
-)
+(defun xueliang-gdiff () "run git diff HEAD (redirect to magit-status)" (interactive) (magit-status))
 
 (defun xueliang-gdiff-revision-at-point ()
    "run 'git diff' using the revision number from ivy glog" (interactive)
    (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
    (magit-diff (xueliang/glog)) (evil-next-line 7)
-;;
-;; my alternative implementation:
-;; (shell-command (message "git diff %s " (xueliang/glog (thing-at-point 'word))))
-;; (switch-to-buffer-other-window shell-output-buffer-name)
-;; (evil-window-move-far-right) (diff-mode) (evil-next-line 10)
 )
 
 (defun xueliang/gdiff-window ()
@@ -841,9 +829,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-gshow ()
   "run 'git show' using the ivy glog" (interactive)
   (magit-show-commit (xueliang/glog)) (evil-next-line 17)
-;;
-;; my alternative implementation:
-;; (shell-command (message "git show %s " (xueliang/glog))) (xueliang/gdiff-window)
 )
 
 (defun xueliang-gshow-revision-at-point-OPEN-GERRIT-REVIEW ()
@@ -851,7 +836,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq git-revision-string (thing-at-point 'word))
   (when git-revision-string
     (magit-show-commit git-revision-string) (evil-next-line 17)
-;;  (shell-command (message "git show %s " git-revision-string)) (xueliang/gdiff-window)
     (org-open-link-from-string (concat
                                 (ivy-read "Select Gerrit: "
                                           (list
@@ -935,7 +919,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
  '(evil-want-Y-yank-to-eol nil)
  '(package-selected-packages
    (quote
-    (zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
+    (nlinum-relative zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
