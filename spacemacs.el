@@ -31,26 +31,26 @@ values."
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
    '(
-     markdown
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
-     ivy
      auto-completion
-     ;; better-defaults
+     better-defaults
      emacs-lisp
-     ;; git
-     ;; markdown
-     ;; org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
-     ;; spell-checking
-     ;; syntax-checking
-     ;; version-control
-     ;;
+     git
+     ivy
+     markdown
+     org
+     (shell :variables
+            shell-default-height 30
+            shell-default-position 'bottom
+            shell-default-shell 'eshell)
+     spell-checking
+     syntax-checking
+     themes-megapack
+     version-control
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -58,12 +58,9 @@ values."
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages
    '(
-     magit
-     evil-magit
      fiplr
      ivy-rich
      helm-google
-     nlinum
     )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -127,7 +124,7 @@ values."
    ;; `recents' `bookmarks' `projects' `agenda' `todos'."
    ;; List sizes may be nil, in which case
    ;; `spacemacs-buffer-startup-lists-length' takes effect.
-   dotspacemacs-startup-lists '((recents . 5)
+   dotspacemacs-startup-lists '((recents . 10)
                                 (projects . 7))
    ;; True if the home buffer should respond to resize events.
    dotspacemacs-startup-buffer-responsive t
@@ -136,14 +133,13 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(spacemacs-dark
-                         spacemacs-light)
+   dotspacemacs-themes '(spacemacs-light sanityinc-tomorrow-blue spacemacs-dark )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Source Code Pro"
-                               :size 13
+   dotspacemacs-default-font '("Monospace"
+                               :size 17
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -218,7 +214,7 @@ values."
    dotspacemacs-enable-paste-transient-state nil
    ;; Which-key delay in seconds. The which-key buffer is the popup listing
    ;; the commands bound to the current keystroke sequence. (default 0.4)
-   dotspacemacs-which-key-delay 0.4
+   dotspacemacs-which-key-delay 0.3
    ;; Which-key frame position. Possible values are `right', `bottom' and
    ;; `right-then-bottom'. right-then-bottom tries to display the frame to the
    ;; right; if there is insufficient space it displays it at the bottom.
@@ -237,7 +233,7 @@ values."
    ;; If non nil the frame is maximized when Emacs starts up.
    ;; Takes effect only if `dotspacemacs-fullscreen-at-startup' is nil.
    ;; (default nil) (Emacs 24.4+ only)
-   dotspacemacs-maximized-at-startup nil
+   dotspacemacs-maximized-at-startup t
    ;; A value from the range (0..100), in increasing opacity, which describes
    ;; the transparency level of a frame when it's active or selected.
    ;; Transparency can be toggled through `toggle-transparency'. (default 90)
@@ -269,7 +265,7 @@ values."
    ;;                       text-mode
    ;;   :size-limit-kb 1000)
    ;; (default nil)
-   dotspacemacs-line-numbers nil
+   dotspacemacs-line-numbers t
    ;; Code folding method. Possible values are `evil' and `origami'.
    ;; (default 'evil)
    dotspacemacs-folding-method 'evil
@@ -317,17 +313,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq dot-files               (concat xueliang-home "/workspace/dotfiles"))
   (setq dropbox-home            (concat xueliang-home "/Dropbox/"))
   (setq android-root            (concat xueliang-home "/workspace/linaro"))
-  (setq android-art             (concat android-root "/art"))
-  (setq android-bionic          (concat android-root "/bionic"))
-  (setq android-libcore         (concat android-root "/libcore"))
-  (setq android-benchmarks      (concat android-root "/benchmarks"))
-  (setq android-scripts         (concat android-root "/scripts"))
-  (setq android-vixl            (concat android-root "/external/vixl/src"))
   (setq android-xueliang_test   (concat android-root "/xueliang_test"))
-  (setq android-build           (concat android-root "/build"))
-  (setq android-device          (concat android-root "/device"))
-  (setq android-dalvik          (concat android-root "/dalvik"))
-  (setq android-frameworks-base (concat android-root "/frameworks/base"))
   )
 
 (defun dotspacemacs/user-config ()
@@ -352,7 +338,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "*" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "gg" 'magit-status)
-  (spacemacs/set-leader-keys "gd" 'magit-diff-working-tree)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
@@ -405,10 +390,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   (set-default 'truncate-lines t)
-  (global-nlinum-mode 1)
-  (when (string-equal system-type "gnu/linux") (load-theme 'spacemacs-light t) (set-default-font "Monospace"))
-  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
-  (set-face-attribute 'default nil :height 130)
+  ;;(when (string-equal system-type "gnu/linux") (load-theme 'spacemacs-light t) (set-default-font "Monospace"))
+  ;;(when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
+  ;;(set-face-attribute 'default nil :height 130)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
@@ -478,7 +462,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-ag (thing-at-point 'word)) ;; counsel-ag allows initial input to play with.
+  (counsel-ag (thing-at-point 'symbol)) ;; counsel-ag allows initial input to play with.
 )
 
 (defun xueliang-flush-blank-lines (start end)
@@ -948,9 +932,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
+ '(evil-want-Y-yank-to-eol nil)
  '(package-selected-packages
    (quote
-    (grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
+    (zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
