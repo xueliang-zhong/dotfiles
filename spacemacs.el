@@ -401,6 +401,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (setq counsel-grep-swiper-limit 900000)
+  (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; nowrap
@@ -408,8 +410,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; line numbers
   (add-hook 'prog-mode-hook 'nlinum-mode)
   (add-hook 'org-mode-hook  'nlinum-mode)
-  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas"))
-  ;;(set-face-attribute 'default nil :height 130)
+  (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
@@ -663,28 +664,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang-art-proj-monitor)
 )
 
-(defun xuelinag-bold-text (start end)
-  (interactive "r")
-  (xueliang-tag-word-or-region "*" "*")
-)
-
-(defun xueliang-tag-word-or-region (text-begin text-end)
-  "Surround current word or region with given text."
-  (interactive "sStart tag: \nsEnd tag: ")
-  (let (pos1 pos2 bds)
-    (if (and transient-mark-mode mark-active)
-        (progn
-          (goto-char (region-end))
-          (insert text-end)
-          (goto-char (region-beginning))
-          (insert text-begin))
-      (progn
-        (setq bds (bounds-of-thing-at-point 'symbol))
-        (goto-char (cdr bds))
-        (insert text-end)
-        (goto-char (car bds))
-        (insert text-begin)))))
-
 (defun xueliang-google-translate-region () (interactive)
    (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
      (replace-regexp-in-string "[/ \n()]" "%20"            ;; replace some special character with space.
@@ -735,28 +714,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   "Choose from build targets" (interactive)
   (xueliang/make-android-system-image
    (ivy-read "Lunch Targets: " (list
-                                      ;; common ones
-                                      "aosp_arm64-eng"
-                                      "hikey960-userdebug"
-                                      "aosp_angler-userdebug"
-                                      "-------------------------------"
-                                      ;; also useful
                                       "arm_krait-eng"
-                                      "arm_v7_v8-eng"
-                                      "armv8-eng"
                                       "aosp_arm64-eng"
-                                      "aosp_x86_64-eng"
-                                      "silvermont-eng"
-                                      "aosp_marlin-userdebug"
-                                      "aosp_marlin_svelte-userdebug"
-                                      "aosp_sailfish-userdebug"
-                                      "aosp_muskie-userdebug"
                                       "aosp_walleye-userdebug"
-                                      "aosp_walleye_test-userdebug"
-                                      "aosp_taimen-userdebug"
-                                      "aosp_angler-userdebug"
-                                      "aosp_bullhead-userdebug"
-                                      "aosp_bullhead_svelte-userdebug"
                                       ))))
 
 (defun xueliang-linaro-gdb ()
@@ -840,8 +800,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                 (ivy-read "Select Gerrit: "
                                           (list
                                           "about:blank"
-                                          "https://android-review.googlesource.com/#/q/"
-                                          "https://dev-private-review.linaro.org/#/q/")
+                                          "https://android-review.googlesource.com/#/q/")
                                           :preselect "blank")
                                 git-revision-string))))
 
