@@ -425,7 +425,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
   ;; <f5> .. <f8> :
   ;; code development related: debug/test, program structure, build.
-  (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
+  (global-set-key (kbd "<f5>")   'xueliang-coffee-break)
   (global-set-key (kbd "<f6>")   'xueliang-eshell-pwd)
   (global-set-key (kbd "C-<f6>") 'xueliang-terminal-shell)
   (global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-host)
@@ -748,6 +748,15 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert "cd $android-root") (eshell-send-input)
   (insert (concat "mv out ~/rubish/out.") (format-time-string "%Y-%m-%d-%H_%M_%S" (current-time))) (eshell-send-input)
   (eshell/x)
+)
+
+(defun xueliang-coffee-break () (interactive)
+  ;; rm ~/rubish/*
+  (xueliang-rm-clean-home-rubish)
+  ;; repo sync minimal_aosp_art
+  (xueliang-eshell-pwd)
+  (insert "cd ~/workspace/minimal_aosp_art") (eshell-send-input)
+  (insert "repo sync -j33") (eshell-send-input)
 )
 
 (defun =============xueliang-git-config/functions=============())
