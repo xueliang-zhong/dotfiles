@@ -40,6 +40,7 @@ values."
      better-defaults
      emacs-lisp
      git
+     graphviz
      ivy
      markdown
      nlinum
@@ -376,6 +377,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (org-bullets-mode 1)))
   (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
+  (add-hook 'org-mode-hook '(lambda () (define-key evil-insert-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
+  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
@@ -412,12 +415,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'prog-mode-hook 'nlinum-mode)
   (add-hook 'org-mode-hook  'nlinum-mode)
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
+  (setq google-translate-default-target-language "zh-CN")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
-  (global-set-key (kbd "<f4>")  'kill-buffer-and-window)
+  (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
+  (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
   ;; <f5> .. <f8> :
   ;; code development related: debug/test, program structure, build.
   (global-set-key (kbd "<f5>")   'xueliang-linaro-gdb)
@@ -443,7 +448,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                           (kbd "<f8>")
                                           '(lambda() (interactive) (swiper "^diff ")))))
   ;; for my repo-sync terminal
-  (add-hook 'term-mode-hook '(lambda () (define-key evil-normal-state-local-map
+  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                           (kbd "<f8>")
                                           '(lambda() (interactive) (swiper "Fetching projects ")))))
   (add-hook 'markdown-mode-hook '(lambda () (define-key evil-normal-state-local-map
@@ -612,7 +617,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO"))
 
 ;; make it easier for me to remember & type some commands.
-(defalias 'xueliang-helm-htop 'helm-top)
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
 (defalias 'xueliang-eval-region 'eval-region)
 
@@ -664,12 +668,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; Proj monitor
   (xueliang-art-proj-monitor)
 )
-
-(defun xueliang-google-translate-region () (interactive)
-   (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
-     (replace-regexp-in-string "[/ \n()]" "%20"            ;; replace some special character with space.
-        (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
-))))
 
 (defun xueliang-markdown-to-PDF-slides ()
   "Use odpdown/soffice to convert current markdown .md file to PDF slides."
@@ -730,7 +728,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-linaro-repo-sync-PINNED-MANIFEST ()
   "repo sync linaro tree with pinned manifest under $android-root/pinned-manifest.xml" (interactive)
-  (xueliang/linaro-repo-sync "repo sync -d -m /home/xuezho01/workspace/linaro/pinned-manifest.xml -j33"))
+  (when (file-exists-p "~/Downloads/pinned-manifest.xml")
+    (xueliang-eshell-pwd) (insert "cd $android-root") (eshell-send-input)
+    (insert (message "cat ~/Downloads/pinned-manifest.xml | sed \"s/git@dev-private-git.linaro.org/xueliang.zhong@dev-private-git.linaro.org:29418/\" > %s/pinned-manifest.xml" android-root))
+    (eshell-send-input) (sleep-for 0 300)
+    (insert "repo sync -d -m /home/xuezho01/workspace/linaro/pinned-manifest.xml -j33") (eshell-send-input)
+    (insert "rm -f ~/Downloads/pinned-manifest.xml") (eshell-send-input)
+  )
+)
 
 (defun xueliang-cfg-analyze-c1visualizer-irhydra ()
   "analyze ART generated .cfg file" (interactive)
@@ -881,7 +886,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
  '(evil-want-Y-yank-to-eol nil)
  '(package-selected-packages
    (quote
-    (json-mode json-snatcher json-reformat projectile nlinum-relative zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
+    (graphviz-dot-mode json-mode json-snatcher json-reformat projectile nlinum-relative zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

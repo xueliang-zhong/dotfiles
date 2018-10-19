@@ -20,7 +20,8 @@ ln -sf `pwd`/m ~/bin/m
 
 # emacs
 rm -f ~/.emacs
-ln -sf `pwd`/emacs.el ~/.emacs
+rm -f ~/.spacemacs
+ln -sf `pwd`/spacemacs.el ~/.spacemacs
 
 # emacs.d
 rm -rf ~/.emacs.d/xueliang/
@@ -51,7 +52,7 @@ ln -s ~/Dropbox ~/workspace/dropbox
 
 # gdb
 rm -f ~/.gdbinit
-ln -s `pwd`/gdbinit ~/.gdbinit 
+ln -s `pwd`/gdbinit ~/.gdbinit
 
 # DONE
 echo DONE
