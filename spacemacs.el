@@ -422,6 +422,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
+  (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
   (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
   ;; <f5> .. <f8> :
   ;; code development related: debug/test, program structure, build.
