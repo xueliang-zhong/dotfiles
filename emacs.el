@@ -973,6 +973,33 @@
     (xueliang-minimal-dark-theme)   ;; works great on all my laptops: windows & linux.
 )
 
+(defun xueliang-anti-zenburn-theme-colors()
+  (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
+
+  ;; Useful commands: list-faces-display, counsel-colors-emacs.
+  (set-face-foreground 'font-lock-comment-face "DarkGreen")
+  (set-face-foreground 'font-lock-doc-face "DarkGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
+
+  (set-face-foreground 'linum "DarkSlateBlue")
+
+  ;; Org mode colors
+  (set-face-foreground 'org-done "DarkSlateGrey")
+
+  ;; ivy colors
+  (set-face-attribute  'ivy-current-match nil :underline t)
+  (set-face-background 'ivy-minibuffer-match-face-1 "grey67") ;; LemonChiffon2
+  (set-face-background 'ivy-minibuffer-match-face-2 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-3 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-4 "grey67")
+  (set-face-background 'ivy-match-required-face     "grey67")
+
+  ;; flyspell
+  (require 'flyspell)
+  (set-face-foreground 'flyspell-incorrect "DarkRed")
+  (set-face-foreground 'flyspell-duplicate "DarkRed")
+)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; xueliang's functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

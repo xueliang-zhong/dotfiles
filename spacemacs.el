@@ -138,7 +138,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(spacemacs-light spacemacs-dark anti-zenburn sanityinc-tomorrow-blue)
+   dotspacemacs-themes '(anti-zenburn spacemacs-light spacemacs-dark sanityinc-tomorrow-blue)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -407,15 +407,19 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq counsel-grep-swiper-limit 900000)
   (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+  (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (thing-at-point 'symbol))))
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; nowrap
   (set-default 'truncate-lines t)
   ;; line numbers
   (add-hook 'prog-mode-hook 'nlinum-mode)
-  (add-hook 'org-mode-hook  'nlinum-mode)
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   (setq google-translate-default-target-language "zh-CN")
+  ;; vim style high-light lines
+  (spacemacs/toggle-highlight-current-line-globally-off)
+  (spacemacs/toggle-vi-tilde-fringe-off)
+  (add-hook 'prog-mode-hook 'spacemacs/toggle-highlight-long-lines-on)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
