@@ -974,6 +974,7 @@
 )
 
 (defun xueliang-anti-zenburn-theme-colors()
+  "anti-zenburn theme is the best for my workstation in office."
   (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
@@ -982,9 +983,12 @@
   (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
 
   (set-face-foreground 'linum "DarkSlateBlue")
+  (set-face-background 'cursor "DimGrey")
 
   ;; Org mode colors
+  (setq org-src-fontify-natively t)
   (set-face-foreground 'org-done "DarkSlateGrey")
+  (set-face-foreground 'org-todo "brown")
 
   ;; ivy colors
   (set-face-attribute  'ivy-current-match nil :underline t)
@@ -993,6 +997,12 @@
   (set-face-background 'ivy-minibuffer-match-face-3 "grey67")
   (set-face-background 'ivy-minibuffer-match-face-4 "grey67")
   (set-face-background 'ivy-match-required-face     "grey67")
+
+  ;; diff
+  (set-face-background 'diff-added "#93cccc")
+  (set-face-background 'diff-refine-added "#93cccc")
+  (set-face-background 'diff-removed "#d0b0d0")
+  (set-face-background 'diff-refine-removed "#d0b0d0")
 
   ;; flyspell
   (require 'flyspell)

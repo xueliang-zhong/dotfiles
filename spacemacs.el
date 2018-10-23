@@ -138,7 +138,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(anti-zenburn spacemacs-light spacemacs-dark sanityinc-tomorrow-blue)
+   dotspacemacs-themes '(spacemacs-light anti-zenburn spacemacs-dark sanityinc-tomorrow-blue)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -618,8 +618,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
-(defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO"))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop" t))
+(defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO" t))
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
@@ -638,8 +638,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
 )
 
-(defun xueliang-eshell-quick-command (str)
-  (xueliang-eshell-pwd) (insert str) (eshell-send-input))
+(defun xueliang-eshell-quick-command (str &optional exit-eshell-after-command)
+  (xueliang-eshell-pwd)
+  (insert str) (eshell-send-input)
+  (when exit-eshell-after-command (insert "exit") (eshell-send-input))
+)
 
 (defun xueliang-dev-machine-temperature ()
   "check temperature" (interactive)
@@ -685,7 +688,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
 )
 
 (defun xueliang-rm-clean-home-rubish () (interactive)
-  (xueliang-eshell-quick-command (concat "rm -rf ~/rubish/out." (format-time-string "%Y-%m-%d-*" (current-time))))
+   (xueliang-eshell-quick-command
+    (concat "rm -rf ~/rubish/out." (format-time-string "%Y-%m-%d-*" (current-time))) t)
 )
 
 (defun xueliang-df () (interactive)
