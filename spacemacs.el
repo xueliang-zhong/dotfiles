@@ -763,18 +763,21 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; rm ~/rubish/*
   (xueliang-rm-clean-home-rubish)
   ;; repo sync minimal_aosp_art
-  (xueliang-eshell-pwd)
-  (insert "cd ~/workspace/minimal_aosp_art") (eshell-send-input)
-  (insert "repo sync -j33") (eshell-send-input)
+  (xueliang-eshell-quick-command "cd ~/workspace/minimal_aosp_art; repo sync -j33" t)
 )
 
 (defun =============xueliang-git-config/functions=============())
 
 (setq-default shell-output-buffer-name "*Shell Command Output*")
 
+(defalias 'xueliang-gdiff                 'magit-status)
+(defalias 'xueliang-glog                  'magit-log-all)
+(defalias 'xueliang-grebase               'magit-rebase-interactive)
+(defalias 'xueliang-gread-current-buffer  'magit-status)
+(defalias 'xueliang-gwrite-current-buffer 'magit-status)
+
 (defun xueliang-gcommit ()
-  "run git commit.
-   *** HANDLE WITH CARE !!! ***" (interactive)
+  "run git commit on current buffer" (interactive)
    (xueliang-cd-current-buffer-directory)
    (shell-command (message "git commit -m \"%s\""
                            (ivy-read "COMMIT MSG: " (list
@@ -795,22 +798,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                                xueliang-cword                                  ;; then use it as initial-input;
                                              "") "")))))                                       ;; otherwise, avoid giving any initial-input.
 
-(defalias 'xueliang-gdiff 'magit-status)
-(defalias 'xueliang-glog 'magit-log-all)
-(defalias 'xueliang-grebase 'magit-rebase-interactive)
-
 (defun xueliang-gdiff-revision-at-point ()
    "run 'git diff' using the revision number from ivy glog" (interactive)
    (when (buffer-file-name) (require 'fiplr) (xueliang-cd-current-buffer-directory) (cd (fiplr-root)))
    (magit-diff (xueliang/glog)) (evil-next-line 7)
 )
-
-(defun xueliang/gdiff-window ()
-  "show a diff window at the right side."
-  (if (get-buffer-window shell-output-buffer-name)
-      (select-window (get-buffer-window shell-output-buffer-name))
-      (switch-to-buffer-other-window shell-output-buffer-name))
-  (evil-window-move-far-right) (diff-mode) (evil-next-line 10))
 
 (defun xueliang-gshow ()
   "run 'git show' using the ivy glog" (interactive)
@@ -830,20 +822,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                           :preselect "blank")
                                 git-revision-string))))
 
-(defun xueliang-gread-current-buffer ()
-  "run git checkout on current buffer" (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (shell-command (concat "git checkout " (buffer-file-name)))
-  (revert-buffer :ignore-auto :noconfirm)
-  (message "git checkout: " (buffer-file-name)))
-
-(defun xueliang-gwrite-current-buffer ()
-  "run git add on current buffer" (interactive)
-  (xueliang-cd-current-buffer-directory)
-  (shell-command (concat "git add " (buffer-file-name)))
-  (xueliang-gread-current-buffer) ;; gread it again to refresh git-gutter.
-  (message "git add: %s" (buffer-file-name)))
-
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
   (xueliang-cd-current-buffer-directory)
@@ -854,18 +832,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun =============xueliang-eshell-functions=============())
 
-;; Avoid clearing the whole buffer when typing clear in eshell.
-(defun eshell/clear ()
-  "Clear the eshell buffer."
-  (dotimes (i 5) (eshell-send-input)))
-
-(defun eshell/ec ()
-  "create emacsclient frame from eshell."
-  (xueliang-make-frame))
-
-(defun eshell/gcommit (arg)
-  "make git commit easier."
-  (shell-command (message "git commit -m \"%s\"" arg)))
+(defalias 'eshell/vi 'eshell/e)
+(defalias 'eshell/vim 'eshell/e)
 
 (defun eshell/x ()
   "exit eshell and close the window."
@@ -890,9 +858,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun eshell/vimdiff (file1 file2)
   (shell-command (message "gnome-terminal -e \"vimdiff %s %s\"" file1 file2)))
-
-(defalias 'eshell/vi 'eshell/e)
-(defalias 'eshell/vim 'eshell/e)
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
