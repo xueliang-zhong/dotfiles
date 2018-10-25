@@ -405,7 +405,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq counsel-grep-swiper-limit 900000)
+  (setq counsel-grep-swiper-limit 7000000)
   (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
   (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (thing-at-point 'symbol))))
   ;; modern style 'paste' in evil insert mode.
@@ -417,7 +417,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   (setq google-translate-default-target-language "zh-CN")
   ;; vim style high-light lines
-  (spacemacs/toggle-highlight-current-line-globally-off)
   (spacemacs/toggle-vi-tilde-fringe-off)
   (add-hook 'prog-mode-hook 'spacemacs/toggle-highlight-long-lines-on)
 
