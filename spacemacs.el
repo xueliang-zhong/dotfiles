@@ -39,6 +39,7 @@ values."
      auto-completion
      emacs-lisp
      git
+     ;; graphviz
      ivy
      markdown
      nlinum
@@ -68,7 +69,7 @@ values."
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
-   dotspacemacs-excluded-packages '()
+   dotspacemacs-excluded-packages '(yasnippet)
    ;; Defines the behaviour of Spacemacs when installing packages.
    ;; Possible values are `used-only', `used-but-keep-unused' and `all'.
    ;; `used-only' installs only explicitly used packages and uninstall any
@@ -141,8 +142,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Monospace"
-                               :size 17
+   dotspacemacs-default-font '("Consolas"
+                               :size 26
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -341,6 +342,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "*" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "gg" 'magit-status)
+  (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
@@ -361,6 +363,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq counsel-grep-base-command "grep -inE '%s' %s")
   ;; Better ivy switch buffer.
   (ivy-rich-mode 1)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Helm config
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (require 'helm)
+  (setq helm-show-completion-display-function #'helm-show-completion-default-display-function)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Org-mode config
@@ -479,6 +487,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
+
+(defun xueliang-projectile-find-file ()
+  "projectile-find-file if it's in a project, find-file otherwise" (interactive)
+   (if (projectile-project-root) (counsel-projectile-find-file) (counsel-find-file))
+)
 
 (defun xueliang-search-in-project (argument)
   "search in project using ag; use fiplr to goto the root dir of the project"
