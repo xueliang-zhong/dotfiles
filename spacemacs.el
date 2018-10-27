@@ -142,8 +142,8 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Consolas"
-                               :size 26
+   dotspacemacs-default-font '("Monospace"
+                               :size 17
                                :weight normal
                                :width normal
                                :powerline-scale 1.1)
@@ -401,6 +401,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; auto completion / company settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq company-idle-delay 0)
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; eshell settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
+  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
@@ -782,7 +788,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defalias 'xueliang-grebase               'magit-rebase-interactive)
 (defalias 'xueliang-gread-current-buffer  'magit-status)
 (defalias 'xueliang-gwrite-current-buffer 'magit-status)
-
 (defun xueliang-gcommit ()
   "run git commit on current buffer" (interactive)
    (xueliang-cd-current-buffer-directory)
