@@ -343,6 +343,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
+  (spacemacs/set-leader-keys "ff" 'xueliang-projectile-find-file)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
@@ -495,8 +496,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
 
 (defun xueliang-projectile-find-file ()
-  "projectile-find-file if it's in a project, find-file otherwise" (interactive)
-   (if (projectile-project-root) (counsel-projectile-find-file) (counsel-find-file))
+   "projectile-find-file if it's in a project, find-file otherwise" (interactive)
+   (if (projectile-project-root) (counsel-projectile-find-file)  ;; use projectile-find-file by default
+         (if (string-equal system-type "windows-nt")             ;; otherwise
+             (counsel-find-file)                                 ;;   on windows, use less powerful find-file.
+             (xueliang/find-file (fiplr-root) "")))              ;;   on linux, use my own find file implementation.
 )
 
 (defun xueliang-search-in-project (argument)
