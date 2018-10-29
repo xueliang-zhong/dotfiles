@@ -425,7 +425,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   ;; workstation
-  (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
+  ;; (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -440,6 +440,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; line numbers
   (add-hook 'prog-mode-hook 'nlinum-mode)
   (setq google-translate-default-target-language "zh-CN")
+  ;; scratch buffer to be elisp mode by default.
+  (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
@@ -642,7 +644,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (evil-goto-line) (evil-append-line 1))
 
 (defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop" t))
-(defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO" t))
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
