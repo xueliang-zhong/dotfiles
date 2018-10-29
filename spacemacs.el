@@ -39,15 +39,10 @@ values."
      auto-completion
      emacs-lisp
      git
-     ;; graphviz
      ivy
      markdown
      nlinum
      org
-     (shell :variables
-            shell-default-height 30
-            shell-default-position 'bottom
-            shell-default-shell 'eshell)
      (spell-checking :variables
                      spell-checking-enable-by-default nil)
      ;; smex
@@ -62,9 +57,10 @@ values."
    dotspacemacs-additional-packages
    '(
      fiplr
-     json-mode
-     ivy-rich
+     graphviz-dot-mode
      helm-google
+     ivy-rich
+     json-mode
     )
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -137,7 +133,7 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(spacemacs-dark spacemacs-light anti-zenburn)
+   dotspacemacs-themes '(anti-zenburn spacemacs-dark spacemacs-light)
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -408,12 +404,23 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
+  ;; eshell will run a term session to support following complex commands
+  (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
+  (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "top")))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (file-exists-p dropbox-home)
      (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; theme settings
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
+  (when (> (display-pixel-height) 1080)   ;; workstation
+    (load-theme 'anti-zenburn t)
+    (xueliang-anti-zenburn-theme-colors))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -427,7 +434,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (set-default 'truncate-lines t)
   ;; line numbers
   (add-hook 'prog-mode-hook 'nlinum-mode)
-  (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   (setq google-translate-default-target-language "zh-CN")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -500,7 +506,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (if (projectile-project-root) (counsel-projectile-find-file)  ;; use projectile-find-file by default
          (if (string-equal system-type "windows-nt")             ;; otherwise
              (counsel-find-file)                                 ;;   on windows, use less powerful find-file.
-             (xueliang/find-file (fiplr-root) "")))              ;;   on linux, use my own find file implementation.
+             (require 'fiplr) (xueliang/find-file (fiplr-root) "")))              ;;   on linux, use my own find file implementation.
 )
 
 (defun xueliang-search-in-project (argument)
@@ -544,11 +550,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-find-file ()
   "my fast find file in project" (interactive)
   (counsel-projectile-find-file)
-;;
-;;  (require 'fiplr)
-;;  (if (string-equal system-type "windows-nt")
-;;      (projectile-find-file)
-;;      (xueliang/find-file (fiplr-root) "")
 )
 
 (defun xueliang-find-file-from-pwd ()
@@ -635,7 +636,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop" t))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "top -d 1" t))
 (defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO" t))
 
 ;; make it easier for me to remember & type some commands.
@@ -711,6 +712,44 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-df () (interactive)
   (xueliang-eshell-quick-command "df -h /data")
+)
+
+(defun xueliang-anti-zenburn-theme-colors()
+  "anti-zenburn theme is the best for my workstation in office."
+  (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
+
+  ;; Useful commands: list-faces-display, counsel-colors-emacs.
+  (set-face-foreground 'font-lock-comment-face "DarkGreen")
+  (set-face-foreground 'font-lock-doc-face "DarkGreen")
+  (set-face-foreground 'font-lock-comment-delimiter-face "DarkGreen")
+
+  (set-face-foreground 'linum "DarkSlateBlue")
+  (set-face-background 'cursor "DimGrey")
+
+  ;; Org mode colors
+  (require 'org-faces)
+  (setq org-src-fontify-natively t)
+  (set-face-foreground 'org-done "DarkSlateGrey")
+  (set-face-foreground 'org-todo "brown")
+
+  ;; ivy colors
+  (set-face-attribute  'ivy-current-match nil :underline t)
+  (set-face-background 'ivy-minibuffer-match-face-1 "grey67") ;; LemonChiffon2
+  (set-face-background 'ivy-minibuffer-match-face-2 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-3 "grey67")
+  (set-face-background 'ivy-minibuffer-match-face-4 "grey67")
+  (set-face-background 'ivy-match-required-face     "grey67")
+
+  ;; diff
+  (set-face-background 'diff-added "#93cccc")
+  (set-face-background 'diff-refine-added "#93cccc")
+  (set-face-background 'diff-removed "#d0b0d0")
+  (set-face-background 'diff-refine-removed "#d0b0d0")
+
+  ;; flyspell
+  (require 'flyspell)
+  (set-face-foreground 'flyspell-incorrect "DarkRed")
+  (set-face-foreground 'flyspell-duplicate "DarkRed")
 )
 
 (defun =============xueliang-linaro-development=============())
