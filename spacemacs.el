@@ -46,9 +46,7 @@ values."
      (spell-checking :variables
                      spell-checking-enable-by-default nil)
      ;; smex
-     syntax-checking
-     ;; themes-megapack
-     version-control
+     ;; version-control
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -133,7 +131,11 @@ values."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '(anti-zenburn spacemacs-dark spacemacs-light)
+   dotspacemacs-themes '(
+                         spacemacs-light
+                         anti-zenburn
+                         spacemacs-dark
+                         )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
@@ -418,9 +420,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; theme settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
-  (when (> (display-pixel-height) 1080)   ;; workstation
-    (load-theme 'anti-zenburn t)
-    (xueliang-anti-zenburn-theme-colors))
+  ;; workstation
+  ;; (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -636,7 +637,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "top -d 1" t))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop" t))
 (defun xueliang-htop-io () (interactive) (xueliang-eshell-quick-command "htop -d 10 --sort-key IO" t))
 
 ;; make it easier for me to remember & type some commands.
