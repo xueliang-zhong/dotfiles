@@ -54,6 +54,7 @@ values."
    ;; configuration in `dotspacemacs/user-config'.
    dotspacemacs-additional-packages
    '(
+     anti-zenburn-theme
      fiplr
      graphviz-dot-mode
      helm-google
@@ -342,6 +343,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
   (spacemacs/set-leader-keys "ff" 'xueliang-projectile-find-file)
+  (spacemacs/set-leader-keys "wg" 'golden-ratio)  ;; leader -> windows -> golden-ration.
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
@@ -409,6 +411,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; eshell will run a term session to support following complex commands
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "top")))
+  ;; TAB to complete command in eshell
+  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
@@ -421,7 +425,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   ;; workstation
-  ;; (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
+  (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -731,7 +735,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'org-faces)
   (setq org-src-fontify-natively t)
   (set-face-foreground 'org-done "DarkSlateGrey")
-  (set-face-foreground 'org-todo "brown")
+  (set-face-foreground 'org-todo "RoyalBlue")
 
   ;; ivy colors
   (set-face-attribute  'ivy-current-match nil :underline t)
