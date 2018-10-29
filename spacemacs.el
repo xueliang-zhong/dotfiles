@@ -423,7 +423,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; theme settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (when (string-equal system-type "windows-nt") (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
+  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
   ;; workstation
   ;; (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
 
