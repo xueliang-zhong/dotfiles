@@ -411,6 +411,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; eshell will run a term session to support following complex commands
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "top")))
+  (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "watch")))
   ;; TAB to complete command in eshell
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
 
@@ -670,11 +671,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-dev-machine-temperature ()
   "check temperature" (interactive)
-  (xueliang-eshell-quick-command "cat /sys/class/thermal/thermal_zone*/temp"))
+  (xueliang-eshell-quick-command "watch -n 1 cat /sys/class/thermal/thermal_zone*/temp"))
 
 (defun xueliang-dropbox-status ()
   "check dropbox status quickly" (interactive)
-  (xueliang-eshell-quick-command "dropbox status"))
+  (xueliang-eshell-quick-command "watch -n 0.3 dropbox status"))
 
 (defun xueliang-open-link ()
   "" (interactive)
@@ -717,7 +718,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 )
 
 (defun xueliang-df () (interactive)
-  (xueliang-eshell-quick-command "df -h /data")
+  (xueliang-eshell-quick-command "watch df -h /data")
 )
 
 (defun xueliang-anti-zenburn-theme-colors()
