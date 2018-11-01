@@ -133,9 +133,9 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
+                         spacemacs-dark
                          spacemacs-light
                          anti-zenburn
-                         spacemacs-dark
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -671,7 +671,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-dev-machine-temperature ()
   "check temperature" (interactive)
-  (xueliang-eshell-quick-command "watch -n 1 cat /sys/class/thermal/thermal_zone*/temp"))
+  (xueliang-eshell-quick-command "cat /sys/class/thermal/thermal_zone*/temp"))
 
 (defun xueliang-dropbox-status ()
   "check dropbox status quickly" (interactive)
@@ -718,7 +718,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 )
 
 (defun xueliang-df () (interactive)
-  (xueliang-eshell-quick-command "watch df -h /data")
+  (xueliang-eshell-quick-command "df -h /data")
 )
 
 (defun xueliang-anti-zenburn-theme-colors()
