@@ -765,8 +765,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (interactive)
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-art-gtest-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
+  (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
   (insert "cd $android-root") (eshell-send-input)
-  (insert "art/test/testrunner/run_build_test_target.py -j33 art-gtest-asan") (eshell-send-input)
+  (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-gtest-asan" ncpu)) (eshell-send-input)
   ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
 )
 
@@ -826,7 +827,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; rm ~/rubish/*
   (xueliang-rm-clean-home-rubish)
   ;; repo sync minimal_aosp_art
-  (xueliang-eshell-quick-command "cd ~/workspace/minimal_aosp_art; repo sync -j33" t)
+  (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
+  (xueliang-eshell-quick-command (message "cd ~/workspace/minimal_aosp_art; repo sync -j%s" ncpu) t)
 )
 
 (defun =============xueliang-git-config/functions=============())
