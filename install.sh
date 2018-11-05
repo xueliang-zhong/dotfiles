@@ -44,7 +44,7 @@ ln -s ~/workspace/aosp/out/host/linux-x86/bin/adb  ~/bin/adb
 # gnome environment
 rm -f ~/bin/files
 rm -f ~/bin/terminal
-ln -s /usr/bin/nautilus ~/bin/files
+ln -s /usr/bin/nemo ~/bin/files
 ln -s /usr/bin/gnome-terminal ~/bin/terminal
 
 # dropbox
