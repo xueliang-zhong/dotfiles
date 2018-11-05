@@ -497,7 +497,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                         ; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
   (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
-  (global-set-key (kbd "<f10>") 'ace-window)
+  (global-set-key (kbd "<f10>") 'xueliang-Stock-Current-Trade-Reference)
   (global-set-key (kbd "<f11>") 'helm-google)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>") 'xueliang-open-link)
@@ -689,19 +689,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (start-process "my-art-proj-monitor" nil "google-chrome" (concat dropbox-home "/art_proj_monitor.svg")))
 )
 
-(defun xueliang-daily-websites ()
-  (interactive)
-  ;; Work
-  (org-open-link-from-string "https://mail.google.com/mail/u/0/#inbox")
-  (org-open-link-from-string "https://mail.google.com/mail/u/1/#inbox")
-  (org-open-link-from-string "https://outlook.office.com/owa/")
-  ;; Net working
-  (org-open-link-from-string "https://secure.skype.com/portal/overview")
-  (org-open-link-from-string "https://www.yammer.com/arm.com/")
-  ;; Proj monitor
-  (xueliang-art-proj-monitor)
-)
-
 (defun xueliang-markdown-to-PDF-slides ()
   "Use odpdown/soffice to convert current markdown .md file to PDF slides."
   (interactive)
@@ -718,7 +705,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
 )
 
 (defun xueliang-df () (interactive)
-  (xueliang-eshell-quick-command "df -h /data")
+   (if (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name)
+      (xueliang-eshell-quick-command "df -h /data")
+      (xueliang-eshell-quick-command "df -h /"))
 )
 
 (defun xueliang-anti-zenburn-theme-colors()
