@@ -762,13 +762,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang/make-android-system-image (lunch-target)
   "invoke build android system image from andriod-root source tree"
+  (setq ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
   (split-window-below) (evil-window-move-very-bottom)
   (term "bash") (rename-buffer (concat "*make-android-" (format-time-string "%H:%M:%S" (current-time)) "*"))
   (insert (message "cd %s" android-root)) (term-send-input)
   (insert "source build/envsetup.sh") (term-send-input)
   (insert (concat "lunch " lunch-target)) (term-send-input)
-  (insert "time make dx -j33") (term-send-input)
-  (insert "time make -j33") (term-send-input)
+  (insert (message "time make dx -j%s" ncpu)) (term-send-input)
+  (insert (message "time make -j%s" ncpu)) (term-send-input)
 )
 
 (defun xueliang-make-android-system-image ()
@@ -794,7 +795,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (xueliang-eshell-pwd) (insert "cd $android-root") (eshell-send-input)
     (insert (message "cat ~/Downloads/pinned-manifest.xml | sed \"s/git@dev-private-git.linaro.org/xueliang.zhong@dev-private-git.linaro.org:29418/\" > %s/pinned-manifest.xml" android-root))
     (eshell-send-input) (sleep-for 0 300)
-    (insert "repo sync -d -m /home/xuezho01/workspace/linaro/pinned-manifest.xml -j33") (eshell-send-input)
+    (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
+    (insert (message "repo sync -d -m ~/workspace/linaro/pinned-manifest.xml -j%s" ncpu)) (eshell-send-input)
     (insert "rm -f ~/Downloads/pinned-manifest.xml") (eshell-send-input)
   )
 )
