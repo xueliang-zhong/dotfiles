@@ -640,7 +640,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-eshell-pwd ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (xueliang-cd-current-buffer-directory)
-   (setq eshell-buffer-number (% (+ eshell-buffer-number 1) 10))  ;; eshell number 0-9.
+   (setq eshell-buffer-number (% (+ eshell-buffer-number 1) 100))  ;; eshell number 0-99.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
