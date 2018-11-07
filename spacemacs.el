@@ -133,8 +133,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-dark
                          spacemacs-light
+                         spacemacs-dark
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -660,7 +660,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
-  (start-process "my-shell" shell-output-buffer-name "~/bin/terminal")
+  (start-process "my-shell" shell-output-buffer-name "~/bin/terminal" "--drop-down")
 )
 
 (defun xueliang-eshell-quick-command (str &optional exit-eshell-after-command)
