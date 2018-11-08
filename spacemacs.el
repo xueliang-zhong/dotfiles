@@ -454,10 +454,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
   (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
   ;; <f5> .. <f8> :
-  ;; code development related: debug/test, program structure, build.
-  (global-set-key (kbd "<f5>")   'xueliang-coffee-break)
-  (global-set-key (kbd "<f6>")   'xueliang-eshell-pwd)
-  (global-set-key (kbd "C-<f6>") 'xueliang-terminal-shell)
+  ;; code development related: debug/test, shell commands, program structure, build.
+  (global-set-key (kbd "<f5>")     'xueliang-terminal-shell)
+  (global-set-key (kbd "C-<f5>")   'xueliang-eshell-pwd)
+
   (global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-host)
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
   ;; Magic key <f8>
@@ -646,7 +646,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1))
 
-(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop" t))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
@@ -781,6 +781,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang/make-android-system-image
    (ivy-read "Lunch Targets: " (list
                                       "arm_krait-eng"
+                                      "aosp_arm-eng"
                                       "aosp_arm64-eng"
                                       "aosp_walleye-userdebug"
                                       ))))
@@ -823,7 +824,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang-rm-clean-home-rubish)
   ;; repo sync minimal_aosp_art
   (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
-  (xueliang-eshell-quick-command (message "cd ~/workspace/minimal_aosp_art; repo sync -j%s" ncpu) t)
+  (xueliang-eshell-quick-command (message "cd ~/workspace/minimal_aosp_art; repo sync -j%s" ncpu))
 )
 
 (defun =============xueliang-git-config/functions=============())
