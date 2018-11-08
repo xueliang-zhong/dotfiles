@@ -668,7 +668,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-eshell-quick-command (str &optional exit-eshell-after-command)
   (xueliang-eshell-pwd)
   (insert str) (eshell-send-input)
-  (when exit-eshell-after-command (insert "exit") (eshell-send-input))
+  (when exit-eshell-after-command (eshell/x))
 )
 
 (defun xueliang-dev-machine-temperature ()
@@ -688,6 +688,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-art-proj-monitor () (interactive)
   (when (string-equal system-type "gnu/linux")
+    ;; regenerate the svg file everytime, just in case it is deleted.
+    (xueliang-eshell-quick-command (message "cd %s; sleep 0.3; dot -Tsvg art_arch.dot -o art_proj_monitor.svg; sleep 0.3" dropbox-home) t)
     (start-process "my-art-proj-monitor" nil "google-chrome" (concat dropbox-home "/art_proj_monitor.svg")))
 )
 
