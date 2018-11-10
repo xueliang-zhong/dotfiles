@@ -499,7 +499,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                         ; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
   (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
-  (global-set-key (kbd "<f10>") 'xueliang-Stock-Current-Trade-Reference)
+  (global-set-key (kbd "<f10>") 'xueliang-file-manager)
   (global-set-key (kbd "<f11>") 'helm-google)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>") 'xueliang-open-link)
@@ -578,6 +578,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                             (concat "ag " path " -l --nocolor -g \"\" "))  ;; faster than find command.
                                            "\n")
                              :initial-input init-input)))
+
+(defun xueliang-file-manager () "Open file manager (Thunar) on current folder" (interactive)
+   (start-process "my-file-manager" shell-output-buffer-name "thunar"))
 
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
