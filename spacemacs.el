@@ -705,7 +705,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-rm-clean-home-rubish () (interactive)
    (xueliang-eshell-quick-command
-    (concat "rm -rf ~/rubish/out." (format-time-string "%Y-%m-%d-*" (current-time))) t)
+    (concat "rm -rf ~/rubish/out." (format-time-string "%Y-%m-*" (current-time))) t)
 )
 
 (defun xueliang-df () (interactive)
