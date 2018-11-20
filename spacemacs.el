@@ -371,8 +371,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'helm)
   (setq helm-show-completion-display-function #'helm-show-completion-default-display-function)
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Org-mode config
+  ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
@@ -579,8 +578,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                            "\n")
                              :initial-input init-input)))
 
-(defun xueliang-file-manager () "Open file manager (Thunar) on current folder" (interactive)
-   (start-process "my-file-manager" shell-output-buffer-name "thunar"))
+(defun xueliang-file-manager () "Open file manager (Thunar/Nemo) on current folder" (interactive)
+   (start-process "my-file-manager" shell-output-buffer-name "nemo" "."))
 
 ;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 (defalias 'xueliang-top 'helm-top)
