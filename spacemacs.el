@@ -128,13 +128,13 @@ values."
    ;; True if the home buffer should respond to resize events.
    dotspacemacs-startup-buffer-responsive t
    ;; Default major mode of the scratch buffer (default `text-mode')
-   dotspacemacs-scratch-mode 'text-mode
+   dotspacemacs-scratch-mode 'emacs-lisp-mode
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
+                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
-                         spacemacs-light
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -457,7 +457,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f5>")     'xueliang-terminal-shell)
   (global-set-key (kbd "C-<f5>")   'xueliang-eshell-pwd)
 
-  (global-set-key (kbd "<f7>")   'xueliang-linaro-art-gtest-host)
+  (global-set-key (kbd "<f7>")   'xueliang-art-test-target-optimizing)
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
   ;; Magic key <f8>
   ;; <f8> shows program/output/content structure in various languages.
@@ -764,6 +764,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert "cd $android-root") (eshell-send-input)
   (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-gtest-asan" ncpu)) (eshell-send-input)
   ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
+)
+
+(defun xueliang-art-test-target-optimizing() (interactive)
+  (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
+  (rename-buffer (concat "*eshell-linaro-make-art-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
+  (insert "cd $android-root") (eshell-send-input)
+  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input)
 )
 
 (defun xueliang/make-android-system-image (lunch-target)
