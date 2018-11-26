@@ -226,7 +226,7 @@ values."
    ;; If non nil a progress bar is displayed when spacemacs is loading. This
    ;; may increase the boot time on some systems and emacs builds, set it to
    ;; nil to boost the loading time. (default t)
-   dotspacemacs-loading-progress-bar nil
+   dotspacemacs-loading-progress-bar t
    ;; If non nil the frame is fullscreen when Emacs starts up. (default nil)
    ;; (Emacs 24.4+ only)
    dotspacemacs-fullscreen-at-startup nil
@@ -454,8 +454,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
   ;; <f5> .. <f8> :
   ;; code development related: debug/test, shell commands, program structure, build.
-  (global-set-key (kbd "<f5>")     'xueliang-terminal-shell)
-  (global-set-key (kbd "C-<f5>")   'xueliang-eshell-pwd)
+  (global-set-key (kbd "<f5>")   'xueliang-eshell-pwd)
+  (global-set-key (kbd "C-<f5>") 'xueliang-terminal-shell)
 
   (global-set-key (kbd "<f7>")   'xueliang-art-test-target-optimizing)
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
