@@ -698,8 +698,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-f12-trade-function () "" (interactive)
    (switch-to-buffer "*trade*")
    (evil-goto-first-line)
-   (insert "\n(xueliang-Short-Trading-Stock-ETF-EMA-Bouncing \"SPX\" 60)")
-   (evil-backward-char 7)
+   (insert (message "\n(xueliang-Short-Trading-Stock-ETF-EMA-Bouncing \"%s\" %s)"
+             (ivy-read "Choose Index:" xueliang-private-trade-ETF-list)
+             (ivy-read "Choose Time-frame:" (list "5" "15" "30" "60" "120" "480"))))
 )
 
 (defun xueliang-art-proj-monitor () (interactive)
