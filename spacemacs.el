@@ -502,9 +502,16 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f11>") 'helm-google)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>") 'xueliang-open-link)
+  (global-set-key (kbd "<C-f12>") 'xueliang-f12-trade-function)
 )
 
 (defun =============xueliang-functions=============())
+
+(defun xueliang-google-translate-region () (interactive)
+       (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
+                                          (replace-regexp-in-string "[/ \n()]" "%20"            ;; replace some special character with space.
+                                                                    (buffer-substring (region-beginning) (region-end)) ;; translate current selection/region in buffer.
+                                                                    ))))
 
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
@@ -688,6 +695,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                         ))))
 )
 
+(defun xueliang-f12-trade-function () "" (interactive)
+   (switch-to-buffer "*trade*")
+   (evil-goto-first-line)
+   (insert "\n(xueliang-Short-Trading-Stock-ETF-EMA-Bouncing \"SPX\" 60)")
+   (evil-backward-char 7)
+)
+
 (defun xueliang-art-proj-monitor () (interactive)
   (when (string-equal system-type "gnu/linux")
     ;; regenerate the svg file everytime, just in case it is deleted.
@@ -771,6 +785,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (rename-buffer (concat "*eshell-linaro-make-art-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
   (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input)
+  ;; (insert "scripts/tests/test_art_target.sh --64bit --keep-failures --single-test test-art-target-run-test-debug-prebuild-optimizing-no-relocate-ntrace-cms-checkjni-picimage-ndebuggable-no-jvmti-cdex-fast-580-fp1664") (eshell-send-input)
 )
 
 (defun xueliang/make-android-system-image (lunch-target)
@@ -909,7 +924,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert "exit") (eshell-send-input)
   (delete-window))
 
-(defun eshell/cdroot ()
+(defun eshell/cdroot-git-root ()
   "cd to project root"
   (require 'fiplr)
   (cd (fiplr-root)))
