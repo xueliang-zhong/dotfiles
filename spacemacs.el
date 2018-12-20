@@ -133,8 +133,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
+                         spacemacs-light  ;; works great with redshift.
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -693,14 +693,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (org-open-link-from-string (car (cdr (split-string
                                         (ivy-read "Link: " xueliang-private-weblink-list)
                                         ))))
-)
-
-(defun xueliang-f12-trade-function () "" (interactive)
-   (switch-to-buffer "*trade*")
-   (evil-goto-first-line)
-   (insert (message "\n(xueliang-Short-Trading-Stock-ETF-EMA-Bouncing \"%s\" %s)"
-             (ivy-read "Choose Index: " xueliang-private-trade-ETF-list)
-             (ivy-read "Choose Time-frame: " (list "5" "15" "30" "60" "120" "480"))))
 )
 
 (defun xueliang-art-proj-monitor () (interactive)
