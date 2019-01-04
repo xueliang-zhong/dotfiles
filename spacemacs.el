@@ -420,7 +420,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; my functions.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (file-exists-p dropbox-home)
-     (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong))
+     (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong) (require 'xzhong-trader))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; theme settings
