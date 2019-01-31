@@ -444,6 +444,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq google-translate-default-target-language "zh-CN")
   ;; scratch buffer to be elisp mode by default.
   (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
+  ;; start screen
+  (kill-buffer "*spacemacs*")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
