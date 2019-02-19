@@ -405,6 +405,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
                         company-files company-dabbrev-code company-gtags company-etags company-keywords company-oddmuse company-dabbrev)))
   (setq company-idle-delay 0)
   (global-company-mode)
+  (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 60)))
+  (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
