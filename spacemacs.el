@@ -373,7 +373,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
+  (setq org-todo-keywords '((sequence "TODAY" "PROGRESS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
@@ -400,7 +400,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; auto completion / company settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (setq company-backends
+        '((company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-cmake company-capf
+                        company-files company-dabbrev-code company-gtags company-etags company-keywords company-oddmuse company-dabbrev)))
   (setq company-idle-delay 0)
+  (global-company-mode)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
