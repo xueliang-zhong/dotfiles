@@ -698,7 +698,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-open-link ()
   "" (interactive)
-  (org-open-link-from-string (car (cdr (split-string
+  (browse-url-chrome (car (cdr (split-string
                                         (ivy-read "Link: " xueliang-private-weblink-list)
                                         ))))
 )
@@ -833,7 +833,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-cfg-analyze-c1visualizer-irhydra ()
   "analyze ART generated .cfg file" (interactive)
-  ;;(org-open-link-from-string "http://mrale.ph/irhydra/2.bak/")
+  ;;(browse-url-chrome "http://mrale.ph/irhydra/2.bak/")
   (start-process "cfg-analysis" nil "~/workspace/c1visualizer/bin/c1visualizer"))
 
 (defun xueliang-clean-android-linaro-mv-rm-out-files () (interactive)
@@ -899,7 +899,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq git-revision-string (thing-at-point 'word))
   (when git-revision-string
     (magit-show-commit git-revision-string) (evil-next-line 17)
-    (org-open-link-from-string (concat
+    (browse-url-chrome (concat
                                 (ivy-read "Select Gerrit: "
                                           (list
                                           "about:blank"
