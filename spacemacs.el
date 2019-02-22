@@ -665,9 +665,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
 
-;; Workaround to invoke Chrome browser.
-(defalias 'browse-url-chrome browse-url-chromium)
-
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
 (defalias 'xueliang-eval-region 'eval-region)
@@ -701,6 +698,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-open-link ()
   "" (interactive)
+  (require 'browse-url)
   (browse-url-chrome (car (cdr (split-string
                                         (ivy-read "Link: " xueliang-private-weblink-list)
                                         ))))
