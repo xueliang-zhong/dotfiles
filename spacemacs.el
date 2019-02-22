@@ -133,8 +133,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-dark
                          spacemacs-light  ;; works great with redshift.
+                         spacemacs-dark
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -373,7 +373,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODAY" "PROGRESS" "DONE")))
+  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
@@ -664,6 +664,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (evil-goto-line) (evil-append-line 1))
 
 (defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
+
+;; Workaround to invoke Chrome browser.
+(defalias 'browse-url-chrome browse-url-chromium)
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
