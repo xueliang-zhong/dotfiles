@@ -421,6 +421,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
   ;; Ctrl-d to quit the shell, just like other terminals
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d")   'kill-buffer-and-window)))
+  ;; Helm eshell history colours
+  (set-face-background 'helm-lisp-show-completion "LightSteelBlue1")
+  (set-face-foreground 'helm-lisp-show-completion "black")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
