@@ -422,6 +422,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; Ctrl-d to quit the shell, just like other terminals
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d")   'kill-buffer-and-window)))
   ;; Helm eshell history colours
+  (require 'helm-elisp)
   (set-face-background 'helm-lisp-show-completion "LightSteelBlue1")
   (set-face-foreground 'helm-lisp-show-completion "black")
 
