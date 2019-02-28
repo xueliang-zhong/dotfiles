@@ -736,6 +736,18 @@ before packages are loaded. If you are unsure, you should try in setting them in
       (xueliang-eshell-quick-command "df -h /"))
 )
 
+(defun xueliang-smaller-window () (interactive)
+       (evil-window-decrease-height 3)
+       (evil-window-decrease-width 3))
+
+(defun xueliang-bigger-window () (interactive)
+       (evil-window-increase-height 3)
+       (evil-window-increase-width 3))
+
+;; Use Ctrl + mouse wheel scroll to adjust window sizes.
+(global-set-key (kbd "<C-mouse-4>") 'xueliang-bigger-window)
+(global-set-key (kbd "<C-mouse-5>") 'xueliang-smaller-window)
+
 (defun xueliang-anti-zenburn-theme-colors()
   "anti-zenburn theme is the best for my workstation in office."
   (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
