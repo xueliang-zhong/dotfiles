@@ -777,11 +777,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (set-face-background 'ivy-minibuffer-match-face-4 "grey67")
   (set-face-background 'ivy-match-required-face     "grey67")
 
+  ;; cursor and line highlight
+  (spacemacs/toggle-highlight-current-line-globally-off)
+
   ;; diff
-  (set-face-background 'diff-added "#93cccc")
-  (set-face-background 'diff-refine-added "#93cccc")
-  (set-face-background 'diff-removed "#d0b0d0")
-  (set-face-background 'diff-refine-removed "#d0b0d0")
+  ;;(set-face-background 'diff-added "#93cccc")
+  ;;(set-face-background 'diff-refine-added "#93cccc")
+  ;;(set-face-background 'diff-removed "#d0b0d0")
+  ;;(set-face-background 'diff-refine-removed "#d0b0d0")
 
   ;; flyspell
   (require 'flyspell)
