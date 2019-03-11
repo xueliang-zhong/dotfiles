@@ -485,6 +485,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
                                                 evil-normal-state-local-map (kbd "<f8>")
                                                 '(lambda() (interactive) (swiper "(defun =[=]* ")))))
+  (add-hook 'python-mode-hook '(lambda () (define-key
+                                            evil-normal-state-local-map (kbd "<f8>")
+                                            '(lambda() (interactive) (swiper "^ def ")))))
   (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                                 (kbd "<f8>")
                                                 '(lambda() (interactive) (swiper "modified ")))))
