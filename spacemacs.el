@@ -373,7 +373,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "DONE")))
+  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "FOCUS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
@@ -389,6 +389,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Keep magit status window always on the rigth side.
+  (setq split-height-threshold nil
+        split-width-threshold  0)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; projectile settings
@@ -794,7 +797,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (rename-buffer (concat "*eshell-linaro-make-art-gtest-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
   (insert "cd $android-root") (eshell-send-input)
-  (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-gtest-asan" ncpu)) (eshell-send-input)
+  (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-test-javac" ncpu)) (eshell-send-input)
+  ;; (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-gtest-asan" ncpu)) (eshell-send-input)
   ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
 )
 
@@ -802,7 +806,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
   (rename-buffer (concat "*eshell-linaro-make-art-test" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (insert "cd $android-root") (eshell-send-input)
-  (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input)
+  (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
+  (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-test-javac" ncpu)) (eshell-send-input)
+  ;; (insert "scripts/tests/test_art_target.sh --64bit --optimizing") (eshell-send-input)
   ;; (insert "scripts/tests/test_art_target.sh --64bit --keep-failures --single-test test-art-target-run-test-debug-prebuild-optimizing-no-relocate-ntrace-cms-checkjni-picimage-ndebuggable-no-jvmti-cdex-fast-580-fp1664") (eshell-send-input)
 )
 
