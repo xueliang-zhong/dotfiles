@@ -133,8 +133,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
+                         spacemacs-light  ;; works great with redshift.
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -507,11 +507,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                          '(lambda() (interactive)
                                             (org-shifttab)
                                             (evil-goto-first-line)
-                                            ;;(helm-swoop :$query
-                                            (swiper
-                                             (format-time-string "<%Y-%m-%d" (current-time)))
-                                            (org-sort-entries t ?o)
-                                            (org-cycle) (org-cycle)
+                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
+                                            ;;(org-sort-entries t ?o)
+                                            (org-cycle)
                                             ))))
                                         ; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
