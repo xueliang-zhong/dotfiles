@@ -672,7 +672,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
    (evil-goto-line) (evil-append-line 1)
    ;; Better eshell colours in dark themes.
-   (set-face-foreground 'term-color-black "grey66")
+   (set-face-foreground 'term-color-black "grey42")
 )
 
 (defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
