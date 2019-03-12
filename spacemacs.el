@@ -428,8 +428,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'helm-elisp)
   (set-face-background 'helm-lisp-show-completion "LightSteelBlue1")
   (set-face-foreground 'helm-lisp-show-completion "black")
-  ;; Better eshell colours in dark themes.
-  (set-face-foreground 'term-color-black "grey66")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
@@ -669,9 +667,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-eshell-pwd ()
    "invokes a new eshell in a split window, shell starts in the root of current project." (interactive)
    (xueliang-cd-current-buffer-directory)
-   (setq eshell-buffer-number (% (+ eshell-buffer-number 1) 100))  ;; eshell number 0-99.
+   (setq eshell-buffer-number (% (+ eshell-buffer-number 1) 1000))  ;; eshell number 0-99.
    (split-window-below) (evil-window-move-very-bottom) (eshell eshell-buffer-number)
-   (evil-goto-line) (evil-append-line 1))
+   (evil-goto-line) (evil-append-line 1)
+   ;; Better eshell colours in dark themes.
+   (set-face-foreground 'term-color-black "grey66")
+)
 
 (defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
 
