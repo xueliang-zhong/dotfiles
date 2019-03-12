@@ -133,8 +133,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
+                         spacemacs-light  ;; works great with redshift.
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -428,6 +428,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'helm-elisp)
   (set-face-background 'helm-lisp-show-completion "LightSteelBlue1")
   (set-face-foreground 'helm-lisp-show-completion "black")
+  ;; Better eshell colours in dark themes.
+  (set-face-foreground 'term-color-black "grey66")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
@@ -459,6 +461,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
   ;; start screen
   (kill-buffer "*spacemacs*")
+  (spacemacs/toggle-highlight-current-line-globally-off)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
