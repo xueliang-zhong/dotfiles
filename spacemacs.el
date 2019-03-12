@@ -486,6 +486,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
                                                 evil-normal-state-local-map (kbd "<f8>")
                                                 '(lambda() (interactive) (swiper "(defun =[=]* ")))))
+  (add-hook 'python-mode-hook '(lambda () (define-key
+                                            evil-normal-state-local-map (kbd "<f8>")
+                                            '(lambda() (interactive) (swiper "^ def ")))))
   (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                                 (kbd "<f8>")
                                                 '(lambda() (interactive) (swiper "modified ")))))
@@ -505,11 +508,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                          '(lambda() (interactive)
                                             (org-shifttab)
                                             (evil-goto-first-line)
-                                            ;;(helm-swoop :$query
-                                            (swiper
-                                             (format-time-string "<%Y-%m-%d" (current-time)))
-                                            (org-sort-entries t ?o)
-                                            (org-cycle) (org-cycle)
+                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
+                                            ;;(org-sort-entries t ?o)
+                                            (org-cycle)
                                             ))))
                                         ; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
