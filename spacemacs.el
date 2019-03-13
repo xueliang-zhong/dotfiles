@@ -611,6 +611,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
 
+(defalias 'xueliang-comment-code 'comment-box)
+
 (defun xueliang-cnext-compilation-error ()
   "get compilation error easily in current buffer" (interactive)
   (compilation-mode)
