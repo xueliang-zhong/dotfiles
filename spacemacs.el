@@ -900,6 +900,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (shell-command (message "git commit -m \"%s\""
                            (ivy-read "COMMIT MSG: " (list
                                                      (message "Improve code in %s." (file-name-nondirectory buffer-file-name))
+                                                     (message "Introduce %s." (file-name-nondirectory buffer-file-name))
                                                      (message "Address review comments to %s." (file-name-nondirectory buffer-file-name))
                                                      )))))
 
