@@ -476,7 +476,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f7>")   'xueliang-art-test-target-optimizing)
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
   ;; Magic key <f8>
-  ;; <f8> shows program/output/content structure in various languages.
+  ;; <f8> shows insights: program/output/content structure in various languages.
   (add-hook 'c-mode-hook '(lambda () (define-key
                                        evil-normal-state-local-map (kbd "<f8>")
                                        '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
@@ -710,12 +710,16 @@ before packages are loaded. If you are unsure, you should try in setting them in
   "check dropbox status quickly" (interactive)
   (xueliang-eshell-quick-command "watch -n 0.3 dropbox status"))
 
+(defun xueliang-open-link-from-string (str)
+  (if (string-equal system-type "windows-nt")
+      (org-open-link-from-string xueliang-weblink-str)
+    (require 'browse-url) (browse-url-chrome str))
+)
+
 (defun xueliang-open-link ()
-  "" (interactive)
-  (require 'browse-url)
-  (browse-url-chrome (car (cdr (split-string
-                                        (ivy-read "Link: " xueliang-private-weblink-list)
-                                        ))))
+   "" (interactive)
+   (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " xueliang-private-weblink-list))))
+   (xueliang-open-link-from-string xueliang-weblink-str)
 )
 
 (defun xueliang-art-proj-monitor () (interactive)
@@ -933,13 +937,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq git-revision-string (thing-at-point 'word))
   (when git-revision-string
     (magit-show-commit git-revision-string) (evil-next-line 17)
-    (browse-url-chrome (concat
-                                (ivy-read "Select Gerrit: "
-                                          (list
-                                          "about:blank"
-                                          "https://android-review.googlesource.com/#/q/")
-                                          :preselect "blank")
-                                git-revision-string))))
+    (xueliang-open-link-from-string (concat
+                                     (ivy-read "Select Gerrit: "
+                                               (list
+                                                "about:blank"
+                                                "https://android-review.googlesource.com/#/q/")
+                                               :preselect "blank")
+                                     git-revision-string))))
 
 (defun xueliang-gblame-current-buffer ()
   "run git blame on current buffer, esp. current line" (interactive)
