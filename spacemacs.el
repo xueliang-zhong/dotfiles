@@ -465,6 +465,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
+  (global-set-key (kbd "<f3>")      'xueliang-faster-fundamental-mode)
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
   (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
@@ -701,6 +702,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert str) (eshell-send-input)
   (when exit-eshell-after-command (eshell/x))
 )
+
+(setq xueliang-switch-mode-counter 0)
+(defun xueliang-faster-fundamental-mode()
+  "Quickly swich to fundamental mode, useful when editing huge size buffers."
+  (interactive)
+  (if (= (% xueliang-switch-mode-counter 2) 0) (fundamental-mode) (set-auto-mode))
+  (setq xueliang-switch-mode-counter (+ xueliang-switch-mode-counter 1)))
 
 (defun xueliang-dev-machine-temperature ()
   "check temperature" (interactive)
