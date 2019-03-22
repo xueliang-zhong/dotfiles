@@ -468,6 +468,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f3>")      'xueliang-faster-fundamental-mode)
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
+  (global-set-key (kbd "S-<f4>")    'xueliang-select-close-window-and-kill-buffer)
   (global-set-key (kbd "C-S-<f4>")  'xueliang-select-close-window-and-kill-buffer)
 
   ;; <f5> .. <f8> :
