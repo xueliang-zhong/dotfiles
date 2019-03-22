@@ -468,7 +468,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f3>")      'xueliang-faster-fundamental-mode)
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
-  (spacemacs/set-leader-keys "<f4>" 'kill-buffer-and-window)
+  (global-set-key (kbd "C-S-<f4>")  'xueliang-select-close-window-and-kill-buffer)
+
   ;; <f5> .. <f8> :
   ;; code development related: debug/test, shell commands, program structure, build.
   (global-set-key (kbd "<f5>")   'xueliang-eshell-pwd)
@@ -765,6 +766,23 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-bigger-window () (interactive)
        (evil-window-increase-height 3)
        (evil-window-increase-width 3))
+
+(defun xueliang-select-close-window-and-kill-buffer() (interactive)
+       (setq xueliang-window-num
+             (string-to-number
+              (nth 1 (split-string
+                      (ivy-read "Select and Close Window: "
+                                (list "Window 1"
+                                      "Window 2"
+                                      "Window 3"
+                                      "Window 4"
+                                      "Window 5"
+                                      "Window 6"
+                                      "Window 7"
+                                      "Window 8"
+                                      "Window 9"))))))
+       (winum-select-window-by-number xueliang-window-num)
+       (kill-buffer-and-window))
 
 ;; Use Ctrl + mouse wheel scroll to adjust window sizes.
 (global-set-key (kbd "<C-mouse-4>") 'xueliang-bigger-window)
