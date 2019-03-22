@@ -772,7 +772,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
        (setq xueliang-window-num
              (string-to-number
               (nth 1 (split-string
-                      (ivy-read "Select and Close Window: "
+                      (ivy-read "Select and Close Window/Buffer: "
                                 (list "Window 1"
                                       "Window 2"
                                       "Window 3"
