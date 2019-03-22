@@ -785,6 +785,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
        (winum-select-window-by-number xueliang-window-num)
        (kill-buffer-and-window))
 
+(defun xueliang-kill-all-eshell-buffers() (interactive)
+       (kill-matching-buffers "eshell"))
+
 ;; Use Ctrl + mouse wheel scroll to adjust window sizes.
 (global-set-key (kbd "<C-mouse-4>") 'xueliang-bigger-window)
 (global-set-key (kbd "<C-mouse-5>") 'xueliang-smaller-window)
