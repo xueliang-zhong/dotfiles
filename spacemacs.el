@@ -389,9 +389,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Keep magit status window always on the rigth side.
-  (setq split-height-threshold nil
-        split-width-threshold  0)
+  ;; For small screens: keep magit status window always on the rigth side.
+  (when (< (display-pixel-height) 1080)
+    (setq split-height-threshold nil
+          split-width-threshold  0))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; projectile settings
