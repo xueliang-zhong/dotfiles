@@ -350,7 +350,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; number of result lines to display
   (setq ivy-fixed-height-minibuffer t)
-  (setq ivy-height 20)
+  (setq ivy-height 30)
   ;; enable more stuff
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers nil)
@@ -373,7 +373,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODO" "PROGRESS" "FOCUS" "DONE")))
+  (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROGRESS" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
@@ -507,15 +507,17 @@ before packages are loaded. If you are unsure, you should try in setting them in
                                               (kbd "<f8>")
                                               '(lambda() (interactive) (swiper "^#")))))
   ;; for selecting date easily in my daily.org
-  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                         (kbd "<f8>")
-                                         '(lambda() (interactive)
-                                            (org-shifttab)
-                                            (evil-goto-first-line)
-                                            (swiper (format-time-string "<%Y-%m-%d" (current-time)))
-                                            ;;(org-sort-entries t ?o)
-                                            (org-cycle)
-                                            ))))
+  (defun xueliang-org-find-today () (interactive)
+         (org-shifttab)
+         (evil-goto-first-line)
+         (swiper (format-time-string "<%Y-%m-%d" (current-time)))
+         (org-cycle))
+  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") 'xueliang-org-find-today)))
+  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<C-f8>") '(lambda() (interactive)
+                                                                                                 (xueliang-org-find-today)
+                                                                                                 (org-sort-entries t ?o)
+                                                                                                 (org-cycle) (org-cycle)
+                                                                                                 ))))
                                         ; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
   (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
