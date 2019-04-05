@@ -506,19 +506,23 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'markdown-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                               (kbd "<f8>")
                                               '(lambda() (interactive) (swiper "^#")))))
-  ;; for selecting date easily in my daily.org
+
+  ;; for jumping to current day tasks easily in my daily.org
   (defun xueliang-org-find-today () (interactive)
          (org-shifttab)
          (evil-goto-first-line)
          (swiper (format-time-string "<%Y-%m-%d" (current-time)))
          (org-cycle))
-  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") 'xueliang-org-find-today)))
-  (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-local-map (kbd "<C-f8>") '(lambda() (interactive)
-                                                                                                 (xueliang-org-find-today)
-                                                                                                 (org-sort-entries t ?o)
-                                                                                                 (org-cycle) (org-cycle)
-                                                                                                 ))))
-                                        ; <f9> .. <f12>:
+  (defun xueliang-set-org-f8-key () (interactive)
+         (if (and (stringp buffer-file-name) (string-match "daily.org" buffer-file-name))
+             (progn
+               (define-key evil-normal-state-local-map (kbd "<f8>") 'xueliang-org-find-today)
+               (define-key evil-normal-state-local-map (kbd "<C-f8>") '(lambda() (interactive) (org-cycle) (org-cycle))))
+          ;; else, for all other org files, imenu is very useful.
+          (define-key evil-normal-state-local-map (kbd "<f8>") 'counsel-imenu)))
+  (add-hook 'find-file-hook 'xueliang-set-org-f8-key)
+
+  ;; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
   (global-set-key (kbd "<C-f9>")  'xueliang-find-file-similar)
   (global-set-key (kbd "<f10>") 'xueliang-file-manager)
