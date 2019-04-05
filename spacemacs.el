@@ -411,6 +411,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-company-mode)
   (add-hook 'eshell-mode-hook '(lambda () (setq-local company-idle-delay 60)))
   (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
+  (setq company-tooltip-minimum 9)
+  (setq company-tooltip-limit 9)
+  (setq company-tooltip-minimum-width 33)
+  (setq company-minimum-prefix-length 1)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
