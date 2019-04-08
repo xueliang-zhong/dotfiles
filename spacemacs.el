@@ -945,6 +945,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defalias 'xueliang-grebase               'magit-rebase-interactive)
 (defalias 'xueliang-gread-current-buffer  'magit-status)
 (defalias 'xueliang-gwrite-current-buffer 'magit-status)
+(defalias 'xueliang-gpull                 'magit-git-pull)
+(defalias 'xueliang-gpush                 'magit-git-push)
+
 (defun xueliang-gcommit ()
   "run git commit on current buffer" (interactive)
    (xueliang-cd-current-buffer-directory)
