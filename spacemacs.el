@@ -648,6 +648,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (switch-to-buffer-other-window "*Shell Command Output*")
   (evil-window-move-very-bottom) (compilation-mode))
 
+(defun xueliang-art-weekly-report ()
+  "Help me write ART weekly report easier." (interactive)
+  (find-file (concat dropbox-home "/weekly/"
+                     (format-time-string "art_weekly_%d_%m_%Y.md" (current-time))))
+)
+
 ; Helper to cd to directory of current buffer/file.
 (defun xueliang-cd-current-buffer-directory ()
   "cd to directory of current buffer/file." (interactive)
