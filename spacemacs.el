@@ -350,7 +350,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; number of result lines to display
   (setq ivy-fixed-height-minibuffer t)
-  (setq ivy-height 30)
+  (setq ivy-height 24)
   ;; enable more stuff
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers nil)
