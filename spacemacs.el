@@ -371,6 +371,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'helm)
   (setq helm-show-completion-display-function #'helm-show-completion-default-display-function)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Modeline config
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (setq display-time-day-and-date 1)
+  (display-time-mode 1)
+
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROGRESS" "DONE")))
