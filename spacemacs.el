@@ -350,7 +350,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; number of result lines to display
   (setq ivy-fixed-height-minibuffer t)
-  (setq ivy-height 30)
+  (setq ivy-height 24)
   ;; enable more stuff
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers nil)
@@ -385,6 +385,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-insert-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
+  ;; Make sure org mode opens link with Google Chrome.
+  (setq browse-url-browser-function 'browse-url-generic
+        browse-url-generic-program "google-chrome")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
