@@ -423,7 +423,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq company-tooltip-minimum 9)
   (setq company-tooltip-limit 9)
   (setq company-tooltip-minimum-width 33)
-  (setq company-minimum-prefix-length 1)
+  (setq company-minimum-prefix-length 2)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
