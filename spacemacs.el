@@ -379,7 +379,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROGRESS" "DONE")))
+  (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROG" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
