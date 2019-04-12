@@ -494,31 +494,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
   ;; Magic key <f8>
   ;; <f8> shows insights: program/output/content structure in various languages.
-  (add-hook 'c-mode-hook '(lambda () (define-key
-                                       evil-normal-state-local-map (kbd "<f8>")
-                                       '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
-  (add-hook 'c++-mode-hook '(lambda () (define-key
-                                         evil-normal-state-local-map (kbd "<f8>")
-                                         '(lambda() (interactive) (swiper "void visit ([a-z]* ")))))
-  (add-hook 'emacs-lisp-mode-hook '(lambda () (define-key
-                                                evil-normal-state-local-map (kbd "<f8>")
-                                                '(lambda() (interactive) (swiper "(defun =[=]* ")))))
-  (add-hook 'python-mode-hook '(lambda () (define-key
-                                            evil-normal-state-local-map (kbd "<f8>")
-                                            '(lambda() (interactive) (swiper "^ def ")))))
-  (add-hook 'magit-diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                                (kbd "<f8>")
-                                                '(lambda() (interactive) (swiper "modified ")))))
-  (add-hook 'diff-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                          (kbd "<f8>")
-                                          '(lambda() (interactive) (swiper "^diff ")))))
+  (global-set-key (kbd "<f8>")   'counsel-imenu)
+
   ;; for my repo-sync terminal
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map
                                           (kbd "<f8>")
                                           '(lambda() (interactive) (swiper "Fetching projects ")))))
-  (add-hook 'markdown-mode-hook '(lambda () (define-key evil-normal-state-local-map
-                                              (kbd "<f8>")
-                                              '(lambda() (interactive) (swiper "^#")))))
 
   ;; for jumping to current day tasks easily in my daily.org
   (defun xueliang-org-find-today () (interactive)
