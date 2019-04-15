@@ -490,8 +490,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f5>")   'xueliang-eshell-pwd)
   (global-set-key (kbd "C-<f5>") 'xueliang-terminal-shell)
 
+  (global-set-key (kbd "<f6>")      'counsel-yank-pop)
+
   (global-set-key (kbd "<f7>")   'xueliang-art-test-target-optimizing)
   (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
+
   ;; Magic key <f8>
   ;; <f8> shows insights: program/output/content structure in various languages.
   (global-set-key (kbd "<f8>")   'counsel-imenu)
