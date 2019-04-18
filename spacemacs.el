@@ -395,6 +395,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (when (string-equal system-type "gnu/linux")
     (setq browse-url-browser-function 'browse-url-generic
           browse-url-generic-program "google-chrome"))
+  ;; <s TAB to insert code template in org.
+  (require 'org-tempo)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
