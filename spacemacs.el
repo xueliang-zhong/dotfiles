@@ -418,7 +418,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
         '((company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-cmake company-capf company-files company-dabbrev-code company-gtags company-etags company-keywords company-oddmuse company-dabbrev)))
   (require 'company-dabbrev)
   (push 'company-dabbrev company-backends)
-  (setq company-dabbrev-char-regexp "[\\.0-9a-zA-Z-_'/]") ;adjust regexp make `company-dabbrev' search words like `dabbrev-expand'
+  (setq company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]") ;adjust regexp make `company-dabbrev' search words like `dabbrev-expand'
   (setq company-dabbrev-code-other-buffers 'all) ;search completion from all buffers, not just same mode buffers.
   (setq company-idle-delay 0)
   (global-company-mode)
