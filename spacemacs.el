@@ -43,7 +43,7 @@ values."
      markdown
      nlinum
      org
-     python
+     c-c++
      (spell-checking :variables
                      spell-checking-enable-by-default nil)
      ;; smex
@@ -61,7 +61,9 @@ values."
      helm-google
      ivy-rich
      json-mode
+     rmsbolt
     )
+
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
    ;; A list of packages that will not be installed and loaded.
@@ -478,7 +480,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; scratch buffer to be elisp mode by default.
   (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
   ;; start screen
-  (kill-buffer "*spacemacs*")
+  ;; (kill-buffer "*spacemacs*")
   (spacemacs/toggle-highlight-current-line-globally-off)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
