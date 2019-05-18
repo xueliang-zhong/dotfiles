@@ -629,6 +629,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defalias 'xueliang-comment-code 'comment-box)
 
+(defun xueliang-quick/C-C++-code/rmsbold-analysis ()
+  "Quickly open a tmp c++ file, experiment & understand c++ semantics.\nC-c C-c." (interactive)
+  (find-file "~/workspace/cpp/t.cc")
+  (rmsbolt-mode 1)
+)
+
 (defun xueliang-cnext-compilation-error ()
   "get compilation error easily in current buffer" (interactive)
   (compilation-mode)
