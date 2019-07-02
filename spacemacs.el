@@ -707,7 +707,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (set-face-foreground 'term-color-black "grey42")
 )
 
-(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop"))
+(defun xueliang-htop-cpu () (interactive) (xueliang-eshell-quick-command "htop -d 9"))
 
 ;; make it easier for me to remember & type some commands.
 (defalias 'xueliang-spell-check-on-the-fly-check-mode 'flyspell-mode)
