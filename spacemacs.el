@@ -502,7 +502,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   (global-set-key (kbd "<f7>")   'evil-make)
   ;; (global-set-key (kbd "<f7>")   'xueliang-art-test-target-optimizing)
-  (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
+  ;; (global-set-key (kbd "C-<f7>") 'xueliang-make-android-system-image)
+  (global-set-key (kbd "C-<f7>") 'xueliang-linaro-art-test-host)
 
   ;; Magic key <f8>
   ;; <f8> shows insights: program/output/content structure in various languages.
@@ -861,15 +862,15 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun =============xueliang-linaro-development=============())
 
-(defun xueliang-linaro-art-gtest-host ()
+(defun xueliang-linaro-art-test-host ()
   (interactive)
   (xueliang-eshell-pwd) ;; have to use eshell here, which provides better/stable output searching functionality.
-  (rename-buffer (concat "*eshell-linaro-make-art-gtest-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
+  (rename-buffer (concat "*eshell-linaro-make-art-test-host" (format-time-string "-%H:%M:%S" (current-time)) "*"))
   (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
   (insert "cd $android-root") (eshell-send-input)
-  (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-test-javac" ncpu)) (eshell-send-input)
+  ;; (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-test-javac" ncpu)) (eshell-send-input)
   ;; (insert (message "art/test/testrunner/run_build_test_target.py -j%s art-gtest-asan" ncpu)) (eshell-send-input)
-  ;; (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
+  (insert "echo y | scripts/tests/test_art_host.sh") (eshell-send-input)
 )
 
 (defun xueliang-art-test-target-optimizing() (interactive)
