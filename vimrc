@@ -85,7 +85,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme elflord " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
+colorscheme jellybeans " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -237,6 +237,7 @@ map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
+map <F12>     <ESC>:e ~/workspace/dotfiles/links.txt<CR><ESC>:CtrlPLine<CR>
 
 "
 " The following key maps are obsolete.
