@@ -11,7 +11,6 @@ call plug#begin('~/.vim/plugged')
 Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
 Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
 Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
-Plug 'benmills/vimux'
 Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
@@ -25,6 +24,7 @@ Plug 'yggdroot/indentline'              " Indentlines with chars like '|', usefu
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
+Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
 
 " Initialize plugin system
 call plug#end()
@@ -205,13 +205,10 @@ map <M-x> <ESC>:
 " map <ESC>     :noh<CR>
 
 " <leader> key mappings
-map <leader>a <ESC>:Ag<CR>
-map <leader><leader> <ESC>:CtrlPBuffer<CR>
+map <leader>* <ESC>:Ag<CR>
+map <leader><leader> <ESC>:CtrlPMixed<CR>
 map <Leader>b <ESC>:CtrlP<CR>
-map <leader>i <ESC>:TagbarToggle<CR>
 map <Leader>f <ESC>:CtrlP<CR>
-map <Leader>r <ESC>:CtrlPMRUFiles<CR>
-map <Leader>x <ESC>:q<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
@@ -237,6 +234,7 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
+map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 
