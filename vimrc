@@ -5,34 +5,30 @@
 set nocompatible              " be iMproved, required
 filetype off                  " required
 
-set rtp+=~/.vim/bundle/vundle/
-call vundle#begin()
-
-" let vundle manage vundle
-Plugin 'gmarik/vundle'
+call plug#begin('~/.vim/plugged')
 
 " PluginInstall/List/Update
-Plugin 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
-Plugin 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
-Plugin 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
-Plugin 'benmills/vimux'
-Plugin 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
-Plugin 'airblade/vim-gitgutter'           " show modifications to the file.
-Plugin 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
-Plugin 'majutsushi/tagbar'                " Tagbar
-Plugin 'a.vim'                            " Switch h/{cc,c} files
-Plugin 'jlanzarotta/bufexplorer'          " BufExplorer
-"Plugin 'Valloric/YouCompleteMe'           " Auto-completion
-Plugin 'rking/ag.vim'                     " Ag (silver searcher)
-Plugin 'christoomey/vim-tmux-navigator'   " Tmuxleft
-Plugin 'vim-airline/vim-airline'          " Better status bar
-Plugin 'vim-airline/vim-airline-themes'
-Plugin 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
-Plugin 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
-Plugin 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
-Plugin 'nanotech/jellybeans.vim'          " A very nice colorscheme
+Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
+Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
+Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
+Plug 'benmills/vimux'
+Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
+Plug 'airblade/vim-gitgutter'           " show modifications to the file.
+Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
+Plug 'majutsushi/tagbar'                " Tagbar
+Plug 'jlanzarotta/bufexplorer'          " BufExplorer
+Plug 'rking/ag.vim'                     " Ag (silver searcher)
+Plug 'christoomey/vim-tmux-navigator'   " Tmuxleft
+Plug 'vim-airline/vim-airline'          " Better status bar
+Plug 'vim-airline/vim-airline-themes'
+Plug 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
+Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
+Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
+Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
 
-call vundle#end()
+" Initialize plugin system
+call plug#end()
+
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -152,9 +148,6 @@ command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline norule
 command! Simplewindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
-
-autocmd BufRead todo Smallwindow   " my todo file is usually opened in a small window.
-autocmd BufRead .vimrc Smallwindow
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
 autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
