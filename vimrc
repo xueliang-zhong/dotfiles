@@ -207,8 +207,8 @@ map <M-x> <ESC>:
 " <leader> key mappings
 map <leader>* <ESC>:Ag<CR>
 map <leader><leader> <ESC>:CtrlPMixed<CR>
-map <Leader>b <ESC>:CtrlP<CR>
-map <Leader>f <ESC>:CtrlP<CR>
+map <Leader>ss <ESC>:CtrlPLine<CR>
+map <Leader>gg <ESC>:Gstatus<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
@@ -234,10 +234,12 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
+map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
-map <F12>     <ESC>:e ~/workspace/dotfiles/links.txt<CR><ESC>:CtrlPLine<CR>
+nnoremap <F8>  :CtrlPFunky<Cr>
+nnoremap <F12> :e ~/Dropbox/vim/xzhong-links.txt<CR>:CtrlPLine<CR>
 
 "
 " The following key maps are obsolete.
