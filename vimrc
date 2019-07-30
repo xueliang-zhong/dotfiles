@@ -238,8 +238,9 @@ map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
-nnoremap <F8>  :CtrlPFunky<Cr>
-nnoremap <F12> :e ~/Dropbox/vim/xzhong-links.txt<CR>:CtrlPLine<CR>
+nnoremap <F8>   :CtrlPFunky<Cr>
+nnoremap <C-F8> :TagbarToggle<Cr>
+nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:CtrlPLine<CR>
 
 "
 " The following key maps are obsolete.
