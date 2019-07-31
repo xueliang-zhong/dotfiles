@@ -26,6 +26,8 @@ Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
 Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
 Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
+Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
+Plug 'junegunn/fzf.vim'
 
 " Initialize plugin system
 call plug#end()
@@ -155,6 +157,9 @@ autocmd BufRead *.txt set filetype=asm
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
 
+" Sometimes, as an alternative to setting autochdir, the following command gives better results:
+autocmd BufEnter * silent! lcd %:p:h
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -194,14 +199,13 @@ let g:tagbar_iconchars = ['+', '▼']
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 map <C-g> <ESC><ESC>
-map <M-x> <ESC>:
 
 " ESC also helps removes the search high-lighting.
 " map <ESC>     :noh<CR>
 
 " <leader> key mappings
 map <leader>* <ESC>:Ag<CR>
-map <leader><leader> <ESC>:CtrlPMixed<CR>
+map <leader><leader> <ESC>:History<CR>
 map <Leader>ss <ESC>:CtrlPLine<CR>
 map <Leader>gg <ESC>:Gstatus<CR>
 
@@ -233,10 +237,10 @@ map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
-nnoremap <F8>   :CtrlPFunky<Cr>
-nnoremap <C-F8> :TagbarToggle<Cr>
-nnoremap <F9>   :CtrlPCurWD<Cr>
-nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:CtrlPLine<CR>
+nnoremap <F8>   :CtrlPFunky<CR>
+nnoremap <C-F8> :TagbarToggle<CR>
+nnoremap <F9>   :GFiles<CR>
+nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:BLine<CR>
 
 "
 " The following key maps are obsolete.
