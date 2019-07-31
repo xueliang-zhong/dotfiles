@@ -25,17 +25,12 @@ Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
 Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
+Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 
 " Initialize plugin system
 call plug#end()
 
 filetype plugin indent on
-
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Xueliang
-" These are my VIM flavor
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Global Settings
@@ -85,7 +80,7 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme jellybeans " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans
+colorscheme zenburn " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans, zenburn
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -240,6 +235,7 @@ map <F5>      <ESC>:terminal<CR>
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 nnoremap <F8>   :CtrlPFunky<Cr>
 nnoremap <C-F8> :TagbarToggle<Cr>
+nnoremap <F9>   :CtrlPCurWD<Cr>
 nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:CtrlPLine<CR>
 
 "
