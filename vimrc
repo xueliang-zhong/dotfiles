@@ -42,7 +42,7 @@ syntax on
 set autochdir
 set autowrite
 set autoread " detect when a file is changed
-set clipboard=unnamed
+set clipboard=unnamedplus
 set cursorline
 set history=1000
 set laststatus=2
