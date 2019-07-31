@@ -16,7 +16,7 @@ Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
 Plug 'majutsushi/tagbar'                " Tagbar
 Plug 'jlanzarotta/bufexplorer'          " BufExplorer
-Plug 'rking/ag.vim'                     " Ag (silver searcher)
+" Plug 'rking/ag.vim'                     " Ag (silver searcher)
 Plug 'christoomey/vim-tmux-navigator'   " Tmuxleft
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
@@ -88,6 +88,9 @@ set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
 set colorcolumn=100  " useful in code review
 hi ColorColumn ctermbg=lightblue guibg=lightgrey
+
+set guioptions-=T
+set guifont=Ubuntu\ Mono\ 15
 
 " Swap files are no good to me
 set noswapfile
@@ -206,8 +209,11 @@ map <C-g> <ESC><ESC>
 " <leader> key mappings
 map <leader>* <ESC>:Ag<CR>
 map <leader><leader> <ESC>:History<CR>
-map <Leader>ss <ESC>:CtrlPLine<CR>
-map <Leader>gg <ESC>:Gstatus<CR>
+map <leader>ss <ESC>:CtrlPLine<CR>
+map <leader>gg <ESC>:Gstatus<CR>
+
+" Show key bindings
+nnoremap <Leader>? :Maps<CR>
 
 " NERDTree
 map <leader>nf <ESC>:NERDTreeFind<CR>
@@ -237,7 +243,7 @@ map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
-nnoremap <F8>   :CtrlPFunky<CR>
+nnoremap <F8>   :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
 nnoremap <F9>   :GFiles<CR>
 nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:BLine<CR>

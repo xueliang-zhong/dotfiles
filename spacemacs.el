@@ -530,14 +530,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'find-file-hook 'xueliang-set-org-f8-key)
 
   ;; <f9> .. <f12>:
-  (global-set-key (kbd "<f9>") 'xueliang-open-link)
-  (global-set-key (kbd "<C-f9>") 'xueliang-f12-trade-function)
+  (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
+  (global-set-key (kbd "<C-9>")  'xueliang-find-file-similar)
   (global-set-key (kbd "<f10>")   'ivy-switch-buffer)
   (global-set-key (kbd "<C-f10>") 'xueliang-file-manager)
   (global-set-key (kbd "<f11>") 'helm-google)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
-  (global-set-key (kbd "<f12>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
-  (global-set-key (kbd "<C-12>")  'xueliang-find-file-similar)
+  (global-set-key (kbd "<f12>") 'xueliang-open-link)
+  (global-set-key (kbd "<C-12>") 'xueliang-f12-trade-function)
 )
 
 (defun =============xueliang-functions=============())
