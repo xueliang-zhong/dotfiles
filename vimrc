@@ -152,7 +152,7 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 " commands using fzf framework
-command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!google-chrome'})
+command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!google-chrome', 'down' : '51%'})
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
 autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
@@ -224,7 +224,7 @@ map <C-g> <ESC><ESC>
 " <leader> key mappings
 map <leader>* <ESC>:Ag<CR>
 map <leader><leader> <ESC>:History<CR>
-map <leader>ss <ESC>:CtrlPLine<CR>
+map <leader>ss <ESC>:BLines<CR>
 map <leader>gg <ESC>:Gstatus<CR>
 
 " Show key bindings
