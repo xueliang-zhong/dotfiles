@@ -24,7 +24,7 @@ Plug 'yggdroot/indentline'              " Indentlines with chars like '|', usefu
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
-Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
+" Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
 Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
@@ -89,8 +89,10 @@ set background=dark
 set colorcolumn=100  " useful in code review
 hi ColorColumn ctermbg=lightblue guibg=lightgrey
 
-set guioptions-=T
-set guifont=Ubuntu\ Mono\ 15
+if has('gui_running')
+  set guioptions-=T
+  set guifont=Ubuntu\ Mono\ 15
+endif
 
 " Swap files are no good to me
 set noswapfile
@@ -148,6 +150,9 @@ command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline norule
 command! Simplewindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
+
+" commands using fzf framework
+command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!google-chrome'})
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
 autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
@@ -235,11 +240,6 @@ map <leader>cs <ESC>*
              \ <ESC>:cs f 0 <cword><CR>
              \ <ESC>:copen<CR>
 
-" Quicker window and tmux pane movement
-nnoremap <C-j> <C-w>j
-nnoremap <C-k> <C-w>k
-nnoremap <C-h> <C-w>h
-nnoremap <C-l> <C-w>l
 
 " next in quick fix window
 map <C-N>     :cn<CR>zz
@@ -256,7 +256,7 @@ map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 nnoremap <F8>   :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
 nnoremap <F9>   :GFiles<CR>
-nnoremap <F12>  :e ~/Dropbox/vim/xzhong-links.txt<CR>:BLine<CR>
+nnoremap <F12>  :XueliangOpenlink<CR>
 
 "
 " The following key maps are obsolete.
