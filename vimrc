@@ -144,7 +144,7 @@ set cscopequickfix=s-,c-,d-,i-,t-,e-
 command! Nonu set nonu norelativenumber
 command! Noline set laststatus=0
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
-command! Simplewindow set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
+command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
@@ -159,6 +159,7 @@ autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
+autocmd BufRead *.org set filetype=asm
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
