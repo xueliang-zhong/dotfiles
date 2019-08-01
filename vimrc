@@ -234,6 +234,7 @@ inoremap l l<c-n><c-p>
 set complete+=kspell
 " For better performance in auto complete.
 set complete-=i
+set pumheight=12
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
