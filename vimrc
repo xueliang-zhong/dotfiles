@@ -255,8 +255,7 @@ map <leader>p <ESC>:XueliangProjects<CR>
 nnoremap <Leader>? :Maps<CR>
 
 " NERDTree
-map <leader>nf <ESC>:NERDTreeFind<CR>
-map <leader>nt <ESC>:NERDTreeToggle<CR>
+map <leader>n <ESC>:NERDTreeFind<CR>
 
 " next in quick fix window
 map <C-N>     :cn<CR>zz
