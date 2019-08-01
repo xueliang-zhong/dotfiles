@@ -108,9 +108,6 @@ set foldlevel=1
 " makes ':find ' really fuzzy
 set path+=**
 
-" Autocomplete with dictionary words when spell check is on
-set complete+=kspell
-
 " Always use vertical diffs: for example Gdiff, diffsplit, etc
 set diffopt+=vertical
 
@@ -152,7 +149,8 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 " commands using fzf framework
-command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!google-chrome', 'down' : '51%'})
+command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/web_browser_arg2.sh', 'down' : '51%'})
+command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
 autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
@@ -183,12 +181,8 @@ inoremap <Tab> <C-R>=CleverTab()<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" YouCompleteMe
-let g:ycm_global_ycm_extra_conf = '~/.ycm_extra_conf.py'
-let g:ycm_min_num_of_chars_for_completion = 1
-
 " vim-airline
-let g:airline_theme='papercolor'
+let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
 let g:airline#extensions#ycm#enabled = 1
 let g:airline#extensions#ycm#error_symbol   = 'E:' " set error count prefix
 let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
@@ -213,9 +207,31 @@ imap <c-x><c-l> <plug>(fzf-complete-line)
 inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Auto complete
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" This is quite awesome already.
+inoremap a a<c-n><c-p>
+inoremap e e<c-n><c-p>
+inoremap i i<c-n><c-p>
+inoremap o o<c-n><c-p>
+inoremap u u<c-n><c-p>
+inoremap A A<c-n><c-p>
+inoremap E E<c-n><c-p>
+inoremap I I<c-n><c-p>
+inoremap O O<c-n><c-p>
+inoremap U U<c-n><c-p>
+inoremap _ _<c-n><c-p>
+inoremap y y<c-n><c-p>
+inoremap Y Y<c-n><c-p>
+inoremap j j<c-n><c-p>
+inoremap J J<c-n><c-p>
+
+" Autocomplete with dictionary words when :set spell
+set complete+=kspell
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 map <C-g> <ESC><ESC>
 
 " ESC also helps removes the search high-lighting.
@@ -224,8 +240,10 @@ map <C-g> <ESC><ESC>
 " <leader> key mappings
 map <leader>* <ESC>:Ag<CR>
 map <leader><leader> <ESC>:History<CR>
-map <leader>ss <ESC>:BLines<CR>
-map <leader>gg <ESC>:Gstatus<CR>
+map <leader>/ <ESC>:BLines<CR>
+map <leader>f <ESC>:GFiles<CR>
+map <leader>g <ESC>:Gstatus<CR>
+map <leader>p <ESC>:XueliangProjects<CR>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
