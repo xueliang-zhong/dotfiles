@@ -225,6 +225,9 @@ inoremap y y<c-n><c-p>
 inoremap Y Y<c-n><c-p>
 inoremap j j<c-n><c-p>
 inoremap J J<c-n><c-p>
+inoremap h h<c-n><c-p>
+inoremap H H<c-n><c-p>
+inoremap l l<c-n><c-p>
 
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
