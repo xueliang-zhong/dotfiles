@@ -231,6 +231,8 @@ inoremap l l<c-n><c-p>
 
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
+" For better performance in auto complete.
+set complete-=i
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
