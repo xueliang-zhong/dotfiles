@@ -16,7 +16,6 @@ Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
 Plug 'majutsushi/tagbar'                " Tagbar
 Plug 'jlanzarotta/bufexplorer'          " BufExplorer
-" Plug 'rking/ag.vim'                     " Ag (silver searcher)
 Plug 'christoomey/vim-tmux-navigator'   " Tmuxleft
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
@@ -24,10 +23,11 @@ Plug 'yggdroot/indentline'              " Indentlines with chars like '|', usefu
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
-" Plug 'https://github.com/jceb/vim-orgmode' " org mode for vim
 Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
+
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
+Plug 'junegunn/vim-peekaboo'
 
 " Initialize plugin system
 call plug#end()
@@ -257,13 +257,6 @@ nnoremap <Leader>? :Maps<CR>
 map <leader>nf <ESC>:NERDTreeFind<CR>
 map <leader>nt <ESC>:NERDTreeToggle<CR>
 
-" Cscope search in my projects
-map <leader>cs <ESC>*
-             \ <ESC>:exe "cd " . expand(android_src)."/art/"<CR>
-             \ <ESC>:cs f 0 <cword><CR>
-             \ <ESC>:copen<CR>
-
-
 " next in quick fix window
 map <C-N>     :cn<CR>zz
 
@@ -275,51 +268,7 @@ map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
-map <F7>      <ESC>:!clear<CR><ESC>:make -j33<CR>
 nnoremap <F8>   :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
-nnoremap <F9>   :GFiles<CR>
+nnoremap <F9>   :Files<CR>
 nnoremap <F12>  :XueliangOpenlink<CR>
-
-"
-" The following key maps are obsolete.
-"
-
-" No need for g[jk] any more because most of the width limit.
-" map k gk
-" map j gj
-
-" Now the following old C-J/K maps conflicts with WinMove()
-" Use C-e and C-y instead.
-" map <C-J>     <C-E>g<Down>
-" map <C-K>     <C-Y>g<Up>
-
-
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Usage Suggestions
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" - For Plugins, http://vimawesome.com/ looks like a good place to go to.
-" - :grep uses Ag now, which is better than :vimgrep
-" - Command-line window: q: q/ q? in normal mode, or C-F in command-line mode.
-" - Use C-j and C-k to navigate CtrlP's result window.
-" - Use C-space to trigger completion from YCM; and use C-X C-P to trigger form vim.
-" - Set Chrome's secure shell to open in a seperate window, so that C-T/C-N/C-P all work in vim.
-" - :map to browse current key mappings.
-" - :command to browse current commands.
-" - Use gcc in normal mode to quickly comment code.
-"
-" - vim's built in complete:
-"  |i_CTRL-X_CTRL-L| Whole lines
-"  |i_CTRL-X_CTRL-N| keywords in the current file
-"  |i_CTRL-X_CTRL-K| keywords in 'dictionary'
-"  |i_CTRL-X_CTRL-T| keywords in 'thesaurus', thesaurus-style
-"  |i_CTRL-X_CTRL-I| keywords in the current and included files
-"  |i_CTRL-X_CTRL-]| tags
-"  |i_CTRL-X_CTRL-F| file names
-"  |i_CTRL-X_CTRL-D| definitions or macros
-"  |i_CTRL-X_CTRL-V| Vim command-line
-"  |i_CTRL-X_CTRL-U| User defined completion
-"  |i_CTRL-X_CTRL-O| omni completion
-"  |i_CTRL-X_s|      Spelling suggestions
-"  |i_CTRL-N|        keywords in 'complete'
-"  and use C-E to exit the completion.
