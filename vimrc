@@ -149,7 +149,7 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 " commands using fzf framework
-command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/web_browser_arg2.sh', 'down' : '51%'})
+command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
 " Useful in automatic code review; requires ~/bin/cpplint.py
