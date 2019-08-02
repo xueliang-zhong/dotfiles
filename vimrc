@@ -125,19 +125,6 @@ exe "set tags+=".expand(android_src)."/framework/base/tags"
 exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
 exe "set tags+=".expand(android_src)."/bionic/libc/tags"
 
-" CScope
-set cst  " include cscope tags
-exe "cs add ".expand(android_src)."/art/cscope.out"
-
-" Show CScope find result in quickfix window - life changing
-set cscopequickfix=s-,c-,d-,i-,t-,e-
-
-" Hard to type things
-"iabbrev --> →
-"iabbrev <-- ←
-"iabbrev ^^  ↑
-"iabbrev VV  ↓
-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -187,9 +174,6 @@ let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
 let g:airline#extensions#ycm#enabled = 1
 let g:airline#extensions#ycm#error_symbol   = 'E:' " set error count prefix
 let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
-
-" CtrlP funky highlighting
-let g:ctrlp_funky_syntax_highlight = 1
 
 " Use Ag over Grep
 set grepprg=ag\ --nogroup\ --nocolor
@@ -255,9 +239,6 @@ map <leader>p <ESC>:XueliangProjects<CR>
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
 
-" NERDTree
-map <leader>n <ESC>:NERDTreeFind<CR>
-
 " next in quick fix window
 map <C-N>     :cn<CR>zz
 
@@ -271,5 +252,6 @@ map <F5>      <ESC>:terminal<CR>
 
 nnoremap <F8>   :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
-nnoremap <F9>   :Files<CR>
+nnoremap <F9>   :NERDTreeToggle<CR>
+nnoremap <C-F9> :NERDTreeFind<CR>
 nnoremap <F12>  :XueliangOpenlink<CR>
