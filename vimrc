@@ -229,7 +229,7 @@ map <C-g> <ESC><ESC>
 " map <ESC>     :noh<CR>
 
 " <leader> key mappings
-map <leader>* <ESC>:Ag<CR>
+map <leader>* <ESC>:exe "Ag " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
 map <leader>f <ESC>:GFiles<CR>
@@ -244,7 +244,7 @@ map <C-N>     :cn<CR>zz
 
 " tag jumping
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
-map ]]        <ESC>:exe "pta " . expand("<cword>")<CR>
+map ]]        <ESC>:exe "ptj " . expand("<cword>")<CR>
 
 map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 map <F4>      <ESC>:x<CR>
