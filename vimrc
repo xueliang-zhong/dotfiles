@@ -154,6 +154,10 @@ autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
 
+" Automatically save and load views.
+autocmd BufWinLeave *.* mkview
+autocmd BufWinEnter *.* silent loadview
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
