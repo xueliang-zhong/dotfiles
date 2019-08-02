@@ -6,8 +6,6 @@ set nocompatible              " be iMproved, required
 filetype off                  " required
 
 call plug#begin('~/.vim/plugged')
-
-" PluginInstall/List/Update
 Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
 Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
 Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
@@ -24,14 +22,10 @@ Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
 Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
 Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
-
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
-
-" Initialize plugin system
 call plug#end()
-
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -229,8 +223,8 @@ set pumheight=12
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 map <C-g> <ESC><ESC>
 
-" ESC also helps removes the search high-lighting.
-" map <ESC>     :noh<CR>
+" <Tab> in normal mode will toggle folds, similar to emacs org-mode.
+nnoremap <Tab> za
 
 " <leader> key mappings
 map <leader>* <ESC>:exe "Ag " . expand("<cword>")<CR>
@@ -243,14 +237,10 @@ map <leader>p <ESC>:XueliangProjects<CR>
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
 
-" next in quick fix window
-map <C-N>     :cn<CR>zz
-
 " tag jumping
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 map ]]        <ESC>:exe "ptj " . expand("<cword>")<CR>
 
-map <F3>      <ESC>:execute "!c++filt " . expand("<cword>")<CR>
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
