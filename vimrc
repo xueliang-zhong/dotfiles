@@ -108,12 +108,10 @@ set diffopt+=vertical
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow splitright
 
-" set a map leader for more key combos
 let mapleader="\<Space>"
 
-let android_src = expand("~/workspace/linaro")
-
 " Tags
+let android_src = expand("~/workspace/linaro")
 exe "set tags+=".expand(android_src)."/art/tags"
 exe "set tags+=".expand(android_src)."/framework/base/tags"
 exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
@@ -247,10 +245,12 @@ map <leader>* <ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
 map <leader>f <ESC>:GFiles<CR>
+map <leader>F <ESC>:Files<CR>
 map <leader>g <ESC>:Gstatus<CR>
 map <leader>p <ESC>:XueliangProjects<CR>
 map <leader>: <ESC>:History:<CR>
-map <leader>x <ESC>:Commands<CR>
+map <leader>x <ESC>:History:<CR>
+map <leader>X <ESC>:Commands<CR>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
