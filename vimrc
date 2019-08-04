@@ -152,6 +152,22 @@ autocmd BufEnter * silent! lcd %:p:h
 autocmd BufWinLeave *.* mkview
 autocmd BufWinEnter *.* silent loadview
 
+" FZF
+"   :Ag  - Start fzf with hidden preview window that can be enabled with "?" key
+"   :Ag! - Start fzf in fullscreen and display the preview window above
+command! -bang -nargs=* Ag
+  \ call fzf#vim#ag(<q-args>,
+  \                 <bang>0 ? fzf#vim#with_preview('up:60%')
+  \                         : fzf#vim#with_preview('right:50%:hidden', '?'),
+  \                 <bang>0)
+
+" Files command with preview window
+command! -bang -nargs=? -complete=dir Files
+  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
+
+command! -bang -nargs=? -complete=dir GFiles
+  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -221,31 +237,33 @@ set pumheight=12
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-map <C-g> <ESC><ESC>
+map <C-g> <ESC><ESC>w
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
 
 " <leader> key mappings
-map <leader>* <ESC>:exe "Ag " . expand("<cword>")<CR>
+map <leader>* <ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
 map <leader>f <ESC>:GFiles<CR>
 map <leader>g <ESC>:Gstatus<CR>
 map <leader>p <ESC>:XueliangProjects<CR>
+map <leader>: <ESC>:History:<CR>
+map <leader>x <ESC>:Commands<CR>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
 
 " tag jumping
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
-map ]]        <ESC>:exe "ptj " . expand("<cword>")<CR>
+map ]]        <ESC>:exe "Tags " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 nnoremap <F8>   :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
-nnoremap <F9>   :NERDTreeToggle<CR>
+nnoremap <F9>   :NERDTreeToggle %<CR>
 nnoremap <C-F9> :NERDTreeFind<CR>
 nnoremap <F12>  :XueliangOpenlink<CR>
