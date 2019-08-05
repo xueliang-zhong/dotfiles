@@ -112,6 +112,7 @@ exe "set tags+=".expand(android_src)."/art/tags"
 set spell spelllang=en_gb
 set nospell
 
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -164,14 +165,6 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! CleverTab()
-  if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
-    return "\<Tab>"
-  else
-    return "\<C-N>"
-  endif
-endfunction
-inoremap <Tab> <C-R>=CleverTab()<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
@@ -265,6 +258,9 @@ inoremap 9 9<c-n><c-p>
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
+" Improve <Tab> key's behaviour in autocomplete, like a clever tab.
+inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
 " For better performance in auto complete.
