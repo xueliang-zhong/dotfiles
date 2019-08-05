@@ -191,70 +191,17 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" This is quite awesome already.
-inoremap a a<c-n><c-p>
-inoremap b b<c-n><c-p>
-inoremap c c<c-n><c-p>
-inoremap d d<c-n><c-p>
-inoremap e e<c-n><c-p>
-inoremap f f<c-n><c-p>
-inoremap g g<c-n><c-p>
-inoremap h h<c-n><c-p>
-inoremap i i<c-n><c-p>
-inoremap j j<c-n><c-p>
-inoremap k k<c-n><c-p>
-inoremap l l<c-n><c-p>
-inoremap m m<c-n><c-p>
-inoremap n n<c-n><c-p>
-inoremap o o<c-n><c-p>
-inoremap p p<c-n><c-p>
-inoremap q q<c-n><c-p>
-inoremap r r<c-n><c-p>
-inoremap s s<c-n><c-p>
-inoremap t t<c-n><c-p>
-inoremap u u<c-n><c-p>
-inoremap v v<c-n><c-p>
-inoremap w w<c-n><c-p>
-inoremap x x<c-n><c-p>
-inoremap y y<c-n><c-p>
-inoremap z z<c-n><c-p>
-inoremap A A<c-n><c-p>
-inoremap B B<c-n><c-p>
-inoremap C C<c-n><c-p>
-inoremap D D<c-n><c-p>
-inoremap E E<c-n><c-p>
-inoremap F F<c-n><c-p>
-inoremap G G<c-n><c-p>
-inoremap H H<c-n><c-p>
-inoremap I I<c-n><c-p>
-inoremap J J<c-n><c-p>
-inoremap K K<c-n><c-p>
-inoremap L L<c-n><c-p>
-inoremap M M<c-n><c-p>
-inoremap N N<c-n><c-p>
-inoremap O O<c-n><c-p>
-inoremap P P<c-n><c-p>
-inoremap Q Q<c-n><c-p>
-inoremap R R<c-n><c-p>
-inoremap S S<c-n><c-p>
-inoremap T T<c-n><c-p>
-inoremap U U<c-n><c-p>
-inoremap V V<c-n><c-p>
-inoremap W W<c-n><c-p>
-inoremap X X<c-n><c-p>
-inoremap Y Y<c-n><c-p>
-inoremap Z Z<c-n><c-p>
-inoremap _ _<c-n><c-p>
-inoremap 0 0<c-n><c-p>
-inoremap 1 1<c-n><c-p>
-inoremap 2 2<c-n><c-p>
-inoremap 3 3<c-n><c-p>
-inoremap 4 4<c-n><c-p>
-inoremap 5 5<c-n><c-p>
-inoremap 6 6<c-n><c-p>
-inoremap 7 7<c-n><c-p>
-inoremap 8 8<c-n><c-p>
-inoremap 9 9<c-n><c-p>
+" This is quite awesome completion already.
+function! XueliangOpenCompletion()
+  if pumvisible() return endif
+  if (v:char >= 'a' && v:char <= 'z') ||
+     (v:char >= 'A' && v:char <= 'Z') ||
+     (v:char >= '0' && v:char <= '9') ||
+     (v:char == '_')
+    call feedkeys("\<C-n>\<C-p>", "n")
+  endif
+endfunction
+autocmd InsertCharPre * call XueliangOpenCompletion()
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -265,7 +212,7 @@ inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 set complete+=kspell
 " For better performance in auto complete.
 set complete-=i
-set pumheight=12
+set pumheight=9
 set completeopt=menuone
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
