@@ -275,12 +275,14 @@ inoremap 7 7<c-n><c-p>
 inoremap 8 8<c-n><c-p>
 inoremap 9 9<c-n><c-p>
 
+" Improve <Enter> key's behaviour in autocomplete.
+inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
 " For better performance in auto complete.
 set complete-=i
 set pumheight=12
-set completeopt=menu
+set completeopt=menuone
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Key mappings
