@@ -128,6 +128,8 @@ command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline norule
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
+command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
+
 " commands using fzf framework
 command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
@@ -292,8 +294,8 @@ nnoremap <Tab> za
 map <leader>* <ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
-map <leader>f <ESC>:GFiles<CR>
-map <leader>F <ESC>:Files<CR>
+map <leader>f <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
+map <leader>F <ESC>:Files!<CR>
 map <leader>g <ESC>:Gstatus<CR>
 map <leader>p <ESC>:XueliangProjects<CR>
 map <leader>: <ESC>:History:<CR>
