@@ -1,9 +1,6 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Plugin settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-set nocompatible              " be iMproved, required
-filetype off                  " required
-
 call plug#begin('~/.vim/plugged')
 Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
 Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
@@ -41,6 +38,7 @@ set modeline
 set mouse=a
 set novb belloff=all
 set nowrap
+set nocompatible
 set ruler
 set showcmd
 set encoding=utf8
@@ -77,8 +75,7 @@ colorscheme zenburn " good options: evening, elflord, desert, delek, koehler, pa
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
-set colorcolumn=100  " useful in code review
-hi ColorColumn ctermbg=lightblue guibg=lightgrey
+" set colorcolumn=100  " useful in code review
 
 if has('gui_running')
   set guioptions-=T
@@ -110,9 +107,6 @@ let mapleader="\<Space>"
 " Tags
 let android_src = expand("~/workspace/linaro")
 exe "set tags+=".expand(android_src)."/art/tags"
-exe "set tags+=".expand(android_src)."/framework/base/tags"
-exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
-exe "set tags+=".expand(android_src)."/bionic/libc/tags"
 
 " Spell, use British English.
 set spell spelllang=en_gb
@@ -133,9 +127,6 @@ command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
 " commands using fzf framework
 command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
-
-" Useful in automatic code review; requires ~/bin/cpplint.py
-autocmd BufRead *.{h,cc} command! Cpplint !cpplint.py --filter=-whitespace/line_length,-build/include %
 
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
@@ -187,9 +178,6 @@ inoremap <Tab> <C-R>=CleverTab()<CR>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " vim-airline
 let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
-let g:airline#extensions#ycm#enabled = 1
-let g:airline#extensions#ycm#error_symbol   = 'E:' " set error count prefix
-let g:airline#extensions#ycm#warning_symbol = 'W:' " set warning count prefix
 
 " Use Ag over Grep
 set grepprg=ag\ --nogroup\ --nocolor
