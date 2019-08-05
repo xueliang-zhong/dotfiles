@@ -137,7 +137,8 @@ autocmd BufRead *.org set filetype=asm
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
-autocmd BufRead {vimrc,.vimrc} nmap <F8> <ESC>:BLines ^" =><CR>
+" vimrc buffer local <F8> key.
+autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
 
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
@@ -192,16 +193,12 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " This is quite awesome completion already.
-function! XueliangOpenCompletion()
-  if pumvisible() return endif
-  if (v:char >= 'a' && v:char <= 'z') ||
-     (v:char >= 'A' && v:char <= 'Z') ||
-     (v:char >= '0' && v:char <= '9') ||
-     (v:char == '_')
+function! OpenCompletion()
+  if !pumvisible() && ((v:char >= 'a' && v:char <= 'z') || (v:char >= 'A' && v:char <= 'Z') || (v:char >= '0' && v:char <= '9') || (v:char == '_'))
     call feedkeys("\<C-n>\<C-p>", "n")
   endif
 endfunction
-autocmd InsertCharPre * call XueliangOpenCompletion()
+autocmd InsertCharPre * call OpenCompletion()
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -218,7 +215,7 @@ set completeopt=menuone
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-map <C-g> <ESC><ESC>w
+map <C-g> <ESC><ESC>
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
