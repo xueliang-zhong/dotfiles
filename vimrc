@@ -1,6 +1,5 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" vundle settings
-" https://github.com/VundleVim/Vundle.vim
+" => Plugin settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 set nocompatible              " be iMproved, required
 filetype off                  " required
@@ -27,7 +26,7 @@ call plug#end()
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Global Settings
+" => Global Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 syntax on
 
@@ -144,6 +143,7 @@ autocmd BufRead *.org set filetype=asm
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
+autocmd BufRead {vimrc,.vimrc} nmap <F8> <ESC>:BLines ^" =><CR>
 
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
@@ -206,7 +206,7 @@ imap <c-x><c-l> <plug>(fzf-complete-line)
 inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Auto complete
+" => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " This is quite awesome already.
 inoremap a a<c-n><c-p>
@@ -281,7 +281,7 @@ set pumheight=12
 set completeopt=menu
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Key mappings
+" => Key mappings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 map <C-g> <ESC><ESC>w
 
