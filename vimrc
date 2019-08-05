@@ -116,7 +116,8 @@ exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
 exe "set tags+=".expand(android_src)."/bionic/libc/tags"
 
 " Spell, use British English.
-:set spell spelllang=en_gb
+set spell spelllang=en_gb
+set nospell
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
