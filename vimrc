@@ -13,8 +13,6 @@ Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, 
 Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
 Plug 'majutsushi/tagbar'                " Tagbar
-Plug 'jlanzarotta/bufexplorer'          " BufExplorer
-Plug 'christoomey/vim-tmux-navigator'   " Tmuxleft
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
 Plug 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
@@ -85,7 +83,7 @@ hi ColorColumn ctermbg=lightblue guibg=lightgrey
 
 if has('gui_running')
   set guioptions-=T
-  set guifont=Ubuntu\ Mono\ 15
+  set guifont=Dejavu\ Sans\ Mono\ 14
 endif
 
 " Swap files are no good to me
@@ -116,6 +114,9 @@ exe "set tags+=".expand(android_src)."/art/tags"
 exe "set tags+=".expand(android_src)."/framework/base/tags"
 exe "set tags+=".expand(android_src)."/external/vixl/src/tags"
 exe "set tags+=".expand(android_src)."/bionic/libc/tags"
+
+" Spell, use British English.
+:set spell spelllang=en_gb
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
