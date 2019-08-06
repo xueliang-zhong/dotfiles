@@ -263,6 +263,7 @@ map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
 nnoremap <F8>   :BTags<CR>
+nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8> :TagbarToggle<CR>
 nnoremap <F9>   :NERDTreeToggle %<CR>
 nnoremap <C-F9> :NERDTreeFind<CR>
