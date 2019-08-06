@@ -112,7 +112,6 @@ exe "set tags+=".expand(android_src)."/art/tags"
 set spell spelllang=en_gb
 set nospell
 
-
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -124,6 +123,7 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
+command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
 
 " commands using fzf framework
 command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
@@ -143,9 +143,9 @@ autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
 
-" Automatically save and load views.
-autocmd BufWinLeave *.* mkview
-autocmd BufWinEnter *.* silent loadview
+" Automatically save and load views for some files.
+autocmd BufWinLeave {vimrc,*.org,*.txt,*.init} mkview
+autocmd BufWinEnter {vimrc,*.org,*.txt,*.init} silent loadview
 
 " FZF
 "   :Ag  - Start fzf with hidden preview window that can be enabled with "?" key
@@ -166,6 +166,23 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+function! XueliangLinaroDebug_Func()
+  " Better colors in debugger
+  :set nocursorline
+  :colorscheme elflord
+  " Key mappings in debugger.
+  :nmap <C-F5>  <ESC>:Continue<CR>
+  :nmap <C-F9>  <ESC>:Break<CR>
+  :nmap <C-F10> <ESC>:Over<CR>
+  :nmap <C-F11> <ESC>:Step<CR>
+  :nmap <S-F11> <ESC>:Finish<CR>
+  " Make sure the debugger's in the right folder.
+  :cd ~/workspace/linaro/
+  " Start the debugger and execute the init gdb commands.
+  :packadd termdebug
+  :Termdebug /data/workspace/linaro/out/host/linux-x86/bin/dalvikvm64
+  :call TermDebugSendCommand('source ~/workspace/linaro/gdb.init')
+endfunction
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Plugin Settings
@@ -198,6 +215,7 @@ function! OpenCompletion()
     call feedkeys("\<C-n>\<C-p>", "n")
   endif
 endfunction
+" Restart vim, if this auto complete makes vim8.1 too slow with many projects openned.
 autocmd InsertCharPre * call OpenCompletion()
 
 " Improve <Enter> key's behaviour in autocomplete.
@@ -211,6 +229,8 @@ set complete+=kspell
 set complete-=i
 set pumheight=9
 set completeopt=menuone
+
+filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Key mappings
