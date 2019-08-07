@@ -129,7 +129,7 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 command! CdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
-command! LinaroDebug call XueliangLinaroDebug_Func()
+command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
 
 " commands using fzf framework
 command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
@@ -182,11 +182,15 @@ function! XueliangLinaroDebug_Func()
   :nmap <C-F10> <ESC>:Over<CR>
   :nmap <C-F11> <ESC>:Step<CR>
   :nmap <S-F11> <ESC>:Finish<CR>
+  :nmap U <ESC>:call TermDebugSendCommand('up')<CR>
+  :nmap D <ESC>:call TermDebugSendCommand('down')<CR>
+  :nmap F <ESC>:Finish<CR>
+  :nmap N <ESC>:Over<CR>
   " Make sure the debugger's in the right folder.
   :cd ~/workspace/linaro/
   " Start the debugger and execute the init gdb commands.
   :packadd termdebug
-  :Termdebug /data/workspace/linaro/out/host/linux-x86/bin/dalvikvm64
+  :Termdebug
   :call TermDebugSendCommand('source ~/workspace/linaro/gdb.init')
 endfunction
 
