@@ -249,11 +249,15 @@ let g:NERDTreeIndicatorMapCustom = {
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " This is quite awesome completion already.
 function! OpenCompletion()
-  if !pumvisible() && ((v:char >= 'a' && v:char <= 'z') || (v:char >= 'A' && v:char <= 'Z') || (v:char >= '0' && v:char <= '9') || (v:char == '_'))
-    call feedkeys("\<C-n>\<C-p>", "n")
+  if pumvisible()
+    return
+  endif
+  if (v:char >= 'a' && v:char <= 'z') || (v:char >= 'A' && v:char <= 'Z') || (v:char >= '0' && v:char <= '9') || (v:char == '_')
+    " Use C-x C-N local completion or C-N completion based on buffer count.
+    let buffer_count = len(getbufinfo({'buflisted':1}))
+    call feedkeys (buffer_count >= 6 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
   endif
 endfunction
-" Restart vim, if this auto complete makes vim8.1 too slow with many projects openned.
 autocmd InsertCharPre * call OpenCompletion()
 
 " Improve <Enter> key's behaviour in autocomplete.
