@@ -5,9 +5,6 @@ call plug#begin('~/.vim/plugged')
 Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
 Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
 Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
-Plug 'Xuyuanp/nerdtree-git-plugin'
-Plug 'ryanoasis/vim-devicons'
-Plug 'tiagofumo/vim-nerdtree-syntax-highlight'
 Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
@@ -224,25 +221,6 @@ imap <c-x><c-l> <plug>(fzf-complete-line)
 " Advanced customization using autoload functions
 inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
-let g:WebDevIconsOS = 'Darwin'
-let g:WebDevIconsUnicodeDecorateFolderNodes = 1
-let g:DevIconsEnableFoldersOpenClose = 1
-let g:DevIconsEnableFolderExtensionPatternMatching = 1
-let NERDTreeDirArrowExpandable = "\u00a0" " make arrows invisible
-let NERDTreeDirArrowCollapsible = "\u00a0" " make arrows invisible
-let NERDTreeNodeDelimiter = "\u263a" " smiley face
-let g:NERDTreeIndicatorMapCustom = {
-\ "Modified"  : "✹",
-\ "Staged"    : "✚",
-\ "Untracked" : "✭",
-\ "Renamed"   : "➜",
-\ "Unmerged"  : "═",
-\ "Deleted"   : "✖",
-\ "Dirty"     : "✗",
-\ "Clean"     : "✔︎",
-\ 'Ignored'   : '☒',
-\ "Unknown"   : "?"
-\ }
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
