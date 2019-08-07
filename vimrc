@@ -128,8 +128,8 @@ command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline norule
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
-command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
-command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
+command! CdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
+command! LinaroDebug call XueliangLinaroDebug_Func()
 
 " commands using fzf framework
 command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
@@ -236,7 +236,11 @@ function! OpenCompletion()
     call feedkeys (buffer_count >= 6 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
   endif
 endfunction
+
+" Turn on auto complete by default.
 autocmd InsertCharPre * call OpenCompletion()
+" I can still disable autocomplete when it becomes annoying.
+command! Nocomplete autocmd! InsertCharPre *
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
