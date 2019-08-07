@@ -262,7 +262,7 @@ nnoremap <Tab> za
 
 " <leader> key mappings
 map <leader>* <ESC>:exe "Ag! " . expand("<cword>")<CR>
-map <leader><leader> <ESC>:History<CR>
+map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
 map <leader>f <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
 map <leader>F <ESC>:Files!<CR>
