@@ -5,11 +5,8 @@ mkdir -f ~/bin/
 rm -f ~/.vimrc ~/.config/nvim/init.vim
 ln -sf `pwd`/vimrc ~/.vimrc
 ln -sf `pwd`/vimrc ~/.config/nvim/init.vim
-
-# m command
-rm -f ~/bin/m
-ln -sf `pwd`/m ~/bin/m
 ln -sf `pwd`/open_link_arg2.sh ~/bin/open_link_arg2.sh
+ln -sf `pwd`/daily-work.sh ~/bin/daily-work.sh
 
 # emacs
 rm -f ~/.emacs

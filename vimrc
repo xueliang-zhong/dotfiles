@@ -282,10 +282,9 @@ map ]]        <ESC>:exe "Tags " . expand("<cword>")<CR>
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
-nnoremap <F8>   :BTags<CR>
+nnoremap <F8>         :BTags<CR>
 nnoremap <leader><F8> :BTags<CR>
-nnoremap <C-F8> :TagbarToggle<CR>
-nnoremap <F9>   :call ToggleNerdTree()<CR>
-nnoremap <F12>  :XueliangOpenlink<CR>
-
-" vim:set foldmethod=marker foldlevel=0
+nnoremap <C-F8>       :TagbarToggle<CR>
+nnoremap <F9>         :call ToggleNerdTree()<CR>
+nnoremap <F12>        :XueliangOpenlink<CR>
+nnoremap <C-F12>      :!~/bin/daily-work.sh<CR>
