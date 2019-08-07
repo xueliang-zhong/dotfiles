@@ -241,11 +241,6 @@ function! OpenCompletion()
   endif
 endfunction
 
-" Turn on auto complete by default.
-autocmd InsertCharPre * call OpenCompletion()
-" I can still disable autocomplete when it becomes annoying.
-command! Nocomplete autocmd! InsertCharPre *
-
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
@@ -258,6 +253,8 @@ set complete-=i
 set pumheight=9
 set completeopt=menuone
 
+" Ctrl-Space to open completion is just good enough.
+inoremap <C-@> <C-N><C-P>
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
