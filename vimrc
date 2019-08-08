@@ -128,7 +128,7 @@ command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline norule
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
-command! CdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
+command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
 command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
 
 " commands using fzf framework
@@ -240,6 +240,10 @@ function! OpenCompletion()
     call feedkeys (buffer_count >= 6 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
   endif
 endfunction
+" Turn on auto complete by default.
+autocmd InsertCharPre * call OpenCompletion()
+" I can still disable autocomplete when it becomes annoying.
+command! Nocomplete autocmd! InsertCharPre *
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -253,8 +257,6 @@ set complete-=i
 set pumheight=9
 set completeopt=menuone
 
-" Ctrl-Space to open completion is just good enough.
-inoremap <C-@> <C-N><C-P>
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""

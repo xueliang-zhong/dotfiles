@@ -950,7 +950,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-vscode-open-FILE ()
   (interactive)
-  (xueliang-eshell-quick-command (message "code %s" (buffer-file-name)) t))
+  (xueliang-eshell-quick-command (message "code -g %s:%d" (buffer-file-name) (count-lines 1 (point))) t))
+
+(defun xueliang-vim-open-FILE ()
+  (interactive)
+  (xueliang-eshell-quick-command (message "gvim +%d %s" (count-lines 1 (point)) (buffer-file-name)) t))
 
 (defun =============xueliang-git-config/functions=============())
 
