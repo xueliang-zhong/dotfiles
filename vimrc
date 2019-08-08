@@ -149,10 +149,6 @@ autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
 
-" Automatically save and load views for some files.
-autocmd BufWinLeave {vimrc,*.org,*.txt,*.init} mkview
-autocmd BufWinEnter {vimrc,*.org,*.txt,*.init} silent loadview
-
 " FZF
 "   :Ag  - Start fzf with hidden preview window that can be enabled with "?" key
 "   :Ag! - Start fzf in fullscreen and display the preview window above
