@@ -23,7 +23,7 @@ values."
    dotspacemacs-enable-lazy-installation 'nil
    ;; If non-nil then Spacemacs will~/.spacemacs ask for confirmation before installing
    ;; a layer lazily. (default t)
-   dotspacemacs-ask-for-lazy-installation t
+   dotspacemacs-ask-for-lazy-installation nil
    ;; If non-nil layers with lazy install support are lazy installed.
    ;; List of additional paths where to look for configuration layers.
    ;; Paths must have a trailing slash (i.e. `~/.mycontribs/')
@@ -37,17 +37,9 @@ values."
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
      auto-completion
-     emacs-lisp
      git
      ivy
-     markdown
-     nlinum
      org
-     c-c++
-     (spell-checking :variables
-                     spell-checking-enable-by-default nil)
-     ;; smex
-     ;; version-control
      )
    ;; List of additional packages that will be installed without being
    ;; wrapped in a layer. If you need some configuration for these
@@ -61,6 +53,8 @@ values."
      helm-google
      ivy-rich
      json-mode
+     markdown-mode
+     nlinum
      rmsbolt
     )
 
@@ -136,8 +130,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-dark
                          spacemacs-light  ;; works great with redshift.
+                         spacemacs-dark
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -431,7 +425,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq company-tooltip-minimum 9)
   (setq company-tooltip-limit 9)
   (setq company-tooltip-minimum-width 33)
-  (setq company-minimum-prefix-length 1)
+  (setq company-minimum-prefix-length 2)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
@@ -480,7 +474,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; scratch buffer to be elisp mode by default.
   (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
   ;; start screen
-  ;; (kill-buffer "*spacemacs*")
+  (kill-buffer "*spacemacs*")
   (spacemacs/toggle-highlight-current-line-globally-off)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -948,6 +942,15 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq-local ncpu (string-trim (shell-command-to-string "cat /proc/cpuinfo | grep processor | wc -l")))
   (xueliang-eshell-quick-command (message "cd ~/workspace/minimal_aosp_art; repo sync -j%s" ncpu))
 )
+
+(defun xueliang-vscode-open-proj ()
+  (interactive)
+  (require 'fiplr) (cd (fiplr-root))
+  (xueliang-eshell-quick-command (message "code %s" (fiplr-root)) t))
+
+(defun xueliang-vscode-open-FILE ()
+  (interactive)
+  (xueliang-eshell-quick-command (message "code %s" (buffer-file-name)) t))
 
 (defun =============xueliang-git-config/functions=============())
 
