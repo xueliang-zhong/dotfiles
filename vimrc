@@ -233,7 +233,7 @@ function! OpenCompletion()
   if (v:char >= 'a' && v:char <= 'z') || (v:char >= 'A' && v:char <= 'Z') || (v:char >= '0' && v:char <= '9') || (v:char == '_')
     " Use C-x C-N local completion or C-N completion based on buffer count.
     let buffer_count = len(getbufinfo({'buflisted':1}))
-    call feedkeys (buffer_count >= 2 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
+    call feedkeys (buffer_count >= 3 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
   endif
 endfunction
 " Turn on auto complete by default.
@@ -289,5 +289,5 @@ nnoremap <F8>         :BTags<CR>
 nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :TagbarToggle<CR>
 nnoremap <F9>         :call ToggleNerdTree()<CR>
-nnoremap <F12>        :XueliangOpenlink<CR>
+nnoremap <F12>        :XueliangOpenlink<CR><CR>
 nnoremap <C-F12>      :!~/bin/daily-work.sh<CR>

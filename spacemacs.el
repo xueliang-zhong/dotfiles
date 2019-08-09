@@ -335,6 +335,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; leader key settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (spacemacs/set-leader-keys "SPC" 'ivy-switch-buffer)
+  (spacemacs/set-leader-keys "/" 'swiper)
   (spacemacs/set-leader-keys "*" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "gg" 'magit-status)
@@ -413,7 +414,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; auto completion / company settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq company-backends
-        '((company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-cmake company-capf company-files company-dabbrev-code company-gtags company-etags company-keywords company-oddmuse company-dabbrev)))
+        '(company-bbdb company-nxml company-css company-eclim company-semantic company-clang company-xcode company-cmake company-capf company-files company-dabbrev-code company-gtags company-etags company-keywords company-oddmuse company-dabbrev))
   (require 'company-dabbrev)
   (push 'company-dabbrev company-backends)
   (setq company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]") ;adjust regexp make `company-dabbrev' search words like `dabbrev-expand'
@@ -464,6 +465,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq counsel-grep-swiper-limit 7000000)
   (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
   (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (thing-at-point 'symbol))))
+  (define-key evil-normal-state-map (kbd "\"") 'counsel-yank-pop)
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; nowrap
