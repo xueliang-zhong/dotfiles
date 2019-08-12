@@ -130,8 +130,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
+                         spacemacs-light  ;; works great with redshift.
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -352,8 +352,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; enable more stuff
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers nil)
-  ;; TAB behaves as ivy-partial-or-next-line
-  (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
+  ;; TAB behaves as ivy-partial-or-next-line - BUT has bug on spacemacs, which erases the whole buffer.
+  ;; Use C-n and C-p instead.
+  ;; (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
   ;; I don't like the default "^" for M-x command.
   (add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
   ;; Make sure C-a C-k work in ivy mode as well.
@@ -409,6 +410,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq projectile-require-project-root nil)
   (setq projectile-enable-caching nil)
   (setq projectile-project-search-path '("~/workspace/linaro"))
+  (setq projectile-tags-command "ctags -I REQUIRES_SHARED -Re -f \"%s\" %s \"%s\"")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; auto completion / company settings
