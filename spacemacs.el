@@ -130,8 +130,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-dark
                          spacemacs-light  ;; works great with redshift.
+                         spacemacs-dark
                          anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -354,7 +354,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq enable-recursive-minibuffers nil)
   ;; TAB behaves as ivy-partial-or-next-line - BUT has bug on spacemacs, which erases the whole buffer.
   ;; Use C-n and C-p instead.
-  ;; (define-key ivy-mode-map (kbd "TAB") '(lambda() (interactive) (ivy-partial) (ivy-next-line)))
+  (define-key ivy-mode-map (kbd "TAB") 'ivy-partial)
   ;; I don't like the default "^" for M-x command.
   (add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
   ;; Make sure C-a C-k work in ivy mode as well.

@@ -280,7 +280,6 @@ nnoremap <Leader>? :Maps<CR>
 
 " tag jumping
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
-map ]]        <ESC>:exe "Tags " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
