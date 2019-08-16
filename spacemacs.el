@@ -535,7 +535,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f11>") 'helm-google)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>") 'xueliang-open-link)
-  (global-set-key (kbd "<C-12>") 'xueliang-f12-trade-function)
+  (global-set-key (kbd "<C-f12>") 'xueliang-f12-trade-function)
 )
 
 (defun =============xueliang-functions=============())
