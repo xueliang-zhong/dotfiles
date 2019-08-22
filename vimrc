@@ -132,7 +132,7 @@ command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
 command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
 
 " commands using fzf framework
-command! XueliangOpenlink call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-links.txt', 'sink': '!~/bin/open_link_arg2.sh', 'down' : '51%'})
+command! XueliangOpenlink terminal ++close links
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
 " Get some nice syntax highlighting
@@ -260,17 +260,21 @@ filetype plugin indent on
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 map <C-g> <ESC><ESC>
 
+" Terminal keys
+tnoremap <Esc> <C-W>N
+set notimeout ttimeout timeoutlen=100
+
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
 
 " <leader> key mappings
-map <leader>* <ESC>:exe "Ag! " . expand("<cword>")<CR>
+map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
 map <leader>f <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
 map <leader>F <ESC>:Files!<CR>
 map <leader>g <ESC>:Gstatus<CR>
-map <leader>p <ESC>:XueliangProjects<CR>
+map <leader>p <ESC>:XueliangProjects<CR><ESC>:GFiles!<CR>
 map <leader>: <ESC>:History:<CR>
 map <leader>x <ESC>:History:<CR>
 map <leader>X <ESC>:Commands<CR>
@@ -288,5 +292,5 @@ nnoremap <F8>         :BTags<CR>
 nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :TagbarToggle<CR>
 nnoremap <F9>         :call ToggleNerdTree()<CR>
-nnoremap <F12>        :XueliangOpenlink<CR><CR>
+nnoremap <F12>        :XueliangOpenlink<CR>
 nnoremap <C-F12>      :!~/bin/daily-work.sh<CR>
