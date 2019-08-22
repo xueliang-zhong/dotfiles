@@ -36,9 +36,9 @@ values."
      ;; Uncomment some layer names and press <SPC f e R> (Vim style) or
      ;; <M-m f e R> (Emacs style) to install them.
      ;; ----------------------------------------------------------------
-     auto-completion
      git
      ivy
+     helm
      org
      )
    ;; List of additional packages that will be installed without being
@@ -48,9 +48,9 @@ values."
    dotspacemacs-additional-packages
    '(
      anti-zenburn-theme
+     company
      fiplr
      graphviz-dot-mode
-     helm-google
      ivy-rich
      json-mode
      markdown-mode
@@ -566,7 +566,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-ag (thing-at-point 'symbol)) ;; counsel-ag allows initial input to play with.
+  (counsel-rg (thing-at-point 'symbol)) ;; counsel-ag allows initial input to play with.
 )
 
 (defun xueliang-flush-blank-lines (start end)
