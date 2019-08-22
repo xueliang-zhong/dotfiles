@@ -52,6 +52,7 @@ values."
      fiplr
      graphviz-dot-mode
      ivy-rich
+     imenu-list
      json-mode
      markdown-mode
      nlinum
@@ -509,6 +510,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; Magic key <f8>
   ;; <f8> shows insights: program/output/content structure in various languages.
   (global-set-key (kbd "<f8>")   'counsel-imenu)
+  (global-set-key (kbd "C-<f8>") 'imenu-list-smart-toggle)
 
   ;; for my repo-sync terminal
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-normal-state-local-map
@@ -532,7 +534,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
   ;; <f9> .. <f12>:
   (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
-  (global-set-key (kbd "<C-9>")  'xueliang-find-file-similar)
+  (global-set-key (kbd "<C-f9>")  'neotree-toggle)
   (global-set-key (kbd "<f10>")   'ivy-switch-buffer)
   (global-set-key (kbd "<C-f10>") 'xueliang-file-manager)
   (global-set-key (kbd "<f11>") 'helm-google)
