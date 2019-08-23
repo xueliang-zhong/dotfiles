@@ -38,7 +38,6 @@ values."
      ;; ----------------------------------------------------------------
      git
      ivy
-     helm
      org
      )
    ;; List of additional packages that will be installed without being
@@ -50,9 +49,10 @@ values."
      anti-zenburn-theme
      company
      fiplr
+     fzf
      graphviz-dot-mode
-     ivy-rich
      imenu-list
+     ivy-rich
      json-mode
      markdown-mode
      nlinum
@@ -343,6 +343,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
   (spacemacs/set-leader-keys "ff" 'xueliang-projectile-find-file)
   (spacemacs/set-leader-keys "wg" 'golden-ratio)  ;; leader -> windows -> golden-ration.
+  (spacemacs/set-leader-keys "tt" 'pop-tag-mark)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; ivy config
@@ -364,12 +365,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq counsel-grep-base-command "grep -inE '%s' %s")
   ;; Better ivy switch buffer.
   (ivy-rich-mode 1)
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; Helm config
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (require 'helm)
-  (setq helm-show-completion-display-function #'helm-show-completion-default-display-function)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Modeline config
@@ -438,7 +433,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; eshell settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-a") 'eshell-bol)))
-  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'helm-eshell-history)))
+  (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-r") 'counsel-esh-history)))
   ;; eshell will run a term session to support following complex commands
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "htop")))
   (add-hook 'eshell-mode-hook '(lambda () (add-to-list 'eshell-visual-commands "top")))
@@ -447,10 +442,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "TAB")   'completion-at-point)))
   ;; Ctrl-d to quit the shell, just like other terminals
   (add-hook 'eshell-mode-hook '(lambda () (define-key evil-insert-state-local-map (kbd "C-d")   'kill-buffer-and-window)))
-  ;; Helm eshell history colours
-  (require 'helm-elisp)
-  (set-face-background 'helm-lisp-show-completion "LightSteelBlue1")
-  (set-face-foreground 'helm-lisp-show-completion "black")
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; term mode and fzf
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (add-hook 'term-mode-hook '(lambda() (evil-emacs-state 1)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
@@ -533,13 +529,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'find-file-hook 'xueliang-set-org-f8-key)
 
   ;; <f9> .. <f12>:
-  (global-set-key (kbd "<f9>")  '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
+  (global-set-key (kbd "<f9>")    '(lambda() (interactive) (xueliang-cd-current-buffer-directory) (counsel-find-file)))
   (global-set-key (kbd "<C-f9>")  'neotree-toggle)
   (global-set-key (kbd "<f10>")   'ivy-switch-buffer)
   (global-set-key (kbd "<C-f10>") 'xueliang-file-manager)
-  (global-set-key (kbd "<f11>") 'helm-google)
+  (global-set-key (kbd "<f11>")   '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
-  (global-set-key (kbd "<f12>") 'xueliang-open-link)
+  (global-set-key (kbd "<f12>")   'xueliang-open-link)
   (global-set-key (kbd "<C-f12>") 'xueliang-f12-trade-function)
 )
 
@@ -560,7 +556,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (if (projectile-project-root) (counsel-projectile-find-file)  ;; use projectile-find-file by default
          (if (string-equal system-type "windows-nt")             ;; otherwise
              (counsel-find-file)                                 ;;   on windows, use less powerful find-file.
-             (require 'fiplr) (xueliang/find-file (fiplr-root) "")))              ;;   on linux, use my own find file implementation.
+             (counsel-fzf)))                                     ;;   on linux, use fzf.
 )
 
 (defun xueliang-search-in-project (argument)
@@ -626,8 +622,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun xueliang-file-manager () "Open file manager (Thunar/Nemo) on current folder" (interactive)
    (start-process "my-file-manager" shell-output-buffer-name "nemo" "."))
 
-;;(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
-(defalias 'xueliang-top 'helm-top)
+(defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 
 ;; avoid company-complete being annoying in gdb mode.
 (add-hook 'gdb-mode-hook '(lambda () (setq-local company-idle-delay 60)))
@@ -1055,11 +1050,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   "handle large files better"
   (if (> (string-to-number (car (split-string (shell-command-to-string (message "du -sm %s" file-name)))))
          30)
-      (shell-command (message "gnome-terminal -e \"vim %s \"" file-name))
+      (shell-command (message "terminator -e \"vim %s \"" file-name))
       (find-file-other-window file-name)))
 
 (defun eshell/vimdiff (file1 file2)
-  (shell-command (message "gnome-terminal -e \"vimdiff %s %s\"" file1 file2)))
+  (shell-command (message "terminator -e \"vimdiff %s %s\"" file1 file2)))
+
+(defun eshell/fzf () (fzf))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
@@ -1071,7 +1068,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
  '(evil-want-Y-yank-to-eol nil)
  '(package-selected-packages
    (quote
-    (hydra lv avy smartparens evil helm helm-core yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional cython-mode company-anaconda anaconda-mode pythonic graphviz-dot-mode json-mode json-snatcher json-reformat projectile nlinum-relative zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
+    (hydra lv avy smartparens evil yapfify pyvenv pytest pyenv-mode py-isort pip-requirements live-py-mode hy-mode dash-functional cython-mode company-anaconda anaconda-mode pythonic graphviz-dot-mode json-mode json-snatcher json-reformat projectile nlinum-relative zenburn-theme zen-and-art-theme xterm-color white-sand-theme unfill underwater-theme ujelly-theme twilight-theme twilight-bright-theme twilight-anti-bright-theme toxi-theme tao-theme tangotango-theme tango-plus-theme tango-2-theme sunny-day-theme sublime-themes subatomic256-theme subatomic-theme spacegray-theme soothe-theme solarized-theme soft-stone-theme soft-morning-theme soft-charcoal-theme smyx-theme smeargle shell-pop seti-theme reverse-theme rebecca-theme railscasts-theme purple-haze-theme professional-theme planet-theme phoenix-dark-pink-theme phoenix-dark-mono-theme orgit organic-green-theme org-projectile org-category-capture org-present org-pomodoro alert log4e gntp org-mime org-download omtose-phellack-theme oldlace-theme occidental-theme obsidian-theme noctilux-theme naquadah-theme mwim mustang-theme multi-term monokai-theme monochrome-theme molokai-theme moe-theme minimal-theme material-theme majapahit-theme magit-gitflow madhat2r-theme lush-theme light-soap-theme jbeans-theme jazz-theme ir-black-theme inkpot-theme htmlize heroku-theme hemisu-theme hc-zenburn-theme gruvbox-theme gruber-darker-theme grandshell-theme gotham-theme gnuplot gitignore-mode gitconfig-mode gitattributes-mode git-timemachine git-messenger git-link git-gutter-fringe+ git-gutter-fringe fringe-helper git-gutter+ git-gutter gandalf-theme flyspell-correct-ivy flyspell-correct flycheck-pos-tip pos-tip flycheck flatui-theme flatland-theme farmhouse-theme exotica-theme espresso-theme eshell-z eshell-prompt-extras esh-help dracula-theme django-theme diff-hl darktooth-theme autothemer darkokai-theme darkmine-theme darkburn-theme dakrone-theme cyberpunk-theme color-theme-sanityinc-tomorrow color-theme-sanityinc-solarized clues-theme cherry-blossom-theme busybee-theme bubbleberry-theme birds-of-paradise-plus-theme badwolf-theme auto-dictionary apropospriate-theme anti-zenburn-theme ample-zen-theme ample-theme alect-themes afternoon-theme mmm-mode markdown-toc markdown-mode gh-md grizzl magit magit-popup git-commit ghub treepy graphql with-editor counsel swiper ivy company yasnippet auto-complete helm-google nlinum helm-themes helm-swoop helm-projectile helm-mode-manager helm-flx helm-descbinds helm-ag ace-jump-helm-line ws-butler winum which-key wgrep volatile-highlights vi-tilde-fringe uuidgen use-package toc-org spaceline smex restart-emacs request rainbow-delimiters popwin persp-mode pcre2el paradox org-plus-contrib org-bullets open-junk-file neotree move-text macrostep lorem-ipsum linum-relative link-hint ivy-rich ivy-hydra indent-guide hungry-delete hl-todo highlight-parentheses highlight-numbers highlight-indentation helm-make google-translate golden-ratio fuzzy flx-ido fiplr fill-column-indicator fancy-battery eyebrowse expand-region exec-path-from-shell evil-visualstar evil-visual-mark-mode evil-unimpaired evil-tutor evil-surround evil-search-highlight-persist evil-numbers evil-nerd-commenter evil-mc evil-matchit evil-magit evil-lisp-state evil-indent-plus evil-iedit-state evil-exchange evil-escape evil-ediff evil-args evil-anzu eval-sexp-fu elisp-slime-nav dumb-jump diminish define-word counsel-projectile company-statistics column-enforce-mode clean-aindent-mode auto-yasnippet auto-highlight-symbol auto-compile aggressive-indent adaptive-wrap ace-window ace-link ac-ispell))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
