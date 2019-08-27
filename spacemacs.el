@@ -354,9 +354,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; enable more stuff
   (setq ivy-use-virtual-buffers t)
   (setq enable-recursive-minibuffers nil)
-  ;; TAB behaves as ivy-partial-or-next-line - BUT has bug on spacemacs, which erases the whole buffer.
-  ;; Use C-n and C-p instead.
-  (define-key ivy-mode-map (kbd "TAB") 'ivy-partial)
+  ;; TAB works like next-or-cycle.
+  (setq ivy-wrap t)
+  (define-key ivy-mode-map (kbd "TAB") 'ivy-next-line)
   ;; I don't like the default "^" for M-x command.
   (add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
   ;; Make sure C-a C-k work in ivy mode as well.
@@ -428,6 +428,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq company-tooltip-limit 9)
   (setq company-tooltip-minimum-width 33)
   (setq company-minimum-prefix-length 2)
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "M-n") nil)
+    (define-key company-active-map (kbd "M-p") nil)
+    (define-key company-active-map (kbd "C-n") #'company-select-next)
+    (define-key company-active-map (kbd "C-p") #'company-select-previous)
+    (define-key company-active-map [tab] #'company-complete-common-or-cycle)
+    (define-key company-active-map (kbd "TAB") #'company-complete-common-or-cycle))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; eshell settings
