@@ -361,8 +361,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-to-list 'ivy-initial-inputs-alist '(counsel-M-x . ""))
   ;; Make sure C-a C-k work in ivy mode as well.
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
-  ;; Make counsel-grep case insensitive.
-  (setq counsel-grep-base-command "grep -inE '%s' %s")
+  ;; Use rg in counsel-grep-or-swiper
+  ;; (setq counsel-grep-base-command "grep -inE '%s' %s")
+  (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never \"%s\" %s")
   ;; Better ivy switch buffer.
   (ivy-rich-mode 1)
 
@@ -372,6 +373,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq display-time-day-and-date 1)
   (display-time-mode 1)
 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROG" "DONE")))
@@ -392,6 +394,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
           browse-url-generic-program "google-chrome"))
   ;; <s TAB to insert code template in org.
   (require 'org-tempo)
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -475,6 +478,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
   (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (thing-at-point 'symbol))))
   (define-key evil-normal-state-map (kbd "\"") 'counsel-yank-pop)
+  ;; tab and indentation
+  (define-key evil-insert-state-map (kbd "TAB") '(lambda() (interactive) (insert "  ")))
+  (setq-default c-basic-offset 2)  ;; for c/c++/java
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; nowrap
@@ -540,13 +546,17 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<C-f9>")  'neotree-toggle)
   (global-set-key (kbd "<f10>")   'ivy-switch-buffer)
   (global-set-key (kbd "<C-f10>") 'xueliang-file-manager)
-  (global-set-key (kbd "<f11>")   '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
+  (global-set-key (kbd "<f11>")   'xueliang-google-search-region)
   (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
   (global-set-key (kbd "<f12>")   'xueliang-open-link)
   (global-set-key (kbd "<C-f12>") 'xueliang-f12-trade-function)
 )
 
 (defun =============xueliang-functions=============())
+
+(defun xueliang-google-search-region () (interactive)
+   (org-open-link-from-string (concat "https://www.google.co.uk/search?q="
+     (replace-regexp-in-string "[/ \n() ]" "+" (buffer-substring (region-beginning) (region-end))))))
 
 (defun xueliang-google-translate-region () (interactive)
        (org-open-link-from-string (concat "https://translate.google.co.uk/#en/zh-CN/"
