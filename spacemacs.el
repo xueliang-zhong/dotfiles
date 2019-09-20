@@ -47,6 +47,7 @@ values."
    dotspacemacs-additional-packages
    '(
      anti-zenburn-theme
+     zenburn-theme
      company
      fiplr
      fzf
@@ -132,8 +133,8 @@ values."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
                          spacemacs-light  ;; works great with redshift.
+                         zenburn
                          spacemacs-dark
-                         anti-zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -493,6 +494,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; start screen
   (kill-buffer "*spacemacs*")
   (spacemacs/toggle-highlight-current-line-globally-off)
+  (fringe-mode '(1 . 1))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
