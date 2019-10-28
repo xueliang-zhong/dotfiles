@@ -771,7 +771,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
 )
 
 (defun xueliang-open-link ()
-   "" (interactive)
+   "F12 to select from a list of favourite links to open." (interactive)
+   (setq xueliang-private-weblink-list
+         (with-temp-buffer
+           (insert-file-contents (concat dropbox-home "/vim/xzhong-links.txt"))
+           (split-string (buffer-string) "\n" t)))
    (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " xueliang-private-weblink-list))))
    (xueliang-open-link-from-string xueliang-weblink-str)
 )
