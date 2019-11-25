@@ -236,15 +236,24 @@ function! OpenCompletion()
     call feedkeys (buffer_count >= 3 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
   endif
 endfunction
-" Turn on auto complete by default.
-autocmd InsertCharPre * call OpenCompletion()
-" I can still disable autocomplete when it becomes annoying.
-command! Nocomplete autocmd! InsertCharPre *
+"" Turn on auto complete by default.
+" autocmd InsertCharPre * call OpenCompletion()
+"" I can still disable autocomplete when it becomes annoying.
+" command! Nocomplete autocmd! InsertCharPre *
 
 " Improve <Enter> key's behaviour in autocomplete.
-inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
+" inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
-inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+" inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+
+function! CleverTab()
+   if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
+      return "\<Tab>"
+   else
+      return "\<C-N>"
+   endif
+endfunction
+inoremap <Tab> <C-R>=CleverTab()<CR>
 
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
