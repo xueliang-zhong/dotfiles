@@ -133,8 +133,8 @@ values."
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
                          spacemacs-light  ;; works great with redshift.
-                         zenburn
                          spacemacs-dark
+                         zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -477,7 +477,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (setq counsel-grep-swiper-limit 7000000)
   (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
-  (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (thing-at-point 'symbol))))
+  (define-key evil-normal-state-map (kbd "*") '(lambda() (interactive) (swiper (concat "\\<" (thing-at-point 'symbol) "\\>"))))
   (define-key evil-normal-state-map (kbd "\"") 'counsel-yank-pop)
   ;; tab and indentation
   (define-key evil-insert-state-map (kbd "TAB") '(lambda() (interactive) (insert "  ")))
