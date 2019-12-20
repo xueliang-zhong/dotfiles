@@ -395,6 +395,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
           browse-url-generic-program "google-chrome"))
   ;; <s TAB to insert code template in org.
   (require 'org-tempo)
+  ;; org babel
+  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
