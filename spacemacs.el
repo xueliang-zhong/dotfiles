@@ -132,8 +132,8 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
+                         spacemacs-light  ;; works great with redshift.
                          zenburn
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
@@ -497,7 +497,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (kill-buffer "*spacemacs*")
   (spacemacs/toggle-highlight-current-line-globally-off)
   (fringe-mode '(1 . 1))
-
+  ;; s-x on my home small keyboard.
+  (global-set-key (kbd "s-x") 'counsel-M-x)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -601,9 +602,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (insert "\n\n")
   )
 
-(defun xueliang-untabify-replaced-all-TAB() (interactive)
+(defun xueliang-replace-all-TAB-Trailing-Spaces() (interactive)
    "easily replace all TAB in current buffer with spaces."
-   (untabify (point-min) (point-max)))
+   (untabify (point-min) (point-max))
+   (delete-trailing-whitespace))
 
 (defun xueliang-what-face (pos)
     (interactive "d")
