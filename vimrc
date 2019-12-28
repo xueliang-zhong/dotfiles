@@ -270,7 +270,7 @@ filetype plugin indent on
 map <C-g> <ESC><ESC>
 
 " Terminal keys
-tnoremap <Esc> <C-W>N
+" tnoremap <Esc> <C-W>N
 set notimeout ttimeout timeoutlen=100
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.

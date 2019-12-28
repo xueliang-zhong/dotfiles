@@ -503,6 +503,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
+  (global-set-key (kbd "<f2>")      'xueliang-vim-open-FILE)
   (global-set-key (kbd "<f3>")      'xueliang-faster-fundamental-mode)
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
