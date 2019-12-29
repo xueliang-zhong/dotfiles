@@ -19,6 +19,7 @@ Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
+Plug 'jceb/vim-orgmode'
 call plug#end()
 filetype plugin indent on
 
