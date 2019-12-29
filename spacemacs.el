@@ -402,7 +402,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; For small screens: keep magit status window always on the rigth side.
-  (when (< (display-pixel-height) 1080)
+  (when (<= (display-pixel-height) 1080)
     (setq split-height-threshold nil
           split-width-threshold  0))
 
