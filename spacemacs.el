@@ -462,6 +462,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (add-hook 'term-mode-hook '(lambda() (evil-emacs-state 1)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;; Make emacs, vim & terminals quick
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (when (string-equal system-type "gnu/linux")
+    (xueliang-eshell-quick-command "vmtouch -t ~/.emacs.d ~/.vim /usr/share/terminator")
+    (switch-to-buffer "*scratch*") (spacemacs/toggle-maximize-buffer))
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (file-exists-p dropbox-home)
