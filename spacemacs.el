@@ -140,11 +140,7 @@ values."
    dotspacemacs-colorize-cursor-according-to-state t
    ;; Default font, or prioritized list of fonts. `powerline-scale' allows to
    ;; quickly tweak the mode-line size to make separators look not too crappy.
-   dotspacemacs-default-font '("Monospace"
-                               :size 17
-                               :weight normal
-                               :width normal
-                               :powerline-scale 1.1)
+   dotspacemacs-default-font '()
    ;; The leader key
    dotspacemacs-leader-key "SPC"
    ;; The key used for Emacs commands (M-x) (after pressing on the leader key).
@@ -477,9 +473,14 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; theme settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas") (set-face-attribute 'default nil :height 130))
-  ;; workstation
-  ;; (when (> (display-pixel-height) 1080) (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors))
+  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas") (set-face-attribute 'default nil :height 150))
+  (when (string-equal system-type "gnu/linux")
+    ;; desktop
+    (when (not (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name))
+      (load-theme 'spacemacs-dark t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 180))
+    ;; workstation
+    (when (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name)
+      (load-theme 'spacemacs-light t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 140)))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
