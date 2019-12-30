@@ -752,7 +752,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-terminal-shell ()
   "start my terminal, e.g. gnome-terminal." (interactive)
-  (start-process "my-shell" shell-output-buffer-name "~/bin/terminal" "--drop-down")
+  (start-process "my-shell" shell-output-buffer-name "terminator")
 )
 
 (defun xueliang-eshell-quick-command (str &optional exit-eshell-after-command)
