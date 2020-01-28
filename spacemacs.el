@@ -473,7 +473,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; theme settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (when (string-equal system-type "windows-nt") (load-theme 'spacemacs-dark t) (set-default-font "Consolas") (set-face-attribute 'default nil :height 150))
+  (when (string-equal system-type "windows-nt")
+    (load-theme 'spacemacs-dark t)
+    (set-default-font "Consolas") (set-face-attribute 'default nil :height 140)
+    (setq ivy-height 15))
   (when (string-equal system-type "gnu/linux")
     ;; desktop
     (when (not (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name))
