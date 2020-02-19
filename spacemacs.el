@@ -132,9 +132,9 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         spacemacs-dark
                          spacemacs-light  ;; works great with redshift.
                          zenburn
+                         spacemacs-dark
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -284,7 +284,7 @@ values."
    ;; List of search tool executable names. Spacemacs uses the first installed
    ;; tool of the list. Supported tools are `ag', `pt', `ack' and `grep'.
    ;; (default '("ag" "pt" "ack" "grep"))
-   dotspacemacs-search-tools '("ag" "pt" "ack" "grep")
+   dotspacemacs-search-tools '("rg" "ag" "pt" "ack" "grep")
    ;; The default package repository used if no explicit repository has been
    ;; specified with an installed package.
    ;; Not used for now. (default nil)
@@ -339,6 +339,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
   (spacemacs/set-leader-keys "ff" 'xueliang-projectile-find-file)
+  (spacemacs/set-leader-keys "fo" 'xueliang-vim-open-FILE)
   (spacemacs/set-leader-keys "wg" 'golden-ratio)  ;; leader -> windows -> golden-ration.
   (spacemacs/set-leader-keys "tt" 'pop-tag-mark)
 
@@ -429,7 +430,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq company-tooltip-minimum 9)
   (setq company-tooltip-limit 9)
   (setq company-tooltip-minimum-width 33)
-  (setq company-minimum-prefix-length 2)
+  (setq company-minimum-prefix-length 1)
   (with-eval-after-load 'company
     (define-key company-active-map (kbd "M-n") nil)
     (define-key company-active-map (kbd "M-p") nil)
@@ -819,6 +820,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
    (if (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name)
       (xueliang-eshell-quick-command "df -h /data")
       (xueliang-eshell-quick-command "df -h /"))
+)
+
+(defun xueliang-watch-time () (interactive)
+       (xueliang-eshell-quick-command "watch -n 1 date")
 )
 
 (defun xueliang-smaller-window () (interactive)

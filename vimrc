@@ -223,39 +223,37 @@ imap <c-x><c-l> <plug>(fzf-complete-line)
 " Advanced customization using autoload functions
 inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
-
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" This is quite awesome completion already.
-function! OpenCompletion()
-  if pumvisible()
-    return
-  endif
-  if (v:char >= 'a' && v:char <= 'z') || (v:char >= 'A' && v:char <= 'Z') || (v:char >= '0' && v:char <= '9') || (v:char == '_')
-    " Use C-x C-N local completion or C-N completion based on buffer count.
-    let buffer_count = len(getbufinfo({'buflisted':1}))
-    call feedkeys (buffer_count >= 3 ? "\<C-x>\<C-n>\<C-p>" : "\<C-n>\<C-p>")
-  endif
-endfunction
-"" Turn on auto complete by default.
-" autocmd InsertCharPre * call OpenCompletion()
-"" I can still disable autocomplete when it becomes annoying.
-" command! Nocomplete autocmd! InsertCharPre *
+
+" This is quite awesome already.
+inoremap a a<c-n><c-p>
+inoremap e e<c-n><c-p>
+inoremap i i<c-n><c-p>
+inoremap o o<c-n><c-p>
+inoremap u u<c-n><c-p>
+inoremap y y<c-n><c-p>
+inoremap A A<c-n><c-p>
+inoremap E E<c-n><c-p>
+inoremap I I<c-n><c-p>
+inoremap O O<c-n><c-p>
+inoremap U U<c-n><c-p>
+inoremap Y Y<c-n><c-p>
 
 " Improve <Enter> key's behaviour in autocomplete.
-" inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
+inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
-" inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
+inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 
-function! CleverTab()
-   if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
-      return "\<Tab>"
-   else
-      return "\<C-N>"
-   endif
-endfunction
-inoremap <Tab> <C-R>=CleverTab()<CR>
+" function! CleverTab()
+"    if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
+"       return "\<Tab>"
+"    else
+"       return "\<C-N>"
+"    endif
+" endfunction
+" inoremap <Tab> <C-R>=CleverTab()<CR>
 
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
@@ -282,10 +280,10 @@ nnoremap <Tab> za
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
-map <leader>f <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
+map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
 map <leader>F <ESC>:Files!<CR>
-map <leader>g <ESC>:Gstatus<CR>
-map <leader>p <ESC>:XueliangProjects<CR><ESC>:GFiles!<CR>
+map <leader>gg <ESC>:Gstatus<CR>
+map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles!<CR>
 map <leader>: <ESC>:History:<CR>
 map <leader>x <ESC>:History:<CR>
 map <leader>X <ESC>:Commands<CR>
