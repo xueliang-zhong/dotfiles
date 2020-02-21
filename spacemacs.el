@@ -573,7 +573,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (defun =============xueliang-functions=============())
 
 (defun xueliang-google-search-region () (interactive)
-   (org-open-link-from-string (concat "https://www.google.co.uk/search?q="
+       (org-open-link-from-string (concat "https://duckduckgo.com/?q="
      (replace-regexp-in-string "[/ \n() ]" "+" (buffer-substring (region-beginning) (region-end))))))
 
 (defun xueliang-google-translate-region () (interactive)
@@ -656,7 +656,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
                              :initial-input init-input)))
 
 (defun xueliang-file-manager () "Open file manager (Thunar/Nemo) on current folder" (interactive)
-   (start-process "my-file-manager" shell-output-buffer-name "nemo" "."))
+   (start-process "my-file-manager" shell-output-buffer-name "thunar" "."))
 
 (defun xueliang-top() "my top command in emacs" (interactive) (ivy-read "Top: " (split-string (shell-command-to-string "top -b -n 1 | tail -n +6") "\n")))
 
