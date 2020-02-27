@@ -511,6 +511,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (fringe-mode '(1 . 1))
   ;; s-x on my home small keyboard.
   (global-set-key (kbd "s-x") 'counsel-M-x)
+  ;; show frame title
+  (setq-default frame-title-format '("%b"))
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -565,7 +567,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (global-set-key (kbd "<f10>")   'ivy-switch-buffer)
   (global-set-key (kbd "<C-f10>") 'xueliang-file-manager)
   (global-set-key (kbd "<f11>")   'xueliang-google-search-region)
-  (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://google.co.uk")))
+  (global-set-key (kbd "<C-f11>") '(lambda() (interactive) (org-open-link-from-string "https://duckduckgo.com/")))
   (global-set-key (kbd "<f12>")   'xueliang-open-link)
   (global-set-key (kbd "<C-f12>") 'xueliang-f12-trade-function)
 )
