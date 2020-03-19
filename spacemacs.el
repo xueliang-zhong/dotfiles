@@ -468,13 +468,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (switch-to-buffer "*scratch*") (spacemacs/toggle-maximize-buffer))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;; my functions.
+  ;; my functions
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (file-exists-p dropbox-home)
-     (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong) (require 'xzhong-trader))
-
-  ;; make sure clipboard works in 'emacs -nw' terminal mode.
-  (when (and (string-equal system-type "gnu/linux") (file-exists-p dropbox-home)) (require 'xclip) (xclip-mode))
+    (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong) (require 'xzhong-trader))
+  ;; make sure system clipboard works in 'emacs -nw' terminal mode.
+  (when (and (string-equal system-type "gnu/linux") (not (display-graphic-p)) (file-exists-p dropbox-home))
+    (require 'xclip) (xclip-mode))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; theme settings
