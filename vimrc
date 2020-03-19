@@ -231,15 +231,23 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 inoremap a a<c-n><c-p>
 inoremap e e<c-n><c-p>
 inoremap i i<c-n><c-p>
-inoremap o o<c-n><c-p>
-inoremap u u<c-n><c-p>
-inoremap y y<c-n><c-p>
 inoremap A A<c-n><c-p>
 inoremap E E<c-n><c-p>
 inoremap I I<c-n><c-p>
 inoremap O O<c-n><c-p>
 inoremap U U<c-n><c-p>
+inoremap o o<c-n><c-p>
+inoremap u u<c-n><c-p>
+inoremap y y<c-n><c-p>
 inoremap Y Y<c-n><c-p>
+inoremap h h<c-n><c-p>
+inoremap H H<c-n><c-p>
+inoremap l l<c-n><c-p>
+inoremap L L<c-n><c-p>
+inoremap j j<c-n><c-p>
+inoremap J J<c-n><c-p>
+inoremap r r<c-n><c-p>
+inoremap R R<c-n><c-p>
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -280,10 +288,10 @@ nnoremap <Tab> za
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
-map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles!<CR>
+map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
 map <leader>F <ESC>:Files!<CR>
 map <leader>gg <ESC>:Gstatus<CR>
-map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles!<CR>
+map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
 map <leader>: <ESC>:History:<CR>
 map <leader>x <ESC>:History:<CR>
 map <leader>X <ESC>:Commands<CR>
