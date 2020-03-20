@@ -411,7 +411,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq projectile-require-project-root nil)
   (setq projectile-enable-caching nil)
   (setq projectile-project-search-path '("~/workspace/linaro"))
-  (setq projectile-tags-command "ctags -I REQUIRES_SHARED -Re -f \"%s\" %s \"%s\"")
+  (setq projectile-tags-command "ctags-exuberant -I REQUIRES_SHARED,WARN_UNUSED,RELEASE -R -e -f \"%s\" %s \"%s\"")
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; auto completion / company settings
@@ -561,7 +561,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
          (if (and (stringp buffer-file-name) (string-match "daily.org" buffer-file-name))
              (progn
                (define-key evil-normal-state-local-map (kbd "<f8>") 'xueliang-org-find-today)
-               (define-key evil-normal-state-local-map (kbd "<C-f8>") '(lambda() (interactive) (org-cycle) (org-cycle))))
+               (when (not (display-graphic-p)) (org-bullets-mode -1)))
           ;; else, for all other org files, imenu is very useful.
           (define-key evil-normal-state-local-map (kbd "<f8>") 'counsel-imenu)))
   (add-hook 'find-file-hook 'xueliang-set-org-f8-key)
