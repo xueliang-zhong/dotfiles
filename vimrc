@@ -21,6 +21,7 @@ Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
 Plug 'jceb/vim-orgmode'
 Plug 'tpope/vim-speeddating'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 call plug#end()
 filetype plugin indent on
 
@@ -77,7 +78,7 @@ colorscheme zenburn " good options: evening, elflord, desert, delek, koehler, pa
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
-" set colorcolumn=100  " useful in code review
+set colorcolumn=100  " useful in code review
 
 if has('gui_running')
   set guioptions-=T
@@ -227,28 +228,6 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-" This is quite awesome already.
-inoremap a a<c-n><c-p>
-inoremap e e<c-n><c-p>
-inoremap i i<c-n><c-p>
-inoremap A A<c-n><c-p>
-inoremap E E<c-n><c-p>
-inoremap I I<c-n><c-p>
-inoremap O O<c-n><c-p>
-inoremap U U<c-n><c-p>
-inoremap o o<c-n><c-p>
-inoremap u u<c-n><c-p>
-inoremap y y<c-n><c-p>
-inoremap Y Y<c-n><c-p>
-inoremap h h<c-n><c-p>
-inoremap H H<c-n><c-p>
-inoremap l l<c-n><c-p>
-inoremap L L<c-n><c-p>
-inoremap j j<c-n><c-p>
-inoremap J J<c-n><c-p>
-inoremap r r<c-n><c-p>
-inoremap R R<c-n><c-p>
-
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
@@ -278,8 +257,10 @@ filetype plugin indent on
 map <C-g> <ESC><ESC>
 
 " Terminal keys
-" tnoremap <Esc> <C-W>N
+tnoremap <F1> <C-W>N
 set notimeout ttimeout timeoutlen=100
+" Useful for openning file in terminal.
+nnoremap gf <C-W><C-V>gf
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
@@ -288,13 +269,15 @@ nnoremap <Tab> za
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
-map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
+map <leader>: <ESC>:History:<CR>
 map <leader>F <ESC>:Files!<CR>
+map <leader>X <ESC>:Commands<CR>
+map <leader>bs <ESC><C-W><C-N>
+map <leader>wg <ESC><C-W>10+
+map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
 map <leader>gg <ESC>:Gstatus<CR>
 map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
-map <leader>: <ESC>:History:<CR>
 map <leader>x <ESC>:History:<CR>
-map <leader>X <ESC>:Commands<CR>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
@@ -304,6 +287,7 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
+map <C-F5>      <ESC>:terminal<CR>
 
 nnoremap <F8>         :BTags<CR>
 nnoremap <leader><F8> :BTags<CR>
