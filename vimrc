@@ -143,6 +143,7 @@ autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.org set filetype=asm
+autocmd BufRead *.sc  set filetype=conf
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
@@ -269,6 +270,7 @@ nnoremap <Tab> za
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
 map <leader>/ <ESC>:BLines<CR>
+map <leader>? <ESC>:Maps<CR>
 map <leader>: <ESC>:History:<CR>
 map <leader>F <ESC>:Files!<CR>
 map <leader>X <ESC>:Commands<CR>
@@ -289,9 +291,9 @@ map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 map <C-F5>      <ESC>:terminal<CR>
 
-nnoremap <F8>         :BTags<CR>
+nnoremap <F8>         :TagbarToggle<CR>
 nnoremap <leader><F8> :BTags<CR>
-nnoremap <C-F8>       :TagbarToggle<CR>
+nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
