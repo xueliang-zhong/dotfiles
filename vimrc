@@ -143,7 +143,7 @@ autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.org set filetype=asm
-autocmd BufRead *.sc  set filetype=conf
+autocmd BufRead *.sc  set filetype=python
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
@@ -225,6 +225,9 @@ imap <c-x><c-l> <plug>(fzf-complete-line)
 " Advanced customization using autoload functions
 inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
+" Command for creating Peekaboo window
+let g:peekaboo_window = 'split bo 24new'
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -265,6 +268,9 @@ nnoremap gf <C-W><C-V>gf
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
+
+" More powerful search
+nnoremap / <ESC>:BLines<CR>
 
 " <leader> key mappings
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
