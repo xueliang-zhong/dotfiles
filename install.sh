@@ -7,6 +7,7 @@ ln -sf `pwd`/vimrc ~/.vimrc
 ln -sf `pwd`/vimrc ~/.config/nvim/init.vim
 ln -sf `pwd`/open_link_arg2.sh ~/bin/open_link_arg2.sh
 ln -sf `pwd`/daily-work.sh ~/bin/daily-work.sh
+ln -sf `pwd`/daily-websites.sh ~/bin/daily-websites.sh
 
 # emacs
 rm -f ~/.emacs

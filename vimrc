@@ -134,6 +134,7 @@ command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   rule
 
 command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
+command! XueliangDailyWebSites !~/bin/daily-websites.sh <CR>
 
 " commands using fzf framework
 command! XueliangOpenlink terminal ++close links
@@ -176,7 +177,7 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 function! XueliangDailyT_Func()
   :cd ~/workspace/T/
-  :!cat T.sh | grep "echo.*:.*quick command" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash T.sh
+  :!cat T.sh | grep "echo.*:.*quick command" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
 endfunction
 
 " Toggle NERDTree
@@ -283,7 +284,6 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
-map <C-F5>      <ESC>:terminal<CR>
 
 nnoremap <F8>         :TagbarToggle<CR>
 nnoremap <leader><F8> :BTags<CR>
@@ -291,5 +291,5 @@ nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
-nnoremap <C-F12>      :!~/bin/daily-work.sh<CR>
 nnoremap <S-F12>      :call XueliangDailyT_Func()<CR>
+nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
