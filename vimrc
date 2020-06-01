@@ -19,8 +19,6 @@ Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
-Plug 'jceb/vim-orgmode'
-Plug 'tpope/vim-speeddating'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 call plug#end()
 filetype plugin indent on
@@ -75,6 +73,9 @@ set backspace=indent,eol,start
 
 " color/scheme settings
 colorscheme zenburn " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans, zenburn
+if &diff
+    colorscheme desert
+endif
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -132,7 +133,7 @@ command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   rule
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
-command! XueliangLinaroDebug call XueliangLinaroDebug_Func()
+command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 " commands using fzf framework
 command! XueliangOpenlink terminal ++close links
@@ -144,11 +145,12 @@ autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.sc  set filetype=python
+autocmd BufRead *.sc  nmap <buffer> <F8> <ESC>:BLines ###<CR>
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
 " vimrc buffer local <F8> key.
-autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
+" autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
 
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
@@ -172,26 +174,9 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! XueliangLinaroDebug_Func()
-  " Better colors in debugger
-  :set nocursorline
-  :colorscheme elflord
-  " Key mappings in debugger.
-  :nmap <C-F5>  <ESC>:Continue<CR>
-  :nmap <C-F9>  <ESC>:Break<CR>
-  :nmap <C-F10> <ESC>:Over<CR>
-  :nmap <C-F11> <ESC>:Step<CR>
-  :nmap <S-F11> <ESC>:Finish<CR>
-  :nmap U <ESC>:call TermDebugSendCommand('up')<CR>
-  :nmap D <ESC>:call TermDebugSendCommand('down')<CR>
-  :nmap F <ESC>:Finish<CR>
-  :nmap N <ESC>:Over<CR>
-  " Make sure the debugger's in the right folder.
-  :cd ~/workspace/linaro/
-  " Start the debugger and execute the init gdb commands.
-  :packadd termdebug
-  :Termdebug
-  :call TermDebugSendCommand('source ~/workspace/linaro/gdb.init')
+function! XueliangDailyT_Func()
+  :cd ~/workspace/T/
+  :!cat T.sh | grep "quick command" | grep echo "-" | grep ":" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash T.sh
 endfunction
 
 " Toggle NERDTree
@@ -227,6 +212,9 @@ inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
 
 " Command for creating Peekaboo window
 let g:peekaboo_window = 'split bo 24new'
+
+" gx to open link
+let g:netrw_browsex_viewer = "google-chrome"
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
@@ -269,8 +257,8 @@ nnoremap gf <C-W><C-V>gf
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
 
-" More powerful search
-nnoremap / <ESC>:BLines<CR>
+" More powerful search, doesn't work well on windows.
+" nnoremap / <ESC>:BLines<CR>
 
 " <leader> key mappings
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
@@ -304,3 +292,4 @@ nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
 nnoremap <C-F12>      :!~/bin/daily-work.sh<CR>
+nnoremap <S-F12>      :call XueliangDailyT_Func()<CR>
