@@ -200,6 +200,7 @@ set grepprg=ag\ --nogroup\ --nocolor
 
 " Tagbar iconds
 let g:tagbar_iconchars = ['+', '▼']
+let g:tagbar_sort = 0  " avoid to preserve the oringal programe order.
 
 " Fzf
 " Insert mode completion
@@ -291,5 +292,5 @@ nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
-nnoremap <S-F12>      :call XueliangDailyT_Func()<CR>
+nnoremap <S-F12>      :call XueliangDailyT_Func()<CR><CR>
 nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
