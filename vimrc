@@ -176,7 +176,7 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 function! XueliangDailyT_Func()
   :cd ~/workspace/T/
-  :!cat T.sh | grep "quick command" | grep echo "-" | grep ":" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash T.sh
+  :!cat T.sh | grep "echo.*:.*quick command" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash T.sh
 endfunction
 
 " Toggle NERDTree
