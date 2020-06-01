@@ -132,7 +132,7 @@ command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline norule
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
 command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
-command! XueliangCdGitRoot cd %:h | cd `git rev-parse --show-toplevel`
+command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 command! XueliangDailyWebSites !~/bin/daily-websites.sh <CR>
 
