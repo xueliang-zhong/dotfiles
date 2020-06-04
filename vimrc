@@ -140,6 +140,12 @@ command! XueliangDailyWebSites !~/bin/daily-websites.sh <CR>
 command! XueliangOpenlink terminal ++close links
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
+" works better than Gdiffsplit
+command! Gdiff Gblame | /not.*commit.*
+
+" TStation
+command! XueliangTStation source ~/workspace/T/T-vim-T-station.vim
+
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
@@ -147,6 +153,8 @@ autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.sc  set filetype=python
 autocmd BufRead *.sc  nmap <buffer> <F8> <ESC>:BLines ###<CR>
+autocmd FileType asm setlocal foldmethod=marker
+autocmd BufRead *.org nnoremap <S-Tab> zC | XueliangTABTrailingSpaces
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
@@ -178,6 +186,16 @@ command! -bang -nargs=? -complete=dir GFiles
 function! XueliangDailyT_Func()
   :cd ~/workspace/T/
   :!cat T.sh | grep "echo.*:.*quick command" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
+endfunction
+
+function! XueliangHandleWebURL()
+  let s:uri = matchstr(getline("."), '[a-z]*:\/\/[^ >,;]*')
+  echo s:uri
+  if s:uri != ""
+    silent exec "!google-chrome '".s:uri."'"
+  else
+    echo "No URI found in line."
+  endif
 endfunction
 
 " Toggle NERDTree
@@ -276,6 +294,7 @@ map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
 map <leader>gg <ESC>:Gstatus<CR>
 map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
 map <leader>x <ESC>:History:<CR>
+map <leader>o <ESC>:call XueliangHandleWebURL()<CR><C-l><C-l>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
@@ -292,5 +311,5 @@ nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
-nnoremap <S-F12>      :call XueliangDailyT_Func()<CR><CR>
+nnoremap <S-F12>      :XueliangTStation<CR>
 nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
