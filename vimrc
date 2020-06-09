@@ -150,11 +150,11 @@ command! XueliangTStation source ~/workspace/T/T-vim-T-station.vim
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
-autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.sc  set filetype=python
 autocmd BufRead *.sc  nmap <buffer> <F8> <ESC>:BLines ###<CR>
-autocmd FileType asm setlocal foldmethod=marker
-autocmd BufRead *.org nnoremap <S-Tab> zC | XueliangTABTrailingSpaces
+autocmd BufRead *.org set filetype=asm
+autocmd BufRead *.org nmap <buffer> <F8> <ESC>:BLines \*\*\* =><CR>
+" autocmd BufRead *.org %s/\s\+$//e
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
@@ -270,6 +270,7 @@ map <C-g> <ESC><ESC>
 
 " Terminal keys
 tnoremap <F1> <C-W>N
+tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
 " Useful for openning file in terminal.
 nnoremap gf <C-W><C-V>gf

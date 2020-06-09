@@ -336,6 +336,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (spacemacs/set-leader-keys "/" 'swiper)
   (spacemacs/set-leader-keys "*" 'xueliang-search-in-project)
   (spacemacs/set-leader-keys "#" 'xueliang-search-in-project)
+  (spacemacs/set-leader-keys "o" 'org-open-at-point)
   (spacemacs/set-leader-keys "gg" 'magit-status)
   (spacemacs/set-leader-keys "pf" 'xueliang-projectile-find-file)
   (spacemacs/set-leader-keys "ff" 'xueliang-projectile-find-file)
