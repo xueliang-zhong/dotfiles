@@ -185,7 +185,7 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 function! XueliangDailyT_Func()
   :cd ~/workspace/T/
-  :!cat T.sh | grep "echo.*:.*quick command" | fzf | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
+  :!cat T.sh | grep "echo.*:.*quick command" | fzf +s -e | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
 endfunction
 
 function! XueliangHandleWebURL()
@@ -312,5 +312,5 @@ nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :XueliangOpenlink<CR>
-nnoremap <S-F12>      :XueliangTStation<CR>
+nnoremap <S-F12>      :call XueliangDailyT_Func()<CR><CR>
 nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
