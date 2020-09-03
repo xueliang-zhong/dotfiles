@@ -132,7 +132,7 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
-                         zenburn
+                         anti-zenburn
                          spacemacs-light  ;; works great with redshift.
                          spacemacs-dark
                          )
@@ -481,16 +481,17 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; theme settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (when (string-equal system-type "windows-nt")
-    (load-theme 'spacemacs-dark t)
+    (load-theme 'anti-zenburn t)
     (set-default-font "Consolas") (set-face-attribute 'default nil :height 140)
     (setq ivy-height 15))
   (when (string-equal system-type "gnu/linux")
     ;; desktop
     (when (not (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name))
-      (load-theme 'spacemacs-dark t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 180))
+      (load-theme 'anti-zenburn t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 180))
     ;; workstation
     (when (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name)
-      (load-theme 'zenburn t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 140)))
+      (load-theme 'anti-zenburn t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 140)))
+  (xueliang-anti-zenburn-theme-colors)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -870,11 +871,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
 (global-set-key (kbd "<C-mouse-5>") 'xueliang-smaller-window)
 
 (defun xueliang-anti-zenburn-theme-colors()
-  "anti-zenburn theme is the best for my workstation in office."
+    "anti-zenburn theme is the best for my workstation in office."
   (interactive)  ;; make interactive so that it is easier for command line ssh shell to call.
 
   ;; cursor colors
   (setq evil-normal-state-cursor '("DarkCyan" box))
+  (setq evil-insert-state-cursor '("DarkCyan" bar))
 
   ;; Useful commands: list-faces-display, counsel-colors-emacs.
   (set-face-foreground 'font-lock-comment-face "DarkGreen")
@@ -889,6 +891,24 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq org-src-fontify-natively t)
   (set-face-foreground 'org-done "DarkSlateGrey")
   (set-face-foreground 'org-todo "RoyalBlue")
+  (set-face-foreground 'hl-todo "DarkSlateGrey")
+
+  (setq hl-todo-keyword-faces
+    '(("HOLD" . "#d0bf8f")
+      ("TODO" . "DarkViolet")
+      ("NEXT" . "#dca3a3")
+      ("THEM" . "#dc8cc3")
+      ("PROG" . "RoyalBlue")
+      ("OKAY" . "RoyalBlue")
+      ("DONT" . "#5f7f5f")
+      ("FAIL" . "#8c5353")
+      ("DONE" . "DarkSlateGrey4")
+      ("NOTE"   . "#cc9393")
+      ("KLUDGE" . "#cc9393")
+      ("HACK"   . "#cc9393")
+      ("TEMP"   . "#cc9393")
+      ("FIXME"  . "#cc9393")
+      ("XXX+"   . "#cc9393")))
 
   ;; ivy colors
   (set-face-attribute  'ivy-current-match nil :underline t)
