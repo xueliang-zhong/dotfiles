@@ -505,6 +505,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (setq-default c-basic-offset 2)  ;; for c/c++/java
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
+  ;; ctrl-a/x to inc/dec numbers like vim
+  (define-key evil-normal-state-map (kbd "C-a") 'evil-numbers/inc-at-pt)
+  (define-key evil-normal-state-map (kbd "C-x") 'evil-numbers/dec-at-pt)
   ;; nowrap
   (set-default 'truncate-lines t)
   ;; line numbers
