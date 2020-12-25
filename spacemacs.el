@@ -132,9 +132,9 @@ values."
    ;; Press <SPC> T n to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
    dotspacemacs-themes '(
+                         spacemacs-dark
                          anti-zenburn
                          spacemacs-light  ;; works great with redshift.
-                         spacemacs-dark
                          )
    ;; If non nil the cursor color matches the state color in GUI Emacs.
    dotspacemacs-colorize-cursor-according-to-state t
@@ -305,6 +305,7 @@ executes.
 before packages are loaded. If you are unsure, you should try in setting them in
 `dotspacemacs/user-config' first."
   (when (string-equal system-type "gnu/linux") (setq xueliang-home "~"))
+  (when (string-equal system-type "darwin") (setq xueliang-home "~"))
   (when (string-equal system-type "windows-nt")
     (when (file-exists-p "c:/Users/xuezho01") (setq xueliang-home "c:/Users/xuezho01"))
     (when (file-exists-p "c:/Users/xueliang") (setq xueliang-home "c:/Users/xueliang")))
@@ -364,7 +365,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; (setq counsel-grep-base-command "grep -inE '%s' %s")
   (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never \"%s\" %s")
   ;; Better ivy switch buffer.
-  (ivy-rich-mode 1)
+  ;; (ivy-rich-mode 1)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Modeline config
@@ -383,8 +384,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
     (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
     (set-face-attribute 'org-todo nil :bold nil :height 1.0)
-    (set-face-attribute 'hl-todo nil :bold nil :height 1.0)
-    (org-bullets-mode 1)))
+    (set-face-attribute 'hl-todo nil :bold nil :height 1.0)))
   (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-insert-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
@@ -487,11 +487,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (when (string-equal system-type "gnu/linux")
     ;; desktop
     (when (not (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name))
-      (load-theme 'anti-zenburn t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 180))
+      (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors) (set-default-font "Monospace") (set-face-attribute 'default nil :height 180))
     ;; workstation
     (when (string-equal (string-trim (shell-command-to-string "hostname")) xueliang-workstation-name)
-      (load-theme 'anti-zenburn t) (set-default-font "Monospace") (set-face-attribute 'default nil :height 140)))
-  (xueliang-anti-zenburn-theme-colors)
+      (load-theme 'anti-zenburn t) (xueliang-anti-zenburn-theme-colors) (set-default-font "Monospace") (set-face-attribute 'default nil :height 140)))
+  (when (string-equal system-type "darwin") (load-theme 'spacemacs-dark t) (set-face-attribute 'default nil :height 180))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; global settings
@@ -794,8 +794,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (xueliang-eshell-quick-command "watch -n 0.3 dropbox status"))
 
 (defun xueliang-open-link-from-string (str)
-  (if (string-equal system-type "windows-nt")
-      (org-open-link-from-string str)
+  (when (string-equal system-type "windows-nt")
+      (org-open-link-from-string str))
+  (when (string-equal system-type "darwin")
+      (org-open-link-from-string str))
+  (when (string-equal system-type "gnu/linux")
     (require 'browse-url) (browse-url-chrome str))
 )
 

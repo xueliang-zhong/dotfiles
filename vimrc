@@ -32,6 +32,7 @@ set autochdir
 set autowrite
 set autoread " detect when a file is changed
 set clipboard=unnamedplus
+set clipboard+=unnamed " works on Mac OS
 set cursorline
 set history=1000
 set laststatus=2
@@ -101,7 +102,7 @@ set foldlevel=1
 set path+=**
 
 " Always use vertical diffs: for example Gdiff, diffsplit, etc
-set diffopt+=vertical
+set diffopt=vertical
 
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow splitright
@@ -185,7 +186,8 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 function! XueliangDailyT_Func()
   :cd ~/workspace/T/
-  :!cat T.sh | grep "echo.*:.*quick command" | fzf +s -e | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
+  :make
+  ":!cat T.sh | grep "echo.*:.*quick command" | fzf +s -e | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
 endfunction
 
 function! XueliangHandleWebURL()
@@ -311,6 +313,6 @@ nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
 nnoremap <C-F9>       :call ToggleNerdTree()<CR>
-nnoremap <F12>        :XueliangOpenlink<CR>
+nnoremap <F12>        :!~/bin/links<CR><CR>
 nnoremap <S-F12>      :call XueliangDailyT_Func()<CR><CR>
 nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
