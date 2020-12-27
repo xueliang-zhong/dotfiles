@@ -159,8 +159,6 @@ autocmd BufRead *.org nmap <buffer> <F8> <ESC>:BLines \*\*\* =><CR>
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
-" vimrc buffer local <F8> key.
-" autocmd BufRead {vimrc,.vimrc} nmap <buffer> <F8> <ESC>:BLines ^" =><CR>
 
 " Sometimes, as an alternative to setting autochdir, the following command gives better results:
 autocmd BufEnter * silent! lcd %:p:h
@@ -247,15 +245,6 @@ inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
 inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 
-" function! CleverTab()
-"    if strpart( getline('.'), 0, col('.')-1 ) =~ '^\s*$'
-"       return "\<Tab>"
-"    else
-"       return "\<C-N>"
-"    endif
-" endfunction
-" inoremap <Tab> <C-R>=CleverTab()<CR>
-
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
 " For better performance in auto complete.
@@ -279,9 +268,6 @@ nnoremap gf <C-W><C-V>gf
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
-
-" More powerful search, doesn't work well on windows.
-" nnoremap / <ESC>:BLines<CR>
 
 " <leader> key mappings
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
