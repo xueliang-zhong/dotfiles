@@ -600,10 +600,13 @@ before packages are loaded. If you are unsure, you should try in setting them in
 
 (defun xueliang-projectile-find-file ()
    "projectile-find-file if it's in a project, find-file otherwise" (interactive)
-   (if (projectile-project-root) (counsel-projectile-find-file)  ;; use projectile-find-file by default
-         (if (string-equal system-type "windows-nt")             ;; otherwise
-             (counsel-find-file)                                 ;;   on windows, use less powerful find-file.
-             (counsel-fzf)))                                     ;;   on linux, use fzf.
+   (if (string-equal (abbreviate-file-name (projectile-project-root)) "~/")
+      (counsel-find-file)
+      (if (projectile-project-root) (counsel-projectile-find-file)  ;; use projectile-find-file by default
+        (when (string-equal system-type "darwin") (counsel-find-file))
+        (when (string-equal system-type "windows-nt") (counsel-find-file))
+        (when (string-equal system-type "gnu/linux") (counsel-fzf)))
+   )
 )
 
 (defun xueliang-search-in-project (argument)
