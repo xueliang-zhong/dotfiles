@@ -385,7 +385,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
     (set-face-attribute 'org-todo nil :bold nil :height 1.0)
     (set-face-attribute 'hl-todo nil :bold nil :height 1.0)))
-  (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "C-c C-o") 'org-open-at-point)))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-insert-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
   (add-hook 'org-mode-hook '(lambda () (define-key evil-normal-state-map (kbd "M-RET M-RET") 'org-ctrl-c-ret)))
@@ -397,7 +396,11 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (require 'org-tempo)
   ;; org babel
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
-
+  ;; org-superstar-mode (org-bullets-mode)
+  (setq org-hide-leading-stars t)
+  ;; (setq org-bullets-bullet-list '("◉" "○" "✿" "✼"))
+  ;; (setq org-superstar-cycle-headline-bullets t)
+  ;; (setq org-superstar-special-todo-items nil)
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; magit settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -507,7 +510,6 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; ctrl-a/x to inc/dec numbers like vim
   (define-key evil-normal-state-map (kbd "C-a") 'evil-numbers/inc-at-pt)
-  (define-key evil-normal-state-map (kbd "C-x") 'evil-numbers/dec-at-pt)
   ;; nowrap
   (set-default 'truncate-lines t)
   ;; line numbers
@@ -561,7 +563,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
          (org-shifttab)
          (evil-goto-first-line)
          (swiper (format-time-string "<%Y-%m-%d" (current-time)))
-         (org-cycle))
+         (org-cycle) (evil-ex-nohighlight))
   (defun xueliang-set-org-f8-key () (interactive)
          (if (and (stringp buffer-file-name) (string-match "daily.org" buffer-file-name))
              (progn
