@@ -261,6 +261,7 @@ map <C-g> <ESC><ESC>
 
 " Terminal keys
 tnoremap <F1> <C-W>N
+tnoremap § <C-W>N
 tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
 " Useful for openning file in terminal.
