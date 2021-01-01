@@ -32,7 +32,7 @@ This function should only modify configuration layer settings."
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(vimscript
+   '(
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
@@ -59,7 +59,6 @@ This function should only modify configuration layer settings."
      fzf
      graphviz-dot-mode
      imenu-list
-     ivy-rich
      json-mode
      markdown-mode
      nlinum
@@ -70,7 +69,7 @@ This function should only modify configuration layer settings."
    dotspacemacs-frozen-packages '()
 
    ;; A list of packages that will not be installed and loaded.
-   dotspacemacs-excluded-packages '(yasnippet)
+   dotspacemacs-excluded-packages '()
 
    ;; Defines the behaviour of Spacemacs when installing packages.
    ;; Possible values are `used-only', `used-but-keep-unused' and `all'.
@@ -211,10 +210,8 @@ It should only modify the values of Spacemacs settings."
    ;; List of themes, the first of the list is loaded when spacemacs starts.
    ;; Press `SPC T n' to cycle to the next theme in the list (works great
    ;; with 2 themes variants, one dark and one light)
-   dotspacemacs-themes '( spacemacs-dark
-                         anti-zenburn
-                         spacemacs-light  ;; works great with redshift.
-                         )
+   dotspacemacs-themes '(spacemacs-dark
+                         spacemacs-light)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
    ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
@@ -305,7 +302,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; Which-key delay in seconds. The which-key buffer is the popup listing
    ;; the commands bound to the current keystroke sequence. (default 0.4)
-   dotspacemacs-which-key-delay 0.3
+   dotspacemacs-which-key-delay 0.4
 
    ;; Which-key frame position. Possible values are `right', `bottom' and
    ;; `right-then-bottom'. right-then-bottom tries to display the frame to the
@@ -705,9 +702,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; scratch buffer to be elisp mode by default.
   (setq dotspacemacs-scratch-mode 'emacs-lisp-mode)
   ;; start screen
-  (kill-buffer "*spacemacs*")
+  ;; (kill-buffer "*spacemacs*")
+  ;; (fringe-mode '(1 . 1))
   (spacemacs/toggle-highlight-current-line-globally-off)
-  (fringe-mode '(1 . 1))
   ;; s-x on my home small keyboard.
   (global-set-key (kbd "s-x") 'counsel-M-x)
   ;; show frame title

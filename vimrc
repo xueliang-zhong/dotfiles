@@ -270,6 +270,9 @@ nnoremap gf <C-W><C-V>gf
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
 
+" Emacs ivy style search
+nnoremap / <ESC>:BLines<CR>
+
 " <leader> key mappings
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
