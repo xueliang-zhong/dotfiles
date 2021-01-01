@@ -242,7 +242,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; The key used for Emacs commands `M-x' (after pressing on the leader key).
    ;; (default "SPC")
-   dotspacemacs-emacs-command-key "SPC"
+   dotspacemacs-emacs-command-key "<f9>"
 
    ;; The key used for Vim Ex commands (default ":")
    dotspacemacs-ex-command-key ":"
