@@ -694,6 +694,9 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (define-key evil-insert-state-map (kbd "C-v") 'yank)
   ;; ctrl-a/x to inc/dec numbers like vim
   (define-key evil-normal-state-map (kbd "C-a") 'evil-numbers/inc-at-pt)
+  ;; map § (UK keyboard) to ESC on MacOS
+  (define-key evil-insert-state-map (kbd "§") 'evil-force-normal-state)
+  (define-key evil-normal-state-map (kbd "§") 'evil-force-normal-state)
   ;; nowrap
   (set-default 'truncate-lines t)
   ;; line numbers
