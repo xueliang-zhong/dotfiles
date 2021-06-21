@@ -2,6 +2,7 @@
 " => Plugin List
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 call plug#begin('~/.vim/plugged')
+
 Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
 Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
 Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
@@ -19,7 +20,11 @@ Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
-Plug 'neoclide/coc.nvim', {'branch': 'release'}
+
+if v:version > 801
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
+endif
+
 call plug#end()
 filetype plugin indent on
 
@@ -246,6 +251,33 @@ let g:netrw_browsex_viewer = "google-chrome"
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
+if v:version <= 801
+  " This is quite awesome already.
+  inoremap a a<c-n><c-p>
+  inoremap e e<c-n><c-p>
+  inoremap i i<c-n><c-p>
+  inoremap o o<c-n><c-p>
+  inoremap u u<c-n><c-p>
+  inoremap y y<c-n><c-p>
+  inoremap A A<c-n><c-p>
+  inoremap E E<c-n><c-p>
+  inoremap I I<c-n><c-p>
+  inoremap O O<c-n><c-p>
+  inoremap U U<c-n><c-p>
+  inoremap Y Y<c-n><c-p>
+  inoremap _ _<c-n><c-p>
+  inoremap 0 0<c-n><c-p>
+  inoremap 1 1<c-n><c-p>
+  inoremap 2 2<c-n><c-p>
+  inoremap 3 3<c-n><c-p>
+  inoremap 4 4<c-n><c-p>
+  inoremap 5 5<c-n><c-p>
+  inoremap 6 6<c-n><c-p>
+  inoremap 7 7<c-n><c-p>
+  inoremap 8 8<c-n><c-p>
+  inoremap 9 9<c-n><c-p>
+endif
+
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
@@ -304,6 +336,7 @@ map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 map <F4>      <ESC>:x<CR>
 map <F5>      <ESC>:terminal<CR>
 
+nnoremap <F7>         :make<CR>
 nnoremap <F8>         :TagbarToggle<CR>
 nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :BTags<CR>
