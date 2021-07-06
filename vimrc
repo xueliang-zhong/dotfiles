@@ -225,7 +225,7 @@ endfunction
 let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
 
 " Use Ag over Grep
-set grepprg=ag\ --nogroup\ --nocolor
+" set grepprg=ag\ --nogroup\ --nocolor
 
 " Tagbar iconds
 let g:tagbar_iconchars = ['+', '▼']
