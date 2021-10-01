@@ -322,7 +322,7 @@ map <leader>X <ESC>:Commands<CR>
 map <leader>bs <ESC><C-W><C-N>
 map <leader>wg <ESC><C-W>10+
 map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
-map <leader>gg <ESC>:Gstatus<CR>
+map <leader>gg <ESC>:Git<CR>
 map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
 map <leader>x <ESC>:History:<CR>
 map <leader>o <ESC>:call XueliangHandleWebURL()<CR><C-l><C-l>
