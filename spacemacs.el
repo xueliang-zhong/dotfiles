@@ -32,7 +32,8 @@ This function should only modify configuration layer settings."
 
    ;; List of configuration layers to load.
    dotspacemacs-configuration-layers
-   '(
+   '(python
+     csv
      ;; ----------------------------------------------------------------
      ;; Example of useful layers you may want to use right away.
      ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
@@ -494,6 +495,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
     (when (file-exists-p "c:/Users/xuezho01") (setq xueliang-home "c:/Users/xuezho01"))
     (when (file-exists-p "c:/Users/xueliang") (setq xueliang-home "c:/Users/xueliang")))
   (setq dot-files               (concat xueliang-home "/workspace/dotfiles"))
+  (setq trading-T               (concat xueliang-home "/workspace/T"))
   (setq dropbox-home            (concat xueliang-home "/Dropbox"))
   (setq android-root            (concat xueliang-home "/workspace/linaro"))
   (setq android-xueliang_test   (concat android-root "/xueliang_test"))
@@ -546,8 +548,10 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; Make sure C-a C-k work in ivy mode as well.
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   ;; Use rg in counsel-grep-or-swiper
+  (setq counsel-grep-base-command "ag -i --nocolor \"%s\" %s")
   ;; (setq counsel-grep-base-command "grep -inE '%s' %s")
-  (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never \"%s\" %s")
+  ;; (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never \"%s\" %s")
+  ;; (setq counsel-grep-base-command "rg -i -M 120 --no-heading --line-number --color never \"%s\" %s")
   ;; Better ivy switch buffer.
   ;; (ivy-rich-mode 1)
 
@@ -560,7 +564,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; Org-mode configs/settings
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (setq org-todo-keywords '((sequence "TODO" "FOCUS" "PROG" "DONE")))
+  (setq org-todo-keywords '((sequence "FOCUS" "TODO" "PROG" "DONE")))
   ;; Don't add a time stamp line to the 'DONE' task.
   (setq org-log-done nil)
   (add-hook 'org-mode-hook (lambda ()
@@ -658,8 +662,12 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; my functions
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (when (file-exists-p dropbox-home)
-    (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong) (require 'xzhong-trader))
+  (when (string-equal system-type "gnu/linux")
+    (when (file-exists-p dropbox-home)
+      (add-to-list 'load-path (concat dropbox-home "/emacs")) (require 'xzhong) (require 'xzhong-trader))
+  )
+  (when (file-exists-p trading-T)
+    (add-to-list 'load-path (concat trading-T "/emacs")) (require 'xzhong) (require 'xzhong-trader))
   ;; make sure system clipboard works in 'emacs -nw' terminal mode.
   (when (and (string-equal system-type "gnu/linux") (not (display-graphic-p)) (file-exists-p dropbox-home))
     (require 'xclip) (xclip-mode))
@@ -716,7 +724,8 @@ before packages are loaded. If you are unsure, you should try in setting them in
   ;; F1..F12 key settings.
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;; <f1> .. <f4> :
-  (global-set-key (kbd "<f2>")      'xueliang-vim-open-FILE)
+  ;;(global-set-key (kbd "<f2>")      'xueliang-vim-open-FILE)
+  (global-set-key (kbd "<f2>")      'xueliang-f12-trade-function)
   (global-set-key (kbd "<f3>")      'xueliang-faster-fundamental-mode)
   (global-set-key (kbd "<f4>")      'spacemacs/delete-window)  ;; avoid accidentally stopping some important task
   (global-set-key (kbd "C-<f4>")    'kill-buffer-and-window)
@@ -803,7 +812,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
   (interactive "P")
   (xueliang-cd-current-buffer-directory)
   (require 'fiplr) (cd (fiplr-root))
-  (counsel-rg (thing-at-point 'symbol)) ;; counsel-ag allows initial input to play with.
+  (counsel-ag (thing-at-point 'symbol)) ;; counsel-ag allows initial input to play with.
 )
 
 (defun xueliang-flush-blank-lines (start end)
@@ -998,7 +1007,7 @@ before packages are loaded. If you are unsure, you should try in setting them in
    "F12 to select from a list of favourite links to open." (interactive)
    (setq xueliang-private-weblink-list
          (with-temp-buffer
-           (insert-file-contents (concat dropbox-home "/vim/xzhong-links.txt"))
+           (insert-file-contents (concat trading-T "/vim/xzhong-links.txt"))
            (split-string (buffer-string) "\n" t)))
    (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " xueliang-private-weblink-list))))
    (xueliang-open-link-from-string xueliang-weblink-str)
