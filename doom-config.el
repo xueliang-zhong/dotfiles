@@ -143,6 +143,7 @@
 ;;
 ;; Function Keys
 ;;
+(global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-pwd)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
