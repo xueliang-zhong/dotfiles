@@ -105,6 +105,7 @@
 (map! :leader
       "SPC"  #'ivy-switch-buffer
       "bs"   #'doom/open-scratch-buffer
+      "bw"   #'read-only-mode
 )
 
 ;;
