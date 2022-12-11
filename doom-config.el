@@ -110,6 +110,15 @@
 ;;
 ;; Org mode settings
 ;;
+(add-hook 'org-mode-hook (lambda ()
+    (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+    (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+    (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
+    (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
+    (set-face-attribute 'org-link    nil :bold nil :height 1.0)
+    (set-face-attribute 'org-table   nil :bold nil :height 1.0)
+    (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
+    (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
 (setq org-todo-keywords '((sequence "FOCUS" "TODO" "DONE")))
 (add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 (add-hook 'org-mode-hook #'(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
@@ -189,3 +198,13 @@
   (org-shifttab) (evil-goto-first-line)
   (swiper (format-time-string "<%Y-%m-%d" (current-time)))
   (org-cycle) (evil-ex-nohighlight))
+
+(defun xueliang-replace-tab-trailing-spaces() (interactive)
+   "easily replace all TAB in current buffer with spaces."
+   (untabify (point-min) (point-max))
+   (delete-trailing-whitespace))
+
+(defun xueliang-what-face (pos)
+  (interactive "d")
+  (let ((face (or (get-char-property (point) 'read-face-name) (get-char-property (point) 'face))))
+    (if face (message "Face: %s" face) (message "No face at %d" pos))))
