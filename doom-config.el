@@ -123,6 +123,7 @@
 (add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 (add-hook 'org-mode-hook #'(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
 (add-hook 'org-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
+(add-hook 'org-mode-hook #'(lambda () (org-superstar-mode 1))) ;; NOTE: org-superstar needs to be added to ./packages.el file
 
 ;;
 ;; ivy/counsel settings
