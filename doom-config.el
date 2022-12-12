@@ -84,6 +84,21 @@
 (add-hook 'prog-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 
 ;;
+;; MacOS Settings
+;;
+(when (string-equal system-type "darwin")
+  (doom-big-font-mode 1)
+)
+
+;;
+;; Windows Settings
+;;
+(when (string-equal system-type "windows-nt")
+  (setq doom-font (font-spec :family "Consolas" :size 16))
+  (doom-big-font-mode 1)
+)
+
+;;
 ;; evil normal mode settings
 ;;
 (setq evil-emacs-state-modes nil)
@@ -120,11 +135,11 @@
     (set-face-attribute 'org-table   nil :bold nil :height 1.0)
     (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
     (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
-(setq org-todo-keywords '((sequence "FOCUS" "TODO" "DONE")))
 (add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 (add-hook 'org-mode-hook #'(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
 (add-hook 'org-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
 (add-hook 'org-mode-hook #'(lambda () (org-superstar-mode 1))) ;; NOTE: org-superstar needs to be added to ./packages.el file
+(add-hook 'org-mode-hook #'(lambda() (interactive) (setq-default org-todo-keywords '((sequence "FOCUS" "TODO" "DONE")))))
 
 ;;
 ;; ivy/counsel settings
