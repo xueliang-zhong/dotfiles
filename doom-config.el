@@ -87,6 +87,7 @@
 ;; MacOS Settings
 ;;
 (when (string-equal system-type "darwin")
+  (setq doom-font (font-spec :family "Menlo" :size 12))
   (doom-big-font-mode 1)
 )
 
