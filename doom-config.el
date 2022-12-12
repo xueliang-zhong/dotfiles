@@ -127,20 +127,29 @@
 ;;
 ;; Org mode settings
 ;;
-(add-hook 'org-mode-hook (lambda ()
-    (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
-    (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
-    (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
-    (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
-    (set-face-attribute 'org-link    nil :bold nil :height 1.0)
-    (set-face-attribute 'org-table   nil :bold nil :height 1.0)
-    (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
-    (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
+(after! org
+  (setq
+   org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
+   org-superstar-itembullet-alist '((?+ . ?➤) (?- . ?✦)) ; changes +/- symbols in item lists
+   org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
+          '((sequence
+             "TODO(t)"      ; A task that is ready to be tackled
+             "FOCUS(f)"     ; A task that I am focusing
+             "PROG(p)"      ; A task that is in progress but no need to focus right now
+             "|"            ; The pipe necessary to separate "active" states and "inactive" states
+             "DONE(d)"      ; Task has been completed
+  )))
+  (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)
+  (define-key evil-insert-state-local-map (kbd "<f8>") #'xueliang-org-find-today)
+)
 (add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
-(add-hook 'org-mode-hook #'(lambda () (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
-(add-hook 'org-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "<f8>") #'xueliang-org-find-today)))
 (add-hook 'org-mode-hook #'(lambda () (org-superstar-mode 1))) ;; NOTE: org-superstar needs to be added to ./packages.el file
-(add-hook 'org-mode-hook #'(lambda() (interactive) (setq-default org-todo-keywords '((sequence "FOCUS" "TODO" "DONE")))))
+(add-hook 'org-mode-hook (lambda ()
+   (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
+   (set-face-attribute 'org-link    nil :bold nil :height 1.0)
+   (set-face-attribute 'org-table   nil :bold nil :height 1.0)
+   (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
+   (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
 
 ;;
 ;; ivy/counsel settings
