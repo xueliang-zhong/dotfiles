@@ -151,6 +151,9 @@
 ;;
 ;; Compoany Mode Settings
 ;;
+(setq-default company-backends '(company-files company-capf company-dabbrev-code company-dabbrev company-gtags company-keywords))
+(setq company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]")
+(setq company-dabbrev-code-other-buffers 'all) ; search completion from all buffers, not just same mode buffers.
 (global-company-mode)
 (setq company-idle-delay 0)
 (setq company-tooltip-minimum 9)
