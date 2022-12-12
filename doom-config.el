@@ -145,6 +145,9 @@
 (add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 (add-hook 'org-mode-hook #'(lambda () (org-superstar-mode 1))) ;; NOTE: org-superstar needs to be added to ./packages.el file
 (add-hook 'org-mode-hook (lambda ()
+   (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+   (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+   (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
    (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
    (set-face-attribute 'org-link    nil :bold nil :height 1.0)
    (set-face-attribute 'org-table   nil :bold nil :height 1.0)
