@@ -216,13 +216,13 @@
          (with-temp-buffer (insert-file-contents "~/Dropbox/vim/xzhong-links.txt")
                            (split-string (buffer-string) "\n" t)))
    (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
-   (org-open-link-from-string xueliang-weblink-str))
+   (org-link-open-from-string xueliang-weblink-str))
 
 (defun xueliang-T-open-T-in-browser () (interactive)
   (setq ticker (thing-at-point 'word))
   (unless ticker (setq ticker "SPY"))
-  (org-open-link-from-string (message "https://elite.finviz.com/quote.ashx?t=%s" ticker))
-  (org-open-link-from-string (message "https://stockcharts.com/h-sc/ui?s=%s" ticker)))
+  (org-link-open-from-string (message "https://elite.finviz.com/quote.ashx?t=%s" ticker))
+  (org-link-open-from-string (message "https://stockcharts.com/h-sc/ui?s=%s" ticker)))
 
 (defun xueliang-org-find-today () (interactive)
   (org-shifttab) (evil-goto-first-line)
