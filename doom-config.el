@@ -78,26 +78,24 @@
 ;;
 ;; Global Settings
 ;;
-(doom-big-font-mode 1)
 (toggle-frame-maximized)
-(setq counsel-grep-swiper-limit 30000000)
 (add-hook 'prog-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
 
 ;;
 ;; MacOS Settings
 ;;
 (when (string-equal system-type "darwin")
-  (setq doom-font (font-spec :family "Menlo" :size 12))
-  (doom-big-font-mode 1)
+  (doom-big-font-mode 0)
+  (setq doom-font (font-spec :family "Menlo" :size 18))
 )
 
 ;;
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
+  (doom-big-font-mode 0)
   (setq doom-theme 'doom-one-light)
-  (setq doom-font (font-spec :family "Consolas" :size 16))
-  (doom-big-font-mode 1)
+  (setq doom-font (font-spec :family "Consolas" :size 21))
 )
 
 ;;
@@ -165,6 +163,7 @@
 ;;
 ;; ivy/counsel settings
 ;;
+(setq counsel-grep-swiper-limit 30000000)
 (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
 (define-key ivy-mode-map (kbd "TAB") 'ivy-next-line)
 
