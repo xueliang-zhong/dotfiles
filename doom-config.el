@@ -123,6 +123,7 @@
       "SPC"  #'ivy-switch-buffer
       "bs"   #'doom/open-scratch-buffer
       "bw"   #'read-only-mode
+      "th"   #'hl-line-mode
 )
 
 ;;
@@ -157,11 +158,8 @@
                              (set-face-attribute 'org-level-4 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
                              (set-face-attribute 'org-link    nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)
-                             (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
-                             (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
+                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)))
 
 ;;
 ;; ivy/counsel settings
