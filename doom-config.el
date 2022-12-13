@@ -95,7 +95,6 @@
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
-  (setq doom-theme 'doom-one-light)
   (setq doom-font (font-spec :family "Consolas" :size 16))
   (doom-big-font-mode 1)
 )
@@ -123,6 +122,7 @@
       "SPC"  #'ivy-switch-buffer
       "bs"   #'doom/open-scratch-buffer
       "bw"   #'read-only-mode
+      "oo"   #'xueliang-org-open-at-point
 )
 
 ;;
@@ -242,3 +242,7 @@
   (interactive "d")
   (let ((face (or (get-char-property (point) 'read-face-name) (get-char-property (point) 'face))))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
+
+(defun xueliang-org-open-at-point() (interactive)
+   "Open links in org-mode or do nothing."
+   (if (string-equal major-mode "org-mode") (org-open-at-point) (message "Cannot open things in %s" major-mode)))
