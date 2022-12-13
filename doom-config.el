@@ -120,10 +120,10 @@
 ;; Leader key bindings
 ;;
 (map! :leader
-      "SPC"  #'ivy-switch-buffer
-      "bs"   #'doom/open-scratch-buffer
-      "bw"   #'read-only-mode
-      "th"   #'hl-line-mode
+      "SPC" #'ivy-switch-buffer
+      "bs"  #'doom/open-scratch-buffer
+      "bw"  #'read-only-mode
+      "th"  #'hl-line-mode
 )
 
 ;;
@@ -135,8 +135,8 @@
    org-superstar-itembullet-alist '((?+ . ?➤) (?- . ?✦)) ; changes +/- symbols in item lists
    org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
           '((sequence
-             "TODO(t)"      ; A task that is ready to be tackled
              "FOCUS(f)"     ; A task that I am focusing
+             "TODO(t)"      ; A task that is ready to be tackled
              "PROG(p)"      ; A task that is in progress but no need to focus right now
              "|"            ; The pipe necessary to separate "active" states and "inactive" states
              "DONE(d)"      ; Task has been completed
@@ -170,15 +170,17 @@
 ;;
 ;; Compoany Mode Settings
 ;;
-(setq-default company-backends '(company-files company-capf company-dabbrev-code company-dabbrev company-gtags company-keywords))
-(setq company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]")
-(setq company-dabbrev-code-other-buffers 'all) ; search completion from all buffers, not just same mode buffers.
-(global-company-mode)
-(setq company-idle-delay 0)
-(setq company-tooltip-minimum 9)
-(setq company-tooltip-limit 9)
-(setq company-tooltip-minimum-width 33)
-(setq company-minimum-prefix-length 1)
+(after! company
+  (setq
+   company-dabbrev-code-other-buffers 'all
+   company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
+   company-idle-delay 0
+   company-tooltip-minimum 9
+   company-tooltip-limit 9
+   company-tooltip-minimum-width 33
+   company-minimum-prefix-length 1)
+  (setq-default company-backends '(company-files company-capf company-dabbrev-code company-dabbrev company-gtags company-keywords))
+  (global-company-mode))
 
 ;;
 ;; eshell settings
@@ -254,3 +256,7 @@
   (when (string-equal major-mode "org-mode")
     (if (string-match "^\*[\*]* " (thing-at-point 'line))
         (org-open-at-point) (+org/dwim-at-point))))
+
+(defun xueliang-sum-numbers-in-region (start end)
+  (interactive "r")
+  (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
