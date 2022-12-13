@@ -1,28 +1,5 @@
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
-;; Place your private configuration here! Remember, you do not need to run 'doom
-;; sync' after modifying this file!
-
-
-;; Some functionality uses this to identify you, e.g. GPG configuration, email
-;; clients, file templates and snippets. It is optional.
-(setq user-full-name "John Doe"
-      user-mail-address "john@doe.com")
-
-;; Doom exposes five (optional) variables for controlling fonts in Doom:
-;;
-;; - `doom-font' -- the primary font to use
-;; - `doom-variable-pitch-font' -- a non-monospace font (where applicable)
-;; - `doom-big-font' -- used for `doom-big-font-mode'; use this for
-;;   presentations or streaming.
-;; - `doom-unicode-font' -- for unicode glyphs
-;; - `doom-serif-font' -- for the `fixed-pitch-serif' face
-;;
-;; See 'C-h v doom-font' for documentation and more examples of what they
-;; accept. For example:
-;;
-;;(setq doom-font (font-spec :family "Fira Code" :size 12 :weight 'semi-light)
-;;      doom-variable-pitch-font (font-spec :family "Fira Sans" :size 13))
 ;;
 ;; If you or Emacs can't find your font, use 'M-x describe-font' to look them
 ;; up, `M-x eval-region' to execute elisp code, and 'M-x doom/reload-font' to
@@ -132,6 +109,11 @@
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-itembullet-alist '((?+ . ?▶) (?- . ?➜)) ; changes +/- symbols in item lists
    org-ellipsis " ▸"
+   org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
+          '(("DDG" . "https://duckduckgo.com/?q=")
+            ("SC" . "https://stockcharts.com/h-sc/ui?s=%s")
+            ("FV" . "https://elite.finviz.com/quote.ashx?t=%s")
+            ("wiki" . "https://en.wikipedia.org/wiki/"))
    org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
           '((sequence
              "FOCUS(f)"     ; A task that I am focusing
