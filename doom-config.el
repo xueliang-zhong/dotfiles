@@ -95,6 +95,7 @@
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
+  (setq doom-theme 'doom-one-light)
   (setq doom-font (font-spec :family "Consolas" :size 16))
   (doom-big-font-mode 1)
 )
