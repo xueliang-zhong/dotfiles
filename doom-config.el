@@ -95,6 +95,7 @@
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
+  (setq doom-theme 'doom-one-light)
   (setq doom-font (font-spec :family "Consolas" :size 16))
   (doom-big-font-mode 1)
 )
@@ -122,7 +123,6 @@
       "SPC"  #'ivy-switch-buffer
       "bs"   #'doom/open-scratch-buffer
       "bw"   #'read-only-mode
-      "oo"   #'xueliang-org-open-at-point
 )
 
 ;;
@@ -140,20 +140,28 @@
              "|"            ; The pipe necessary to separate "active" states and "inactive" states
              "DONE(d)"      ; Task has been completed
   )))
-  (define-key evil-normal-state-local-map (kbd "<f8>") #'xueliang-org-find-today)
-  (define-key evil-insert-state-local-map (kbd "<f8>") #'xueliang-org-find-today)
 )
-(add-hook 'org-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
-(add-hook 'org-mode-hook #'(lambda () (org-superstar-mode 1))) ;; NOTE: org-superstar needs to be added to ./packages.el file
-(add-hook 'org-mode-hook (lambda ()
-   (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
-   (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
-   (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
-   (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
-   (set-face-attribute 'org-link    nil :bold nil :height 1.0)
-   (set-face-attribute 'org-table   nil :bold nil :height 1.0)
-   (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
-   (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
+;; Make sure these settings are called only when org-mode are loaded, and when I'm entering org
+(add-hook 'org-mode-hook #'(lambda()
+                             (toggle-truncate-lines 1)
+                             (org-superstar-mode 1)
+                             ;; key bindings
+                             (evil-define-key 'normal evil-org-mode-map
+                               (kbd "<return>")  #'xueliang-org-open-at-point
+                               (kbd "RET")       #'xueliang-org-open-at-point
+                               (kbd "<f8>")      #'xueliang-org-find-today)
+                             ;; face settings
+                             (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-4 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-todo    nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-link    nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)
+                             (set-face-attribute 'hl-line     nil :bold nil :height 1.0)
+                             (set-face-attribute 'hl-todo     nil :bold nil :height 1.0)))
 
 ;;
 ;; ivy/counsel settings
@@ -209,7 +217,7 @@
   (xueliang-cd-current-dir) (counsel-find-file))
 
 (defun xueliang-eshell-pwd ()
-   "invokes a new eshell in a split window." (interactive)
+   "Invokes a new eshell in a split window." (interactive)
    (xueliang-cd-current-dir)
    (split-window-below) (evil-window-move-very-bottom) (eshell)
    (evil-goto-line) (evil-append-line 1))
@@ -233,16 +241,18 @@
   (swiper (format-time-string "<%Y-%m-%d" (current-time)))
   (org-cycle) (evil-ex-nohighlight))
 
-(defun xueliang-replace-tab-trailing-spaces() (interactive)
-   "easily replace all TAB in current buffer with spaces."
+(defun xueliang-replace-tab-trailing-spaces()
+   "Easily replace all TAB in current buffer with spaces." (interactive)
    (untabify (point-min) (point-max))
    (delete-trailing-whitespace))
 
 (defun xueliang-what-face (pos)
-  (interactive "d")
+  "Show the face under current cursor" (interactive "d")
   (let ((face (or (get-char-property (point) 'read-face-name) (get-char-property (point) 'face))))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
-(defun xueliang-org-open-at-point() (interactive)
-   "Open links in org-mode or do nothing."
-   (if (string-equal major-mode "org-mode") (org-open-at-point) (message "Cannot open things in %s" major-mode)))
+(defun xueliang-org-open-at-point()
+  "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
+  (when (string-equal major-mode "org-mode")
+    (if (string-match "^\*[\*]* " (thing-at-point 'line))
+        (org-open-at-point) (+org/dwim-at-point))))
