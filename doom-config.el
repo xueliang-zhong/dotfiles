@@ -132,7 +132,8 @@
 (after! org
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-itembullet-alist '((?+ . ?➤) (?- . ?✦)) ; changes +/- symbols in item lists
+   org-superstar-itembullet-alist '((?+ . ?▶) (?- . ?➜)) ; changes +/- symbols in item lists
+   org-ellipsis " ▸"
    org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
           '((sequence
              "FOCUS(f)"     ; A task that I am focusing
