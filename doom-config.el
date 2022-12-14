@@ -62,15 +62,13 @@
 ;; MacOS Settings
 ;;
 (when (string-equal system-type "darwin")
-  (doom-big-font-mode 0)
-  (setq doom-font (font-spec :family "Menlo" :size 18))
+  (setq doom-font (font-spec :family "JetBrains Mono" :size 19)) ;; Menlo
 )
 
 ;;
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
-  (doom-big-font-mode 0)
   (setq doom-theme 'doom-one-light)
   (setq doom-font (font-spec :family "Consolas" :size 21))
 )
