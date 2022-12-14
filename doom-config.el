@@ -106,8 +106,8 @@
 (after! org
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-itembullet-alist '((?+ . ?▶) (?- . ?➜)) ; changes +/- symbols in item lists
-   org-ellipsis " ▸"
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
+   org-ellipsis " ▶"
    org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
           '(("DDG" . "https://duckduckgo.com/?q=")
             ("SC" . "https://stockcharts.com/h-sc/ui?s=%s")
