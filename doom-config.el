@@ -96,6 +96,7 @@
       "SPC" #'ivy-switch-buffer
       "bs"  #'doom/open-scratch-buffer
       "bw"  #'read-only-mode
+      "gg"  #'xueliang-magit-status-window
       "th"  #'hl-line-mode
 )
 
@@ -240,3 +241,7 @@
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
+
+(defun xueliang-magit-status-window ()
+  (interactive)
+  (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow) (magit-status))
