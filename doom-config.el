@@ -96,6 +96,7 @@
       "SPC" #'ivy-switch-buffer
       "bs"  #'doom/open-scratch-buffer
       "bw"  #'read-only-mode
+      "ff"  #'xueliang-find-file-in-project
       "gg"  #'xueliang-magit-status-window
       "th"  #'hl-line-mode
 )
@@ -180,7 +181,7 @@
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-pwd)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
-(global-set-key (kbd "<f9>")  #'xueliang-find-file)
+(global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -242,6 +243,16 @@
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
 
+(defun xueliang-find-file-in-project ()
+   "projectile-find-file if it's in a project, find-file otherwise" (interactive)
+   (xueliang-cd-current-dir)
+   (if (projectile-project-root) (counsel-projectile-find-file) (counsel-find-file)))
+
+(defun xueliang-daily-website ()
+  "Open daily website more easily" (interactive)
+  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 8 ~/Dropbox/daily_2022.org | tail -n 5"))))
+
 (defun xueliang-magit-status-window ()
   (interactive)
   (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow) (magit-status))
+
