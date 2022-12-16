@@ -268,7 +268,7 @@
 
 (defun xueliang-f5-refresh ()
   (interactive)
-  (xueliang-cd-current-dir) (set-auto-mode) (evil-force-normal-state)
+  (xueliang-cd-current-dir) (evil-force-normal-state) (doom/reload-theme) (set-auto-mode)
   (message "Refresh! (F7 to open eshell)"))
 
 (defun xueliang-duckduckgo-search () (interactive)
