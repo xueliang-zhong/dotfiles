@@ -66,6 +66,14 @@
 )
 
 ;;
+;; Linux Settings
+;;
+(when (string-equal system-type "gnu/linux")
+  (setq doom-theme 'doom-one-light)
+  (setq doom-font (font-spec :family "Monospace" :size 21))
+)
+
+;;
 ;; Windows Settings
 ;;
 (when (string-equal system-type "windows-nt")
@@ -81,6 +89,7 @@
 (setq evil-motion-state-modes nil)
 (setq evil-shift-width 2)
 (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+(define-key evil-visual-state-map (kbd "s-x") 'counsel-M-x)
 
 ;;
 ;; evil insert mode settings
