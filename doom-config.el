@@ -187,10 +187,13 @@
 ;;
 (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
-(global-set-key (kbd "<f5>")  #'xueliang-eshell-pwd)
+(global-set-key (kbd "<f5>")  #'xueliang-f5-refresh)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
+(global-set-key (kbd "<f7>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
+(global-set-key (kbd "<f10>") #'counsel-recentf)
+(global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -207,11 +210,9 @@
 (defun xueliang-find-file () (interactive)
   (xueliang-cd-current-dir) (counsel-find-file))
 
-(defun xueliang-eshell-pwd ()
-   "Invokes a new eshell in a split window." (interactive)
-   (xueliang-cd-current-dir)
-   (split-window-below) (evil-window-move-very-bottom) (eshell)
-   (evil-goto-line) (evil-append-line 1))
+(defun xueliang-eshell-popup ()
+   "Invokes a new eshell in a popup window and ready for command" (interactive)
+   (+eshell/toggle 1) (evil-append-line 1))
 
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
@@ -265,3 +266,10 @@
   (interactive)
   (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow) (magit-status))
 
+(defun xueliang-f5-refresh ()
+  (interactive)
+  (xueliang-cd-current-dir) (set-auto-mode) (evil-force-normal-state)
+  (message "Refresh! (F7 to open eshell)"))
+
+(defun xueliang-duckduckgo-search () (interactive)
+       (org-link-open-from-string "https://duckduckgo.com/"))
