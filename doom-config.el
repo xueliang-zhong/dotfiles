@@ -6,18 +6,13 @@
 ;; refresh your font settings. If Emacs still can't find your font, it likely
 ;; wasn't installed correctly. Font issues are rarely Doom issues!
 
-;; There are two ways to load a theme. Both assume the theme is installed and
-;; available. You can either set `doom-theme' or manually load a theme with the
-;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-one)
-
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
 (setq display-line-numbers-type t)
 
 ;; If you use `org' and don't want your org files in the default location below,
 ;; change `org-directory'. It must be set before org loads!
-(setq org-directory "~/org/")
+(setq org-directory "~/org")
 
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
@@ -55,30 +50,16 @@
 ;;
 ;; Global Settings
 ;;
-(toggle-frame-maximized)
-(add-hook 'prog-mode-hook #'(lambda() (interactive) (toggle-truncate-lines 1)))
-
-;;
-;; MacOS Settings
-;;
-(when (string-equal system-type "darwin")
-  (setq doom-font (font-spec :family "JetBrains Mono" :size 19)) ;; Menlo
-)
-
-;;
-;; Linux Settings
-;;
-(when (string-equal system-type "gnu/linux")
-  (setq doom-theme 'doom-one-light)
-  (setq doom-font (font-spec :family "Monospace" :size 21))
-)
-
-;;
-;; Windows Settings
-;;
-(when (string-equal system-type "windows-nt")
-  (setq doom-theme 'doom-one-light)
-  (setq doom-font (font-spec :family "Consolas" :size 21))
+(after! evil
+  (toggle-frame-maximized)
+  (when (string-equal system-type "darwin")
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 19))) ;; Menlo
+  (when (string-equal system-type "gnu/linux")
+    (setq doom-theme 'doom-one-light)
+    (setq doom-font (font-spec :family "Monospace" :size 24)))
+  (when (string-equal system-type "windows-nt")
+    (setq doom-theme 'doom-one-light)
+    (setq doom-font (font-spec :family "Consolas" :size 24)))
 )
 
 ;;
@@ -154,9 +135,11 @@
 ;;
 ;; ivy/counsel settings
 ;;
-(setq counsel-grep-swiper-limit 30000000)
-(define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
-(define-key ivy-mode-map (kbd "TAB") 'ivy-next-line)
+(after! ivy
+  (setq counsel-grep-swiper-limit 30000000)
+  (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
+  (define-key ivy-mode-map (kbd "TAB") 'ivy-next-line)
+)
 
 ;;
 ;; Compoany Mode Settings
@@ -212,7 +195,7 @@
 
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
-   (+eshell/toggle 1) (evil-append-line 1))
+   (xueliang-cd-current-dir) (eshell) (evil-append-line 1))
 
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
@@ -269,7 +252,7 @@
 (defun xueliang-refresh ()
   (interactive)
   (xueliang-cd-current-dir) (evil-force-normal-state) (doom/reload-theme) (set-auto-mode)
-  (message "Refresh! (F7 to open eshell)"))
+  (message "Refresh! (F5 to open eshell)"))
 
 (defun xueliang-duckduckgo-search ()
   (interactive) (org-link-open-from-string "https://duckduckgo.com/"))
