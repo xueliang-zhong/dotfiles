@@ -48,27 +48,31 @@
 ;; they are implemented.
 
 ;;
-;; Global Settings
+;; Global Settings - after evil has loaded seems a good time to set these things
 ;;
 (after! evil
   (toggle-frame-maximized)
+
   (when (string-equal system-type "darwin")
     (setq doom-font (font-spec :family "JetBrains Mono" :size 19))) ;; Menlo
+
   (when (string-equal system-type "gnu/linux")
     (setq doom-theme 'doom-one-light)
     (setq doom-font (font-spec :family "Monospace" :size 24)))
+
   (when (string-equal system-type "windows-nt")
     (setq doom-theme 'doom-one-light)
     (setq doom-font (font-spec :family "Consolas" :size 24)))
+
+  (setq evil-emacs-state-modes nil
+        evil-insert-state-modes nil
+        evil-motion-state-modes nil
+        evil-shift-width 2)
 )
 
 ;;
 ;; evil normal mode settings
 ;;
-(setq evil-emacs-state-modes nil)
-(setq evil-insert-state-modes nil)
-(setq evil-motion-state-modes nil)
-(setq evil-shift-width 2)
 (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
 (define-key evil-visual-state-map (kbd "s-x") 'counsel-M-x)
 
@@ -195,7 +199,7 @@
 
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
-   (xueliang-cd-current-dir) (eshell) (evil-append-line 1))
+   (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1))
 
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
