@@ -21,6 +21,10 @@ Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find P
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
 
+if v:version > 801
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
+endif
+
 call plug#end()
 filetype plugin indent on
 
@@ -247,7 +251,7 @@ let g:netrw_browsex_viewer = "google-chrome"
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-if v:version >= 100
+if v:version >= 801
   " This is quite awesome already.
   inoremap a a<c-n><c-p>
   inoremap e e<c-n><c-p>
