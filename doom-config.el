@@ -187,9 +187,9 @@
 ;;
 (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
-(global-set-key (kbd "<f5>")  #'xueliang-f5-refresh)
+(global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'xueliang-eshell-popup)
+(global-set-key (kbd "<f7>")  #'xueliang-refresh)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'counsel-recentf)
@@ -266,7 +266,7 @@
   (interactive)
   (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow) (magit-status))
 
-(defun xueliang-f5-refresh ()
+(defun xueliang-refresh ()
   (interactive)
   (xueliang-cd-current-dir) (evil-force-normal-state) (doom/reload-theme) (set-auto-mode)
   (message "Refresh! (F7 to open eshell)"))
