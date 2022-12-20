@@ -126,6 +126,9 @@
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
                                (kbd "<f8>")      #'xueliang-org-find-today)
+                             (evil-define-key 'insert evil-org-mode-map
+                               (kbd "M-<left>")  #'org-shiftmetaleft
+                               (kbd "M-<right>") #'org-shiftmetaright)
                              ;; face settings
                              (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
