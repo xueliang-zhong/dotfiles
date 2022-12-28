@@ -215,8 +215,9 @@
 (defun xueliang-T-open-T-in-browser () (interactive)
   (setq ticker (thing-at-point 'word))
   (unless ticker (setq ticker "SPY"))
+  (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s") ; https://stockcharts.com/acp/?s=%s
   (org-link-open-from-string (message "https://elite.finviz.com/quote.ashx?t=%s" ticker))
-  (org-link-open-from-string (message "https://stockcharts.com/h-sc/ui?s=%s" ticker)))
+  (org-link-open-from-string (message sc-string ticker)))
 
 (defun xueliang-org-find-today () (interactive)
   (org-shifttab) (evil-goto-first-line)
@@ -263,3 +264,18 @@
 
 (defun xueliang-duckduckgo-search ()
   (interactive) (org-link-open-from-string "https://duckduckgo.com/"))
+
+(defun Gcommit-xueliang-gcommit-git-commit ()
+  "Support :Gcommit similar to vim." (interactive)
+  (xueliang-cd-current-dir) (setq os-name system-type)
+  (when (string-equal system-type "darwin") (setq os-name "MacOS"))
+  (setq commit-msg (message "git commit -m \"Code improvements in %s on %s.\"" (file-name-nondirectory buffer-file-name) os-name))
+  (xueliang-eshell-popup) (insert commit-msg) (eshell-send-input) (evil-window-delete)
+  (evil-force-normal-state) (message "Git Commit: %s" commit-msg))
+
+(defun Gwrite-xueliang-gwrite-git-add ()
+  "Support :Gwrite similar to vim." (interactive)
+  (xueliang-cd-current-dir) (save-buffer)
+  (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
+  (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
+  (evil-force-normal-state) (message git-cmd))
