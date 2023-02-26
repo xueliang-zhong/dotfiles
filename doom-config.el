@@ -269,7 +269,7 @@
   "Support :Gcommit similar to vim." (interactive)
   (xueliang-cd-current-dir) (setq os-name system-type)
   (when (string-equal system-type "darwin") (setq os-name "MacOS"))
-  (setq commit-msg (message "git commit -m \"Code improvements in %s on %s.\"" (file-name-nondirectory buffer-file-name) os-name))
+  (setq commit-msg (message "git commit -m \"Update %s on %s.\"" (file-name-nondirectory buffer-file-name) os-name))
   (xueliang-eshell-popup) (insert commit-msg) (eshell-send-input) (evil-window-delete)
   (evil-force-normal-state) (message "Git Commit: %s" commit-msg))
 

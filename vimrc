@@ -322,6 +322,8 @@ map <leader>X <ESC>:Commands<CR>
 map <leader>bs <ESC><C-W><C-N>
 map <leader>wg <ESC><C-W>10+
 map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
+" the + register is the register used for the OS clipboard in Vim.
+map <leader>fy <ESC>:let @+=expand('%:p')<CR>
 map <leader>gg <ESC>:Git<CR>
 map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
 map <leader>th <ESC>:set cursorline<CR>
