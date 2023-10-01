@@ -54,7 +54,7 @@
   (toggle-frame-maximized)
 
   (when (string-equal system-type "darwin")
-    (setq doom-font (font-spec :family "JetBrains Mono" :size 19))) ;; Menlo
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 17))) ;; Menlo
 
   (when (string-equal system-type "gnu/linux")
     (setq doom-theme 'doom-one-light)
@@ -83,12 +83,15 @@
 (define-key evil-insert-state-map (kbd "C-v") #'yank)
 (define-key evil-insert-state-map (kbd "TAB") #'(lambda() (interactive) (insert "  ")))
 
+;; MacBook UK layout '#' symbol
+(define-key evil-insert-state-map (kbd "M-3") #'(lambda() (interactive) (insert "#")))
+
 ;;
 ;; Leader key bindings
 ;;
 (map! :leader
       "SPC" #'ivy-switch-buffer
-      "bs"  #'doom/open-scratch-buffer
+      "bs"  #'xueliang-open-scratch-buffer-window
       "bw"  #'read-only-mode
       "ff"  #'xueliang-find-file-in-project
       "gg"  #'xueliang-magit-status-window
@@ -106,7 +109,6 @@
    org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
           '(("DDG" . "https://duckduckgo.com/?q=")
             ("SC" . "https://stockcharts.com/h-sc/ui?s=%s")
-            ("FV" . "https://elite.finviz.com/quote.ashx?t=%s")
             ("wiki" . "https://en.wikipedia.org/wiki/"))
    org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
           '((sequence
@@ -215,8 +217,9 @@
 (defun xueliang-T-open-T-in-browser () (interactive)
   (setq ticker (thing-at-point 'word))
   (unless ticker (setq ticker "SPY"))
-  (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s") ; https://stockcharts.com/acp/?s=%s
-  (org-link-open-from-string (message "https://elite.finviz.com/quote.ashx?t=%s" ticker))
+  (setq sc-string "https://stockcharts.com/acp/?s=%s")
+  ;; (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
+  ;;(org-link-open-from-string (message "https://leaderboard.investors.com/chart?symbol=%s" ticker))
   (org-link-open-from-string (message sc-string ticker)))
 
 (defun xueliang-org-find-today () (interactive)
@@ -228,6 +231,12 @@
    "Easily replace all TAB in current buffer with spaces." (interactive)
    (untabify (point-min) (point-max))
    (delete-trailing-whitespace))
+
+(defun xueliang-split-words-to-lines (start end)
+  "Easily split tab or space separated words in the region into multiple lines."
+  (interactive "r")
+  (goto-char start)
+  (while (re-search-forward "[ \t]" end t) (replace-match "\n")))
 
 (defun xueliang-what-face (pos)
   "Show the face under current cursor" (interactive "d")
@@ -252,6 +261,10 @@
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
   (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 8 ~/Dropbox/daily_2022.org | tail -n 5"))))
+
+(defun xueliang-open-scratch-buffer-window ()
+  "Open scratch buffer window" (interactive)
+  (evil-window-vsplit) (+evil/window-move-right) (doom/switch-to-scratch-buffer))
 
 (defun xueliang-magit-status-window ()
   (interactive)
@@ -279,3 +292,33 @@
   (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
   (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
   (evil-force-normal-state) (message git-cmd))
+
+(defun xueliang-create-regular-routine (my-routine-text days)
+  "Generate a 6 months' regular routine based on the input and days (frequency)."
+  (let* ((routine-text my-routine-text)
+         (current-date (current-time))
+         (output-buffer (generate-new-buffer "*Weekly Routine*")))
+    (with-current-buffer output-buffer
+      (dotimes (i 24) ; 6 months * 4 weeks/month approximately
+        (insert "* " (format-time-string "<%Y-%m-%d %a>" current-date) "\n")
+        (insert "** " routine-text "\n\n")
+        (setq current-date (time-add current-date (days-to-time days))))
+      (display-buffer output-buffer) (org-mode))))
+
+(defun xueliang-generate-DAILY-routine (start end)
+  "Generate a 6 month weekly routine based on the selected region."
+  (interactive "r") (setq-local my-routine-text (buffer-substring-no-properties start end))
+  (xueliang-create-regular-routine my-routine-text 1))
+
+(defun xueliang-generate-WEEKLY-routine (start end)
+  "Generate a 6 month weekly routine based on the selected region."
+  (interactive "r")
+  (setq-local my-routine-text (buffer-substring-no-properties start end))
+  (xueliang-create-regular-routine my-routine-text 7))
+
+(defun xueliang-generate-MONTHLY-routine (start end)
+  "Generate a 6 month weekly routine based on the selected region."
+  (interactive "r")
+  (setq-local my-routine-text (buffer-substring-no-properties start end))
+  (xueliang-create-regular-routine my-routine-text 30))
+
