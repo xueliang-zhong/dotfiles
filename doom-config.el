@@ -305,7 +305,7 @@
         (setq current-date (time-add current-date (days-to-time days))))
       (display-buffer output-buffer) (org-mode))))
 
-(defun xueliang-generate-DAILY-routine (start end)
+(defun xueliang-generate-DAY-TO-DAY-routine (start end)
   "Generate a 6 month weekly routine based on the selected region."
   (interactive "r") (setq-local my-routine-text (buffer-substring-no-properties start end))
   (xueliang-create-regular-routine my-routine-text 1))
