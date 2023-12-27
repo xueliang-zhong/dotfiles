@@ -52,22 +52,21 @@
 ;;
 (after! evil
   (toggle-frame-maximized)
-
-  (when (string-equal system-type "darwin")
-    (setq doom-font (font-spec :family "JetBrains Mono" :size 17))) ;; Menlo
-
-  (when (string-equal system-type "gnu/linux")
-    (setq doom-theme 'doom-one-light)
-    (setq doom-font (font-spec :family "Monospace" :size 24)))
-
-  (when (string-equal system-type "windows-nt")
-    (setq doom-theme 'doom-one-light)
-    (setq doom-font (font-spec :family "Consolas" :size 24)))
+  (setq doom-theme 'doom-acario-light)
 
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
         evil-motion-state-modes nil
         evil-shift-width 2)
+
+  (when (string-equal system-type "darwin")
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 15)))
+
+  (when (string-equal system-type "gnu/linux")
+    (setq doom-font (font-spec :family "Monospace" :size 24)))
+
+  (when (string-equal system-type "windows-nt")
+    (setq doom-font (font-spec :family "Consolas" :size 24)))
 )
 
 ;;
@@ -96,6 +95,8 @@
       "ff"  #'xueliang-find-file-in-project
       "gg"  #'xueliang-magit-status-window
       "th"  #'hl-line-mode
+      "tf"  #'toggle-frame-fullscreen
+      "/"   #'counsel-outline
 )
 
 ;;
@@ -184,7 +185,7 @@
 (global-set-key (kbd "<f7>")  #'xueliang-refresh)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
-(global-set-key (kbd "<f10>") #'counsel-recentf)
+(global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
 (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
@@ -219,7 +220,6 @@
   (unless ticker (setq ticker "SPY"))
   (setq sc-string "https://stockcharts.com/acp/?s=%s")
   ;; (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
-  ;;(org-link-open-from-string (message "https://leaderboard.investors.com/chart?symbol=%s" ticker))
   (org-link-open-from-string (message sc-string ticker)))
 
 (defun xueliang-org-find-today () (interactive)
@@ -276,7 +276,21 @@
   (message "Refresh! (F5 to open eshell)"))
 
 (defun xueliang-duckduckgo-search ()
-  (interactive) (org-link-open-from-string "https://duckduckgo.com/"))
+  (interactive)
+  (let ((my-word (if (region-active-p) (buffer-substring-no-properties (region-beginning) (region-end))
+                   (thing-at-point 'word t))))
+    (if my-word
+        (org-link-open-from-string (concat "https://duckduckgo.com/?q=" (url-hexify-string my-word)))
+        (org-link-open-from-string "https://duckduckgo.com/"))))
+
+(defun xueliang-open-notes-app ()
+  (interactive)
+  (when (string-equal system-type "darwin")
+        (setq app-cmd (message "open -a Notes"))
+        (xueliang-eshell-popup) (insert app-cmd) (eshell-send-input) (evil-window-delete)
+        (evil-force-normal-state) (message app-cmd))
+  (when (string-equal system-type "windows-nt") (org-link-open-from-string "https://www.icloud.com/notes"))
+  (when (string-equal system-type "gnu/linux") (org-link-open-from-string "https://www.icloud.com/notes")))
 
 (defun Gcommit-xueliang-gcommit-git-commit ()
   "Support :Gcommit similar to vim." (interactive)
@@ -322,3 +336,4 @@
   (setq-local my-routine-text (buffer-substring-no-properties start end))
   (xueliang-create-regular-routine my-routine-text 30))
 
+(defalias 'xueliang-sort 'org-sort)
