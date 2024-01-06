@@ -218,8 +218,8 @@
 (defun xueliang-T-open-T-in-browser () (interactive)
   (setq ticker (thing-at-point 'word))
   (unless ticker (setq ticker "SPY"))
-  (setq sc-string "https://stockcharts.com/acp/?s=%s")
-  ;; (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
+  ;; (setq sc-string "https://stockcharts.com/acp/?s=%s")
+  (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
   (org-link-open-from-string (message sc-string ticker)))
 
 (defun xueliang-org-find-today () (interactive)
@@ -337,3 +337,4 @@
   (xueliang-create-regular-routine my-routine-text 30))
 
 (defalias 'xueliang-sort 'org-sort)
+(defalias 'xueliang-capitalize-region 'capitalize-region)
