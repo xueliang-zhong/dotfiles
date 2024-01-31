@@ -128,6 +128,7 @@
                              (evil-define-key 'normal evil-org-mode-map
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
+                               (kbd "<f3>")      #'xueliang-org-zen-mode-start-present
                                (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
@@ -186,7 +187,7 @@
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
-(global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
+(global-set-key (kbd "<f11>") #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -225,7 +226,7 @@
 (defun xueliang-org-find-today () (interactive)
   (org-shifttab) (evil-goto-first-line)
   (swiper (format-time-string "<%Y-%m-%d" (current-time)))
-  (org-cycle) (evil-ex-nohighlight))
+  (org-cycle) (evil-ex-nohighlight) (evil-force-normal-state))
 
 (defun xueliang-replace-tab-trailing-spaces()
    "Easily replace all TAB in current buffer with spaces." (interactive)
@@ -336,5 +337,61 @@
   (setq-local my-routine-text (buffer-substring-no-properties start end))
   (xueliang-create-regular-routine my-routine-text 30))
 
+;;
+;; My Org-Mode Presentation Functions
+;;
+(defun xueliang/org-print-full-path ()
+       (when (eq major-mode 'org-mode)
+         (setq-local full-path (org-get-outline-path t))
+         (message (concat (string-join full-path " >> ") "\n\n[F3:Start | PgUp:Prev | PgDn:Next | F11:Contents | F4:Exit]" ))))
+
+(defun xueliang/org-zen-mode-present-page (direction)
+       (widen) (org-next-visible-heading direction)
+       (org-narrow-to-subtree) (org-fold-show-subtree)
+       (org-display-inline-images)
+       (xueliang/org-print-full-path))
+
+(defun xueliang-org-zen-mode-present-prev() (interactive)
+       (xueliang/org-zen-mode-present-page -1))
+
+(defun xueliang-org-zen-mode-present-next() (interactive)
+       (xueliang/org-zen-mode-present-page 1))
+
+(defun xueliang-org-zen-mode-present-goto () (interactive)
+       (counsel-semantic-or-imenu) (xueliang-org-zen-mode-start-present))
+
+(defun xueliang-org-zen-mode-start-present() (interactive)
+       (when (eq major-mode 'org-mode)
+         (evil-force-normal-state) (widen)
+         (display-line-numbers-mode -1)
+         ;; Windows Laptop (PgUp and PgDn)
+         (local-set-key (kbd "<next>")  #'xueliang-org-zen-mode-present-next)
+         (local-set-key (kbd "<prior>") #'xueliang-org-zen-mode-present-prev)
+         ;; MacOs
+         (local-set-key (kbd "<f3>")  #'xueliang-org-zen-mode-start-present)
+         (local-set-key (kbd "<f4>")  #'xueliang-org-zen-mode-end-present)
+         (local-set-key (kbd "<f9>")  #'xueliang-org-zen-mode-present-prev)
+         (local-set-key (kbd "<f10>") #'xueliang-org-zen-mode-present-next)
+         (local-set-key (kbd "<f11>") #'xueliang-org-zen-mode-present-goto)
+         ;; Start presenting right away
+         (evil-next-line) (xueliang-org-zen-mode-present-prev))
+)
+
+(defun xueliang-org-zen-mode-end-present() (interactive)
+       (when (eq major-mode 'org-mode)
+         (widen) (display-line-numbers-mode 1) (doom-big-font-mode -1)
+         (local-unset-key (kbd "<next>"))
+         (local-unset-key (kbd "<prior>"))
+         (local-unset-key (kbd "<f3>"))
+         (local-unset-key (kbd "<f4>"))
+         (local-unset-key (kbd "<f9>"))
+         (local-unset-key (kbd "<f10>"))
+         (local-unset-key (kbd "<f11>"))
+         )
+)
+
+;;
+;; My Alias Functions
+;;
 (defalias 'xueliang-sort 'org-sort)
 (defalias 'xueliang-capitalize-region 'capitalize-region)
