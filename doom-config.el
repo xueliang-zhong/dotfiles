@@ -342,8 +342,11 @@
 ;;
 (defun xueliang/org-print-full-path ()
        (when (eq major-mode 'org-mode)
-         (setq-local full-path (org-get-outline-path t))
-         (message (concat (string-join full-path " >> ") "\n\n[F3:Start | PgUp:Prev | PgDn:Next | F11:Contents | F4:Exit]" ))))
+       ;; The org-display-outline-path function returns with nice colour face
+       (setq-local outline-path (org-display-outline-path nil t " >> " t))
+       (message "%s\n%s\n%s\n" outline-path
+               "---------------------------------------------------------"
+               "[F3:Start | PgUp:Prev | PgDn:Next | F11:Agenda | F4:Exit]")))
 
 (defun xueliang/org-zen-mode-present-page (direction)
        (widen) (org-next-visible-heading direction)
