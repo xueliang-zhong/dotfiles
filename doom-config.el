@@ -262,7 +262,7 @@
 
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
-  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_2024.org | tail -n 8"))))
+  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2024.org | tail -n 8"))))
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
@@ -274,7 +274,8 @@
 
 (defun xueliang-refresh ()
   (interactive)
-  (xueliang-cd-current-dir) (evil-force-normal-state) (doom/reload-theme) (set-auto-mode)
+  (xueliang-cd-current-dir) (evil-force-normal-state)
+  (doom/reload-theme) (set-auto-mode)
   (message "Refresh!"))
 
 (defun xueliang-duckduckgo-search ()
