@@ -52,7 +52,7 @@
 ;;
 (after! evil
   (toggle-frame-maximized)
-  (setq doom-theme 'doom-acario-light)
+  (setq doom-theme 'doom-one)
 
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
@@ -66,7 +66,7 @@
     (setq doom-font (font-spec :family "Monospace" :size 24)))
 
   (when (string-equal system-type "windows-nt")
-    (setq doom-font (font-spec :family "Consolas" :size 24)))
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 27)))
 )
 
 ;;
@@ -181,6 +181,7 @@
 ;;
 (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
+(global-set-key (kbd "<f3>")  #'xueliang-org-zen-mode-start-present)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-refresh)
@@ -261,7 +262,7 @@
 
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
-  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 8 ~/Dropbox/daily_2022.org | tail -n 5"))))
+  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_2024.org | tail -n 8"))))
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
@@ -274,7 +275,7 @@
 (defun xueliang-refresh ()
   (interactive)
   (xueliang-cd-current-dir) (evil-force-normal-state) (doom/reload-theme) (set-auto-mode)
-  (message "Refresh! (F5 to open eshell)"))
+  (message "Refresh!"))
 
 (defun xueliang-duckduckgo-search ()
   (interactive)
@@ -341,12 +342,13 @@
 ;; My Org-Mode Presentation Functions
 ;;
 (defun xueliang/org-print-full-path ()
-       (when (eq major-mode 'org-mode)
-       ;; The org-display-outline-path function returns with nice colour face
-       (setq-local outline-path (org-display-outline-path nil t " >> " t))
-       (message "%s\n%s\n%s\n" outline-path
-               "---------------------------------------------------------"
-               "[F3:Start | PgUp:Prev | PgDn:Next | F11:Agenda | F4:Exit]")))
+  (when (eq major-mode 'org-mode)
+    ;; The org-display-outline-path function returns with nice colour face
+    (setq-local outline-path (org-display-outline-path nil t " >> " t))
+    (message "%s\n%s\n%s\n" outline-path
+             "----------------------------------------------------------------------"
+             "[F3:Start | F7:BigFont | PgUp:Prev | PgDn:Next | F11:Agenda | F4:Exit]")
+))
 
 (defun xueliang/org-zen-mode-present-page (direction)
        (widen) (org-next-visible-heading direction)
@@ -373,6 +375,7 @@
          ;; MacOs
          (local-set-key (kbd "<f3>")  #'xueliang-org-zen-mode-start-present)
          (local-set-key (kbd "<f4>")  #'xueliang-org-zen-mode-end-present)
+         (local-set-key (kbd "<f7>")  #'doom-big-font-mode)
          (local-set-key (kbd "<f9>")  #'xueliang-org-zen-mode-present-prev)
          (local-set-key (kbd "<f10>") #'xueliang-org-zen-mode-present-next)
          (local-set-key (kbd "<f11>") #'xueliang-org-zen-mode-present-goto)
@@ -387,6 +390,7 @@
          (local-unset-key (kbd "<prior>"))
          (local-unset-key (kbd "<f3>"))
          (local-unset-key (kbd "<f4>"))
+         (local-unset-key (kbd "<f7>"))
          (local-unset-key (kbd "<f9>"))
          (local-unset-key (kbd "<f10>"))
          (local-unset-key (kbd "<f11>"))
