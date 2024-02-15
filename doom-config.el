@@ -52,7 +52,7 @@
 ;;
 (after! evil
   (toggle-frame-maximized)
-  (setq doom-theme 'doom-one)
+  (setq doom-theme 'doom-acario-light)
 
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
@@ -218,11 +218,12 @@
    (org-link-open-from-string xueliang-weblink-str))
 
 (defun xueliang-T-open-T-in-browser () (interactive)
-  (setq ticker (thing-at-point 'word))
-  (unless ticker (setq ticker "SPY"))
-  ;; (setq sc-string "https://stockcharts.com/acp/?s=%s")
-  (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
-  (org-link-open-from-string (message sc-string ticker)))
+  ;; only enable this on my MacOS
+  (when (string-equal system-type "darwin")
+        (setq ticker (thing-at-point 'word))
+        (unless ticker (setq ticker "SPY"))
+        (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
+        (org-link-open-from-string (message sc-string ticker))))
 
 (defun xueliang-org-find-today () (interactive)
   (org-shifttab) (evil-goto-first-line)
