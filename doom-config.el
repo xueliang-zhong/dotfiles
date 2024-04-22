@@ -60,7 +60,7 @@
         evil-shift-width 2)
 
   (when (string-equal system-type "darwin")
-    (setq doom-font (font-spec :family "JetBrains Mono" :size 15)))
+    (setq doom-font (font-spec :family "JetBrains Mono" :size 14)))
 
   (when (string-equal system-type "gnu/linux")
     (setq doom-font (font-spec :family "Monospace" :size 24)))
@@ -188,7 +188,7 @@
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
-(global-set-key (kbd "<f11>") #'counsel-semantic-or-imenu)
+(global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
