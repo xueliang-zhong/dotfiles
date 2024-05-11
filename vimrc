@@ -11,8 +11,7 @@ Plug 'preservim/nerdtree'
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
-Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
-Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
+Plug 'jnurmine/Zenburn'                 " Theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
@@ -126,7 +125,7 @@ endif
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
-command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
+command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
 
 command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
