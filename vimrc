@@ -140,7 +140,6 @@ autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.sc  set filetype=python
 autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.cl  set filetype=c
-autocmd BufRead *.org nmap <buffer> <F8> <ESC>:BLines \*\*\* =><CR>
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
