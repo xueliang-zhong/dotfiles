@@ -213,18 +213,19 @@ let g:netrw_browsex_viewer = "google-chrome"
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
-" My awesome auto complete feature. Only enable this when COC doesn't work.
+"
+" My awesome auto complete feature. NOTE: For simplicity, I chose my own auto
+" complete over coc plugin:
+" if v:version >= 801
+"   Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" endif
+"
 " A small issue with this approach is such auto complete is always triggered
 " when copying text into vim. Need to call XueliangAutoCompleteOFF command.
 "
 " Tune down the sensibility a bit: don't add too many keys to trigger
 " autocomplete too quickly - could become a bit distracting.
 "
-" NOTE: For simplicity, I choose my own auto complete over coc plugin:
-" if v:version >= 801
-"   Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" endif
 let g:xueliang_auto_complete_keys = [
     \ 'a', 'e', 'i', 'o', 'u',
     \ 'A', 'E', 'I', 'O', 'U',
