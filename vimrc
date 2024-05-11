@@ -70,7 +70,8 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-colorscheme zenburn " good options: evening, elflord, desert, delek, koehler, pablo, jellybeans, zenburn
+" good options: evening, elflord, desert, delek, koehler, lunaperche, pablo, jellybeans, zenburn
+colorscheme lunaperche
 if &diff
     colorscheme desert
 endif
@@ -307,7 +308,10 @@ nnoremap <Leader>? :Maps<CR>
 map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
-map <F5>      <ESC>:terminal<CR>
+
+" <F5> given to tmux's split window, i.e. create a terminal in tmux, rather than vim.
+" In vim, if I need, :terminal is quite easy to type anyway.
+" map <F5>    <ESC>:terminal<CR>
 
 nnoremap <F7>         :make<CR>
 nnoremap <F8>         :TagbarToggle<CR>
