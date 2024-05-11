@@ -296,7 +296,8 @@ map <F4>      <ESC>:x<CR>
 " In vim, if I need, :terminal is quite easy to type anyway.
 " map <F5>    <ESC>:terminal<CR>
 
-nnoremap <F7>         :make<CR>
-nnoremap <F8>         :TagbarToggle<CR>
-nnoremap <F9>         :NERDTreeToggle<CR>
-nnoremap <F12>        :!~/bin/links<CR><CR>
+nnoremap <F7>  :NERDTreeToggle<CR>
+nnoremap <F8>  :TagbarToggle<CR>
+nnoremap <F9>  :Files<CR>
+nnoremap <F12> :!~/bin/links<CR><CR>
+
