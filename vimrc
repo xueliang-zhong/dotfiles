@@ -277,8 +277,6 @@ tnoremap <F1> <C-W>N
 tnoremap § <C-W>N
 tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
-" Useful for openning file in terminal.
-nnoremap gf <C-W><C-V>gf
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
