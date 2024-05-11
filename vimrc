@@ -80,11 +80,6 @@ set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
 set colorcolumn=100  " useful in code review
 
-if has('gui_running')
-  set guioptions-=T
-  set guifont=Dejavu\ Sans\ Mono\ 14
-endif
-
 " Swap files are no good to me
 set noswapfile
 
@@ -130,20 +125,11 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-command! Nonu set nonu norelativenumber
-command! Noline set laststatus=0
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
-command! Simplewindow set nonu norelativenumber laststatus=2 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu   relativenumber laststatus=2   cursorline   ruler
-command! Richwindow   set   nu   relativenumber laststatus=2   cursorline   ruler
 
 command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
-command! XueliangDailyWebSites !~/bin/daily-websites.sh <CR>
-
-" commands using fzf framework
-command! XueliangOpenlink terminal ++close links
-command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
 " works better than Gdiffsplit
 command! Gdiff Git blame | /not.*commit.*
@@ -313,7 +299,5 @@ map <F4>      <ESC>:x<CR>
 
 nnoremap <F7>         :make<CR>
 nnoremap <F8>         :TagbarToggle<CR>
-nnoremap <leader><F8> :BTags<CR>
-nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :NERDTreeToggle<CR>
 nnoremap <F12>        :!~/bin/links<CR><CR>
