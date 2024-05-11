@@ -52,6 +52,7 @@
 ;;
 (after! evil
   (toggle-frame-maximized)
+
   (setq doom-theme 'doom-acario-light)
 
   (setq evil-emacs-state-modes nil
@@ -60,6 +61,8 @@
         evil-shift-width 2)
 
   (when (string-equal system-type "darwin")
+    ;; 14 is good looking
+    ;; 15 is easy on the eyes
     (setq doom-font (font-spec :family "JetBrains Mono" :size 14)))
 
   (when (string-equal system-type "gnu/linux")
