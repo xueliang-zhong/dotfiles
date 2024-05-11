@@ -3,19 +3,14 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 call plug#begin('~/.vim/plugged')
 
-Plug 'kien/ctrlp.vim'                   " fuzzy find files (Ctrl-P).
-Plug 'vim-scripts/ctrlp-funky'          " improve CtrlP to fuzzy find functions
-Plug 'scrooloose/nerdtree'              " file drawer, open with :NERDTreeToggle
 Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
 Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
 Plug 'majutsushi/tagbar'                " Tagbar
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
-Plug 'yggdroot/indentline'              " Indentlines with chars like '|', useful in coding.
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
 Plug 'octol/vim-cpp-enhanced-highlight' " Better c++11/14 highlighting.
-Plug 'nanotech/jellybeans.vim'          " A very nice colorscheme
 Plug 'https://github.com/jnurmine/Zenburn' " zenburn theme.
 Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
 Plug 'junegunn/fzf.vim'
@@ -155,9 +150,6 @@ command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-proj
 " works better than Gdiffsplit
 command! Gdiff Gblame | /not.*commit.*
 
-" TStation
-command! XueliangTStation source ~/workspace/T/T-vim-T-station.vim
-
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
@@ -165,6 +157,7 @@ autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.sc  set filetype=python
 autocmd BufRead *.sc  nmap <buffer> <F8> <ESC>:BLines ###<CR>
 autocmd BufRead *.org set filetype=asm
+autocmd BufRead *.cl  set filetype=c
 autocmd BufRead *.org nmap <buffer> <F8> <ESC>:BLines \*\*\* =><CR>
 " autocmd BufRead *.org %s/\s\+$//e
 
@@ -193,30 +186,6 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! XueliangDailyT_Func()
-  :cd ~/workspace/T/
-  :make
-  ":!cat T.sh | grep "echo.*:.*quick command" | fzf +s -e | sed "s/echo//" | sed "s/\"//g" | awk '{print $1}' | xargs bash "T.sh"
-endfunction
-
-function! XueliangHandleWebURL()
-  let s:uri = matchstr(getline("."), '[a-z]*:\/\/[^ >,;]*')
-  echo s:uri
-  if s:uri != ""
-    silent exec "!google-chrome '".s:uri."'"
-  else
-    echo "No URI found in line."
-  endif
-endfunction
-
-" Toggle NERDTree
-function! ToggleNerdTree()
-  if @% != "" && (!exists("g:NERDTree") || (g:NERDTree.ExistsForTab() && !g:NERDTree.IsOpen()))
-    :NERDTreeFind
-  else
-    :NERDTreeToggle
-  endif
-endfunction
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Plugin Settings
@@ -251,32 +220,32 @@ let g:netrw_browsex_viewer = "google-chrome"
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-if v:version >= 801
-  " This is quite awesome already.
-  inoremap a a<c-n><c-p>
-  inoremap e e<c-n><c-p>
-  inoremap i i<c-n><c-p>
-  inoremap o o<c-n><c-p>
-  inoremap u u<c-n><c-p>
-  inoremap y y<c-n><c-p>
-  inoremap A A<c-n><c-p>
-  inoremap E E<c-n><c-p>
-  inoremap I I<c-n><c-p>
-  inoremap O O<c-n><c-p>
-  inoremap U U<c-n><c-p>
-  inoremap Y Y<c-n><c-p>
-  inoremap _ _<c-n><c-p>
-  inoremap 0 0<c-n><c-p>
-  inoremap 1 1<c-n><c-p>
-  inoremap 2 2<c-n><c-p>
-  inoremap 3 3<c-n><c-p>
-  inoremap 4 4<c-n><c-p>
-  inoremap 5 5<c-n><c-p>
-  inoremap 6 6<c-n><c-p>
-  inoremap 7 7<c-n><c-p>
-  inoremap 8 8<c-n><c-p>
-  inoremap 9 9<c-n><c-p>
-endif
+" My awesome auto complete feature. Only enable this when COC doesn't work.
+" A small issue with this approach is such auto complete is always triggered
+" when copying text into vim. Need to call XueliangAutoCompleteOFF command.
+let g:xueliang_auto_complete_keys = [
+    \ 'a', 'e', 'i', 'o', 'u',
+    \ 'A', 'E', 'I', 'O', 'U',
+    \ 's', 'd', 'f', 'g', 'w', 'r', 'p', 't', 'h', 'v', 'm', 'y',
+    \ 'S', 'D', 'F', 'G', 'W', 'R', 'P', 'T', 'H', 'V', 'M', 'Y',
+    \ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+    \ '_'
+    \ ]
+
+function! XueliangAutoComplete_ON()
+  for key in g:xueliang_auto_complete_keys
+    execute 'inoremap ' . key . ' ' . key . '<C-n><C-p>'
+  endfor
+endfunction
+
+function! XueliangAutoComplete_OFF()
+  for key in g:xueliang_auto_complete_keys
+    execute 'iunmap ' . key
+  endfor
+endfunction
+
+autocmd BufRead * call XueliangAutoComplete_ON()
+command! XueliangAutoCompleteOFF call XueliangAutoComplete_OFF()
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -308,9 +277,6 @@ nnoremap gf <C-W><C-V>gf
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 nnoremap <Tab> za
 
-" Emacs ivy style search
-nnoremap / <ESC>:BLines<CR>
-
 " <leader> key mappings
 map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
 map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
@@ -328,7 +294,6 @@ map <leader>gg <ESC>:Git<CR>
 map <leader>pp <ESC>:XueliangProjects<CR><ESC>:GFiles<CR>
 map <leader>th <ESC>:set cursorline<CR>
 map <leader>x <ESC>:History:<CR>
-map <leader>o <ESC>:call XueliangHandleWebURL()<CR><C-l><C-l>
 
 " Show key bindings
 nnoremap <Leader>? :Maps<CR>
@@ -344,7 +309,4 @@ nnoremap <F8>         :TagbarToggle<CR>
 nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :BTags<CR>
 nnoremap <F9>         :Files<CR>
-nnoremap <C-F9>       :call ToggleNerdTree()<CR>
 nnoremap <F12>        :!~/bin/links<CR><CR>
-nnoremap <S-F12>      :call XueliangDailyT_Func()<CR><CR>
-nnoremap <C-F12>      :exe "!~/Dropbox/vim/open-sc-view.sh " . expand("<cword>")<CR><CR>
