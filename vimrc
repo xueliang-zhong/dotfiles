@@ -7,6 +7,7 @@ Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, 
 Plug 'airblade/vim-gitgutter'           " show modifications to the file.
 Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
 Plug 'majutsushi/tagbar'                " Tagbar
+Plug 'preservim/nerdtree'
 Plug 'vim-airline/vim-airline'          " Better status bar
 Plug 'vim-airline/vim-airline-themes'
 Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
@@ -210,6 +211,9 @@ let g:peekaboo_window = 'split bo 24new'
 " gx to open link
 let g:netrw_browsex_viewer = "google-chrome"
 
+" Start NERDTree and leave the cursor in it.
+autocmd VimEnter * NERDTree
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -309,5 +313,5 @@ nnoremap <F7>         :make<CR>
 nnoremap <F8>         :TagbarToggle<CR>
 nnoremap <leader><F8> :BTags<CR>
 nnoremap <C-F8>       :BTags<CR>
-nnoremap <F9>         :Files<CR>
+nnoremap <F9>         :NERDTreeToggle<CR>
 nnoremap <F12>        :!~/bin/links<CR><CR>
