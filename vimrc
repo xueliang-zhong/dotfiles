@@ -197,8 +197,9 @@ let g:peekaboo_window = 'split bo 24new'
 " gx to open link
 let g:netrw_browsex_viewer = "google-chrome"
 
-" Start NERDTree and leave the cursor in it.
-autocmd VimEnter * NERDTree
+" Don't start vim with NERDTree, my workflow is always try to go back to
+" previous file by using History or Ctrl-o.
+" autocmd VimEnter * NERDTree
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
