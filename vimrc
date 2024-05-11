@@ -16,9 +16,9 @@ Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find P
 Plug 'junegunn/fzf.vim'
 Plug 'junegunn/vim-peekaboo'
 
-if v:version > 801
-  Plug 'neoclide/coc.nvim', {'branch': 'release'}
-endif
+" if v:version > 801
+"   Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" endif
 
 call plug#end()
 filetype plugin indent on
@@ -148,18 +148,16 @@ command! XueliangOpenlink terminal ++close links
 command! XueliangProjects call fzf#run({'source': 'cat ~/Dropbox/vim/xzhong-projects.txt',  'sink': 'e', 'down' : '51%'})
 
 " works better than Gdiffsplit
-command! Gdiff Gblame | /not.*commit.*
+command! Gdiff Git blame | /not.*commit.*
 
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
 autocmd BufRead *.sc  set filetype=python
-autocmd BufRead *.sc  nmap <buffer> <F8> <ESC>:BLines ###<CR>
 autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.cl  set filetype=c
 autocmd BufRead *.org nmap <buffer> <F8> <ESC>:BLines \*\*\* =><CR>
-" autocmd BufRead *.org %s/\s\+$//e
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
