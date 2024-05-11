@@ -71,7 +71,7 @@ set backspace=indent,eol,start
 
 " color/scheme settings
 " good options: evening, elflord, desert, delek, koehler, lunaperche, pablo, jellybeans, zenburn
-colorscheme lunaperche
+colorscheme zenburn
 if &diff
     colorscheme desert
 endif
