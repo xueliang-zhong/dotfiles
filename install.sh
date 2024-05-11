@@ -2,6 +2,7 @@
 
 # ~/bin
 mkdir -p ~/bin/
+cp -f ${PWD}/links ~/bin/
 
 # vim
 rm -f ~/.vimrc

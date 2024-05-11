@@ -1,11 +1,11 @@
 #!/bin/zsh
 # Add following <F12> key binding to this into ~/.zshrc:
 # bindkey -s '^[[24~' '~/bin/links \C-m'
-# cat ~/Dropbox/vim/xzhong-links.txt | fzf | awk '{print $2}' | xargs google-chrome
+
 URL=$(cat ~/Dropbox/vim/xzhong-links.txt | fzf +s -e | awk '{print $2}')
 if [ -z "$URL" ];
 then
   echo
 else
-  google-chrome $URL &> /dev/null
+  open -a Google\ Chrome $URL
 fi
