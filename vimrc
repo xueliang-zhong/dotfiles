@@ -131,7 +131,7 @@ command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 " works better than Gdiffsplit
-command! Gdiff Git blame | /not.*commit.*
+command! Gdiff !git diff HEAD %
 
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
@@ -166,8 +166,21 @@ command! -bang -nargs=? -complete=dir GFiles
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Functions
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+function! Xueliang_fzf_git_log() abort
+    " Get the list of commit hashes from git log
+    let commits = systemlist('git log --format="%h %s"')
 
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+    " Open fzf in a floating window to select a commit
+    let selected_commit = fzf#run({
+        \ 'source': commits,
+        \ 'options': ['--ansi', '--prompt', '> ', '--preview', 'git show {1} | bat --style=plain --color=always -l diff', '--preview-window', 'right:60%:wrap', '--reverse']
+        \ })
+endfunction
+
+command! Glog  call Xueliang_fzf_git_log()
+command! GlLog call Xueliang_fzf_git_log()
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Plugin Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " vim-airline
@@ -280,6 +293,7 @@ map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
 " the + register is the register used for the OS clipboard in Vim.
 map <leader>fy <ESC>:let @+=expand('%:p')<CR>
 map <leader>gg <ESC>:Git<CR>
+map <leader>gl <ESC>:GlLog<CR>
 map <leader>th <ESC>:set cursorline<CR>
 map <leader>x <ESC>:History:<CR>
 
