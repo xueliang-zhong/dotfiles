@@ -293,7 +293,7 @@ map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
 " the + register is the register used for the OS clipboard in Vim.
 map <leader>fy <ESC>:let @+=expand('%:p')<CR>
 map <leader>gg <ESC>:Git<CR>
-map <leader>gl <ESC>:GlLog<CR><CR>
+map <leader>gl <ESC>:Glog<CR><CR>
 map <leader>gd <ESC>:Gdiff<CR><CR>
 map <leader>th <ESC>:set cursorline<CR>
 map <leader>x <ESC>:History:<CR>
