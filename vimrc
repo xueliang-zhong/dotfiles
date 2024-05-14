@@ -131,7 +131,7 @@ command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 " works better than Gdiffsplit
-command! Gdiff !git diff HEAD %
+command! Gdiff vert terminal git diff HEAD
 
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
