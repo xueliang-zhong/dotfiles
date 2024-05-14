@@ -132,6 +132,8 @@ command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 " works better than Gdiffsplit
 command! Gdiff vert terminal git diff HEAD
+command! Gblame Git blame
+command! Gcommit Git commit
 
 " Get some nice syntax highlighting
 autocmd BufRead *.def set filetype=c
