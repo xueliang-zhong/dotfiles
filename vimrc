@@ -101,10 +101,6 @@ set splitbelow splitright
 
 let mapleader="\<Space>"
 
-" Tags
-let android_src = expand("~/workspace/linaro")
-exe "set tags+=".expand(android_src)."/art/tags"
-
 " Spell, use British English.
 set spell spelllang=en_gb
 set nospell
@@ -188,7 +184,7 @@ command! GlLog call Xueliang_fzf_git_log()
 " vim-airline
 let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
 
-" Use Ag over Grep
+" Use Ag over Grep: doesn't work with Quickfix Window copen/cclose
 " set grepprg=ag\ --nogroup\ --nocolor
 
 " Tagbar iconds
@@ -316,4 +312,3 @@ nnoremap <F7>  :NERDTreeToggle<CR>
 nnoremap <F8>  :TagbarToggle<CR>
 nnoremap <F9>  :Files<CR>
 nnoremap <F12> :!~/bin/links<CR><CR>
-
