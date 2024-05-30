@@ -14,7 +14,7 @@
 (after! evil
   (toggle-frame-maximized)
 
-  (setq doom-theme 'doom-one)
+  (setq doom-theme 'doom-acario-light)
 
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
