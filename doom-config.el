@@ -14,24 +14,17 @@
 (after! evil
   (toggle-frame-maximized)
 
-  (setq doom-theme 'doom-acario-light)
-
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
         evil-motion-state-modes nil
         evil-shift-width 2)
 
-  (when (string-equal system-type "darwin")
-    ;; 14 is good looking
-    ;; 15 is easy on the eyes
-    (setq doom-font (font-spec :family "JetBrains Mono" :size 15)))
-
-  (when (string-equal system-type "gnu/linux")
-    (setq doom-font (font-spec :family "Monospace" :size 24)))
-
-  (when (string-equal system-type "windows-nt")
-    (setq doom-font (font-spec :family "JetBrains Mono" :size 27)))
-)
+  (setq doom-theme 'doom-one)
+  (setq doom-font (cond
+                   ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 15))
+                   ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
+                   ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
+  )
 
 ;;
 ;; evil normal mode settings
@@ -249,7 +242,7 @@
                    (thing-at-point 'word t))))
     (if my-word
         (org-link-open-from-string (concat "https://duckduckgo.com/?q=" (url-hexify-string my-word)))
-        (org-link-open-from-string "https://duckduckgo.com/"))))
+        (org-link-open-from-string "https://duckduckgo.com/aichat"))))
 
 (defun xueliang-open-notes-app ()
   (interactive)
