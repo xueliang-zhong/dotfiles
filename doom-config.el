@@ -222,6 +222,10 @@
   "Open daily website more easily" (interactive)
   (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2024.org | tail -n 8"))))
 
+(defun xueliang-doom-emacs-doctor()
+  "Run the doctor command" (interactive)
+  (xueliang-eshell-popup) (insert "~/.config/emacs/bin/doom doctor") (eshell-send-input))
+
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
   (evil-window-vsplit) (+evil/window-move-right) (doom/switch-to-scratch-buffer))
