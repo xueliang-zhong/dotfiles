@@ -86,6 +86,7 @@
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
                                (kbd "<f3>")      #'xueliang-org-zen-mode-start-present
+                               ;; (kbd "<f7>")      #'xueliang-refresh
                                (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
@@ -141,7 +142,7 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'xueliang-refresh)
+(global-set-key (kbd "<f7>")  #'neotree-toggle)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
@@ -183,6 +184,7 @@
         (org-link-open-from-string (message sc-string ticker))))
 
 (defun xueliang-org-find-today () (interactive)
+  (xueliang-refresh)
   (org-shifttab) (evil-goto-first-line)
   (swiper (format-time-string "<%Y-%m-%d" (current-time)))
   (org-cycle) (evil-ex-nohighlight) (evil-force-normal-state))
