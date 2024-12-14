@@ -216,10 +216,7 @@ let g:netrw_browsex_viewer = "google-chrome"
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "
 " My awesome auto complete feature. NOTE: For simplicity, I chose my own auto
-" complete over coc plugin:
-" if v:version >= 801
-"   Plug 'neoclide/coc.nvim', {'branch': 'release'}
-" endif
+" complete over coc plugin.
 "
 " A small issue with this approach is such auto complete is always triggered
 " when copying text into vim. Need to call XueliangAutoCompleteOFF command.
@@ -306,7 +303,7 @@ map <F4>      <ESC>:x<CR>
 
 " <F5> given to tmux's split window, i.e. create a terminal in tmux, rather than vim.
 " In vim, if I need, :terminal is quite easy to type anyway.
-" map <F5>    <ESC>:terminal<CR>
+nnoremap <F5>  :terminal<CR>
 
 nnoremap <F7>  :NERDTreeToggle<CR>
 nnoremap <F8>  :TagbarToggle<CR>

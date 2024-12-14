@@ -29,7 +29,7 @@
 ;;
 ;; evil normal mode settings
 ;;
-(define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
+;; (define-key evil-normal-state-map (kbd "/") 'counsel-grep-or-swiper)
 (define-key evil-visual-state-map (kbd "s-x") 'counsel-M-x)
 
 ;;
@@ -53,7 +53,7 @@
       "gg"  #'xueliang-magit-status-window
       "th"  #'hl-line-mode
       "tf"  #'toggle-frame-fullscreen
-      "/"   #'counsel-outline
+      "/"   #'counsel-grep-or-swiper
 )
 
 ;;
