@@ -251,6 +251,34 @@ inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
 inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 
+let g:xueliang_ide_windows_open = 0
+function! Xueliang_IDE_Windows_View_Toggle()
+  if g:xueliang_ide_windows_open
+    let g:xueliang_ide_windows_open = 0
+    " Ensure a relatively correct initial state
+    execute 'NERDTreeClose'
+    execute 'TagbarClose'
+    " Since there is no GitClose, just jump to Git window then close it
+    execute 'Git'
+    execute 'x'
+  else
+    let g:xueliang_ide_windows_open = 1
+    " Ensure a relatively correct initial state
+    execute 'NERDTreeClose'
+    execute 'TagbarClose'
+    " Execute the IDE window commands
+    execute 'only'
+    execute 'Tagbar'
+    execute 'NERDTree'
+    execute 'Git'
+    " Make sure the Git window is not too big
+    execute 'resize 9'
+    " Return to the original window
+    execute  'wincmd w'
+    execute  'wincmd w'
+  endif
+endfunction
+
 " Autocomplete with dictionary words when :set spell
 set complete+=kspell
 " For better performance in auto complete.
@@ -308,4 +336,5 @@ nnoremap <F5>  :terminal<CR>
 nnoremap <F7>  :NERDTreeToggle<CR>
 nnoremap <F8>  :TagbarToggle<CR>
 nnoremap <F9>  :Files<CR>
+nnoremap <F11> :call Xueliang_IDE_Windows_View_Toggle()<CR>
 nnoremap <F12> :!~/bin/links<CR><CR>
