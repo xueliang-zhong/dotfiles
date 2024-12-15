@@ -258,9 +258,10 @@ function! Xueliang_IDE_Windows_View_Toggle()
     " Ensure a relatively correct initial state
     execute 'NERDTreeClose'
     execute 'TagbarClose'
-    " Since there is no GitClose, just jump to Git window then close it
+    " Since there is no GitClose, just jump to Git window then jump back and :on
     execute 'Git'
-    execute 'x'
+    execute 'wincmd w'
+    execute 'only'
   else
     let g:xueliang_ide_windows_open = 1
     " Ensure a relatively correct initial state

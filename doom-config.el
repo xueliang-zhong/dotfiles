@@ -86,7 +86,7 @@
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
                                (kbd "<f3>")      #'xueliang-org-zen-mode-start-present
-                               ;; (kbd "<f7>")      #'xueliang-refresh
+                               (kbd "<f7>")      #'xueliang-refresh
                                (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
@@ -184,7 +184,6 @@
         (org-link-open-from-string (message sc-string ticker))))
 
 (defun xueliang-org-find-today () (interactive)
-  (xueliang-refresh)
   (org-shifttab) (evil-goto-first-line)
   (swiper (format-time-string "<%Y-%m-%d" (current-time)))
   (org-cycle) (evil-ex-nohighlight) (evil-force-normal-state))
