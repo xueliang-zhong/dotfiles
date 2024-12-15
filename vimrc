@@ -275,8 +275,8 @@ function! Xueliang_IDE_Windows_View_Toggle()
     " Make sure the Git window is not too big
     execute 'resize 9'
     " Return to the original window
-    execute  'wincmd w'
-    execute  'wincmd w'
+    execute 'wincmd w'
+    execute 'wincmd w'
   endif
 endfunction
 
