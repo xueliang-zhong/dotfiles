@@ -251,33 +251,11 @@ inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
 inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
 
-let g:xueliang_ide_windows_open = 0
 function! Xueliang_IDE_Windows_View_Toggle()
-  if g:xueliang_ide_windows_open
-    let g:xueliang_ide_windows_open = 0
-    " Ensure a relatively correct initial state
-    execute 'NERDTreeClose'
-    execute 'TagbarClose'
-    " Since there is no GitClose, just jump to Git window then jump back and :on
-    execute 'Git'
-    execute 'wincmd w'
-    execute 'only'
-  else
-    let g:xueliang_ide_windows_open = 1
-    " Ensure a relatively correct initial state
-    execute 'NERDTreeClose'
-    execute 'TagbarClose'
-    " Execute the IDE window commands
-    execute 'only'
-    execute 'Tagbar'
-    execute 'NERDTree'
-    execute 'Git'
-    " Make sure the Git window is not too big
-    execute 'resize 9'
-    " Return to the original window
-    execute 'wincmd w'
-    execute 'wincmd w'
-  endif
+  execute 'NERDTreeToggle'
+  execute 'TagbarToggle'
+  " Return to the original window
+  execute 'wincmd w'
 endfunction
 
 " Autocomplete with dictionary words when :set spell
