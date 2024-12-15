@@ -18,4 +18,5 @@ mkdir -p ~/bin/
 cp -f $PWD/links ~/bin/
 
 # DONE
-echo DONE
+echo "Done copying configs and scripts"
+echo "Remember to run: ~/.config/emacs/bin/doom sync"
