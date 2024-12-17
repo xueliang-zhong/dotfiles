@@ -142,7 +142,6 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'neotree-toggle)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
@@ -170,7 +169,7 @@
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
    (setq weblink-list
-         (with-temp-buffer (insert-file-contents "~/Dropbox/vim/xzhong-links.txt")
+         (with-temp-buffer (insert-file-contents "~/Dropbox/xzhong-links.txt")
                            (split-string (buffer-string) "\n" t)))
    (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
    (org-link-open-from-string xueliang-weblink-str))

@@ -2,7 +2,7 @@
 # Add following <F12> key binding to this into ~/.zshrc:
 # bindkey -s '^[[24~' '~/bin/links \C-m'
 
-URL=$(cat ~/Dropbox/vim/xzhong-links.txt | fzf +s -e | awk '{print $2}')
+URL=$(cat ~/Dropbox/xzhong-links.txt | fzf +s -e | awk '{print $2}')
 if [ -z "$URL" ];
 then
   echo
