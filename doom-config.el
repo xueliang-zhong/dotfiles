@@ -85,8 +85,7 @@
                              (evil-define-key 'normal evil-org-mode-map
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
-                               (kbd "<f3>")      #'xueliang-org-zen-mode-start-present
-                               (kbd "<f7>")      #'xueliang-refresh
+                               (kbd "<f7>")      #'xueliang-org-FOCUS-tasks
                                (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
@@ -142,6 +141,7 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
+(global-set-key (kbd "<f7>")  #'xueliang-org-FOCUS-tasks)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
@@ -182,10 +182,14 @@
         (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
         (org-link-open-from-string (message sc-string ticker))))
 
+
 (defun xueliang-org-find-today () (interactive)
-  (org-shifttab) (evil-goto-first-line)
-  (swiper (format-time-string "<%Y-%m-%d" (current-time)))
-  (org-cycle) (evil-ex-nohighlight) (evil-force-normal-state))
+   (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
+   (goto-char (point-min))
+   (unless (search-forward date-string nil t)
+     (goto-char (point-max)) (insert (format "\n\n* %s\n" date-string)))
+   (swiper date-string)
+   (evil-ex-nohighlight) (evil-force-normal-state))
 
 (defun xueliang-replace-tab-trailing-spaces()
    "Easily replace all TAB in current buffer with spaces." (interactive)
@@ -357,8 +361,21 @@
          (local-unset-key (kbd "<f9>"))
          (local-unset-key (kbd "<f10>"))
          (local-unset-key (kbd "<f11>"))
-         )
-)
+         ))
+
+(defun xueliang-org-FOCUS-tasks () (interactive)
+       ;; Searching FOCUS tasks in org helps rolling previous FOCUS tasks into
+       ;; current/future days
+       (xueliang-refresh)
+       (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
+       (swiper (concat "^ * "
+                       (ivy-read "Task:"
+                                 (list (propertize date-string 'face '(:foreground "LightGoldenrod"))
+                                       (propertize "FOCUS" 'face '(:foreground "GreenYellow"))
+                                       (propertize "TODO" 'face '(:foreground "orchid2"))
+                                       (propertize "PROG" 'face '(:foreground "LightGoldenrod"))
+                                       (propertize "DONE" 'face '(:foreground "DarkGray"))))))
+       (evil-ex-nohighlight))
 
 ;;
 ;; My Alias Functions
