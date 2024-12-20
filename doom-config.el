@@ -86,7 +86,7 @@
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
                                (kbd "<f7>")      #'xueliang-refresh
-                               (kbd "<f8>")      #'xueliang-org-FOCUS-tasks)
+                               (kbd "<f8>")      #'xueliang-org-focus-tasks)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
                                (kbd "M-<right>") #'org-shiftmetaright)
@@ -363,19 +363,22 @@
          (local-unset-key (kbd "<f11>"))
          ))
 
-(defun xueliang-org-FOCUS-tasks () (interactive)
-       ;; Searching FOCUS tasks in org helps rolling previous FOCUS tasks into
-       ;; current/future days
-       (xueliang-refresh)
-       (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
-       (swiper (concat "^ * "
-                       (ivy-read "Task:"
-                                 (list (propertize date-string 'face '(:foreground "LightGoldenrod" :background "grey15"))
-                                       (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
-                                       (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
-                                       (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
-                                       (propertize "DONE" 'face '(:foreground "grey15" :background "DarkGray"))))))
-       (evil-ex-nohighlight))
+(defun xueliang-org-focus-tasks ()
+  "Search for FOCUS tasks in org mode, helping roll over tasks to current/future days."
+  (interactive)
+  (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
+  (setq-local my-task-list
+              ;; pretty colours for dark theme
+              (if (eq 'dark (frame-parameter nil 'background-mode))
+                  (list (propertize date-string 'face '(:foreground "LightGoldenrod" :background "grey15"))
+                        (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
+                        (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
+                        (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
+                        (propertize "DONE" 'face '(:foreground "grey15" :background "DarkGray")))
+                ;; plain text for light theme
+                (list date-string "FOCUS" "TODO" "PROG" "DONE")))
+  (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
+  (evil-ex-nohighlight))
 
 ;;
 ;; My Alias Functions
