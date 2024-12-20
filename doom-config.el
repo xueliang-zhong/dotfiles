@@ -46,7 +46,7 @@
 ;; Leader key bindings
 ;;
 (map! :leader
-      "SPC" #'ivy-switch-buffer
+      "SPC" #'counsel-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer-window
       "bw"  #'read-only-mode
       "ff"  #'xueliang-find-file-in-project
@@ -85,8 +85,8 @@
                              (evil-define-key 'normal evil-org-mode-map
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
-                               (kbd "<f7>")      #'xueliang-org-FOCUS-tasks
-                               (kbd "<f8>")      #'xueliang-org-find-today)
+                               (kbd "<f7>")      #'xueliang-refresh
+                               (kbd "<f8>")      #'xueliang-org-FOCUS-tasks)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
                                (kbd "M-<right>") #'org-shiftmetaright)
@@ -141,10 +141,10 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'xueliang-org-FOCUS-tasks)
+(global-set-key (kbd "<f7>")  #'xueliang-refresh)
 (global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
-(global-set-key (kbd "<f10>") #'xueliang-open-notes-app)
+(global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
@@ -370,11 +370,11 @@
        (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
        (swiper (concat "^ * "
                        (ivy-read "Task:"
-                                 (list (propertize date-string 'face '(:foreground "LightGoldenrod"))
-                                       (propertize "FOCUS" 'face '(:foreground "GreenYellow"))
-                                       (propertize "TODO" 'face '(:foreground "orchid2"))
-                                       (propertize "PROG" 'face '(:foreground "LightGoldenrod"))
-                                       (propertize "DONE" 'face '(:foreground "DarkGray"))))))
+                                 (list (propertize date-string 'face '(:foreground "LightGoldenrod" :background "grey15"))
+                                       (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
+                                       (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
+                                       (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
+                                       (propertize "DONE" 'face '(:foreground "grey15" :background "DarkGray"))))))
        (evil-ex-nohighlight))
 
 ;;
