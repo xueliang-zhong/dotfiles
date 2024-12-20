@@ -304,7 +304,7 @@ map <leader>x <ESC>:History:<CR>
 nnoremap <Leader>? :Maps<CR>
 
 " tag jumping
-map <C-]>     <ESC>:exe "tj  " . expand("<cword>")<CR>
+map <C-]>     <ESC>:exe "Tags " . expand("<cword>")<CR>
 
 map <F4>      <ESC>:x<CR>
 

@@ -360,12 +360,11 @@
          (local-unset-key (kbd "<f7>"))
          (local-unset-key (kbd "<f9>"))
          (local-unset-key (kbd "<f10>"))
-         (local-unset-key (kbd "<f11>"))
-         ))
+         (local-unset-key (kbd "<f11>"))))
 
-(defun xueliang-org-focus-tasks ()
-  "Search for FOCUS tasks in org mode, helping roll over tasks to current/future days."
-  (interactive)
+(defun xueliang-org-focus-tasks () (interactive)
+  ;; Search for FOCUS tasks in org mode, helping roll over tasks to
+  ;; current/future days.
   (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
   (setq-local my-task-list
               ;; pretty colours for dark theme
