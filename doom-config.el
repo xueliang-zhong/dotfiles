@@ -19,12 +19,13 @@
         evil-motion-state-modes nil
         evil-shift-width 2)
 
-  (setq doom-theme 'doom-one)
+  (setq doom-theme 'doom-bluloco-light)
+
   (setq doom-font (cond
                    ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 15))
                    ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
                    ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
-  )
+)
 
 ;;
 ;; evil normal mode settings
@@ -54,6 +55,7 @@
       "th"  #'hl-line-mode
       "tf"  #'toggle-frame-fullscreen
       "/"   #'counsel-grep-or-swiper
+      "x"   #'counsel-M-x
 )
 
 ;;
@@ -77,6 +79,7 @@
              "DONE(d)"      ; Task has been completed
   )))
 )
+
 ;; Make sure these settings are called only when org-mode are loaded, and when I'm entering org
 (add-hook 'org-mode-hook #'(lambda()
                              (toggle-truncate-lines 1)
@@ -98,7 +101,14 @@
                              (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-link    nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)))
+                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)
+                             ;; light mode settings
+                             (when (eq 'light (frame-parameter nil 'background-mode))
+                             (set-face-attribute 'org-level-3 nil :foreground "#275fe4")
+                             (set-face-attribute 'org-level-4 nil :foreground "#23974a")
+                             (set-face-attribute 'font-lock-variable-name-face nil :foreground "DarkSlateBlue"))
+))
+
 
 ;;
 ;; ivy/counsel settings
@@ -238,10 +248,9 @@
   (interactive)
   (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow) (magit-status))
 
-(defun xueliang-refresh ()
-  (interactive)
+(defun xueliang-refresh () (interactive)
   (xueliang-cd-current-dir) (evil-force-normal-state)
-  (doom/reload-theme) (set-auto-mode)
+  (doom/reload-theme) (set-auto-mode) (hl-line-mode -1)
   (message "Refresh!"))
 
 (defun xueliang-duckduckgo-search ()
@@ -373,7 +382,7 @@
                         (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
                         (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
                         (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
-                        (propertize "DONE" 'face '(:foreground "grey15" :background "DarkGray")))
+                        (propertize "DONE" 'face '(:foreground "grey51" :background "grey15")))
                 ;; plain text for light theme
                 (list date-string "FOCUS" "TODO" "PROG" "DONE")))
   (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
