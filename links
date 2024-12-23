@@ -1,6 +1,10 @@
 #!/bin/zsh
+#
 # Add following <F12> key binding to this into ~/.zshrc:
 # bindkey -s '^[[24~' '~/bin/links \C-m'
+#
+# Another option: set F12 key binding in tmux:
+# bind-key -n F12 split-window -v 'bash ~/bin/links'
 
 URL=$(cat ~/Dropbox/xzhong-links.txt | fzf +s -e | awk '{print $2}')
 if [ -z "$URL" ];

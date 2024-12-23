@@ -94,12 +94,12 @@
                                (kbd "M-<left>")  #'org-shiftmetaleft
                                (kbd "M-<right>") #'org-shiftmetaright)
                              ;; face settings
-                             (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-4 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-1 nil :height 1.0)
+                             (set-face-attribute 'org-level-2 nil :height 1.0)
+                             (set-face-attribute 'org-level-3 nil :height 1.0)
+                             (set-face-attribute 'org-level-4 nil :height 1.0)
+                             (set-face-attribute 'org-level-5 nil :height 1.0)
+                             (set-face-attribute 'org-level-6 nil :height 1.0)
                              (set-face-attribute 'org-link    nil :bold nil :height 1.0)
                              (set-face-attribute 'org-table   nil :bold nil :height 1.0)
                              ;; light mode settings
@@ -376,15 +376,19 @@
   ;; current/future days.
   (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
   (setq-local my-task-list
-              ;; pretty colours for dark theme
               (if (eq 'dark (frame-parameter nil 'background-mode))
+                  ;; pretty colours for dark theme
                   (list (propertize date-string 'face '(:foreground "LightGoldenrod" :background "grey15"))
                         (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
                         (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
                         (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
                         (propertize "DONE" 'face '(:foreground "grey51" :background "grey15")))
-                ;; plain text for light theme
-                (list date-string "FOCUS" "TODO" "PROG" "DONE")))
+                  ;; pretty colours for light theme
+                  (list (propertize date-string 'face '(:foreground "goldenrod"))
+                        (propertize "FOCUS" 'face '(:foreground "ForestGreen"))
+                        (propertize "TODO" 'face '(:foreground "DeepPink1"))
+                        (propertize "PROG" 'face '(:foreground "Goldenrod"))
+                        (propertize "DONE" 'face '(:foreground "grey51")))))
   (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
   (evil-ex-nohighlight))
 
