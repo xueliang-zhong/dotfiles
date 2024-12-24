@@ -38,6 +38,7 @@ require("lazy").setup({
     "tpope/vim-commentary",          -- Commenting plugin
     "tpope/vim-fugitive",            -- Git integration
     "nvim-lualine/lualine.nvim",     -- Nice status line
+    "nvim-treesitter/nvim-treesitter", -- Main plugin for Tree-sitter
 
     -- themes --
     "catppuccin/nvim"
@@ -101,10 +102,29 @@ vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { nore
 
 -- Telescope Settings
 local telescope = require("telescope")
-telescope.setup({}) -- TODO
+telescope.setup({
+    defaults = {
+        prompt_prefix = "? ",
+        layout_config = {
+            horizontal = { preview_width = 0.618 },
+        },
+    },
+})
 
 -- nvim-tree setup using defaults
 require("nvim-tree").setup()
+
+-- treesitter
+-- TSModuleInfo
+require("nvim-treesitter.configs").setup({
+    ensure_installed = { "lua", "python", "cpp", "commonlisp" }, -- Languages
+    highlight = {
+        enable = true, -- Enable syntax highlighting
+    },
+    indent = {
+        enable = true, -- Enables Tree-sitter's indentation logic
+    },
+})
 
 -- lualine
 require("lualine").setup({
@@ -116,7 +136,7 @@ require("lualine").setup({
     sections = {
         lualine_a = { "mode" },
         lualine_b = { "branch", "diff" },
-        lualine_c = { "filename" },
+        lualine_c = { { "filename", path = 1 }, "diagnostics" },
         lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
         lualine_y = { "progress" },
         lualine_z = { "location" },
@@ -133,7 +153,7 @@ vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap =
 vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Telescope git_status<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
 -- Telescope Keys
@@ -147,4 +167,3 @@ vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, si
 -- <f7> : my make function
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
-
