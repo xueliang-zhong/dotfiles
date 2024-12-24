@@ -125,7 +125,7 @@ require("lualine").setup({
 
 -- Leader Key
 vim.keymap.set("n", "<Space>", "", { noremap = true, silent = true }) -- Space as leader key
-vim.g.mapleader = " " -- Leader key
+vim.g.mapleader = " " -- Leader key (try to stay the same as emacs)
 vim.keymap.set("n", "<leader><Space>", ":Telescope buffers<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
@@ -134,6 +134,7 @@ vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = 
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
 -- Telescope Keys
 vim.keymap.set("n", "z=",              ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
