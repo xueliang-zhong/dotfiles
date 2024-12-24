@@ -1,6 +1,8 @@
 -- Basic Settings
+local function ___basic_settings__() end
 vim.opt.number = true          -- Show line numbers
 vim.opt.relativenumber = false -- Relative line numbers
+vim.opt.cursorline = true      -- highlight current line
 vim.opt.tabstop = 4            -- Number of spaces a <Tab> counts for
 vim.opt.shiftwidth = 4         -- Number of spaces for indentation
 vim.opt.expandtab = true       -- Use spaces instead of tabs
@@ -30,18 +32,21 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-    "majutsushi/tagbar",             -- Tagbar
-    "neovim/nvim-lspconfig",         -- LSP support
-    "nvim-lua/plenary.nvim",         -- Dependency for telescope
-    "nvim-telescope/telescope.nvim", -- Fuzzy finder
-    "nvim-tree/nvim-tree.lua",       -- nerdtree for neovim
-    "tpope/vim-commentary",          -- Commenting plugin
-    "tpope/vim-fugitive",            -- Git integration
-    "nvim-lualine/lualine.nvim",     -- Nice status line
-    "nvim-treesitter/nvim-treesitter", -- Main plugin for Tree-sitter
+    "majutsushi/tagbar",               -- tagbar
+    "neovim/nvim-lspconfig",           -- lsp support
+    "nvim-lua/plenary.nvim",           -- dependency for telescope
+    "nvim-telescope/telescope.nvim",   -- fuzzy finder
+    "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
+    "tpope/vim-commentary",            -- commenting plugin
+    "nvim-lualine/lualine.nvim",       -- nice status line
+    "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+    {
+        "tpope/vim-fugitive",          -- git integration
+        tag = "v3.6",                  -- more stable
+    },
 
     -- themes --
-    "catppuccin/nvim"
+    "catppuccin/nvim",
 })
 
 -- Colorscheme
@@ -55,6 +60,8 @@ vim.cmd([[autocmd BufReadPost * normal! g'"]])
 --
 -- Autocomplete
 --
+local function ___auto_complete_support__() end
+
 local local_auto_complete_keys = {
     'a', 'e', 'i', 'o', 'u',
     'A', 'E', 'I', 'O', 'U',
@@ -64,14 +71,12 @@ local local_auto_complete_keys = {
     '_',
 }
 
--- Function to enable mappings
 local function enable_auto_complete()
     for _, key in ipairs(local_auto_complete_keys) do
         vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
     end
 end
 
--- Function to disable mappings
 local function disable_auto_complete()
     for _, key in ipairs(local_auto_complete_keys) do
         vim.api.nvim_del_keymap('i', key)
@@ -100,14 +105,24 @@ vim.api.nvim_create_autocmd("BufLeave", {
 -- Improve <Tab> key behavior in auto-completion
 vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { noremap = true, expr = true, silent = true })
 
+--
+-- Plugins
+--
+local function ___plug_in_configs___() end
+
 -- Telescope Settings
 local telescope = require("telescope")
 telescope.setup({
     defaults = {
         prompt_prefix = "? ",
+        -- layout_config = { horizontal = { preview_width = 0.618 }, },
+        layout_strategy = "center",
         layout_config = {
-            horizontal = { preview_width = 0.618 },
+            width = 0.618,
+            height = 0.618,
+            prompt_position = "bottom", -- Place the prompt at the top
         },
+        border = true,  -- Keep border for center layout so that it's easier to see
     },
 })
 
@@ -143,7 +158,17 @@ require("lualine").setup({
     },
 })
 
--- Leader Key
+--
+-- Keys (Leader Key and Function Keys)
+--
+local function ___keys_leader_Fn_remap__() end
+
+-- Awesome remap keys
+vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv") -- move selected region down
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv") -- move selected region up
+vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
+
+-- Leader Keys
 vim.keymap.set("n", "<Space>", "", { noremap = true, silent = true }) -- Space as leader key
 vim.g.mapleader = " " -- Leader key (try to stay the same as emacs)
 vim.keymap.set("n", "<leader><Space>", ":Telescope buffers<CR>", { noremap = true, silent = true })
@@ -151,13 +176,16 @@ vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>
 vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fp",      ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Telescope git_status<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
--- Telescope Keys
+-- Telescope Keys and Other
 vim.keymap.set("n", "z=",              ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<C-g>",     "<ESC><ESC>", { noremap = true, silent = true })
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
@@ -167,3 +195,5 @@ vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, si
 -- <f7> : my make function
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
+-- <f5> and <f12>: used by tmux
+

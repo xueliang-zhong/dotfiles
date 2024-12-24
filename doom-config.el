@@ -153,15 +153,6 @@
 )
 
 ;;
-;; LSP / LSP UI settings
-;;
-(after! lsp-ui-imenu
-  (define-key lsp-ui-imenu-mode-map (kbd "RET") 'lsp-ui-imenu--visit)
-  (define-key lsp-ui-imenu-mode-map (kbd "<return>") 'lsp-ui-imenu--visit)
-  (setq lsp-ui-imenu-auto-refresh-delay 0.5)
-)
-
-;;
 ;; Function Keys
 ;;
 (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
@@ -170,7 +161,7 @@
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-refresh)
-(global-set-key (kbd "<f8>")  #'lsp-ui-imenu)
+(global-set-key (kbd "<f8>")  #'counsel-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
