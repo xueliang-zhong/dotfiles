@@ -144,6 +144,24 @@
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
 
 ;;
+;; Magit
+;;
+(after! magit
+  ;; The h,j,k,l keys should be for basic moving around, even in magit buffer
+  (define-key magit-mode-map (kbd "l") 'evil-forward-char)
+  (define-key magit-mode-map (kbd "h") 'evil-backward-char)
+)
+
+;;
+;; LSP / LSP UI settings
+;;
+(after! lsp-ui-imenu
+  (define-key lsp-ui-imenu-mode-map (kbd "RET") 'lsp-ui-imenu--visit)
+  (define-key lsp-ui-imenu-mode-map (kbd "<return>") 'lsp-ui-imenu--visit)
+  (setq lsp-ui-imenu-auto-refresh-delay 0.5)
+)
+
+;;
 ;; Function Keys
 ;;
 (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
@@ -152,7 +170,7 @@
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-refresh)
-(global-set-key (kbd "<f8>")  #'counsel-semantic-or-imenu)
+(global-set-key (kbd "<f8>")  #'lsp-ui-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
@@ -308,69 +326,6 @@
   (setq-local my-routine-text (buffer-substring-no-properties start end))
   (xueliang-create-regular-routine my-routine-text 7))
 
-(defun xueliang-generate-MONTHLY-routine (start end)
-  "Generate a 6 month weekly routine based on the selected region."
-  (interactive "r")
-  (setq-local my-routine-text (buffer-substring-no-properties start end))
-  (xueliang-create-regular-routine my-routine-text 30))
-
-;;
-;; My Org-Mode Presentation Functions
-;;
-(defun xueliang/org-print-full-path ()
-  (when (eq major-mode 'org-mode)
-    ;; The org-display-outline-path function returns with nice colour face
-    (setq-local outline-path (org-display-outline-path nil t " >> " t))
-    (message "%s\n%s\n%s\n" outline-path
-             "----------------------------------------------------------------------"
-             "[F3:Start | F7:BigFont | PgUp:Prev | PgDn:Next | F11:Agenda | F4:Exit]")
-))
-
-(defun xueliang/org-zen-mode-present-page (direction)
-       (widen) (org-next-visible-heading direction)
-       (org-narrow-to-subtree) (org-fold-show-subtree)
-       (org-display-inline-images)
-       (xueliang/org-print-full-path))
-
-(defun xueliang-org-zen-mode-present-prev() (interactive)
-       (xueliang/org-zen-mode-present-page -1))
-
-(defun xueliang-org-zen-mode-present-next() (interactive)
-       (xueliang/org-zen-mode-present-page 1))
-
-(defun xueliang-org-zen-mode-present-goto () (interactive)
-       (counsel-semantic-or-imenu) (xueliang-org-zen-mode-start-present))
-
-(defun xueliang-org-zen-mode-start-present() (interactive)
-       (when (eq major-mode 'org-mode)
-         (evil-force-normal-state) (widen)
-         (display-line-numbers-mode -1)
-         ;; Windows Laptop (PgUp and PgDn)
-         (local-set-key (kbd "<next>")  #'xueliang-org-zen-mode-present-next)
-         (local-set-key (kbd "<prior>") #'xueliang-org-zen-mode-present-prev)
-         ;; MacOs
-         (local-set-key (kbd "<f3>")  #'xueliang-org-zen-mode-start-present)
-         (local-set-key (kbd "<f4>")  #'xueliang-org-zen-mode-end-present)
-         (local-set-key (kbd "<f7>")  #'doom-big-font-mode)
-         (local-set-key (kbd "<f9>")  #'xueliang-org-zen-mode-present-prev)
-         (local-set-key (kbd "<f10>") #'xueliang-org-zen-mode-present-next)
-         (local-set-key (kbd "<f11>") #'xueliang-org-zen-mode-present-goto)
-         ;; Start presenting right away
-         (evil-next-line) (xueliang-org-zen-mode-present-prev))
-)
-
-(defun xueliang-org-zen-mode-end-present() (interactive)
-       (when (eq major-mode 'org-mode)
-         (widen) (display-line-numbers-mode 1) (doom-big-font-mode -1)
-         (local-unset-key (kbd "<next>"))
-         (local-unset-key (kbd "<prior>"))
-         (local-unset-key (kbd "<f3>"))
-         (local-unset-key (kbd "<f4>"))
-         (local-unset-key (kbd "<f7>"))
-         (local-unset-key (kbd "<f9>"))
-         (local-unset-key (kbd "<f10>"))
-         (local-unset-key (kbd "<f11>"))))
-
 (defun xueliang-org-focus-tasks () (interactive)
   ;; Search for FOCUS tasks in org mode, helping roll over tasks to
   ;; current/future days.
@@ -384,10 +339,10 @@
                         (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
                         (propertize "DONE" 'face '(:foreground "grey51" :background "grey15")))
                   ;; pretty colours for light theme
-                  (list (propertize date-string 'face '(:foreground "goldenrod"))
+                  (list (propertize date-string 'face '(:foreground "DarkGoldenrod3"))
                         (propertize "FOCUS" 'face '(:foreground "ForestGreen"))
                         (propertize "TODO" 'face '(:foreground "DeepPink1"))
-                        (propertize "PROG" 'face '(:foreground "Goldenrod"))
+                        (propertize "PROG" 'face '(:foreground "DarkGoldenrod3"))
                         (propertize "DONE" 'face '(:foreground "grey51")))))
   (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
   (evil-ex-nohighlight))

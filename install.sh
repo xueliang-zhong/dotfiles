@@ -1,7 +1,12 @@
 #!/bin/bash
+
 # vim
 rm -f ~/.vimrc
 ln -sf $PWD/vimrc ~/.vimrc
+
+# nvim
+mkdir -p ~/.config/nvim
+ln -sf $PWD/init.lua ~/.config/nvim/init.lua
 
 # emacs
 rm -f ~/.doom.d/init.el
