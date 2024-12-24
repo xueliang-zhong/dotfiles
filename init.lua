@@ -132,7 +132,7 @@ vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = tru
 vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      ":Telescope git_status<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
@@ -147,5 +147,4 @@ vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, si
 -- <f7> : my make function
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
-
 
