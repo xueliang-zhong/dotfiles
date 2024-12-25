@@ -115,14 +115,12 @@ local telescope = require("telescope")
 telescope.setup({
     defaults = {
         prompt_prefix = "? ",
-        -- layout_config = { horizontal = { preview_width = 0.618 }, },
-        layout_strategy = "center",
+        border = true,
         layout_config = {
-            width = 0.618,
-            height = 0.618,
-            prompt_position = "bottom", -- Place the prompt at the top
+            width = 0.84,
+            height = 0.84,
+            preview_width = 0.618,
         },
-        border = true,  -- Keep border for center layout so that it's easier to see
     },
 })
 
@@ -132,7 +130,13 @@ require("nvim-tree").setup()
 -- treesitter
 -- TSModuleInfo
 require("nvim-treesitter.configs").setup({
-    ensure_installed = { "lua", "python", "cpp", "commonlisp" }, -- Languages
+    ensure_installed = {
+        "commonlisp", -- emacs
+        "cpp",
+        "lua",
+        "python",
+        "starlark",   -- support tensorflow BUILD file (Bazel build)
+    },
     highlight = {
         enable = true, -- Enable syntax highlighting
     },
@@ -181,11 +185,52 @@ vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
+
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
 -- Telescope Keys and Other
-vim.keymap.set("n", "z=",              ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<C-g>",     "<ESC><ESC>", { noremap = true, silent = true })
+vim.keymap.set("n", "z=",          ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
+
+vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
+
+vim.keymap.set({"n","i"}, "<C-]>", function() -- tag jump using telescope
+    local current_word = vim.fn.expand("<cword>")
+
+    -- NOTE: have a tags file in cwd is already very useful
+    local tags_file = vim.fn.getcwd() .. "/tags" -- Path to the tags file in the current directory
+    if vim.fn.filereadable(tags_file) == 0 then
+        vim.notify("Warning: creating tags file: ctags -R .", vim.log.levels.INFO)
+        vim.fn.system("ctags -R .") -- Generate tags file using ctags
+        if vim.v.shell_error ~= 0 then
+            vim.notify("Failed to generate tags file. Ensure ctags is installed.", vim.log.levels.ERROR)
+            return
+        end
+    end
+
+    require("telescope.builtin").tags({
+        default_text = current_word,
+        layout_strategy = "horizontal", -- Use a horizontal layout
+        layout_config = {
+            width = 0.84,   -- Use most of the editor's width
+            height = 0.84,  -- Use most of the editor's height
+            preview_width = 0.618, -- Width of the preview pane
+        },
+    }) end,
+
+    { noremap = true, silent = true})
+
+vim.keymap.set("n", "[i", function() -- Replaces vim's simple symbol search
+    local current_word = vim.fn.expand("<cword>")
+    require("telescope.builtin").treesitter({
+        default_text = current_word,
+        layout_strategy = "horizontal", -- Use a horizontal layout
+        layout_config = {
+            width = 0.84,   -- Use most of the editor's width
+            height = 0.84,  -- Use most of the editor's height
+            preview_width = 0.618, -- Width of the preview pane
+        },
+    }) end,
+    { noremap = true, silent = true})
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })

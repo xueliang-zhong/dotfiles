@@ -19,7 +19,7 @@
         evil-motion-state-modes nil
         evil-shift-width 2)
 
-  (setq doom-theme 'doom-bluloco-light)
+  (setq doom-theme 'doom-bluloco-dark) ;; or doom-bluloco-{dark,light}
 
   (setq doom-font (cond
                    ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 15))
@@ -94,12 +94,12 @@
                                (kbd "M-<left>")  #'org-shiftmetaleft
                                (kbd "M-<right>") #'org-shiftmetaright)
                              ;; face settings
-                             (set-face-attribute 'org-level-1 nil :height 1.0)
-                             (set-face-attribute 'org-level-2 nil :height 1.0)
-                             (set-face-attribute 'org-level-3 nil :height 1.0)
-                             (set-face-attribute 'org-level-4 nil :height 1.0)
-                             (set-face-attribute 'org-level-5 nil :height 1.0)
-                             (set-face-attribute 'org-level-6 nil :height 1.0)
+                             (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-4 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
                              (set-face-attribute 'org-link    nil :bold nil :height 1.0)
                              (set-face-attribute 'org-table   nil :bold nil :height 1.0)
                              ;; light mode settings
