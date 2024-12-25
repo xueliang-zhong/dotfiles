@@ -180,6 +180,7 @@ vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = 
 vim.keymap.set("n", "<leader>fp",      ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 
