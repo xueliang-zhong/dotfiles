@@ -161,6 +161,11 @@ local function ___keys_leader_Fn_remap__() end
 vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv") -- move selected region down
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv") -- move selected region up
 vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
+-- better window movements
+vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })  -- emacs style
 
 -- Leader Keys
 vim.keymap.set("n", "<Space>", "", { noremap = true, silent = true }) -- Space as leader key
