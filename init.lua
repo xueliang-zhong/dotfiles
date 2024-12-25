@@ -17,6 +17,7 @@ vim.opt.autochdir = true       -- Automatically changes the current working dire
 vim.g.loaded_netrw = 1         -- Required for neo-tree
 vim.g.loaded_netrwPlugin = 1   -- Required for neo-tree
 vim.opt.clipboard = "unnamedplus" -- System clipboard for MacOS
+vim.opt.tags=""
 
 -- Plugin Management with lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -42,6 +43,11 @@ require("lazy").setup({
     "nvim-lualine/lualine.nvim",       -- nice status line
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
     {
+        "ibhagwan/fzf-lua",
+        -- optional for icon support
+        dependencies = { "nvim-tree/nvim-web-devicons" },
+    },
+    {
         "tpope/vim-fugitive",          -- git integration
         tag = "v3.6",                  -- more stable
     },
@@ -53,7 +59,7 @@ require("lazy").setup({
 -- Colorscheme
 require("catppuccin").setup({})
 vim.opt.termguicolors = true
-vim.cmd("colorscheme catppuccin-mocha") -- Use the default colorscheme (you can change this later)
+vim.cmd("colorscheme catppuccin-macchiato") -- Use the default colorscheme (you can change this later)
 
 -- Jump to the last position when reopening a file
 vim.cmd([[autocmd BufReadPost * normal! g'"]])
@@ -86,22 +92,6 @@ end
 
 -- Enable auto-completion globally
 enable_auto_complete()
-
--- Automatically disable auto-completion in Telescope windows
-vim.api.nvim_create_autocmd("FileType", {
-    pattern = "TelescopePrompt",
-    callback = function() disable_auto_complete() end,
-})
-
--- Re-enable auto-completion for other windows when leaving Telescope
-vim.api.nvim_create_autocmd("BufLeave", {
-    pattern = "*",
-    callback = function()
-        if vim.bo.filetype == "TelescopePrompt" then
-            enable_auto_complete()
-        end
-    end,
-})
 
 -- Improve <Tab> key behavior in auto-completion
 vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { noremap = true, expr = true, silent = true })
@@ -175,22 +165,23 @@ vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
 -- Leader Keys
 vim.keymap.set("n", "<Space>", "", { noremap = true, silent = true }) -- Space as leader key
 vim.g.mapleader = " " -- Leader key (try to stay the same as emacs)
-vim.keymap.set("n", "<leader><Space>", ":Telescope buffers<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>fp",      ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader><Space>", ":FzfLua buffers<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>/",       ":FzfLua blines<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>?",       ":FzfLua keymaps<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>*",       ":FzfLua grep_cword<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>ff",      ":FzfLua files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fp",      ":FzfLua files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fr",      ":FzfLua oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader><CR>",    ":FzfLua oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gf",      ":FzfLua git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
+vim.keymap.set("n", "<leader>cc",      ":make<CR>", { noremap = true, silent = true, desc = "Compile" })
 
-vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>sj",      ":FzfLua jumps<CR>", { noremap = true, silent = true })
 
--- Telescope Keys and Other
-vim.keymap.set("n", "z=",          ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
+-- FzfLua Keys and Other
+vim.keymap.set("n", "z=",          ":FzfLua spell_suggest<CR>", { noremap = true, silent = true })
 
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
@@ -222,25 +213,12 @@ vim.keymap.set({"n","i"}, "<leader>]", function() -- tag jump using telescope
 
     { noremap = true, silent = true})
 
-vim.keymap.set("n", "[i", function() -- Replaces vim's simple symbol search
-    local current_word = vim.fn.expand("<cword>")
-    require("telescope.builtin").treesitter({
-        default_text = current_word,
-        layout_strategy = "horizontal", -- Use a horizontal layout
-        layout_config = {
-            width = 0.84,   -- Use most of the editor's width
-            height = 0.84,  -- Use most of the editor's height
-            preview_width = 0.618, -- Width of the preview pane
-        },
-    }) end,
-    { noremap = true, silent = true})
-
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f6>", "<ESC>:FzfLua registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
 -- <f7> : my make function
-vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f9>", "<ESC>:FzfLua files<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f10>", "<ESC>:FzfLua<CR>", { noremap = true, silent = true })
 -- <f5> and <f12>: used by tmux
