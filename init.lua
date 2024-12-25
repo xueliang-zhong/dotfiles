@@ -36,6 +36,7 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
     "majutsushi/tagbar",               -- tagbar
     "neovim/nvim-lspconfig",           -- lsp support
+    "folke/which-key.nvim",
 
     "nvim-lua/plenary.nvim",           -- dependency for telescope
     "nvim-telescope/telescope.nvim",   -- fuzzy finder
@@ -233,7 +234,7 @@ vim.keymap.set({"n","i"}, "<leader>]", function() -- tag jump using telescope
         },
     }) end,
 
-    { noremap = true, silent = true})
+    { noremap = true, silent = true, desc = "Tag jumping"})
 
 vim.keymap.set("n", "[i", function() -- Replaces vim's simple symbol search
     local current_word = vim.fn.expand("<cword>")
@@ -247,7 +248,6 @@ vim.keymap.set("n", "[i", function() -- Replaces vim's simple symbol search
         },
     }) end,
     { noremap = true, silent = true})
-
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
