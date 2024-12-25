@@ -19,10 +19,10 @@
         evil-motion-state-modes nil
         evil-shift-width 2)
 
-  (setq doom-theme 'doom-bluloco-dark) ;; or doom-bluloco-{dark,light}
+  (setq doom-theme 'doom-one) ;; or doom-bluloco-{dark,light}
 
   (setq doom-font (cond
-                   ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 15))
+                   ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 16))
                    ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
                    ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
 )
@@ -337,6 +337,10 @@
                         (propertize "DONE" 'face '(:foreground "grey51")))))
   (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
   (evil-ex-nohighlight))
+
+(defun eshell/e (f) (find-file-other-frame f))
+(defalias 'eshell/vi 'eshell/e)
+(defalias 'eshell/vim 'eshell/e)
 
 ;;
 ;; My Alias Functions

@@ -128,7 +128,10 @@ telescope.setup({
 -- nvim-tree setup using defaults
 require("nvim-tree").setup()
 
+-- fugitive
+
 -- treesitter
+
 -- TSModuleInfo
 require("nvim-treesitter.configs").setup({
     ensure_installed = {
@@ -191,7 +194,9 @@ vim.keymap.set("n", "z=",          ":Telescope spell_suggest<CR>", { noremap = t
 
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
-vim.keymap.set({"n","i"}, "<C-]>", function() -- tag jump using telescope
+vim.keymap.set({"n","i"}, "<leader>]", function() -- tag jump using telescope
+    -- "C-]" is useful in reading vim/nvim documentation
+    -- thus use <leader>] for tag jumping in telescope
     local current_word = vim.fn.expand("<cword>")
 
     -- NOTE: have a tags file in cwd is already very useful
