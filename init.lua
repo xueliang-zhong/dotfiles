@@ -1,5 +1,6 @@
 -- Basic Settings
 local function ___basic_settings__() end
+
 vim.opt.number = true          -- Show line numbers
 vim.opt.relativenumber = false -- Relative line numbers
 vim.opt.cursorline = true      -- highlight current line
@@ -137,12 +138,8 @@ require("nvim-treesitter.configs").setup({
         "python",
         "starlark",   -- support tensorflow BUILD file (Bazel build)
     },
-    highlight = {
-        enable = true, -- Enable syntax highlighting
-    },
-    indent = {
-        enable = true, -- Enables Tree-sitter's indentation logic
-    },
+    highlight = { enable = true }, -- Enable syntax highlighting
+    indent = { enable = true },    -- Enables Tree-sitter's indentation logic
 })
 
 -- lualine
@@ -241,4 +238,3 @@ vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, si
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
 -- <f5> and <f12>: used by tmux
-
