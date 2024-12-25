@@ -36,12 +36,18 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
     "majutsushi/tagbar",               -- tagbar
     "neovim/nvim-lspconfig",           -- lsp support
+
     "nvim-lua/plenary.nvim",           -- dependency for telescope
     "nvim-telescope/telescope.nvim",   -- fuzzy finder
+
     "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
+
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+    "nvim-treesitter/nvim-treesitter-context",
+
+    "SmiteshP/nvim-navic",
     {
         "tpope/vim-fugitive",          -- git integration
         tag = "v3.6",                  -- more stable
