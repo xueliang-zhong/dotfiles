@@ -46,6 +46,8 @@
 ;;
 ;; Leader key bindings
 ;;
+
+(setq doom-leader-key ",")        ;; to be consistent with nvim
 (map! :leader
       "SPC" #'counsel-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer-window
