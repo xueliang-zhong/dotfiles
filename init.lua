@@ -61,12 +61,15 @@ require("lazy").setup({
     -- handle nvim-treesitter-context separately as it doesn't work across the board
     {
         "nvim-treesitter/nvim-treesitter-context",
-        -- tag = "compat/0.7" -- enable this for older nvim
-    }
-})
-
-require'treesitter-context'.setup({
-    mode = 'topline', -- comment this for older nvim
+        enabled = function()
+            return vim.fn.has("macunix") == 1 -- Enable only on macOS
+        end,
+        config = function()
+            require'treesitter-context'.setup{
+                mode = 'topline',
+            }
+        end
+    },
 })
 
 -- Colorscheme

@@ -2,7 +2,7 @@
 # source install.sh
 
 export NVIM_HOME=~/.config/nvim
-DOT_FILE_PATH=$(realpath env.sh | xargs dirname)
+DOT_FILE_PATH=$(realpath $0 | xargs dirname)
 
 # vim
 rm -f ~/.vimrc
@@ -31,6 +31,7 @@ cp -f $DOT_FILE_PATH/links ~/bin/
 # Git Config
 git config --global user.name "Xueliang Zhong"
 git config --global user.email "xueliang.zhong@arm.com"
+export EDITOR='vim'
 
 # fzf
 if [ ! -d "$HOME/.fzf" ]; then
@@ -53,5 +54,9 @@ alias r='eval $(fc -ln 10000 | fzf --no-sort --reverse --height 40%)'
 alias h=r
 alias x=r
 
+
+
+#
 # DONE
+#
 echo "Done copying configs and scripts"
