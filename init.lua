@@ -4,8 +4,8 @@ local function ___basic_settings__() end
 vim.opt.number = true          -- Show line numbers
 vim.opt.relativenumber = false -- Relative line numbers
 vim.opt.cursorline = true      -- highlight current line
-vim.opt.tabstop = 2            -- Number of spaces a <Tab> counts for
-vim.opt.shiftwidth = 2         -- Number of spaces for indentation
+vim.opt.tabstop = 4            -- Number of spaces a <Tab> counts for
+vim.opt.shiftwidth = 4         -- Number of spaces for indentation
 vim.opt.expandtab = true       -- Use spaces instead of tabs
 vim.opt.smartindent = true     -- Auto-indent new lines
 vim.opt.wrap = false           -- Don't wrap lines
@@ -24,49 +24,51 @@ vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mod
 -- Plugin Management with lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
-  vim.fn.system({
-    "git",
-    "clone",
-    "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
-    "--branch=stable",
-    lazypath,
-  })
+    vim.fn.system({
+        "git",
+        "clone",
+        "--filter=blob:none",
+        "https://github.com/folke/lazy.nvim.git",
+        "--branch=stable",
+        lazypath,
+    })
 end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-  "majutsushi/tagbar",               -- tagbar
-  "folke/which-key.nvim",
-  "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
-  "tpope/vim-commentary",            -- commenting plugin
-  "nvim-lualine/lualine.nvim",       -- nice status line
+    "majutsushi/tagbar",               -- tagbar
+    "folke/which-key.nvim",
+    "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
+    "tpope/vim-commentary",            -- commenting plugin
+    "nvim-lualine/lualine.nvim",       -- nice status line
 
-  "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
-  "nvim-lua/plenary.nvim",           -- dependency for telescope
+    "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+    "nvim-lua/plenary.nvim",           -- dependency for telescope
 
-  "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+    "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
 
-  {
-    "tpope/vim-fugitive",          -- git integration
-    tag = "v3.6",                  -- more stable
-  },
+    {
+        "tpope/vim-fugitive",          -- git integration
+        tag = "v3.6",                  -- more stable
+    },
 
-  -- LSP support
-  -- NOTE: don't have to enable it, just keep nvim light weight & simple
+    "neoclide/coc.nvim",
 
-  -- themes --
-  "catppuccin/nvim",
+    -- LSP support
+    -- NOTE: don't have to enable it, just keep nvim light weight & simple
 
-  -- handle nvim-treesitter-context separately as it doesn't work across the board
-  {
-    "nvim-treesitter/nvim-treesitter-context",
-    -- tag = "compat/0.7" -- enable this for older nvim
-  }
+    -- themes --
+    "catppuccin/nvim",
+
+    -- handle nvim-treesitter-context separately as it doesn't work across the board
+    {
+        "nvim-treesitter/nvim-treesitter-context",
+        -- tag = "compat/0.7" -- enable this for older nvim
+    }
 })
 
 require'treesitter-context'.setup({
-  mode = 'topline', -- comment this for older nvim
+    mode = 'topline', -- comment this for older nvim
 })
 
 -- Colorscheme
@@ -78,52 +80,22 @@ vim.cmd("colorscheme catppuccin-macchiato") -- Use the default colorscheme (you 
 vim.cmd([[autocmd BufReadPost * normal! g'"]])
 
 --
--- Autocomplete
+-- Autocomplete (COC Config)
 --
-local function ___auto_complete_support__() end
 
-local local_auto_complete_keys = {
-  'a', 'e', 'i', 'o', 'u',
-  'A', 'E', 'I', 'O', 'U',
-  's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-  'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-  '_',
-}
-
-local function enable_auto_complete()
-  for _, key in ipairs(local_auto_complete_keys) do
-    vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
-  end
+function _G.check_back_space()
+    local col = vim.fn.col('.') - 1
+    return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') ~= nil
 end
 
-local function disable_auto_complete()
-  for _, key in ipairs(local_auto_complete_keys) do
-    vim.api.nvim_del_keymap('i', key)
-  end
-end
+-- Use Tab for trigger completion with characters ahead and navigate
+local opts = {silent = true, noremap = true, expr = true, replace_keycodes = false}
+vim.keymap.set("i", "<TAB>", 'coc#pum#visible() ? coc#pum#next(1) : v:lua.check_back_space() ? "<TAB>" : coc#refresh()', opts)
+vim.keymap.set("i", "<S-TAB>", [[coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"]], opts)
 
--- Enable auto-completion globally
-enable_auto_complete()
-
--- Automatically disable auto-completion in Telescope windows
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "TelescopePrompt",
-  callback = function() disable_auto_complete() end,
-})
-
--- Re-enable auto-completion for other windows when leaving Telescope
-vim.api.nvim_create_autocmd("BufLeave", {
-  pattern = "*",
-  callback = function()
-    if vim.bo.filetype == "TelescopePrompt" then
-      enable_auto_complete()
-    end
-  end,
-})
-
--- Improve <Tab> key behavior in auto-completion
-vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { noremap = true, expr = true, silent = true })
+-- Make <CR> to accept selected completion item or notify coc.nvim to format
+-- <C-g>u breaks current undo, please make your own choice
+vim.keymap.set("i", "<cr>", [[coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"]], opts)
 
 --
 -- Plugins
@@ -133,15 +105,15 @@ local function ___plug_in_configs___() end
 -- Telescope Settings
 local telescope = require("telescope")
 telescope.setup({
-  defaults = {
-    prompt_prefix = "? ",
-    border = true,
-    layout_config = {
-      width = 0.84,
-      height = 0.84,
-      preview_width = 0.618,
+    defaults = {
+        prompt_prefix = "? ",
+        border = true,
+        layout_config = {
+            width = 0.84,
+            height = 0.84,
+            preview_width = 0.618,
+        },
     },
-  },
 })
 
 -- nvim-tree setup using defaults
@@ -154,32 +126,32 @@ require("which-key").setup({})
 
 -- TSModuleInfo
 require("nvim-treesitter.configs").setup({
-  ensure_installed = {
-    "commonlisp", -- emacs
-    "cpp",
-    "lua",
-    "python",
-    "starlark",   -- support tensorflow BUILD file (Bazel build)
-  },
-  highlight = { enable = true }, -- Enable syntax highlighting
-  indent = { enable = true },    -- Enables Tree-sitter's indentation logic
+    ensure_installed = {
+        "commonlisp", -- emacs
+        "cpp",
+        "lua",
+        "python",
+        "starlark",   -- support tensorflow BUILD file (Bazel build)
+    },
+    highlight = { enable = true }, -- Enable syntax highlighting
+    indent = { enable = true },    -- Enables Tree-sitter's indentation logic
 })
 
 -- lualine
 require("lualine").setup({
-  options = {
-    theme = "onedark",       -- Choose a theme (e.g., gruvbox, onedark, dracula)
-    section_separators = "", -- Remove separators for a cleaner look
-    component_separators = "",
-  },
-  sections = {
-    lualine_a = { "mode" },
-    lualine_b = { "branch", "diff" },
-    lualine_c = { { "filename", path = 1 }, "diagnostics" },
-    lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
-    lualine_y = { "progress" },
-    lualine_z = { "location" },
-  },
+    options = {
+        theme = "onedark",       -- Choose a theme (e.g., gruvbox, onedark, dracula)
+        section_separators = "", -- Remove separators for a cleaner look
+        component_separators = "",
+    },
+    sections = {
+        lualine_a = { "mode" },
+        lualine_b = { "branch", "diff" },
+        lualine_c = { { "filename", path = 1 }, "diagnostics" },
+        lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
+        lualine_y = { "progress" },
+        lualine_z = { "location" },
+    },
 })
 
 --
