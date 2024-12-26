@@ -208,7 +208,7 @@ vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
-vim.keymap.set("n", "<leader>cc",      ":make<CR>", { noremap = true, silent = true, desc = "Compile" })
+vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
@@ -221,6 +221,7 @@ vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
