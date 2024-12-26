@@ -59,11 +59,14 @@ require("lazy").setup({
   "catppuccin/nvim",
 
   -- handle nvim-treesitter-context separately as it doesn't work across the board
-  "nvim-treesitter/nvim-treesitter-context",
+  {
+    "nvim-treesitter/nvim-treesitter-context",
+    -- tag = "compat/0.7" -- enable this for older nvim
+  }
 })
 
 require'treesitter-context'.setup({
-  mode = 'topline',
+  mode = 'topline', -- comment this for older nvim
 })
 
 -- Colorscheme
