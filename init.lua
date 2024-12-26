@@ -4,8 +4,8 @@ local function ___basic_settings__() end
 vim.opt.number = true          -- Show line numbers
 vim.opt.relativenumber = false -- Relative line numbers
 vim.opt.cursorline = true      -- highlight current line
-vim.opt.tabstop = 4            -- Number of spaces a <Tab> counts for
-vim.opt.shiftwidth = 4         -- Number of spaces for indentation
+vim.opt.tabstop = 2            -- Number of spaces a <Tab> counts for
+vim.opt.shiftwidth = 2         -- Number of spaces for indentation
 vim.opt.expandtab = true       -- Use spaces instead of tabs
 vim.opt.smartindent = true     -- Auto-indent new lines
 vim.opt.wrap = false           -- Don't wrap lines
@@ -19,6 +19,7 @@ vim.g.loaded_netrwPlugin = 1   -- Required for neo-tree
 vim.opt.clipboard = "unnamedplus" -- System clipboard for MacOS
 vim.opt.tags = ""
 vim.opt.guicursor = ""
+vim.opt.timeoutlen = 200       -- Makes leader key more responsive in INSERT mode
 
 -- Plugin Management with lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -195,9 +196,10 @@ vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })  -- emacs style
 
 -- Leader Keys
-vim.keymap.set("n", "<Space>", "", { noremap = true, silent = true }) -- Space as leader key
-vim.g.mapleader = " " -- Leader key (try to stay the same as emacs)
-vim.keymap.set("n", "<leader><Space>", ":Telescope buffers<CR>", { noremap = true, silent = true })
+-- Note : space as leader key makes typing space quite sluggish
+vim.g.mapleader = ","
+
+vim.keymap.set("n", "<leader><leader>", ":Telescope buffers<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
@@ -205,6 +207,7 @@ vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = 
 vim.keymap.set("n", "<leader>fp",      ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })

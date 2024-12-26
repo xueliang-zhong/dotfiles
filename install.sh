@@ -1,12 +1,15 @@
 #!/bin/bash
 
+export NVIM_HOME=~/.config/nvim
+
 # vim
 rm -f ~/.vimrc
 ln -sf $PWD/vimrc ~/.vimrc
 
 # nvim
-mkdir -p ~/.config/nvim
-ln -sf $PWD/init.lua ~/.config/nvim/init.lua
+rm -rf $NVIM_HOME
+mkdir -p $NVIM_HOME
+ln -sf $PWD/init.lua $NVIM_HOME/init.lua
 
 # emacs
 rm -f ~/.doom.d/init.el
