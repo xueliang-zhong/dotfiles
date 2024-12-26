@@ -3,7 +3,6 @@
 
 export NVIM_HOME=~/.config/nvim
 DOT_FILE_PATH=$(realpath env.sh | xargs dirname)
-echo "DOT_FILE_PATH = " $DOT_FILE_PATH
 
 # vim
 rm -f ~/.vimrc
@@ -31,19 +30,23 @@ cp -f $DOT_FILE_PATH/links ~/bin/
 
 # Git Config
 git config --global user.name "Xueliang Zhong"
-git config --global user.email "xueliang.zhong@gmail.com"
+git config --global user.email "xueliang.zhong@arm.com"
 
-# Fzf
-git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-~/.fzf/install
+# fzf
+if [ ! -d "$HOME/.fzf" ]; then
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    ~/.fzf/install
+fi
 
 # Oh My Zsh
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+if [ ! -d "$HOME/.oh-my-zsh" ]; then
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --keep-zshrc
+fi
 
 #
 # My fzf based quick commands
 #
-alias d='echo $(dirs | sed "s/ /\n/g"| fzf)'
+alias d='eval $(dirs | sed "s/ /\n/g"| fzf --reverse --height 30%)'
 alias f='vim  $(fzf --preview "cat {}")'
 alias ff=f
 alias r='eval $(fc -ln 10000 | fzf --no-sort --reverse --height 40%)'

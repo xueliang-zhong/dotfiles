@@ -52,8 +52,6 @@ require("lazy").setup({
         tag = "v3.6",                  -- more stable
     },
 
-    "neoclide/coc.nvim",
-
     -- LSP support
     -- NOTE: don't have to enable it, just keep nvim light weight & simple
 
@@ -80,22 +78,53 @@ vim.cmd("colorscheme catppuccin-macchiato") -- Use the default colorscheme (you 
 vim.cmd([[autocmd BufReadPost * normal! g'"]])
 
 --
--- Autocomplete (COC Config)
+-- My Awesome Autocomplete
 --
 
-function _G.check_back_space()
-    local col = vim.fn.col('.') - 1
-    return col == 0 or vim.fn.getline('.'):sub(col, col):match('%s') ~= nil
+local function ___auto_complete_support__() end
+
+local local_auto_complete_keys = {
+  'a', 'e', 'i', 'o', 'u',
+  'A', 'E', 'I', 'O', 'U',
+  's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+  'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  '_',
+}
+
+local function enable_auto_complete()
+  for _, key in ipairs(local_auto_complete_keys) do
+    vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
+  end
 end
 
--- Use Tab for trigger completion with characters ahead and navigate
-local opts = {silent = true, noremap = true, expr = true, replace_keycodes = false}
-vim.keymap.set("i", "<TAB>", 'coc#pum#visible() ? coc#pum#next(1) : v:lua.check_back_space() ? "<TAB>" : coc#refresh()', opts)
-vim.keymap.set("i", "<S-TAB>", [[coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"]], opts)
+local function disable_auto_complete()
+  for _, key in ipairs(local_auto_complete_keys) do
+    vim.api.nvim_del_keymap('i', key)
+  end
+end
 
--- Make <CR> to accept selected completion item or notify coc.nvim to format
--- <C-g>u breaks current undo, please make your own choice
-vim.keymap.set("i", "<cr>", [[coc#pum#visible() ? coc#pum#confirm() : "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"]], opts)
+-- Enable auto-completion globally
+enable_auto_complete()
+
+-- Improve <Tab> key behavior in auto-completion
+vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { noremap = true, expr = true, silent = true })
+
+-- Automatically disable auto-completion in Telescope windows
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "TelescopePrompt",
+  callback = function() disable_auto_complete() end,
+})
+
+-- Re-enable auto-completion for other windows when leaving Telescope
+vim.api.nvim_create_autocmd("BufLeave", {
+  pattern = "*",
+  callback = function()
+    if vim.bo.filetype == "TelescopePrompt" then
+      enable_auto_complete()
+    end
+  end,
+})
 
 --
 -- Plugins
