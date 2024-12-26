@@ -24,42 +24,48 @@ vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mod
 -- Plugin Management with lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
-    vim.fn.system({
-        "git",
-        "clone",
-        "--filter=blob:none",
-        "https://github.com/folke/lazy.nvim.git",
-        "--branch=stable",
-        lazypath,
-    })
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable",
+    lazypath,
+  })
 end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-    "majutsushi/tagbar",               -- tagbar
-    "folke/which-key.nvim",
+  "majutsushi/tagbar",               -- tagbar
+  "folke/which-key.nvim",
 
-    "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
-    "nvim-lua/plenary.nvim",           -- dependency for telescope
+  "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+  "nvim-lua/plenary.nvim",           -- dependency for telescope
 
-    "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
-    "tpope/vim-commentary",            -- commenting plugin
-    "nvim-lualine/lualine.nvim",       -- nice status line
+  "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
+  "tpope/vim-commentary",            -- commenting plugin
+  "nvim-lualine/lualine.nvim",       -- nice status line
 
-    "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
-    "nvim-treesitter/nvim-treesitter-context",
+  "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+  "nvim-treesitter/nvim-treesitter-context",
 
-    "SmiteshP/nvim-navic",
-    {
-        "tpope/vim-fugitive",          -- git integration
-        tag = "v3.6",                  -- more stable
-    },
+  {
+    "tpope/vim-fugitive",          -- git integration
+    tag = "v3.6",                  -- more stable
+  },
 
-    -- LSP support
-    -- NOTE: don't have to enable it, just keep nvim light weight & simple
+  -- LSP support
+  -- NOTE: don't have to enable it, just keep nvim light weight & simple
 
-    -- themes --
-    "catppuccin/nvim",
+  -- themes --
+  "catppuccin/nvim",
+
+  -- handle nvim-treesitter-context separately as it doesn't work across the board
+  "nvim-treesitter/nvim-treesitter-context",
+})
+
+require'treesitter-context'.setup({
+  mode = 'topline',
 })
 
 -- Colorscheme
@@ -76,24 +82,24 @@ vim.cmd([[autocmd BufReadPost * normal! g'"]])
 local function ___auto_complete_support__() end
 
 local local_auto_complete_keys = {
-    'a', 'e', 'i', 'o', 'u',
-    'A', 'E', 'I', 'O', 'U',
-    's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-    'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    '_',
+  'a', 'e', 'i', 'o', 'u',
+  'A', 'E', 'I', 'O', 'U',
+  's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+  'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+  '_',
 }
 
 local function enable_auto_complete()
-    for _, key in ipairs(local_auto_complete_keys) do
-        vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
-    end
+  for _, key in ipairs(local_auto_complete_keys) do
+    vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
+  end
 end
 
 local function disable_auto_complete()
-    for _, key in ipairs(local_auto_complete_keys) do
-        vim.api.nvim_del_keymap('i', key)
-    end
+  for _, key in ipairs(local_auto_complete_keys) do
+    vim.api.nvim_del_keymap('i', key)
+  end
 end
 
 -- Enable auto-completion globally
@@ -101,18 +107,18 @@ enable_auto_complete()
 
 -- Automatically disable auto-completion in Telescope windows
 vim.api.nvim_create_autocmd("FileType", {
-    pattern = "TelescopePrompt",
-    callback = function() disable_auto_complete() end,
+  pattern = "TelescopePrompt",
+  callback = function() disable_auto_complete() end,
 })
 
 -- Re-enable auto-completion for other windows when leaving Telescope
 vim.api.nvim_create_autocmd("BufLeave", {
-    pattern = "*",
-    callback = function()
-        if vim.bo.filetype == "TelescopePrompt" then
-            enable_auto_complete()
-        end
-    end,
+  pattern = "*",
+  callback = function()
+    if vim.bo.filetype == "TelescopePrompt" then
+      enable_auto_complete()
+    end
+  end,
 })
 
 -- Improve <Tab> key behavior in auto-completion
@@ -126,15 +132,15 @@ local function ___plug_in_configs___() end
 -- Telescope Settings
 local telescope = require("telescope")
 telescope.setup({
-    defaults = {
-        prompt_prefix = "? ",
-        border = true,
-        layout_config = {
-            width = 0.84,
-            height = 0.84,
-            preview_width = 0.618,
-        },
+  defaults = {
+    prompt_prefix = "? ",
+    border = true,
+    layout_config = {
+      width = 0.84,
+      height = 0.84,
+      preview_width = 0.618,
     },
+  },
 })
 
 -- nvim-tree setup using defaults
@@ -142,42 +148,37 @@ require("nvim-tree").setup()
 
 -- fugitive
 
--- treesitter
-require'treesitter-context'.setup({
-  -- mode = 'topline',
-})
-
 -- which-key
 require("which-key").setup({})
 
 -- TSModuleInfo
 require("nvim-treesitter.configs").setup({
-    ensure_installed = {
-        "commonlisp", -- emacs
-        "cpp",
-        "lua",
-        "python",
-        "starlark",   -- support tensorflow BUILD file (Bazel build)
-    },
-    highlight = { enable = true }, -- Enable syntax highlighting
-    indent = { enable = true },    -- Enables Tree-sitter's indentation logic
+  ensure_installed = {
+    "commonlisp", -- emacs
+    "cpp",
+    "lua",
+    "python",
+    "starlark",   -- support tensorflow BUILD file (Bazel build)
+  },
+  highlight = { enable = true }, -- Enable syntax highlighting
+  indent = { enable = true },    -- Enables Tree-sitter's indentation logic
 })
 
 -- lualine
 require("lualine").setup({
-    options = {
-        theme = "onedark",       -- Choose a theme (e.g., gruvbox, onedark, dracula)
-        section_separators = "", -- Remove separators for a cleaner look
-        component_separators = "",
-    },
-    sections = {
-        lualine_a = { "mode" },
-        lualine_b = { "branch", "diff" },
-        lualine_c = { { "filename", path = 1 }, "diagnostics" },
-        lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
-        lualine_y = { "progress" },
-        lualine_z = { "location" },
-    },
+  options = {
+    theme = "onedark",       -- Choose a theme (e.g., gruvbox, onedark, dracula)
+    section_separators = "", -- Remove separators for a cleaner look
+    component_separators = "",
+  },
+  sections = {
+    lualine_a = { "mode" },
+    lualine_b = { "branch", "diff" },
+    lualine_c = { { "filename", path = 1 }, "diagnostics" },
+    lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
+    lualine_y = { "progress" },
+    lualine_z = { "location" },
+  },
 })
 
 --
