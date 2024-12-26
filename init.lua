@@ -38,16 +38,14 @@ vim.opt.rtp:prepend(lazypath)
 require("lazy").setup({
   "majutsushi/tagbar",               -- tagbar
   "folke/which-key.nvim",
-
-  "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
-  "nvim-lua/plenary.nvim",           -- dependency for telescope
-
   "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
   "tpope/vim-commentary",            -- commenting plugin
   "nvim-lualine/lualine.nvim",       -- nice status line
 
+  "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+  "nvim-lua/plenary.nvim",           -- dependency for telescope
+
   "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
-  "nvim-treesitter/nvim-treesitter-context",
 
   {
     "tpope/vim-fugitive",          -- git integration
