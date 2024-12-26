@@ -186,9 +186,11 @@ require("lualine").setup({
 local function ___keys_leader_Fn_remap__() end
 
 -- Awesome remap keys
-vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv") -- move selected region down
-vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv") -- move selected region up
+-- vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv") -- move selected region down
+-- vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv") -- move selected region up
+
 vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
+
 -- better window movements
 vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true })  -- emacs style
 vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })  -- emacs style
@@ -209,7 +211,7 @@ vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Git<CR><C-w>L", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 

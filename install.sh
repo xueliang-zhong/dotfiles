@@ -30,6 +30,8 @@ cp -f $PWD/links ~/bin/
 git config --global user.name "Xueliang Zhong"
 git config --global user.email "xueliang.zhong@gmail.com"
 
+# Oh My Zsh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
 # DONE
 echo "Done copying configs and scripts"
-echo "Remember to run: ~/.config/emacs/bin/doom sync"
