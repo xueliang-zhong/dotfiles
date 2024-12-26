@@ -47,7 +47,7 @@ require("lazy").setup({
     "nvim-lualine/lualine.nvim",       -- nice status line
 
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
-    -- "nvim-treesitter/nvim-treesitter-context",
+    "nvim-treesitter/nvim-treesitter-context",
 
     "SmiteshP/nvim-navic",
     {
@@ -143,9 +143,9 @@ require("nvim-tree").setup()
 -- fugitive
 
 -- treesitter
--- require'treesitter-context'.setup({
---     mode = 'topline',  -- Line used to calculate context. Choices: 'cursor', 'topline'
--- })
+require'treesitter-context'.setup({
+  -- mode = 'topline',
+})
 
 -- which-key
 require("which-key").setup({})

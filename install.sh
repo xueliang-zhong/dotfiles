@@ -1,4 +1,5 @@
 #!/bin/bash
+# source install.sh
 
 export NVIM_HOME=~/.config/nvim
 
@@ -32,6 +33,19 @@ git config --global user.email "xueliang.zhong@gmail.com"
 
 # Oh My Zsh
 sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+# My quick commands
+# d: dirs
+# f: open files
+# r: history commands
+# h: history commands
+# x: history commands
+alias d='echo $(dirs | sed "s/ /\n/g"| fzf)'
+alias f='vim  $(fzf --preview "cat {}")'
+alias ff=f
+alias r='eval $(fc -ln 10000 | fzf --no-sort --reverse --height 40%)'
+alias h=r
+alias x=r
 
 # DONE
 echo "Done copying configs and scripts"
