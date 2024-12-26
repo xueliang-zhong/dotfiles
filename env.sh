@@ -44,8 +44,7 @@ sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/too
 # My fzf based quick commands
 #
 alias d='echo $(dirs | sed "s/ /\n/g"| fzf)'
-# alias f='vim  $(fzf --preview "cat {}")'
-alias f='vim  $(fzf --preview "bat {} --style=plain --color=always")'
+alias f='vim  $(fzf --preview "cat {}")'
 alias ff=f
 alias r='eval $(fc -ln 10000 | fzf --no-sort --reverse --height 40%)'
 alias h=r
