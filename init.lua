@@ -19,7 +19,7 @@ vim.g.loaded_netrwPlugin = 1   -- Required for neo-tree
 vim.opt.clipboard = "unnamedplus" -- System clipboard for MacOS
 vim.opt.tags = ""
 vim.opt.guicursor = ""
-vim.opt.timeoutlen = 200       -- Makes leader key more responsive in INSERT mode
+vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 
 -- Plugin Management with lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
@@ -47,7 +47,7 @@ require("lazy").setup({
     "nvim-lualine/lualine.nvim",       -- nice status line
 
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
-    "nvim-treesitter/nvim-treesitter-context",
+    -- "nvim-treesitter/nvim-treesitter-context",
 
     "SmiteshP/nvim-navic",
     {
@@ -143,9 +143,9 @@ require("nvim-tree").setup()
 -- fugitive
 
 -- treesitter
-require'treesitter-context'.setup({
-    mode = 'topline',  -- Line used to calculate context. Choices: 'cursor', 'topline'
-})
+-- require'treesitter-context'.setup({
+--     mode = 'topline',  -- Line used to calculate context. Choices: 'cursor', 'topline'
+-- })
 
 -- which-key
 require("which-key").setup({})
@@ -196,8 +196,8 @@ vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })  -- emacs style
 
 -- Leader Keys
--- Note : space as leader key makes typing space quite sluggish
-vim.g.mapleader = ","
+-- Note : TODO: space as leader key makes typing <space> sluggish
+vim.g.mapleader = " "
 
 vim.keymap.set("n", "<leader><leader>", ":Telescope buffers<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })

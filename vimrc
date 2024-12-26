@@ -99,7 +99,7 @@ set diffopt=vertical
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow splitright
 
-let mapleader=","
+let mapleader=" "
 
 " Spell, use British English.
 set spell spelllang=en_gb

@@ -47,7 +47,11 @@
 ;; Leader key bindings
 ;;
 
-(setq doom-leader-key ",")        ;; to be consistent with nvim
+;; NOTE:
+;; -- Need to be consistent with nvim
+;; -- I like leader key to be space
+;;
+;; (setq doom-leader-key ",")
 (map! :leader
       "SPC" #'counsel-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer-window
