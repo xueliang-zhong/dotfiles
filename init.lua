@@ -53,7 +53,10 @@ require("lazy").setup({
     "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
     "preservim/tagbar",                -- tagbar suits my style better (than vista.vim or other ones)
     "nvim-tree/nvim-web-devicons",     -- needed by IDE Plugins
-    "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+
+    -- avoid treesitter for now: prioritising lightweight, cross-platform, and speed
+    -- "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
+    -- "nvim-treesitter/nvim-treesitter-context",
 
     -- Git
     "tpope/vim-fugitive",              -- Gread, Gwrite
@@ -71,9 +74,6 @@ require("lazy").setup({
 
     -- themes --
     "catppuccin/nvim",
-
-    -- doesn't work across the board on different neovim version I use
-    -- "nvim-treesitter/nvim-treesitter-context",
 })
 
 -- Colorscheme
@@ -166,19 +166,6 @@ require("nvim-tree").setup({
 -- which-key
 require("which-key").setup({})
 
--- TSModuleInfo
-require("nvim-treesitter.configs").setup({
-    ensure_installed = {
-        "commonlisp", -- emacs
-        "cpp",
-        "lua",
-        "python",
-        "starlark",   -- support tensorflow BUILD file (Bazel build)
-    },
-    highlight = { enable = true }, -- Enable syntax highlighting
-    indent = { enable = true },    -- Enables Tree-sitter's indentation logic
-})
-
 -- lualine
 require("lualine").setup({
     options = {
@@ -235,7 +222,7 @@ vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Neogit kind=split<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:Neogit kind=split<CR><C-w>L", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 
