@@ -58,18 +58,8 @@ require("lazy").setup({
     -- themes --
     "catppuccin/nvim",
 
-    -- handle nvim-treesitter-context separately as it doesn't work across the board
-    {
-        "nvim-treesitter/nvim-treesitter-context",
-        enabled = function()
-            return vim.fn.has("macunix") == 1 -- Enable only on macOS
-        end,
-        config = function()
-            require'treesitter-context'.setup{
-                mode = 'topline',
-            }
-        end
-    },
+    -- doesn't work across the board on different neovim version I use
+    -- "nvim-treesitter/nvim-treesitter-context",
 })
 
 -- Colorscheme
