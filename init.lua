@@ -58,6 +58,14 @@ require("lazy").setup({
     -- "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
     -- "nvim-treesitter/nvim-treesitter-context",
 
+    -- Autocomplete
+    "neovim/nvim-lspconfig",
+    "hrsh7th/cmp-nvim-lsp",
+    "hrsh7th/cmp-buffer",
+    "hrsh7th/cmp-path",
+    "hrsh7th/cmp-cmdline",
+    "hrsh7th/nvim-cmp",
+
     -- Git
     "tpope/vim-fugitive",              -- Gread, Gwrite
     {
@@ -87,50 +95,48 @@ vim.cmd([[autocmd BufReadPost * normal! g'"]])
 --
 -- My Awesome Autocomplete
 --
-
 local function ___auto_complete_support__() end
 
-local local_auto_complete_keys = {
-  'a', 'e', 'i', 'o', 'u',
-  'A', 'E', 'I', 'O', 'U',
-  's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-  'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-  '_',
-}
+local cmp = require("cmp")
 
-local function enable_auto_complete()
-  for _, key in ipairs(local_auto_complete_keys) do
-    vim.api.nvim_set_keymap('i', key, key .. '<C-n><C-p>', { noremap = true, silent = true })
-  end
-end
+cmp.setup({
+    mapping = cmp.mapping.preset.insert({
+        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+        ['<C-f>'] = cmp.mapping.scroll_docs(4),
+        ['<C-e>'] = cmp.mapping.abort(),
+        ['<CR>'] = cmp.mapping.confirm({ select = true }) -- Accept currently selected item.
 
-local function disable_auto_complete()
-  for _, key in ipairs(local_auto_complete_keys) do
-    vim.api.nvim_del_keymap('i', key)
-  end
-end
+        -- Improve Tab behavior in autocomplete
+        ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_next_item()
+            else
+                fallback()
+            end
+        end, { "i", "s" }),
 
--- Enable auto-completion globally
-enable_auto_complete()
-
--- Improve <Tab> key behavior in auto-completion
-vim.api.nvim_set_keymap('i', '<Tab>', 'pumvisible() ? "<C-n>" : "<Tab>"', { noremap = true, expr = true, silent = true })
-
--- Automatically disable auto-completion in Telescope windows
-vim.api.nvim_create_autocmd("FileType", {
-  pattern = "TelescopePrompt",
-  callback = function() disable_auto_complete() end,
+        ['<S-Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+                cmp.select_prev_item()
+            else
+                fallback()
+            end
+        end, { "i", "s" }),
+    }),
+    sources = cmp.config.sources({
+        { name = 'vim_lsp' },
+    }, {
+        { name = 'buffer' },
+        { name = 'path' },
+    })
 })
 
--- Re-enable auto-completion for other windows when leaving Telescope
-vim.api.nvim_create_autocmd("BufLeave", {
-  pattern = "*",
-  callback = function()
-    if vim.bo.filetype == "TelescopePrompt" then
-      enable_auto_complete()
-    end
-  end,
+-- NOTE: too much completion on :ex mode could become distracting
+cmp.setup.cmdline(':', {
+    mapping = cmp.mapping.preset.cmdline(),
+    sources = cmp.config.sources({
+        { name = 'path' }
+    })
 })
 
 --
