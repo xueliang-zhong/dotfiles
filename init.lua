@@ -54,8 +54,9 @@ require("lazy").setup({
     "tpope/vim-fugitive",              -- Gread, Gwrite
     {
         "NeogitOrg/neogit",
+        version = 'v0.0.1',            -- for nvim 0.9
         dependencies = {
-            "sindrets/diffview.nvim",        -- optional - Diff integration
+            "sindrets/diffview.nvim",  -- optional - Diff integration
         },
         config = true
     },
