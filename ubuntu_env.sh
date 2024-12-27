@@ -36,7 +36,7 @@ if ! grep -q "# My fzf based quick commands" ~/.zshrc; then
 alias d='eval $(dirs | sed "s/ /\n/g" | fzf --reverse --height 30%)'
 alias f='vim $(fzf --preview "cat {}")'
 alias ff=f
-alias r='eval $(fc -ln 10000 | fzf --no-sort --height 60%)'
+alias r='eval $(fc -ln | fzf --no-sort --height 60%)'
 alias h='alias | grep "[a-z]=" | fzf --height 40%'
 alias x=r
 
