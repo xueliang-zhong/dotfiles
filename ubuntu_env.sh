@@ -43,6 +43,7 @@ alias x=r
 # Other useful alias
 alias python=python3
 alias p=python
+alias ag=rg
 EOF
   echo "Awesome changes made to ~/.zshrc."
 fi

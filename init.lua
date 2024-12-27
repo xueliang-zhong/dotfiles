@@ -234,7 +234,7 @@ vim.keymap.set("n", "z=",          ":Telescope spell_suggest<CR>", { noremap = t
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
 -- Function Keys
-vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
@@ -247,7 +247,7 @@ vim.keymap.set({"n", "i"}, "<F11>", function()
     vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
     vim.cmd('only')                 -- Close all other windows
     vim.cmd('TagbarOpen')           -- Tagbar works best here
-    vim.cmd('NvimTreeOpen')         -- Toggle NvimTree
+    vim.cmd('NvimTreeFindFile')     -- Toggle NvimTree
     -- vim.cmd('Neogit kind=split')    -- Git
     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
 end, { noremap = true, silent = true })
