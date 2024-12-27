@@ -59,12 +59,14 @@ require("lazy").setup({
     -- "nvim-treesitter/nvim-treesitter-context",
 
     -- Autocomplete
-    "neovim/nvim-lspconfig",
-    "hrsh7th/cmp-nvim-lsp",
-    "hrsh7th/cmp-buffer",
-    "hrsh7th/cmp-path",
-    "hrsh7th/cmp-cmdline",
-    "hrsh7th/nvim-cmp",
+    {
+        "hrsh7th/nvim-cmp",
+        dependencies = {
+            "hrsh7th/cmp-buffer",
+            "hrsh7th/cmp-path",
+            "hrsh7th/cmp-cmdline",
+        },
+    },
 
     -- Git
     "tpope/vim-fugitive",              -- Gread, Gwrite
@@ -104,7 +106,7 @@ cmp.setup({
         ['<C-b>'] = cmp.mapping.scroll_docs(-4),
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
         ['<C-e>'] = cmp.mapping.abort(),
-        ['<CR>'] = cmp.mapping.confirm({ select = true }) -- Accept currently selected item.
+        ['<CR>'] = cmp.mapping.confirm({ select = true }), -- Accept currently selected item.
 
         -- Improve Tab behavior in autocomplete
         ['<Tab>'] = cmp.mapping(function(fallback)
@@ -123,9 +125,8 @@ cmp.setup({
             end
         end, { "i", "s" }),
     }),
+    -- only following basic sources are enabled
     sources = cmp.config.sources({
-        { name = 'vim_lsp' },
-    }, {
         { name = 'buffer' },
         { name = 'path' },
     })
