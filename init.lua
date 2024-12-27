@@ -21,7 +21,10 @@ vim.opt.tags = ""
 vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 
+
+--
 -- Plugin Management with lazy.nvim
+--
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
     vim.fn.system({
@@ -35,6 +38,8 @@ if not vim.loop.fs_stat(lazypath) then
 end
 vim.opt.rtp:prepend(lazypath)
 
+local function ___lazy_plugin_management__() end
+
 require("lazy").setup({
     "folke/which-key.nvim",
     "tpope/vim-commentary",            -- commenting plugin
@@ -46,7 +51,7 @@ require("lazy").setup({
 
     -- IDE
     "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
-    "liuchengxu/vista.vim",
+    "preservim/tagbar",                -- tagbar suits my style better (than vista.vim or other ones)
     "nvim-tree/nvim-web-devicons",     -- needed by IDE Plugins
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
 
@@ -246,7 +251,7 @@ vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, 
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f8>", "<ESC>:Vista!!<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
 
@@ -254,7 +259,7 @@ vim.keymap.set({"n", "i"}, "<F11>", function()
     local original_win = vim.fn.win_getid()  -- Remember the current window ID
     vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
     vim.cmd('only')                 -- Close all other windows
-    vim.cmd('Vista')                -- Toggle Vista
+    vim.cmd('TagbarOpen')           -- Tagbar works best here
     vim.cmd('NvimTreeOpen')         -- Toggle NvimTree
     -- vim.cmd('Neogit kind=split')    -- Git
     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
