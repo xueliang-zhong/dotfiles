@@ -254,10 +254,10 @@ vim.keymap.set({"n", "i"}, "<F11>", function()
     local original_win = vim.fn.win_getid()  -- Remember the current window ID
     vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
     vim.cmd('only')                 -- Close all other windows
+    vim.cmd('Vista')              -- Toggle Vista
     vim.cmd('NvimTreeOpen')         -- Toggle NvimTree
     vim.cmd('Neogit kind=split')    -- Git
-    vim.cmd('Vista')              -- Toggle Vista
-    vim.fn.win_gotoid(original_win)
+    vim.cmd('wincmd p')
 end, { noremap = true, silent = true })
 
 -- <f5> and <f12>: used by tmux
