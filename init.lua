@@ -36,20 +36,29 @@ end
 vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
-    "majutsushi/tagbar",               -- tagbar
     "folke/which-key.nvim",
-    "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
+
+    -- IDE
+    "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
+    "liuchengxu/vista.vim",
+    "nvim-tree/nvim-web-devicons",     -- needed by IDE Plugins
 
     "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
     "nvim-lua/plenary.nvim",           -- dependency for telescope
 
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
 
+    -- Git
+    "tpope/vim-fugitive",              -- Gread, Gwrite
     {
-        "tpope/vim-fugitive",          -- git integration
-        tag = "v3.6",                  -- more stable
+        "NeogitOrg/neogit",
+        dependencies = {
+            "nvim-lua/plenary.nvim",         -- required
+            "sindrets/diffview.nvim",        -- optional - Diff integration
+        },
+        config = true
     },
 
     -- LSP support
@@ -138,10 +147,16 @@ telescope.setup({
     },
 })
 
--- nvim-tree setup using defaults
-require("nvim-tree").setup()
+-- IDE (tagbar & nvim-tree) setup
 
--- fugitive
+require("nvim-tree").setup({
+  renderer = {
+    group_empty = true,
+  },
+  filters = {
+    dotfiles = true,
+  },
+})
 
 -- which-key
 require("which-key").setup({})
@@ -176,6 +191,14 @@ require("lualine").setup({
     },
 })
 
+-- Neogit
+local neogit = require("neogit")
+
+neogit.setup {
+    -- Hides the hints at the top of the status buffer
+    disable_hint = false,
+}
+
 --
 -- Keys (Leader Key and Function Keys)
 --
@@ -197,7 +220,7 @@ vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true
 -- Note : TODO: space as leader key makes typing <space> sluggish
 vim.g.mapleader = " "
 
-vim.keymap.set("n", "<leader><leader>", ":Telescope buffers<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader><leader>", ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
@@ -207,7 +230,7 @@ vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Git<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      ":Neogit kind=split<CR><C-w>L", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 
@@ -222,8 +245,9 @@ vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f8>", "<ESC>:Vista!!<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f11>", "<ESC>:on<CR>:Vista!!<CR>:NvimTreeToggle<CR><C-w><C-w>", { noremap = true, silent = true })
 -- <f5> and <f12>: used by tmux

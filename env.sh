@@ -1,49 +1,32 @@
 #!/bin/bash
 # source install.sh
 
-export NVIM_HOME=~/.config/nvim
-DOT_FILE_PATH=$(realpath $0 | xargs dirname)
-cd $DOT_FILE_PATH
+export CP_CMD="cp -f"
 
 # vim
 rm -f ~/.vimrc
-ln -sf $PWD/vimrc ~/.vimrc
+$CP_CMD ./vimrc ~/.vimrc
 
 # nvim
-rm -rf $NVIM_HOME
-mkdir -p $NVIM_HOME
-ln -sf $PWD/init.lua $NVIM_HOME/init.lua
+mkdir -p ~/.config/nvim/
+rm -f ~/.config/nvim/init.lua
+$CP_CMD ./init.lua ~/.config/nvim/init.lua
 
-# emacs
+# doom-emacs
 mkdir -p ~/.doom.d/
 rm -f ~/.doom.d/init.el
 rm -f ~/.doom.d/config.el
-ln -sf $PWD/doom-init.el ~/.doom.d/init.el
-ln -sf $PWD/doom-config.el ~/.doom.d/config.el
+$CP_CMD ./doom-init.el   ~/.doom.d/init.el
+$CP_CMD ./doom-config.el ~/.doom.d/config.el
 
 # tmux
 rm -f ~/.tmux.conf
-ln -sf $PWD/tmux.conf ~/.tmux.conf
+$CP_CMD ./tmux.conf ~/.tmux.conf
 
 # ~/bin
 mkdir -p ~/bin/
-cp -f $PWD/links ~/bin/
-
-# Git Config
-git config --global user.name "Xueliang Zhong"
-git config --global user.email "xueliang.zhong@arm.com"
-export EDITOR='vim'
-
-# fzf
-if [ ! -d "$HOME/.fzf" ]; then
-    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-    ~/.fzf/install
-fi
-
-# Oh My Zsh
-if [ ! -d "$HOME/.oh-my-zsh" ]; then
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --keep-zshrc
-fi
+rm -rf ~/bin/links
+$CP_CMD ./links ~/bin/
 
 #
 # My fzf based quick commands
@@ -54,10 +37,3 @@ alias ff=f
 alias r='eval $(fc -ln 10000 | fzf --no-sort --reverse --height 40%)'
 alias h=r
 alias x=r
-
-
-
-#
-# DONE
-#
-echo "Done copying configs and scripts"
