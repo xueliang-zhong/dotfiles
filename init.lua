@@ -230,7 +230,7 @@ vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      ":Neogit kind=split<CR><C-w>L", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      ":Neogit kind=split<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
 
@@ -256,7 +256,7 @@ vim.keymap.set({"n", "i"}, "<F11>", function()
     vim.cmd('only')                 -- Close all other windows
     vim.cmd('Vista')                -- Toggle Vista
     vim.cmd('NvimTreeOpen')         -- Toggle NvimTree
-    vim.cmd('Neogit kind=split')    -- Git
+    -- vim.cmd('Neogit kind=split')    -- Git
     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
 end, { noremap = true, silent = true })
 
