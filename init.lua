@@ -40,14 +40,14 @@ require("lazy").setup({
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
 
+    -- Fuzzy finder
+    "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+    "nvim-lua/plenary.nvim",           -- dependency for telescope, neogit
+
     -- IDE
     "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
     "liuchengxu/vista.vim",
     "nvim-tree/nvim-web-devicons",     -- needed by IDE Plugins
-
-    "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
-    "nvim-lua/plenary.nvim",           -- dependency for telescope
-
     "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
 
     -- Git
@@ -55,7 +55,6 @@ require("lazy").setup({
     {
         "NeogitOrg/neogit",
         dependencies = {
-            "nvim-lua/plenary.nvim",         -- required
             "sindrets/diffview.nvim",        -- optional - Diff integration
         },
         config = true
