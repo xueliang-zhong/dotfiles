@@ -249,5 +249,15 @@ vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, 
 vim.keymap.set({"n","i"}, "<f8>", "<ESC>:Vista!!<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f11>", "<ESC>:on<CR>:Vista!!<CR>:NvimTreeToggle<CR><C-w><C-w>", { noremap = true, silent = true })
+
+vim.keymap.set({"n", "i"}, "<F11>", function()
+    local original_win = vim.fn.win_getid()  -- Remember the current window ID
+    vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
+    vim.cmd('only')                 -- Close all other windows
+    vim.cmd('NvimTreeOpen')         -- Toggle NvimTree
+    vim.cmd('Neogit kind=split')    -- Git
+    vim.cmd('Vista')              -- Toggle Vista
+    vim.fn.win_gotoid(original_win)
+end, { noremap = true, silent = true })
+
 -- <f5> and <f12>: used by tmux
