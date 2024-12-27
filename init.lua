@@ -224,7 +224,7 @@ vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = tr
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:Neogit kind=split<CR><C-w>L", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
-vim.keymap.set({"n","i"}, "<leader>cc", ":make -f nvim.makefile<CR>:copen<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 
 vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
 
