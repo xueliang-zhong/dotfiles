@@ -21,7 +21,6 @@ vim.opt.tags = ""
 vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 
-
 --
 -- Plugin Management with lazy.nvim
 --
@@ -247,12 +246,12 @@ vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
 -- some emacs key bindings that work well for me
 vim.keymap.set({"n", "i"}, "<C-x><C-o>", function()
-  if vim.api.nvim_get_current_line():match("^%s*$") then
-    return vim.api.nvim_replace_termcodes("<Esc>dd", true, false, true)
-  else
-    return ""
+  local current_line = vim.api.nvim_get_current_line()
+  while current_line:match("^%s*$") do
+    vim.api.nvim_command("normal! dd")
+    current_line = vim.api.nvim_get_current_line()
   end
-end, { noremap = true, silent = true, expr = true })
+end, { noremap = true, silent = true })
 
 -- emacs's <C-a> and <C-k> in :ex mode and / search
 vim.cmd("cmap <C-a> <Home>")
@@ -263,6 +262,9 @@ vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })
+
+-- Gitsigns
+vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Leader Keys
 -- Note : TODO: space as leader key makes typing <space> sluggish
@@ -285,12 +287,10 @@ vim.keymap.set("n", "z=",               ":Telescope spell_suggest<CR>", { norema
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:Neogit kind=vsplit<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Misc leader keys
 vim.keymap.set("n", "<leader>bs",       ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
-
 
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
