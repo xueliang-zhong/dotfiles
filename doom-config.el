@@ -362,11 +362,15 @@
   (evil-ex-nohighlight))
 
 (defun xueliang-scp_sync-script () (interactive)
-       (find-file-other-window "~/workspace/local_dir/scp_sync.sh")
-       (+evil/window-move-right)
-)
+  (find-file-other-window "~/workspace/local_dir/scp_sync.sh")
+  (+evil/window-move-right))
 
-(defun xueliang-find-file-in-dotfiles () (interactive) (counsel-find-file nil "~/workspace/dotfiles/"))
+(defun xueliang-find-file-in-dotfiles () (interactive)
+  (counsel-find-file nil "~/workspace/dotfiles/"))
+
+(defun xueliang-copen-quickfix () (interactive)
+  (message "once copen, just do 'n' or 'N' search")
+  (ivy-occur-next-error 1))
 
 (defun eshell/e (f) (find-file-other-frame f))
 (defalias 'eshell/vi 'eshell/e)
