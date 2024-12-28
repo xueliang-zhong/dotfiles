@@ -69,6 +69,7 @@ require("lazy").setup({
     },
 
     -- Git
+    "lewis6991/gitsigns.nvim",         -- Git Gutter
     "tpope/vim-fugitive",              -- Gread, Gwrite
     {
         "NeogitOrg/neogit",
@@ -84,12 +85,16 @@ require("lazy").setup({
 
     -- themes --
     "catppuccin/nvim",
+    "folke/tokyonight.nvim",
 })
 
 -- Colorscheme
-require("catppuccin").setup({})
 vim.opt.termguicolors = true
-vim.cmd("colorscheme catppuccin-macchiato") -- Use the default colorscheme (you can change this later)
+-- To quickly select theme:
+-- https://vimcolorschemes.com/i/trending
+-- map <F2> :Telescope colorscheme<CR>
+vim.cmd("colorscheme catppuccin-mocha") -- Good ones: catppuccin-mocha, tokyonight-night
+require("catppuccin").setup({})
 
 -- Jump to the last position when reopening a file
 vim.cmd([[autocmd BufReadPost * normal! g'"]])
@@ -148,6 +153,17 @@ telescope.setup({
             height = 0.84,
             preview_width = 0.618,
         },
+        mappings = {
+            i = {
+                -- make <C-a> and <C-k> mappings more like emacs in Telescope search
+                ["<C-a>"] = function()
+                    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Home>", true, false, true), "n", true)
+                end,
+                ["<C-k>"] = function()
+                    vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<ESC>lDD", true, false, true), "n", true)
+                end,
+            },
+        },
     },
 })
 
@@ -163,7 +179,10 @@ require("nvim-tree").setup({
 })
 
 -- which-key
-require("which-key").setup({})
+require("which-key").setup({
+    preset = "modern", -- "helix",
+    delay = 1,
+})
 
 -- lualine
 require("lualine").setup({
@@ -182,13 +201,35 @@ require("lualine").setup({
     },
 })
 
--- Neogit
+-- Git (Neogit, Gitsigns)
 local neogit = require("neogit")
 
-neogit.setup {
+neogit.setup ({
     -- Hides the hints at the top of the status buffer
     disable_hint = false,
-}
+    -- use_default_keymaps = false, -- doesn't seem to work?
+})
+
+require('gitsigns').setup()
+-- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
+vim.keymap.set("n", "<ESC>", "<ESC>jk", { noremap = true, silent = true })
+
+--
+-- autocommands
+--
+
+-- high tail whitespaces
+vim.cmd [[highlight ExtraWhitespace ctermbg=red guibg=red]]
+
+-- Match trailing whitespace
+vim.api.nvim_create_autocmd({"BufWinEnter", "InsertLeave"}, {
+    pattern = "*",
+    command = "match ExtraWhitespace /\\s\\+$/"
+})
+vim.api.nvim_create_autocmd("InsertEnter", {
+    pattern = "*",
+    command = "match none"
+})
 
 --
 -- Keys (Leader Key and Function Keys)
@@ -196,39 +237,60 @@ neogit.setup {
 local function ___keys_leader_Fn_remap__() end
 
 -- Awesome remap keys
--- vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv") -- move selected region down
--- vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv") -- move selected region up
+-- Move selected region up or down, works great with 'vip'
+vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
 vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
 
+vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
+
+-- some emacs key bindings that work well for me
+vim.keymap.set({"n", "i"}, "<C-x><C-o>", function()
+  if vim.api.nvim_get_current_line():match("^%s*$") then
+    return vim.api.nvim_replace_termcodes("<Esc>dd", true, false, true)
+  else
+    return ""
+  end
+end, { noremap = true, silent = true, expr = true })
+
+-- emacs's <C-a> and <C-k> in :ex mode and / search
+vim.cmd("cmap <C-a> <Home>")
+vim.cmd("cmap <C-k> <C-\\>e strpart(getcmdline(), 0, getcmdpos() - 1)<CR>")
+
 -- better window movements
-vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true })  -- emacs style
-vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })  -- emacs style
-vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true })  -- emacs style
-vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })
 
 -- Leader Keys
 -- Note : TODO: space as leader key makes typing <space> sluggish
 vim.g.mapleader = " "
 
+-- Telescope related leader kesy
 vim.keymap.set("n", "<leader><leader>", ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>/",       ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>?",       ":Telescope keymaps<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>*",       ":Telescope grep_string<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>ff",      ":Telescope find_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>fp",      ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>fr",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader><CR>",    ":Telescope oldfiles<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>\\",      ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>/",        ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>?",        ":Telescope keymaps<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>*",        ":Telescope grep_string<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>ff",       ":Telescope find_files<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fp",       ":Telescope find_files cwd=~/workspace/dotfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>fr",       ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>\\",       ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader><CR>",     ":Telescope oldfiles<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>sj",       ":Telescope jumplist<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "z=",               ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
+
+-- git related leader keys
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:Neogit kind=vsplit<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>bs",      ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
+vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
+
+-- Misc leader keys
+vim.keymap.set("n", "<leader>bs",       ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 
-vim.keymap.set("n", "<leader>sj",      ":Telescope jumplist<CR>", { noremap = true, silent = true })
-
--- Other Useful Keys Based On Telescope
-vim.keymap.set("n", "z=",          ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
 
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
