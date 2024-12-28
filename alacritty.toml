@@ -1,0 +1,27 @@
+[general]
+import = [
+    #
+    # all themes
+    # https://github.com/alacritty/alacritty-theme
+    #
+    "~/.config/alacritty/themes/themes/tokyo_night.toml"
+]
+
+[env]
+TERM = "xterm-256color"
+
+
+[window]
+padding.x = 0
+padding.y = 0
+
+[font]
+size = 17
+
+# This makes the fonts look sharp
+normal.family = "JetBrainsMonoNL NFP"
+normal.style = "Light"
+
+bold.family = "JetBrainsMonoNL NFP"
+bold.style = "Light"
+
