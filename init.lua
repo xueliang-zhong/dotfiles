@@ -177,6 +177,19 @@ require("nvim-tree").setup({
   },
 })
 
+-- Git (Neogit, Gitsigns)
+local neogit = require("neogit")
+
+neogit.setup ({
+    -- Hides the hints at the top of the status buffer
+    disable_hint = false,
+    -- use_default_keymaps = false, -- doesn't seem to work?
+})
+
+require('gitsigns').setup()
+-- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
+vim.keymap.set("n", "<ESC>", "<ESC>jk<ESC>", { noremap = true, silent = true })
+
 -- which-key
 require("which-key").setup({
     preset = "helix", -- "modern" can be too distracting
@@ -199,19 +212,6 @@ require("lualine").setup({
         lualine_z = { "location" },
     },
 })
-
--- Git (Neogit, Gitsigns)
-local neogit = require("neogit")
-
-neogit.setup ({
-    -- Hides the hints at the top of the status buffer
-    disable_hint = false,
-    -- use_default_keymaps = false, -- doesn't seem to work?
-})
-
-require('gitsigns').setup()
--- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
-vim.keymap.set("n", "<ESC>", "<ESC>jk<ESC>", { noremap = true, silent = true })
 
 --
 -- autocommands
@@ -267,7 +267,6 @@ local function generate_and_load_tags()
         print("Tags generated and loaded from the Git root: " .. git_root)
     end
 end
-
 
 --
 -- Keys (Leader Key and Function Keys)
