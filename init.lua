@@ -303,6 +303,11 @@ vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { nore
 vim.keymap.set("n", "<leader>bs",       ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 
+vim.keymap.set("n", "<leader>tt", function()
+    print ("recreating a new tags file now ...")
+    generate_and_load_tags()
+end, { noremap = true, silent = true, desc = "Regnerate a new tags file" })
+
 vim.keymap.set("n", "<leader>]", function()
     if vim.fn.filereadable("tags") == 0 then
         print ("tags file not found, creating a new one now ...")
