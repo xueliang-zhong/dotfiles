@@ -202,7 +202,6 @@ neogit.setup ({
 vim.api.nvim_create_autocmd({"TextChanged", "CursorMoved"}, {
     pattern = "NeogitStatus",
     callback = function()
-        print("Enforce: key pressed or text changed")
         vim.api.nvim_buf_set_keymap(0, "n", "l", "<Right>", { noremap = true, silent = true })
     end,
 })
