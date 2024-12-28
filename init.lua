@@ -43,15 +43,6 @@ require("lazy").setup({
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
 
-    -- Greetings dashboard
-    {
-        "goolord/alpha-nvim",
-        dependencies = { 'echasnovski/mini.icons' },
-        config = function ()
-            require'alpha'.setup(require'alpha.themes.startify'.config)
-        end
-    },
-
     -- Fuzzy finder
     "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
     "nvim-lua/plenary.nvim",           -- dependency for telescope, neogit
@@ -303,6 +294,10 @@ vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
 
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
+
+-- Efficient quickfix navigation; make sure to it with Telescope and <C-q>
+vim.keymap.set("n", "<C-n>", ":cnext<CR>")
+vim.keymap.set("n", "<C-p>", ":cprev<CR>")
 
 -- some emacs key bindings that work well for me
 vim.keymap.set({"n", "i"}, "<C-x><C-o>", function()
