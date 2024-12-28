@@ -129,6 +129,11 @@
   (define-key ivy-mode-map (kbd "TAB") 'ivy-next-line)
 )
 
+(after! swiper
+  ;; similar behaviour like nvim's Telescope + quickfix
+  (define-key swiper-map (kbd "C-q") #'ivy-occur)
+)
+
 ;;
 ;; Compoany Mode Settings
 ;;
@@ -372,3 +377,4 @@
 ;;
 (defalias 'xueliang-sort 'org-sort)
 (defalias 'xueliang-capitalize-region 'capitalize-region)
+(defalias 'xueliang-copen-quickfix 'ivy-occur-next-error)  ;; once copen, just do 'n' or 'N' search
