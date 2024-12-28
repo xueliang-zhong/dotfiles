@@ -40,7 +40,6 @@ vim.opt.rtp:prepend(lazypath)
 local function ___lazy_plugin_management__() end
 
 require("lazy").setup({
-    "folke/which-key.nvim",
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
 
@@ -86,6 +85,15 @@ require("lazy").setup({
             "sindrets/diffview.nvim",  -- optional - Diff integration
         },
         config = true
+    },
+
+    {
+        "folke/which-key.nvim",
+        preset = "helix", -- "modern" can be too distracting
+        event = "VeryLazy",
+        opts = {
+            delay = 500, -- ms (?)
+        },
     },
 
     -- LSP support
@@ -209,12 +217,6 @@ vim.api.nvim_create_autocmd({"TextChanged", "CursorMoved"}, {
 require('gitsigns').setup()
 -- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
 vim.keymap.set("n", "<ESC>", "<ESC>jk<ESC>", { noremap = true, silent = true })
-
--- which-key
-require("which-key").setup({
-    preset = "helix", -- "modern" can be too distracting
-    delay = 1,
-})
 
 -- lualine
 require("lualine").setup({
