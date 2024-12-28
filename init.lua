@@ -44,6 +44,15 @@ require("lazy").setup({
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
 
+    -- Greetings dashboard
+    {
+        "goolord/alpha-nvim",
+        dependencies = { 'echasnovski/mini.icons' },
+        config = function ()
+            require'alpha'.setup(require'alpha.themes.startify'.config)
+        end
+    },
+
     -- Fuzzy finder
     "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
     "nvim-lua/plenary.nvim",           -- dependency for telescope, neogit
