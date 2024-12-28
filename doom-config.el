@@ -19,10 +19,10 @@
         evil-motion-state-modes nil
         evil-shift-width 2)
 
-  (setq doom-theme 'doom-one) ;; or doom-bluloco-{dark,light}
+  (setq doom-theme 'doom-bluloco-light) ;; or doom-bluloco-{dark,light}
 
   (setq doom-font (cond
-                   ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 16))
+                   ((string-equal system-type "darwin") (font-spec :family "JetBrainsMono NFP" :size 16 :weight 'medium))
                    ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
                    ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
 )
@@ -65,6 +65,7 @@
       "scp" #'xueliang-scp_sync-script
       "wg"  #'golden-ratio
       "w="  #'balance-windows
+      "fp"  #'xueliang-find-file-in-dotfiles ;; for now
 )
 
 ;;
@@ -98,19 +99,19 @@
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
                                (kbd "<f7>")      #'xueliang-refresh
-                               (kbd "<f8>")      #'xueliang-org-focus-tasks)
+                               (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
                                (kbd "M-<right>") #'org-shiftmetaright)
                              ;; face settings
-                             (set-face-attribute 'org-level-1 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-2 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-3 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-4 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-5 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-level-6 nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-link    nil :bold nil :height 1.0)
-                             (set-face-attribute 'org-table   nil :bold nil :height 1.0)
+                             (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'medium)
+                             (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
                              ;; light mode settings
                              (when (eq 'light (frame-parameter nil 'background-mode))
                              (set-face-attribute 'org-level-3 nil :foreground "#275fe4")
@@ -173,11 +174,11 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'xueliang-refresh)
+(global-set-key (kbd "<f7>")  #'+ivy/compile)
 (global-set-key (kbd "<f8>")  #'counsel-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
-(global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
+(global-set-key (kbd "<f11>") #'xueliang-org-focus-tasks)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -218,8 +219,12 @@
 (defun xueliang-org-find-today () (interactive)
    (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
    (goto-char (point-min))
-   (unless (search-forward date-string nil t)
-     (goto-char (point-max)) (insert (format "\n\n* %s\n" date-string)))
+   (when (eq major-mode 'org-mode)
+     (unless (search-forward date-string nil t)
+       ;; go to end of file
+       (goto-char (point-max))
+       ;; insert today
+       (insert (format "\n\n* %s\n" date-string))))
    (swiper date-string)
    (evil-ex-nohighlight) (evil-force-normal-state))
 
@@ -355,6 +360,8 @@
        (find-file-other-window "~/workspace/local_dir/scp_sync.sh")
        (+evil/window-move-right)
 )
+
+(defun xueliang-find-file-in-dotfiles () (interactive) (counsel-find-file nil "~/workspace/dotfiles/"))
 
 (defun eshell/e (f) (find-file-other-frame f))
 (defalias 'eshell/vi 'eshell/e)
