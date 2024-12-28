@@ -183,7 +183,19 @@ local neogit = require("neogit")
 neogit.setup ({
     -- Hides the hints at the top of the status buffer
     disable_hint = false,
-    -- use_default_keymaps = false, -- doesn't seem to work?
+    popup = {
+        -- Make sure hjkl keys are only for vim style moving
+        ["l"] = "false",
+    },
+})
+
+-- Make sure hjkl keys are only for vim style moving NeogitStatus
+vim.api.nvim_create_autocmd({"TextChanged", "CursorMoved"}, {
+    pattern = "NeogitStatus",
+    callback = function()
+        print("Enforce: key pressed or text changed")
+        vim.api.nvim_buf_set_keymap(0, "n", "l", "<Right>", { noremap = true, silent = true })
+    end,
 })
 
 require('gitsigns').setup()
