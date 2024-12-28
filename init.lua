@@ -179,7 +179,7 @@ require("nvim-tree").setup({
 
 -- which-key
 require("which-key").setup({
-    preset = "modern", -- "helix",
+    preset = "helix", -- "modern" can be too distracting
     delay = 1,
 })
 
@@ -211,7 +211,7 @@ neogit.setup ({
 
 require('gitsigns').setup()
 -- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
-vim.keymap.set("n", "<ESC>", "<ESC>jk", { noremap = true, silent = true })
+vim.keymap.set("n", "<ESC>", "<ESC>jk<ESC>", { noremap = true, silent = true })
 
 --
 -- autocommands
@@ -229,6 +229,16 @@ vim.api.nvim_create_autocmd("InsertEnter", {
     pattern = "*",
     command = "match none"
 })
+
+-- auto ctags
+
+-- Define the function to generate and load tags
+local function generate_and_load_tags()
+    vim.fn.system("ctags -R --exclude=.git --exclude=build .")
+    vim.opt.tags:append("./tags")
+    print("tags generated and loaded!")
+end
+
 
 --
 -- Keys (Leader Key and Function Keys)
@@ -252,6 +262,7 @@ vim.keymap.set({"n", "i"}, "<C-x><C-o>", function()
     current_line = vim.api.nvim_get_current_line()
   end
 end, { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
 
 -- emacs's <C-a> and <C-k> in :ex mode and / search
 vim.cmd("cmap <C-a> <Home>")
@@ -292,7 +303,15 @@ vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { nore
 vim.keymap.set("n", "<leader>bs",       ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 
-vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set("n", "<leader>]", function()
+    if vim.fn.filereadable("tags") == 0 then
+        print ("tags file not found, creating a new one now ...")
+        generate_and_load_tags()
+    end
+    vim.opt.tags:append("./tags")
+    local cword = vim.fn.expand("<cword>") -- Get the word under the cursor
+    require('telescope.builtin').tags({ default_text = cword }) -- Pass <cword> as the search input
+end, { noremap = true, silent = true, desc = "ctags preview current <cword>" })
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
