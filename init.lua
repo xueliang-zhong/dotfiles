@@ -65,6 +65,9 @@ require("lazy").setup({
     -- "nvim-treesitter/nvim-treesitter", -- main plugin for tree-sitter
     -- "nvim-treesitter/nvim-treesitter-context",
 
+    -- LSP support
+    -- NOTE: don't have to enable it, just keep nvim light weight & simple
+
     -- Autocomplete
     {
         "hrsh7th/nvim-cmp",
@@ -95,9 +98,6 @@ require("lazy").setup({
             delay = 500, -- ms (?)
         },
     },
-
-    -- LSP support
-    -- NOTE: don't have to enable it, just keep nvim light weight & simple
 
     -- themes --
     "catppuccin/nvim",
@@ -402,7 +402,6 @@ vim.keymap.set({"n", "i"}, "<F11>", function()
     vim.cmd('only')                 -- Close all other windows
     vim.cmd('TagbarOpen')           -- Tagbar works best here
     vim.cmd('NvimTreeFindFile')     -- Toggle NvimTree
-    -- vim.cmd('Neogit kind=split')    -- Git
     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
 end, { noremap = true, silent = true })
 
