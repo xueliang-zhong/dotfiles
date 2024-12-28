@@ -26,6 +26,10 @@ CP_CMD ./doom-config.el ~/.doom.d/config.el
 rm -f ~/.tmux.conf
 CP_CMD ./tmux.conf ~/.tmux.conf
 
+# alacrity
+rm -f ~/.config/alacritty/alacritty.toml
+CP_CMD ./alacritty.toml ~/.config/alacritty/alacritty.toml
+
 # ~/bin
 mkdir -p ~/bin/
 rm -rf ~/bin/links

@@ -1,27 +1,42 @@
+#
+# https://alacritty.org/config-alacritty.html
+#
+
 [general]
-import = [
-    #
-    # all themes
-    # https://github.com/alacritty/alacritty-theme
-    #
-    "~/.config/alacritty/themes/themes/tokyo_night.toml"
-]
+import = ["~/.config/alacritty/themes/themes/tokyo_night.toml"]
+
+# make sure I can type '#' easily
+[[keyboard.bindings]]
+chars = "#"
+key = "Key3"
+mods = "Alt"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Command"
+action = "SpawnNewInstance"
+
+[window]
+startup_mode = "Maximized"
 
 [env]
 TERM = "xterm-256color"
 
-
-[window]
-padding.x = 0
-padding.y = 0
-
 [font]
 size = 17
 
-# This makes the fonts look sharp
-normal.family = "JetBrainsMonoNL NFP"
-normal.style = "Light"
+[font.bold]
+family = "JetBrainsMonoNL NFP"
+style = "Light"
 
-bold.family = "JetBrainsMonoNL NFP"
-bold.style = "Light"
+[font.normal]
+family = "JetBrainsMonoNL NFP"
+style = "Light"
+
+[window.padding]
+x = 0
+y = 0
+
+[mouse]
+hide_when_typing = true
 
