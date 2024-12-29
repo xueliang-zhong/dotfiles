@@ -8,7 +8,9 @@ CP_CMD() {
 
 # vim
 rm -f ~/.vimrc
-CP_CMD ./vimrc ~/.vimrc
+#CP_CMD ./vimrc ~/.vimrc
+CP_CMD ./gvimrc ~/.vimrc
+
 
 # nvim
 mkdir -p ~/.config/nvim/
