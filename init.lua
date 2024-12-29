@@ -335,6 +335,51 @@ vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true
 -- Gitsigns
 vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
+--
+-- My Commands
+--
+
+local function ___My_Commands__() end
+
+-- justfile to Makefile format
+local function justfile_to_makefile()
+    vim.cmd("%s/^[ ]\\+/\\t/g")   -- Replace leading spaces with tabs
+    vim.cmd("%s/[ ]*:=[ ]*/=/g")  -- Change variable definitions to Makefile style
+    vim.cmd("%s/{{/$(/g")         -- Replace variable opening braces with $(
+    vim.cmd("%s/}}/)/g")          -- Replace variable closing braces with )
+    vim.cmd("w! Makefile")
+end
+
+vim.api.nvim_create_user_command(
+    'JustfileToMakefileFormat',
+    justfile_to_makefile,
+    { desc = "Convert Justfile syntax to Makefile syntax" })
+
+-- SmallWindow Function
+vim.api.nvim_create_user_command(
+    'SmallWindow',
+    function()
+        vim.cmd("set nonu")
+        vim.cmd("set nocursorline")
+        -- Hide Gitsigns
+        require('gitsigns').toggle_signs(false)     -- Disable signs in the gutter
+        require('gitsigns').toggle_linehl(false)    -- Disable line highlights
+        require('gitsigns').toggle_numhl(false)     -- Disable number column highlights
+        require('gitsigns').toggle_word_diff(false) -- Disable word diffs
+    end, { desc = "make nvim suiable for small window or tmux copy" })
+
+vim.api.nvim_create_user_command(
+    'BigWindow',
+    function()
+        vim.cmd("set nu")
+        vim.cmd("set cursorline")
+        -- Show Gitsigns
+        require('gitsigns').toggle_signs(true)     -- Enable signs in the gutter
+        require('gitsigns').toggle_linehl(true)    -- Enable line highlights
+        require('gitsigns').toggle_numhl(true)     -- Enable number column highlights
+        require('gitsigns').toggle_word_diff(true) -- Enable word diffs
+    end, { desc = "make nvim suiable for big window and development" })
+
 -- Leader Keys
 -- Note : TODO: space as leader key makes typing <space> sluggish
 vim.g.mapleader = " "
