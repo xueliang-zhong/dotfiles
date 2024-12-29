@@ -19,8 +19,10 @@ CP_CMD ./init.lua ~/.config/nvim/init.lua
 mkdir -p ~/.doom.d/
 rm -f ~/.doom.d/init.el
 rm -f ~/.doom.d/config.el
-CP_CMD ./doom-init.el   ~/.doom.d/init.el
-CP_CMD ./doom-config.el ~/.doom.d/config.el
+rm -f ~/.doom.d/packages.el
+CP_CMD ./doom-init.el     ~/.doom.d/init.el
+CP_CMD ./doom-config.el   ~/.doom.d/config.el
+CP_CMD ./doom-packages.el ~/.doom.d/packages.el
 
 # tmux
 rm -f ~/.tmux.conf
