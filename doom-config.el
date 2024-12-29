@@ -100,7 +100,6 @@
                              (evil-define-key 'normal evil-org-mode-map
                                (kbd "<return>")  #'xueliang-org-open-at-point
                                (kbd "RET")       #'xueliang-org-open-at-point
-                               (kbd "<f7>")      #'xueliang-refresh
                                (kbd "<f8>")      #'xueliang-org-find-today)
                              (evil-define-key 'insert evil-org-mode-map
                                (kbd "M-<left>")  #'org-shiftmetaleft
