@@ -44,7 +44,14 @@ alias x=r
 alias python=python3
 alias p=python
 alias ag=rg
-alias make=just
+# NOTE: keep make as it is (avoid alias make=just), just in case some other project requires make
+
+
+# just command completion for shell
+just --completions zsh > ~/.just-completions.zsh
+echo >> ~/.zshrc
+echo "[ -f ~/.just-completions.zsh ] && source ~/.just-completions.zsh" >> ~/.zshrc
+
 EOF
   echo "Awesome changes made to ~/.zshrc."
 fi
