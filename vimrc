@@ -1,22 +1,6 @@
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Plugin List
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-call plug#begin('~/.vim/plugged')
-
-Plug 'tpope/vim-fugitive'               " the ultimate git helper: Gdiff, Glog, Gstatus ...
-Plug 'airblade/vim-gitgutter'           " show modifications to the file.
-Plug 'tpope/vim-commentary'             " comment/uncomment lines with gcc or gc in visual mode
-Plug 'majutsushi/tagbar'                " Tagbar
-Plug 'preservim/nerdtree'
-Plug 'vim-airline/vim-airline'          " Better status bar
-Plug 'vim-airline/vim-airline-themes'
-Plug 'ntpeters/vim-better-whitespace'   " Shows trailing whitespace, etc.
-Plug 'jnurmine/Zenburn'                 " Theme.
-Plug 'junegunn/fzf', { 'dir': '~/.fzf', 'do': './install --all' } " Fuzzy find Plugins.
-Plug 'junegunn/fzf.vim'
-Plug 'junegunn/vim-peekaboo'
-
-call plug#end()
 filetype plugin indent on
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -317,5 +301,5 @@ nnoremap <F5>  :terminal<CR>
 nnoremap <F7>  :NERDTreeToggle<CR>
 nnoremap <F8>  :TagbarToggle<CR>
 nnoremap <F9>  :Files<CR>
-nnoremap <F11> :call Xueliang_IDE_Windows_View_Toggle()<CR>
+mrnnoremap <F11> :call Xueliang_IDE_Windows_View_Toggle()<CR>
 nnoremap <F12> :!~/bin/links<CR><CR>
