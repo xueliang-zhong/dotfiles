@@ -234,6 +234,22 @@ require("lualine").setup({
 -- autocommands
 --
 
+-- Get some nice syntax highlighting
+vim.api.nvim_create_autocmd("BufRead", {
+    pattern = {"*.def", "*.cl"},  -- Corrected 'patter' to 'pattern'
+    command = "set filetype=cpp",
+})
+
+vim.api.nvim_create_autocmd("BufRead", {
+    pattern = {"*.org", "*.log", "*.txt"},
+    command = "set filetype=asm",
+})
+
+vim.api.nvim_create_autocmd("BufRead", {
+    pattern = {"*.sc", "BUILD"},
+    command = "set filetype=bash",
+})
+
 -- high tail whitespaces
 vim.cmd [[highlight ExtraWhitespace ctermbg=red guibg=red]]
 
