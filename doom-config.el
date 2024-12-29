@@ -181,7 +181,7 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'+ivy/compile)
+(global-set-key (kbd "<f7>")  #'xueliang-just-make)
 (global-set-key (kbd "<f8>")  #'counsel-imenu)
 (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
@@ -224,6 +224,7 @@
 
 
 (defun xueliang-org-find-today () (interactive)
+   (xueliang-refresh)
    (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
    (goto-char (point-min))
    (when (eq major-mode 'org-mode)
@@ -390,6 +391,11 @@
       ;; make it smaller so it feels more like vim quickfix window
       (shrink-window (- (window-height) 10)))
     (message "No ivy-occur buffer found.")))
+
+(defun xueliang-just-make ()
+  (interactive)
+  ;; this will rely on myself write a good justfile
+  (xueliang-eshell-popup) (insert "just all") (eshell-send-input))
 
 (defun eshell/e (f) (find-file-other-frame f))
 (defalias 'eshell/vi 'eshell/e)
