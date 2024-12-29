@@ -29,6 +29,7 @@ rm -f ~/.tmux.conf
 CP_CMD ./tmux.conf ~/.tmux.conf
 
 # alacrity
+mkdir -p ~/.config/alacritty/
 rm -f ~/.config/alacritty/alacritty.toml
 CP_CMD ./alacritty.toml ~/.config/alacritty/alacritty.toml
 
