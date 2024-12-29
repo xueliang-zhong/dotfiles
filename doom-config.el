@@ -43,13 +43,15 @@
 ;; MacBook UK layout '#' symbol
 (define-key evil-insert-state-map (kbd "M-3") #'(lambda() (interactive) (insert "#")))
 
+(define-key evil-normal-state-map (kbd "C-n") #'evil-ex-search-next)
+(define-key evil-normal-state-map (kbd "C-p") #'evil-ex-search-previous)
+
 ;;
 ;; Leader key bindings
 ;;
 
 ;; NOTE:
 ;; -- Need to be consistent with nvim
-;; -- I like leader key to be space
 ;;
 ;; (setq doom-leader-key ",")
 (map! :leader
@@ -131,7 +133,7 @@
 
 (after! swiper
   ;; similar behaviour like nvim's Telescope + quickfix
-  (define-key swiper-map (kbd "C-q") #'ivy-occur)
+  (define-key swiper-map (kbd "C-q") #'xueliang-ivy-occur)
 )
 
 ;;
@@ -368,9 +370,26 @@
 (defun xueliang-find-file-in-dotfiles () (interactive)
   (counsel-find-file nil "~/workspace/dotfiles/"))
 
-(defun xueliang-copen-quickfix () (interactive)
-  (message "once copen, just do 'n' or 'N' search")
-  (ivy-occur-next-error 1))
+(defun xueliang-ivy-occur () (interactive)
+       ;; invoke ivy-occur
+       (ivy-occur)
+       ;; not even this can be called in ivy-occur window
+       (ivy-occur-press-and-switch)
+       ;; however, ivy-occur doesn't allow me to call delete ivy-occur window, and open my own?
+       (delete-window) (xueliang-copen-quickfix))
+
+(defun xueliang-copen-quickfix ()
+  "Open a new window and switch to the latest `ivy-occur` buffer."
+  (interactive)
+  (let ((occur-buffer (car (seq-filter
+                            (lambda (buf) (string-match-p "^\\*ivy-occur" (buffer-name buf)))
+                            (buffer-list)))))
+    (when occur-buffer
+      ;; just like quickfjix window in vim
+      (split-window-below) (other-window 1) (switch-to-buffer occur-buffer)
+      ;; make it smaller so it feels more like vim quickfix window
+      (shrink-window (- (window-height) 10)))
+    (message "No ivy-occur buffer found.")))
 
 (defun eshell/e (f) (find-file-other-frame f))
 (defalias 'eshell/vi 'eshell/e)
@@ -381,4 +400,4 @@
 ;;
 (defalias 'xueliang-sort 'org-sort)
 (defalias 'xueliang-capitalize-region 'capitalize-region)
-(defalias 'xueliang-copen-quickfix 'ivy-occur-next-error)  ;; once copen, just do 'n' or 'N' search
+(defalias 'copen-xueliang-quickfix 'xueliang-copen-quickfix) ;; once copen, just do 'n' or 'N' search
