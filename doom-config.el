@@ -53,7 +53,6 @@
 ;; NOTE:
 ;; -- Need to be consistent with nvim
 ;;
-;; (setq doom-leader-key ",")
 (map! :leader
       "SPC" #'counsel-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer-window
@@ -64,10 +63,10 @@
       "tf"  #'toggle-frame-fullscreen
       "/"   #'counsel-grep-or-swiper
       "x"   #'counsel-M-x
-      "scp" #'xueliang-scp_sync-script
       "wg"  #'golden-ratio
       "w="  #'balance-windows
       "fp"  #'xueliang-find-file-in-dotfiles ;; for now
+      "RET" #'counsel-recentf
 )
 
 ;;
@@ -362,10 +361,6 @@
                         (propertize "DONE" 'face '(:foreground "grey51")))))
   (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
   (evil-ex-nohighlight))
-
-(defun xueliang-scp_sync-script () (interactive)
-  (find-file-other-window "~/workspace/local_dir/scp_sync.sh")
-  (+evil/window-move-right))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
   (counsel-find-file nil "~/workspace/dotfiles/"))

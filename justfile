@@ -2,7 +2,11 @@
 # emacs & nvim config files
 ###########################
 
-all: install # docker-build
+all: just-list install # docker-build
+
+just-list:
+    @echo just get familiar with justfile for this project
+    just --list
 
 install:
     @ls -l ~/.config/nvim/init.lua
@@ -29,4 +33,4 @@ docker-attach:
 
 docker-clean:
     docker stop {{CONTAINER}}
-    docker rm {{CONTAINER}}
+    docker rm   {{CONTAINER}}
