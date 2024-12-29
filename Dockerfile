@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     bat binutils bison build-essential chrpath cmake cpio curl debianutils diffstat  \
     file flex fontconfig fzf gawk gcc gettext git git-core gnupg htop iputils-ping  \
     libacl1 libgl1-mesa-dev libxml2-utils  \
-    locales make nano neovim ninja-build python3 python3-git python3-jinja2  \
+    locales make just nano neovim ninja-build python3 python3-git python3-jinja2  \
     python3-pexpect python3-pip python3-subunit ripgrep socat sudo texinfo tree  \
     universal-ctags unzip wget xsltproc xz-utils zip zlib1g-dev zsh zstd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*

@@ -20,6 +20,7 @@ vim.opt.clipboard = "unnamedplus" -- System clipboard for MacOS
 vim.opt.tags = ""
 vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
+vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
 
 --
 -- Plugin Management with lazy.nvim
@@ -46,6 +47,9 @@ require("lazy").setup({
     -- Fuzzy finder
     "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
     "nvim-lua/plenary.nvim",           -- dependency for telescope, neogit
+
+    -- justfile support
+    'NoahTheDuke/vim-just',
 
     -- IDE
     "nvim-tree/nvim-tree.lua",         -- nerdtree for neovim
@@ -241,6 +245,15 @@ vim.api.nvim_create_autocmd({"BufWinEnter", "InsertLeave"}, {
 vim.api.nvim_create_autocmd("InsertEnter", {
     pattern = "*",
     command = "match none"
+})
+
+-- justfile support
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
+    pattern = "justfile",
+    callback = function()
+        -- invoke 'just' when typing :make
+        vim.bo.makeprg = "just"
+    end,
 })
 
 -- Define the function to generate and load tags
