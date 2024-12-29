@@ -1,5 +1,5 @@
 "
-" Plugin less config of vimrc
+" No plugin config of vimrc
 "
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -103,9 +103,10 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
 " Git commands
-command! Gwrite :terminal git add %
-command! Gdiff  :terminal git diff HEAD
-command! Gblame :terminal git blame %
+command! Gwrite  :terminal git add %
+command! Gdiff   :terminal git diff HEAD
+command! Gblame  :terminal git blame %
+command! Gcommit :terminal git commit
 
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
