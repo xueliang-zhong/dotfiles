@@ -397,7 +397,8 @@ end, { noremap = true, silent = true, desc = "ctags preview current <cword>" })
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f4>", "<ESC>:fc<CR><ESC>:q<CR>", { noremap = true, silent = true })
+-- NOTE: :fc<CR> to close floating window (not supported in older nvim)
+vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
