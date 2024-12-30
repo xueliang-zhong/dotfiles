@@ -347,3 +347,11 @@ function! DeleteBlankLine()
     execute "normal! dd"
   endif
 endfunction
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => My Snippets
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" NOTE: , as prefix for all my snippets
+" Create org structure and fold it
+nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>vip:fold<CR>
+
