@@ -415,7 +415,7 @@ vim.keymap.set("n", "z=",               ":Telescope spell_suggest<CR>", { norema
 
 -- git related leader keys
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:Neogit kind=vsplit<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:terminal lazygit<CR>:startinsert<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Misc leader keys
