@@ -249,6 +249,11 @@ if has("gui_running")
     set guifont=JetBrains\ Mono\ NL:h11
     set guioptions-=T
 
+    " SHELL : set shell to Git Bash
+    set shell=C:/Program\ Files/Git/bin/bash.exe
+    set shellcmdflag=-c
+    set shellxquote=
+
     " KEYS
     nnoremap <F8>  <ESC>:grep "^\*" %<CR>:copen<CR>
     nnoremap <F11> <ESC>:call OpenUrlWithExplorer()<CR>
