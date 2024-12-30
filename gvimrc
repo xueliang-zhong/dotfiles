@@ -104,7 +104,7 @@ endif
 
 " Git commands
 command! Gwrite  :terminal git add %
-command! Gdiff   :terminal git diff HEAD
+command! Gdiff   :vertical terminal git diff HEAD
 command! Gblame  :terminal git blame %
 command! Gcommit :terminal git commit -m "update %s"
 
@@ -117,7 +117,6 @@ command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 " Get some nice syntax highlighting
 autocmd BufRead *.log set filetype=asm
 autocmd BufRead *.txt set filetype=asm
-autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.cl  set filetype=c
 autocmd BufRead *.sc  set filetype=python
@@ -203,11 +202,11 @@ inoremap <C-j> <C-\><C-n><C-w><C-j>
 inoremap <C-k> <C-\><C-n><C-w><C-k>
 inoremap <C-l> <C-\><C-n><C-w><C-l>
 
-" <Tab> in normal mode will toggle folds, similar to emacs org-mode.
-" - create fold: vip zf
-" - delete fold: zd
-" - toggle fold: za (my approach: <Tab>)
-nnoremap <Tab> za
+nnoremap <C-x><C-o> :call DeleteBlankLine()<CR>
+inoremap <C-x><C-o> :call DeleteBlankLine()<CR>
+
+" My fuzzy search in /
+cnoremap <expr> <Space> getcmdtype() == '/' ? '.*' : ' '
 
 " <leader> key mappings
 
@@ -246,6 +245,9 @@ if has("gui_running")
     nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR>
 endif
 
+" <F8> imenu window: depend on the filetype
+" TODO:
+" autocmd BufRead,BufEnter *.org nnoremap <F8> <ESC>:grep "^ \*" %<CR>:copen<CR>
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Windows GVIM Specific
@@ -300,4 +302,47 @@ function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://talent.arm.com'
   execute 'terminal explorer.exe ' . 'https://confluence.arm.com/plugins/inlinetasks/mytasks.action'
   call MyWorkSpace()
+endfunction
+
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => My Org Mode
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+nnoremap <ESC> :noh<CR><ESC>
+inoremap <ESC> <ESC>:noh<CR><ESC>
+autocmd BufRead,BufEnter *.org set filetype=diff
+
+nnoremap <S-Left>  <ESC>:call ToggleDiffLine()<CR>
+nnoremap <S-Right> <ESC>:call ToggleDiffLine()<CR>
+inoremap <S-Left>  <ESC>l<ESC>:call ToggleDiffLine()<CR>
+inoremap <S-Right> <ESC>l<ESC>:call ToggleDiffLine()<CR>
+
+" Fold
+" <Tab> in normal mode will toggle folds, similar to emacs org-mode.
+" - create fold: <tab> in visual mode (vip zf)
+" - delete fold: zd
+" - toggle fold: <Tab> or <Shift-Tab> (za)
+vnoremap <Tab> :fold<CR>
+nnoremap <Tab> za
+nnoremap <S-Tab> :let &foldlevel = (&foldlevel == 0 ? 99 : 0)<CR>
+
+" Define the function to toggle the first character
+function! ToggleDiffLine()
+  let line = getline(".")
+  " If the first character is '-' or '+', toggle it
+  if line[0] == '-' || line[0] == '+'
+    let newchar = line[0] == '-' ? '+' : '-'
+    call setline('.', newchar . line[1:])
+  " If the first character is '*', prepend another '*'
+  elseif line[0] == '*'
+    call setline('.', '*' . line)
+  endif
+endfunction
+
+function! DeleteBlankLine()
+  " Check if the current line is blank & delete
+  let line = getline(".")
+  if line =~ '^\s*$'
+    execute "normal! dd"
+  endif
 endfunction
