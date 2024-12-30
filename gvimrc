@@ -279,14 +279,21 @@ endfunction
 
 function! MyWorkSpace()
   execute 'only'
+  execute 'tabonly'
   " Open a vertical split with the specified file
   execute 'vs ~/workspace/org-notes/'
   execute 'sp ~/.vimrc'
   " Move to the first window
   execute 'wincmd w'
   execute 'vi ~/workspace/org-notes/vim-work-2025.org'
-  execute 'set filetype=asm'
+  " just to help autocompletion
+  execute 'tabnew ~/workspace/org-notes/daily_work_2024.org'
+  execute 'tabnew ~/workspace/org-notes/daily_work_2025.org'
+  " back to vim-work-2025.org
+  execute 'tabfirst'
+  execute 'set filetype=diff'
 endfunction
+
 
 function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
