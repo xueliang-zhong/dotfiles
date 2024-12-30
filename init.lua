@@ -46,7 +46,7 @@ require("lazy").setup({
 
     -- Fuzzy finder
     "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
-    "nvim-lua/plenary.nvim",           -- dependency for telescope, neogit
+    "nvim-lua/plenary.nvim",           -- dependency for telescope
 
     -- justfile support
     'NoahTheDuke/vim-just',
@@ -76,14 +76,6 @@ require("lazy").setup({
     -- Git
     "lewis6991/gitsigns.nvim",         -- Git Gutter
     "tpope/vim-fugitive",              -- Gread, Gwrite
-    {
-        "NeogitOrg/neogit",
-        version = 'v0.0.1',            -- for nvim 0.9
-        dependencies = {
-            "sindrets/diffview.nvim",  -- optional - Diff integration
-        },
-        config = true
-    },
 
     {
         "folke/which-key.nvim",
@@ -190,24 +182,6 @@ require("nvim-tree").setup({
 })
 
 -- Git (Neogit, Gitsigns)
-local neogit = require("neogit")
-
-neogit.setup ({
-    -- Hides the hints at the top of the status buffer
-    disable_hint = false,
-    popup = {
-        -- Make sure hjkl keys are only for vim style moving
-        ["l"] = "false",
-    },
-})
-
--- Make sure hjkl keys are only for vim style moving NeogitStatus
-vim.api.nvim_create_autocmd({"TextChanged", "CursorMoved"}, {
-    pattern = "NeogitStatus",
-    callback = function()
-        vim.api.nvim_buf_set_keymap(0, "n", "l", "<Right>", { noremap = true, silent = true })
-    end,
-})
 
 require('gitsigns').setup()
 -- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
