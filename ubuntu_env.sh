@@ -56,7 +56,6 @@ alias p=python
 alias ag=rg
 # NOTE: keep make as it is (avoid alias make=just), just in case some other project requires make
 
-
 # just command completion for shell
 just --completions zsh > ~/.just-completions.zsh
 echo >> ~/.zshrc
