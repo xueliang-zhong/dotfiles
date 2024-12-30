@@ -422,3 +422,5 @@ command! XueliangOrgSort execute "normal! vip:sort\<CR>"
 " NOTE: , as prefix for all my snippets
 " Create org structure and fold it
 nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w
+" t stands for time, timestamp
+nnoremap ,t <ESC>o<ESC>:InsertDate<CR>
