@@ -244,13 +244,19 @@ nnoremap <F9> :find **<C-d><Delete><Delete>
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 if has("gui_running")
     " GUI SETTINGS
+    set grepformat=%f:%l:%m
+    set grepprg=findstr\ /n\ /s
     set guifont=JetBrains\ Mono\ NL:h11
     set guioptions-=T
 
     " KEYS
-    nnoremap <F8>  <ESC>:grep "^ \*" %<CR>:copen<CR>
+    nnoremap <F8>  <ESC>:grep "^\*" %<CR>:copen<CR>
     nnoremap <F11> <ESC>:call OpenUrlWithExplorer()<CR>
     nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR><ESC>/
+    " org-mode: Alt-Enter to start a new task
+    nnoremap <A-CR> <ESC>o-<ESC>a  <ESC>i
+    inoremap <A-CR> <ESC>o-<ESC>a  <ESC>i
+
 
     " AUTOCMD & COMMANDS
     autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
