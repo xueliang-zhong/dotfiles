@@ -113,7 +113,7 @@ command! Gshow   :terminal git show
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
 
-command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
+" command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 " Get some nice syntax highlighting
@@ -203,9 +203,6 @@ inoremap <C-h> <C-\><C-n><C-w><C-h>
 inoremap <C-j> <C-\><C-n><C-w><C-j>
 inoremap <C-k> <C-\><C-n><C-w><C-k>
 inoremap <C-l> <C-\><C-n><C-w><C-l>
-
-nnoremap <C-x><C-o> :call DeleteBlankLine()<CR>
-inoremap <C-x><C-o> :call DeleteBlankLine()<CR>
 
 " My fuzzy search in /
 cnoremap <expr> <Space> getcmdtype() == '/' ? '.*' : ' '
@@ -307,13 +304,12 @@ function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/'
   execute 'terminal explorer.exe ' . 'https://arm-ce.slack.com/messages/'
-  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/'
-  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/'
+  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/display/~xuezho01/GPU+COMPUTE+TRASH+PANDA'
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/group/arm.com/unitedstatesofcompute/view/workweek'
   execute 'terminal explorer.exe ' . 'https://talent.arm.com'
   execute 'terminal explorer.exe ' . 'https://confluence.arm.com/plugins/inlinetasks/mytasks.action'
   call MyWorkSpace()
 endfunction
-
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => My Org Mode
@@ -333,7 +329,6 @@ inoremap <S-Right> <ESC>l<ESC>:call ToggleDiffLine()<CR>
 " - delete fold: zd
 " - toggle fold: <Tab> or <Shift-Tab> (za)
 vnoremap <Tab> :fold<CR>
-nnoremap <Tab> za
 nnoremap <S-Tab> :let &foldlevel = (&foldlevel == 0 ? 99 : 0)<CR>
 
 " Define the function to toggle the first character
@@ -349,6 +344,46 @@ function! ToggleDiffLine()
   endif
 endfunction
 
+nnoremap <C-c><C-c> :call OrgTaskDone()<CR>
+function! OrgTaskDone()
+  let line = getline(".")
+  " If the first character is '-' or '+'
+  " Match done task first
+  if line =~ '= \[x\] DONE:'
+    " Replace '- DONE' with '-'
+    call setline('.', '-' . line[11:])
+  elseif line =~ '\*\*\* DONE:'
+    " Replace '*** DONE:' with '***'
+    call setline('.', '***' . line[9:])
+  " Mark task as done (= is used here for better sorting among +/-/=)
+  elseif line[0] == '-' || line[0] == '+'
+    call setline('.', '= [x] DONE:' . line[1:])
+  " If the first character is '*'
+  elseif line =~ '\*\*\* '
+    call setline('.', '*** DONE: ' . line[4:])
+  endif
+endfunction
+
+
+nnoremap <Tab> :call ToggleOrgTreeFold()<CR>
+function! ToggleOrgTreeFold()
+  let line = getline(".")
+  if line =~ '^\*\*\* ' || line =~ '\*\*\* DONE '
+    echo 'Tree Found'
+    " Check if the current line is in a fold
+    if foldclosed('.') != -1
+      " Toggle the fold
+      normal! za
+    else
+      " Create a new fold
+      normal! vip
+      normal! zf
+    endif
+  endif
+endfunction
+
+nnoremap <C-x><C-o> :call DeleteBlankLine()<CR>
+inoremap <C-x><C-o> :call DeleteBlankLine()<CR>
 function! DeleteBlankLine()
   " Check if the current line is blank & delete
   let line = getline(".")
@@ -357,10 +392,17 @@ function! DeleteBlankLine()
   endif
 endfunction
 
+" Move to the head of the org-tree
+nnoremap <C-c><C-u> <ESC>vipo
+
+" My Org Sort Function
+" Or just simply: vip:sort
+command! OrgSort execute "normal! vip:sort\<CR>"
+command! XueliangOrgSort execute "normal! vip:sort\<CR>"
+
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => My Snippets
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " NOTE: , as prefix for all my snippets
 " Create org structure and fold it
-nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>vip:fold<CR>
-
+nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w
