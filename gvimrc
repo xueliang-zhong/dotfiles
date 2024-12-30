@@ -382,14 +382,17 @@ function! ToggleOrgTreeFold()
   endif
 endfunction
 
-nnoremap <C-x><C-o> :call DeleteBlankLine()<CR>
-inoremap <C-x><C-o> :call DeleteBlankLine()<CR>
-function! DeleteBlankLine()
-  " Check if the current line is blank & delete
-  let line = getline(".")
-  if line =~ '^\s*$'
+nnoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
+inoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
+function! DeleteBlankLines()
+  " Start a loop to delete all consecutive blank lines
+  while getline('.') =~ '^\s*$'
     execute "normal! dd"
-  endif
+    " Stop if we've reached the last line
+    if line('.') > line('$')
+      break
+    endif
+  endwhile
 endfunction
 
 " Move to the head of the org-tree
