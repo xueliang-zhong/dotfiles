@@ -267,6 +267,19 @@ if has("gui_running")
     command! MyDailyWebsite call MyDailyWebsite()
 endif
 
+if has("mac")
+    command! MyWorkSpace call MyWorkSpace()
+    command! MyDailyWebsite call MyDailyWebsite()
+
+    " org-mode: Leader-Enter to start a new task
+    " TODO: haven't found a good way to map CMD or Option keys yet
+    nnoremap <leader><CR> <ESC>o-<ESC>a  <ESC>i
+endif
+
+command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
+nnoremap <C-c>. <ESC>o<ESC>:InsertDate<CR>
+nnoremap <C-c><C-.> <ESC>o<ESC>:InsertDate<CR>
+
 function! OpenUrlWithExplorer()
   " Get the current line
   let line = getline('.')
