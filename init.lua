@@ -75,7 +75,7 @@ require("lazy").setup({
 
     -- Git
     "lewis6991/gitsigns.nvim",         -- Git Gutter
-    -- "tpope/vim-fugitive",              -- Gread, Gwrite
+    "tpope/vim-fugitive",              -- Gread, Gwrite
 
     {
         "folke/which-key.nvim",
@@ -332,9 +332,14 @@ vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, s
 local function ___My_Commands__() end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
-vim.api.nvim_create_user_command('Gwrite', function() vim.cmd("!git add %") end, { desc = "git add current file" })
-vim.api.nvim_create_user_command('Gread', function() vim.cmd("!git checkout %") end, { desc = "Gread" })
 vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %"') end, { desc = "Git commit current file" })
+vim.api.nvim_create_user_command('Gblame', function() vim.cmd('Git blame') end, { desc = "Git blame" })
+vim.api.nvim_create_user_command('Gshow', function() vim.cmd('Git show') end, { desc = "Git show" })
+
+vim.api.nvim_create_user_command('Gdiff', function()
+    vim.cmd('Git diff')
+    vim.cmd('wincmd L')
+end, { desc = "Git diff" })
 
 -- justfile to Makefile format
 local function justfile_to_makefile()
