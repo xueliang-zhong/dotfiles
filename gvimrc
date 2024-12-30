@@ -252,7 +252,7 @@ if has("gui_running")
     " KEYS
     nnoremap <F8>  <ESC>:grep "^\*" %<CR>:copen<CR>
     nnoremap <F11> <ESC>:call OpenUrlWithExplorer()<CR>
-    nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR><ESC>/
+    nnoremap <F12> <ESC>:terminal<CR>
     " org-mode: Alt-Enter to start a new task
     nnoremap <A-CR> <ESC>o-<ESC>a  <ESC>i
     inoremap <A-CR> <ESC>o-<ESC>a  <ESC>i

@@ -11,5 +11,8 @@ if [ -z "$URL" ];
 then
   echo
 else
+  # MacOS
   open -a Google\ Chrome $URL
+  # Windows: explorer.exe $URL
+  # Write in ~/.bashrc: bind '"\e[24~":"bash ~/bin/links\n"'
 fi
