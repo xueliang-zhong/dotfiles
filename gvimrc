@@ -108,6 +108,7 @@ command! Gdiff   :vertical terminal git diff HEAD
 command! Gblame  :terminal git blame %
 command! Gcommit :terminal git commit -m "update %s"
 command! Glog    :terminal git log
+command! Gshow   :terminal git show
 
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
@@ -238,18 +239,6 @@ nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 " nnoremap <F9>  <ESC>:vi .<CR>
 nnoremap <F9> :find **<C-d><Delete><Delete>
 
-if has("gui_running")
-    " Open URL link under cursor
-    nnoremap <F11> <ESC>$B:terminal explorer.exe <cWORD><CR>
-
-    " Similar to what I have on Emacs/Tmux
-    nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR>
-endif
-
-" <F8> imenu window: depend on the filetype
-" TODO:
-" autocmd BufRead,BufEnter *.org nnoremap <F8> <ESC>:grep "^ \*" %<CR>:copen<CR>
-
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Windows GVIM Specific
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -259,7 +248,8 @@ if has("gui_running")
     set guioptions-=T
 
     " KEYS
-    nnoremap <CR>  <ESC>:call OpenUrlWithExplorer()<CR>
+    nnoremap <F8>  <ESC>:grep "^ \*" %<CR>:copen<CR>
+    nnoremap <F11> <ESC>:call OpenUrlWithExplorer()<CR>
     nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR><ESC>/
 
     " AUTOCMD & COMMANDS
