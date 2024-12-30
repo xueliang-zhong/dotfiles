@@ -121,6 +121,7 @@ autocmd BufRead *.org set filetype=asm
 autocmd BufRead *.def set filetype=c
 autocmd BufRead *.cl  set filetype=c
 autocmd BufRead *.sc  set filetype=python
+autocmd BufRead justfile set filetype=bash
 
 " In vimrc/.vim files, the K looks for vim help instead of man command.
 autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
@@ -196,8 +197,9 @@ nnoremap <Tab> za
 " <leader> key mappings
 
 nnoremap <leader><leader> <ESC>:buffers<CR>:buffer<Space>
+
+" this should be consistent with <f9>
 nnoremap <leader>ff :find **<C-d><Delete><Delete>
-" nnoremap <leader>ff <ESC>:vi .<CR>
 
 nnoremap <leader>gg <ESC>:terminal git status<CR>
 
@@ -222,4 +224,4 @@ nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 nnoremap <F9> :find **<C-d><Delete><Delete>
 
 nnoremap <F11> <ESC>:on<CR><ESC>:copen<CR><C-w><C-w><ESC>:leftabove vs .<CR>:vertical resize 30<CR><C-w><C-w>
-nnoremap <F12> :!~/bin/links<CR><CR>
+nnoremap <F12> <ESC>:echo "TODO: !~/bin/links"<CR><CR>
