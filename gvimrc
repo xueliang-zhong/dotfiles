@@ -307,8 +307,8 @@ function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/'
   execute 'terminal explorer.exe ' . 'https://arm-ce.slack.com/messages/'
-  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/display/~xuezho01/GPU+COMPUTE+TRASH+PANDA'
-  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/group/arm.com/unitedstatesofcompute/view/workweek'
+  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/'
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/'
   execute 'terminal explorer.exe ' . 'https://talent.arm.com'
   execute 'terminal explorer.exe ' . 'https://confluence.arm.com/plugins/inlinetasks/mytasks.action'
   call MyWorkSpace()
