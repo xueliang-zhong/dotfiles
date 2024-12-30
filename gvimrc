@@ -191,6 +191,17 @@ tnoremap § <C-W>N
 tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
 
+" Better window movements in normal mode
+nnoremap <C-h> <C-w><C-h>
+nnoremap <C-j> <C-w><C-j>
+nnoremap <C-k> <C-w><C-k>
+nnoremap <C-l> <C-w><C-l>
+
+" Better window movements in insert mode
+inoremap <C-h> <C-\><C-n><C-w><C-h>
+inoremap <C-j> <C-\><C-n><C-w><C-j>
+inoremap <C-k> <C-\><C-n><C-w><C-k>
+inoremap <C-l> <C-\><C-n><C-w><C-l>
 
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
 " - create fold: vip zf
@@ -235,3 +246,58 @@ if has("gui_running")
     nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR>
 endif
 
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Windows GVIM Specific
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+if has("gui_running")
+    " GUI SETTINGS
+    set guifont=JetBrains\ Mono\ NL:h11
+    set guioptions-=T
+
+    " KEYS
+    nnoremap <CR>  <ESC>:call OpenUrlWithExplorer()<CR>
+    nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR><ESC>/
+
+    " AUTOCMD & COMMANDS
+    autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
+    command! MyWorkSpace call MyWorkSpace()
+    command! MyDailyWebsite call MyDailyWebsite()
+endif
+
+function! OpenUrlWithExplorer()
+  " Get the current line
+  let line = getline('.')
+  " Extract URL using a regex
+  let match = matchstr(line, 'https\?://[^\s]*')
+  " If a URL is found, open it in the default browser
+  if !empty(match)
+    execute 'terminal explorer.exe ' . shellescape(match)
+  else
+    echo "No URL found on this line."
+  endif
+endfunction
+
+function! MyWorkSpace()
+  execute 'only'
+  " Open a vertical split with the specified file
+  execute 'vs ~/workspace/org-notes/'
+  execute 'sp ~/.vimrc'
+  " Move to the first window
+  execute 'wincmd w'
+  execute 'vi ~/workspace/org-notes/vim-work-2025.org'
+  execute 'set filetype=asm'
+endfunction
+
+function! MyDailyWebsite()
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
+  execute 'terminal explorer.exe ' . 'https://mail.google.com/mail/u/0/#inbox'
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/'
+  execute 'terminal explorer.exe ' . 'https://arm-ce.slack.com/messages/'
+  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/display/~xuezho01/GPU+COMPUTE+TRASH+PANDA'
+  execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/group/arm.com/unitedstatesofcompute/view/workweek'
+  execute 'terminal explorer.exe ' . 'https://talent.arm.com'
+  execute 'terminal explorer.exe ' . 'https://confluence.arm.com/plugins/inlinetasks/mytasks.action'
+  call MyWorkSpace()
+endfunction
