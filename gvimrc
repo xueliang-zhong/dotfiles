@@ -106,7 +106,7 @@ endif
 command! Gwrite  :terminal git add %
 command! Gdiff   :terminal git diff HEAD
 command! Gblame  :terminal git blame %
-command! Gcommit :terminal git commit
+command! Gcommit :terminal git commit -m "update %s"
 
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
@@ -229,7 +229,7 @@ nnoremap <F9> :find **<C-d><Delete><Delete>
 
 if has("gui_running")
     " Open URL link under cursor
-    nnoremap <F11> <ESC>$B:terminal explorer.exe<cWORD><CR>
+    nnoremap <F11> <ESC>$B:terminal explorer.exe <cWORD><CR>
 
     " Similar to what I have on Emacs/Tmux
     nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR>
