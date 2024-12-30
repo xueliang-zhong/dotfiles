@@ -107,6 +107,7 @@ command! Gwrite  :terminal git add %
 command! Gdiff   :vertical terminal git diff HEAD
 command! Gblame  :terminal git blame %
 command! Gcommit :terminal git commit -m "update %s"
+command! Glog    :terminal git log
 
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
