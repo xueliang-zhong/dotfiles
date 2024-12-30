@@ -262,7 +262,6 @@ if has("gui_running")
     nnoremap <A-CR> <ESC>o-<ESC>a  <ESC>i
     inoremap <A-CR> <ESC>o-<ESC>a  <ESC>i
 
-
     " AUTOCMD & COMMANDS
     autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
     command! MyWorkSpace call MyWorkSpace()
@@ -284,7 +283,6 @@ endfunction
 
 function! MyWorkSpace()
   execute 'only'
-  execute 'tabonly'
   " Open a vertical split with the specified file
   execute 'vs ~/workspace/org-notes/'
   execute 'sp ~/.vimrc'
@@ -296,6 +294,7 @@ function! MyWorkSpace()
   execute 'tabnew ~/workspace/org-notes/daily_work_2025.org'
   " back to vim-work-2025.org
   execute 'tabfirst'
+  execute 'tabonly'
   execute 'set filetype=diff'
 endfunction
 
