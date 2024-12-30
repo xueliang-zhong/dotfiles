@@ -191,7 +191,11 @@ tnoremap § <C-W>N
 tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
 
+
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
+" - create fold: vip zf
+" - delete fold: zd
+" - toggle fold: za (my approach: <Tab>)
 nnoremap <Tab> za
 
 " <leader> key mappings
@@ -223,5 +227,11 @@ nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 " nnoremap <F9>  <ESC>:vi .<CR>
 nnoremap <F9> :find **<C-d><Delete><Delete>
 
-nnoremap <F11> <ESC>:on<CR><ESC>:copen<CR><C-w><C-w><ESC>:leftabove vs .<CR>:vertical resize 30<CR><C-w><C-w>
-nnoremap <F12> <ESC>:echo "TODO: !~/bin/links"<CR><CR>
+if has("gui_running")
+    " Open URL link under cursor
+    nnoremap <F11> <ESC>$B:terminal explorer.exe<cWORD><CR>
+
+    " Similar to what I have on Emacs/Tmux
+    nnoremap <F12> <ESC>:sp ~/workspace/org-notes/xzhong-links.txt<CR>
+endif
+
