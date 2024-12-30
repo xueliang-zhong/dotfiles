@@ -9,7 +9,7 @@ if [ "$OS" = "Darwin" ]; then
   FILE=~/Dropbox/xzhong-links.txt
 elif [[ "$OS" =~ "CYGWIN"|"MINGW"|"MSYS" ]]; then
   # Windows
-  FILE=~/workspace/org-notes/links.txt
+  FILE=~/workspace/org-notes/xzhong-links.txt
 else
   echo "Unsupported operating system: $OS"
   exit 1
