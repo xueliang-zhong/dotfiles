@@ -1,18 +1,39 @@
-#!/bin/zsh
-#
-# Add following <F12> key binding to this into ~/.zshrc:
-# bindkey -s '^[[24~' '~/bin/links \C-m'
-#
-# Another option: set F12 key binding in tmux:
-# bind-key -n F12 split-window -v 'bash ~/bin/links'
+#!/bin/bash
 
-URL=$(cat ~/Dropbox/xzhong-links.txt | fzf +s -e | awk '{print $2}')
-if [ -z "$URL" ];
-then
-  echo
+# Determine the operating system
+OS=$(uname)
+
+# Set the file path based on the operating system
+if [ "$OS" = "Darwin" ]; then
+  # macOS
+  FILE=~/Dropbox/xzhong-links.txt
+elif [[ "$OS" =~ "CYGWIN"|"MINGW"|"MSYS" ]]; then
+  # Windows
+  FILE=~/workspace/org-notes/links.txt
 else
-  # MacOS
-  open -a Google\ Chrome $URL
-  # Windows: explorer.exe $URL
-  # Write in ~/.bashrc: bind '"\e[24~":"bash ~/bin/links\n"'
+  echo "Unsupported operating system: $OS"
+  exit 1
 fi
+
+# Check if the file exists
+if [ ! -f "$FILE" ]; then
+  echo "File not found: $FILE"
+  exit 1
+fi
+
+# Select URL from the file using fzf
+URL=$(cat "$FILE" | fzf +s -e | awk '{print $2}')
+if [ -z "$URL" ]; then
+  echo "No URL selected."
+else
+  if [ "$OS" = "Darwin" ]; then
+    # macOS
+    open -a "Google Chrome" "$URL"
+  elif [[ "$OS" =~ "CYGWIN"|"MINGW"|"MSYS" ]]; then
+    # Windows
+    explorer.exe "$URL"
+  fi
+fi
+
+# Note: To bind this script to a key in ~/.bashrc, add:
+# bind '"\e[24~":"bash ~/bin/links\n"'
