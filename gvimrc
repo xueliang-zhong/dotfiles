@@ -228,6 +228,8 @@ nnoremap <leader>* <ESC>:on<CR>ma:grep <cword> %<CR>:copen<CR><C-w><C-w>`a
 
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
+vnoremap <S-Down> :m '>+1<CR>gv=gv
+vnoremap <S-Up>   :m '<-2<CR>gv=gv
 
 nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
 nnoremap <F4>  <ESC>:x<CR>
