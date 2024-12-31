@@ -304,6 +304,7 @@ function! MyWorkSpaceMac()
   execute 'vi ~/Dropbox/life-notes/daily_life_2024.org'
   execute 'vi ~/Dropbox/life-notes/daily_life_2025.org'
   execute 'vi ~/Dropbox/life-notes/2024-12-31.md'
+  execute 'sp ~/workspace/dotfiles/gvimrc'
   " this opens neotree anyway
   execute 'vs ~/Dropbox/life-notes'
   " back to the first note
