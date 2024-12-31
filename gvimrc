@@ -300,15 +300,15 @@ endfunction
 
 function! MyWorkSpaceMac()
   execute 'only'
-  " Open a vertical split with the specified file
+  " Just have these files in the background
   execute 'vi ~/Dropbox/life-notes/daily_life_2024.org'
   execute 'vi ~/Dropbox/life-notes/daily_life_2025.org'
+  execute 'vi ~/workspace/dotfiles/gvimrc'
+  execute 'vi ~/workspace/dotfiles/init.lua'
+  " back to the first note
   execute 'vi ~/Dropbox/life-notes/2024-12-31.md'
-  execute 'sp ~/workspace/dotfiles/gvimrc'
   " this opens neotree anyway
   execute 'vs ~/Dropbox/life-notes'
-  " back to the first note
-  execute 'set filetype=diff'
 endfunction
 
 function! MyWorkSpace()
