@@ -330,6 +330,8 @@ endfunction
 nnoremap <ESC> :noh<CR><ESC>
 inoremap <ESC> <ESC>:noh<CR><ESC>
 autocmd BufRead,BufEnter *.org set filetype=diff
+" treat obsidian markdown as diff type
+autocmd BufRead,BufEnter *.md set filetype=diff
 
 nnoremap <S-Left>  <ESC>:call ToggleDiffLine()<CR>
 nnoremap <S-Right> <ESC>:call ToggleDiffLine()<CR>
@@ -357,7 +359,21 @@ function! ToggleDiffLine()
   endif
 endfunction
 
-nnoremap <C-c><C-c> :call OrgTaskDone()<CR>
+nnoremap <C-c><C-c> :call MarkdownTaskDone()<CR>
+
+function! MarkdownTaskDone()
+  let line = getline(".")
+  " If the first character is '-' or '+'
+    " Replace '- DONE' with '-'
+  if line =~ '. \[x\] DONE:'
+    call setline('.', '-' . line[11:])
+  elseif line[0] == '-' || line[0] == '+'
+    " Mark task as done (+/-/* are all standard markdown list)
+    call setline('.', '* [x] DONE:' . line[1:])
+  endif
+endfunction
+
+
 function! OrgTaskDone()
   let line = getline(".")
   " If the first character is '-' or '+'
@@ -368,21 +384,20 @@ function! OrgTaskDone()
   elseif line =~ '\*\*\* DONE:'
     " Replace '*** DONE:' with '***'
     call setline('.', '***' . line[9:])
-  " Mark task as done (= is used here for better sorting among +/-/=)
+  " Mark task as done (+/-/* are all standard markdown list)
   elseif line[0] == '-' || line[0] == '+'
-    call setline('.', '= [x] DONE:' . line[1:])
+    call setline('.', '* [x] DONE:' . line[1:])
   " If the first character is '*'
   elseif line =~ '\*\*\* '
     call setline('.', '*** DONE: ' . line[4:])
   endif
 endfunction
 
-
 nnoremap <Tab> :call ToggleOrgTreeFold()<CR>
 function! ToggleOrgTreeFold()
   let line = getline(".")
-  if line =~ '^\*\*\* ' || line =~ '\*\*\* DONE '
-    echo 'Tree Found'
+  if line =~ '^\*\*\* ' || line =~ '\*\*\* DONE ' || line =~ '^\# ' || line =~ '^\#\# ' || line =~ '^\#\#\# '
+    echom 'Tree Found'
     " Check if the current line is in a fold
     if foldclosed('.') != -1
       " Toggle the fold
@@ -392,6 +407,9 @@ function! ToggleOrgTreeFold()
       normal! vip
       normal! zf
     endif
+  else
+    " If no match, move forward like 'w'
+    normal! w
   endif
 endfunction
 
