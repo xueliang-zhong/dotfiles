@@ -306,7 +306,7 @@ function! MyWorkSpaceMac()
   execute 'vi ~/workspace/dotfiles/gvimrc'
   execute 'vi ~/workspace/dotfiles/init.lua'
   " back to the first note
-  execute 'vi ~/Dropbox/life-notes/2024-12-31.md'
+  execute 'vi ~/Dropbox/life-notes/vim-note-2025.md'
   " this opens neotree anyway
   execute 'vs ~/Dropbox/life-notes'
 endfunction
