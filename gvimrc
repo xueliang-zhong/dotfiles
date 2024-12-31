@@ -165,7 +165,7 @@ function! XueliangAutoComplete_OFF()
 endfunction
 
 autocmd BufRead * call XueliangAutoComplete_ON()
-command! XueliangAutoCompleteOFF call XueliangAutoComplete_OFF()
+command! AutoCompleteOFF call XueliangAutoComplete_OFF()
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
@@ -223,6 +223,9 @@ nnoremap <leader>? :map<CR> " Show key bindings
 
 nnoremap <leader>* <ESC>:on<CR>ma:grep <cword> %<CR>:copen<CR><C-w><C-w>`a
 
+command! LeaderRecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
+nnoremap <leader><CR> <ESC>:LeaderRecentFiles<CR>
+
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
 vnoremap <S-Down> :m '>+1<CR>gv=gv
@@ -245,8 +248,10 @@ if has("gui_running")
     " GUI SETTINGS
     set grepformat=%f:%l:%m
     set grepprg=findstr\ /n\ /s
-    set guifont=JetBrains\ Mono\ NL:h11
+    set guifont=JetBrains\ Mono\ NL:h12
     set guioptions-=T
+    " start with full screen
+    autocmd GUIEnter * simalt ~x
 
     " SHELL : set shell to Git Bash
     set shell=C:/Program\ Files/Git/bin/bash.exe
@@ -263,8 +268,8 @@ if has("gui_running")
 
     " AUTOCMD & COMMANDS
     autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
-    command! MyWorkSpace call MyWorkSpace()
-    command! MyDailyWebsite call MyDailyWebsite()
+    command! MyWorkSpace call MyWorkSpaceObsidian()
+    command! DailyWebsite call MyDailyWebsite()
 endif
 
 if has("mac")
@@ -275,6 +280,7 @@ if has("mac")
     " TODO: haven't found a good way to map CMD or Option keys yet
     nnoremap <leader><CR> <ESC>o-<ESC>a  <ESC>i
 endif
+
 
 command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
 nnoremap <C-c>. <ESC>o<ESC>:InsertDate<CR>
@@ -291,6 +297,24 @@ function! OpenUrlWithExplorer()
   else
     echo "No URL found on this line."
   endif
+endfunction
+
+function! MyWorkSpaceObsidian()
+  execute 'only'
+  " Open a vertical split with the specified file
+  execute 'vs ~\OneDrive - Arm\work-notes'
+  execute 'sp ~\workspace\dotfiles\gvimrc'
+  " Move to the first window
+  execute 'wincmd w'
+  execute 'vi ~/workspace/org-notes/vim-work-2025.org'
+  execute 'vi ~\OneDrive - Arm\work-notes\vim-work-2025.md'
+  " just to help autocompletion
+  execute 'tabnew ~\OneDrive - Arm\work-notes\daily_work_2024.org'
+  execute 'tabnew ~\OneDrive - Arm\work-notes\daily_work_2025.org'
+  " back to vim-work-2025.md
+  execute 'tabfirst'
+  execute 'tabonly'
+  execute 'set filetype=diff'
 endfunction
 
 function! MyWorkSpace()
@@ -373,7 +397,6 @@ function! MarkdownTaskDone()
   endif
 endfunction
 
-
 function! OrgTaskDone()
   let line = getline(".")
   " If the first character is '-' or '+'
@@ -413,6 +436,28 @@ function! ToggleOrgTreeFold()
   endif
 endfunction
 
+" Ctrl-s to save my selected org tree to obsidian
+vnoremap <C-s> :<C-u>call SendToObsidian()<CR>
+function! SendToObsidian()
+    " Get the selected text
+    let l:save_cursor = getpos(".")
+    let l:save_visual = getpos("'<")
+    normal! gv"xy
+    call setpos('.', l:save_cursor)
+    call setpos("'<", l:save_visual)
+
+    " Get the current <date>.md file used by obsidian
+    let l:date = strftime("%Y-%m-%d")
+    let l:filename = l:date . '.md'
+
+    " Append the selected text to the file
+    " NOTE: don't add new line here, as it is different on Windows/Mac
+    call writefile(getreg('x', 1, 1), l:filename, 'a')
+
+    " Notify me
+    echom "Notes sent to obsidian."
+endfunction
+
 nnoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
 inoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
 function! DeleteBlankLines()
@@ -438,7 +483,8 @@ command! XueliangOrgSort execute "normal! vip:sort\<CR>"
 " => My Snippets
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " NOTE: , as prefix for all my snippets
-" Create org structure and fold it
-nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w
+nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>$viwo
+nnoremap ,c <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>$viwo
+
 " t stands for time, timestamp
 nnoremap ,t <ESC>o<ESC>:InsertDate<CR>
