@@ -26,9 +26,6 @@ vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
 
--- this must be off for nvim
-vim.cmd("autocmd BufRead * call XueliangAutoComplete_OFF()")
-
 --
 -- Plugin Management with lazy.nvim
 --
