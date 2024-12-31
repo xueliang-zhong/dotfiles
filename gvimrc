@@ -164,7 +164,6 @@ function! XueliangAutoComplete_OFF()
   endfor
 endfunction
 
-autocmd BufRead * call XueliangAutoComplete_ON()
 command! AutoCompleteOFF call XueliangAutoComplete_OFF()
 
 " Improve <Enter> key's behaviour in autocomplete.
@@ -252,6 +251,8 @@ if has("gui_running")
     set guioptions-=T
     " start with full screen
     autocmd GUIEnter * simalt ~x
+    " only turn my autocompletion on in gvim, to avoid clash with nvim's
+    autocmd BufRead * call XueliangAutoComplete_ON()
 
     " SHELL : set shell to Git Bash
     set shell=C:/Program\ Files/Git/bin/bash.exe
