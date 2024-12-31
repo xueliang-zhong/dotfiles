@@ -477,8 +477,10 @@ command! XueliangOrgSort execute "normal! vip:sort\<CR>"
 " => My Snippets
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " NOTE: , as prefix for all my snippets
-nnoremap ,o <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>$viwo
-nnoremap ,c <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>$viwo
+nnoremap ,o    <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>$viwo
+nnoremap ,c    <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>$viwo
+nnoremap ,-    <ESC>o-<ESC>a  <ESC>i
+nnoremap ,<CR> <ESC>o+<ESC>a  <ESC>i
 
 " t stands for time, timestamp
 nnoremap ,t <ESC>o<ESC>:InsertDate<CR>
