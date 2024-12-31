@@ -304,11 +304,12 @@ function! MyWorkSpaceMac()
   " Just have these files in the background
   execute 'vi ~/Dropbox/life-notes/daily_life_2024.org'
   execute 'vi ~/Dropbox/life-notes/daily_life_2025.org'
-  execute 'vi ~/workspace/dotfiles/gvimrc'
   execute 'vi ~/workspace/dotfiles/init.lua'
   " back to the first note
   execute 'vi ~/Dropbox/life-notes/vim-note-2025.md'
-  " this opens neotree anyway
+  execute 'vs ~/Dropbox/life-notes/vim-TODO.md'
+  execute 'sp ~/workspace/dotfiles/gvimrc'
+  " openning neotree anyway
   execute 'vs ~/Dropbox/life-notes'
 endfunction
 
@@ -470,6 +471,7 @@ nnoremap <C-c><C-u> <ESC>vipo
 
 " My Org Sort Function
 " Or just simply: vip:sort
+command! Sort execute "normal! vip:sort\<CR>"
 command! OrgSort execute "normal! vip:sort\<CR>"
 command! XueliangOrgSort execute "normal! vip:sort\<CR>"
 
