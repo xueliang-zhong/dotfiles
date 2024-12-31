@@ -268,19 +268,18 @@ if has("gui_running")
 
     " AUTOCMD & COMMANDS
     autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
-    command! MyWorkSpace call MyWorkSpaceObsidian()
+    command! MyWorkSpace call MyWorkSpace()
     command! DailyWebsite call MyDailyWebsite()
 endif
 
 if has("mac")
-    command! MyWorkSpace call MyWorkSpace()
-    command! MyDailyWebsite call MyDailyWebsite()
+    command! MyWorkSpace call MyWorkSpaceMac()
+    command! DailyWebsite call MyDailyWebsite()
 
     " org-mode: Leader-Enter to start a new task
     " TODO: haven't found a good way to map CMD or Option keys yet
     nnoremap <leader><CR> <ESC>o-<ESC>a  <ESC>i
 endif
-
 
 command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
 nnoremap <C-c>. <ESC>o<ESC>:InsertDate<CR>
@@ -299,7 +298,19 @@ function! OpenUrlWithExplorer()
   endif
 endfunction
 
-function! MyWorkSpaceObsidian()
+function! MyWorkSpaceMac()
+  execute 'only'
+  " Open a vertical split with the specified file
+  execute 'vi ~/Dropbox/life-notes/daily_life_2024.org'
+  execute 'vi ~/Dropbox/life-notes/daily_life_2025.org'
+  execute 'vi ~/Dropbox/life-notes/2024-12-31.md'
+  " this opens neotree anyway
+  execute 'vs ~/Dropbox/life-notes'
+  " back to the first note
+  execute 'set filetype=diff'
+endfunction
+
+function! MyWorkSpace()
   execute 'only'
   " Open a vertical split with the specified file
   execute 'vs ~\OneDrive - Arm\work-notes'
@@ -317,24 +328,6 @@ function! MyWorkSpaceObsidian()
   execute 'set filetype=diff'
 endfunction
 
-function! MyWorkSpace()
-  execute 'only'
-  " Open a vertical split with the specified file
-  execute 'vs ~/workspace/org-notes/'
-  execute 'sp ~/.vimrc'
-  " Move to the first window
-  execute 'wincmd w'
-  execute 'vi ~/workspace/org-notes/vim-work-2025.org'
-  " just to help autocompletion
-  execute 'tabnew ~/workspace/org-notes/daily_work_2024.org'
-  execute 'tabnew ~/workspace/org-notes/daily_work_2025.org'
-  " back to vim-work-2025.org
-  execute 'tabfirst'
-  execute 'tabonly'
-  execute 'set filetype=diff'
-endfunction
-
-
 function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/owa/'
   execute 'terminal explorer.exe ' . 'https://mail.google.com/mail/u/0/#inbox'
@@ -345,7 +338,6 @@ function! MyDailyWebsite()
   execute 'terminal explorer.exe ' . 'https://outlook.office.com/calendar/group/arm.com/unitedstatesofcompute/view/workweek'
   execute 'terminal explorer.exe ' . 'https://talent.arm.com'
   execute 'terminal explorer.exe ' . 'https://confluence.arm.com/plugins/inlinetasks/mytasks.action'
-  call MyWorkSpace()
 endfunction
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
