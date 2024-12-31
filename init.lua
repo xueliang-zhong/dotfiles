@@ -1,3 +1,7 @@
+-- load vimrc first
+-- then apply init.lua on top
+vim.cmd('source ~/.vimrc')
+
 -- Basic Settings
 local function ___basic_settings__() end
 
@@ -323,7 +327,7 @@ vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true
 vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })
 
 -- Gitsigns
-vim.keymap.set("n", "gh", "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "gh", "<ESC>:Gitsigns next_hunk<CR><ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 --
 -- My Commands
@@ -451,13 +455,14 @@ vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, si
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
 
-vim.keymap.set({"n", "i"}, "<F11>", function()
-    local original_win = vim.fn.win_getid()  -- Remember the current window ID
-    vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
-    vim.cmd('only')                 -- Close all other windows
-    vim.cmd('TagbarOpen')           -- Tagbar works best here
-    vim.cmd('NvimTreeFindFile')     -- Toggle NvimTree
-    vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
-end, { noremap = true, silent = true })
+-- use vim's F11
+-- vim.keymap.set({"n", "i"}, "<F11>", function()
+--     local original_win = vim.fn.win_getid()  -- Remember the current window ID
+--     vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
+--     vim.cmd('only')                 -- Close all other windows
+--     vim.cmd('TagbarOpen')           -- Tagbar works best here
+--     vim.cmd('NvimTreeFindFile')     -- Toggle NvimTree
+--     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
+-- end, { noremap = true, silent = true })
 
 -- <f5> and <f12>: used by tmux
