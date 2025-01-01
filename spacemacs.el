@@ -694,6 +694,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "wg" 'golden-ratio)
   (spacemacs/set-leader-keys "w=" 'balance-windows)
   (spacemacs/set-leader-keys "fp" 'xueliang-find-file-in-dotfiles)
+  (spacemacs/set-leader-keys ","  'ivy-yasnippet)
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
