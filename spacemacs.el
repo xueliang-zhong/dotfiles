@@ -615,7 +615,7 @@ except for variables that should be set before packages are loaded."
         evil-motion-state-modes nil
         evil-shift-width 4)
 
-  ;; ivy
+  ;; ivy mode settings
   (setq counsel-grep-swiper-limit 30000000)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
@@ -681,7 +681,7 @@ except for variables that should be set before packages are loaded."
                                    company-keywords))
   (global-company-mode)
 
-  ;; justfile (just use makefile-mode)
+  ;; justfile: use makefile-mode is good enough
   (add-to-list 'auto-mode-alist '("justfile" . makefile-mode))
 
   ;; eshell settings
@@ -846,49 +846,15 @@ except for variables that should be set before packages are loaded."
   (evil-force-normal-state) (message git-cmd))
 
 (defun xueliang-org-focus-tasks () (interactive)
-       ;; Search for FOCUS tasks in org mode, helping roll over tasks to
+       ;; Search for FOCUS tasks in org-mode, helping roll over tasks to
        ;; current/future days.
        (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
-       (setq-local my-task-list
-                   (if (eq 'dark (frame-parameter nil 'background-mode))
-                       ;; pretty colours for dark theme
-                       (list (propertize date-string 'face '(:foreground "LightGoldenrod" :background "grey15"))
-                             (propertize "FOCUS" 'face '(:foreground "GreenYellow" :background "grey15"))
-                             (propertize "TODO" 'face '(:foreground "orchid2" :background "grey15"))
-                             (propertize "PROG" 'face '(:foreground "LightGoldenrod" :background "grey15"))
-                             (propertize "DONE" 'face '(:foreground "grey51" :background "grey15")))
-                     ;; pretty colours for light theme
-                     (list (propertize date-string 'face '(:foreground "DarkGoldenrod3"))
-                           (propertize "FOCUS" 'face '(:foreground "ForestGreen"))
-                           (propertize "TODO" 'face '(:foreground "DeepPink1"))
-                           (propertize "PROG" 'face '(:foreground "DarkGoldenrod3"))
-                           (propertize "DONE" 'face '(:foreground "grey51")))))
+       (setq-local my-task-list (list "FOCUS" "TODO" "PROG" "DONE"))
        (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
        (evil-ex-nohighlight))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
        (counsel-find-file nil "~/workspace/dotfiles/"))
-
-(defun xueliang-ivy-occur () (interactive)
-       ;; invoke ivy-occur
-       (ivy-occur)
-       ;; not even this can be called in ivy-occur window
-       (ivy-occur-press-and-switch)
-       ;; however, ivy-occur doesn't allow me to call delete ivy-occur window, and open my own?
-       (delete-window) (xueliang-copen-quickfix))
-
-(defun xueliang-copen-quickfix ()
-  "Open a new window and switch to the latest `ivy-occur` buffer."
-  (interactive)
-  (let ((occur-buffer (car (seq-filter
-                            (lambda (buf) (string-match-p "^\\*ivy-occur" (buffer-name buf)))
-                            (buffer-list)))))
-    (when occur-buffer
-      ;; just like quickfjix window in vim
-      (split-window-below) (other-window 1) (switch-to-buffer occur-buffer)
-      ;; make it smaller so it feels more like vim quickfix window
-      (shrink-window (- (window-height) 10)))
-    (message "No ivy-occur buffer found.")))
 
 (defun xueliang-just-make ()
   (interactive)
