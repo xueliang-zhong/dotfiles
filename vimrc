@@ -1,7 +1,6 @@
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Plugin List
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-filetype plugin indent on
+"
+" my simple & no plugin config of vimrc
+"
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Global Settings
@@ -24,6 +23,13 @@ set nocompatible
 set ruler
 set showcmd
 set encoding=utf8
+set makeprg=just
+" Autocomplete with dictionary words when :set spell
+set complete+=kspell
+" For better performance in auto complete.
+set complete-=i
+set pumheight=9
+set completeopt=menuone
 
 " avoid traditional vi stuff: EX mode, compatible with vi, ...
 nnoremap Q <esc>
@@ -53,11 +59,8 @@ set smarttab
 set backspace=indent,eol,start
 
 " color/scheme settings
-" good options: evening, elflord, desert, delek, koehler, lunaperche, pablo, jellybeans, zenburn
-colorscheme zenburn
-if &diff
-    colorscheme desert
-endif
+" good options: evening, elflord, desert, delek, koehler, lunaperche, pablo
+colorscheme lunaperche
 let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
@@ -83,8 +86,6 @@ set diffopt=vertical
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow splitright
 
-let mapleader=" "
-
 " Spell, use British English.
 set spell spelllang=en_gb
 set nospell
@@ -104,118 +105,34 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" Git commands
+command! Gblame  :terminal git blame %
+command! Gcommit :terminal git commit -m "update %s"
+command! Gdiff   :vertical terminal git diff HEAD
+command! Glog    :terminal git log
+command! Gshow   :terminal git show
+command! Gwrite  :terminal git add %
+
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
+
+command! Sort execute "normal! vip:sort\<CR>"
 
 command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
-" works better than Gdiffsplit
-command! Gdiff vert terminal git diff HEAD
-command! Gblame Git blame
-command! Gcommit Git commit
-
-" Get some nice syntax highlighting
-autocmd BufRead *.def set filetype=c
-autocmd BufRead *.log set filetype=asm
-autocmd BufRead *.txt set filetype=asm
-autocmd BufRead *.sc  set filetype=python
-autocmd BufRead *.org set filetype=asm
-autocmd BufRead *.cl  set filetype=c
-
-" In vimrc/.vim files, the K looks for vim help instead of man command.
-autocmd BufRead {vimrc,.vimrc,*.vim} nmap K <ESC>:exe "help ".expand("<cword>")<CR>
-
-" Sometimes, as an alternative to setting autochdir, the following command gives better results:
-autocmd BufEnter * silent! lcd %:p:h
-
-" FZF
-"   :Ag  - Start fzf with hidden preview window that can be enabled with "?" key
-"   :Ag! - Start fzf in fullscreen and display the preview window above
-command! -bang -nargs=* Ag
-  \ call fzf#vim#ag(<q-args>,
-  \                 <bang>0 ? fzf#vim#with_preview('up:60%')
-  \                         : fzf#vim#with_preview('right:50%:hidden', '?'),
-  \                 <bang>0)
-
-" Files command with preview window
-command! -bang -nargs=? -complete=dir Files
-  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
-
-command! -bang -nargs=? -complete=dir GFiles
-  \ call fzf#vim#files(<q-args>, fzf#vim#with_preview(), <bang>0)
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Functions
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-function! Xueliang_fzf_git_log() abort
-    " Get the list of commit hashes from git log
-    let commits = systemlist('git log --format="%h %s"')
-
-    " Open fzf in a floating window to select a commit
-    let selected_commit = fzf#run({
-        \ 'source': commits,
-        \ 'options': ['--ansi', '--prompt', '> ', '--preview', 'git show {1} | bat --style=plain --color=always -l diff', '--preview-window', 'right:60%:wrap', '--reverse']
-        \ })
-endfunction
-
-command! Glog  call Xueliang_fzf_git_log()
-command! GlLog call Xueliang_fzf_git_log()
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" => Plugin Settings
-""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" vim-airline
-let g:airline_theme='zenburn'  " papercolor, zenburn, jellybeans
-
-" Use Ag over Grep: doesn't work with Quickfix Window copen/cclose
-" set grepprg=ag\ --nogroup\ --nocolor
-
-" Tagbar iconds
-let g:tagbar_iconchars = ['+', '▼']
-let g:tagbar_sort = 0  " avoid to preserve the oringal programe order.
-
-" Fzf
-" Insert mode completion
-imap <c-x><c-k> <plug>(fzf-complete-word)
-"imap <c-x><c-f> <plug>(fzf-complete-path)
-imap <c-x><c-j> <plug>(fzf-complete-file-ag)
-imap <c-x><c-l> <plug>(fzf-complete-line)
-
-" Advanced customization using autoload functions
-inoremap <expr> <c-x><c-k> fzf#vim#complete#word({'left': '15%'})
-
-" Command for creating Peekaboo window
-let g:peekaboo_window = 'split bo 24new'
-
-" gx to open link
-let g:netrw_browsex_viewer = "google-chrome"
-
-" Don't start vim with NERDTree, my workflow is always try to go back to
-" previous file by using History or Ctrl-o.
-" autocmd VimEnter * NERDTree
-
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"
-" My awesome auto complete feature. NOTE: For simplicity, I chose my own auto
-" complete over coc plugin.
-"
-" A small issue with this approach is such auto complete is always triggered
-" when copying text into vim. Need to call XueliangAutoCompleteOFF command.
-"
-" Tune down the sensibility a bit: don't add too many keys to trigger
-" autocomplete too quickly - could become a bit distracting.
-"
 let g:xueliang_auto_complete_keys = [
-    \ 'a', 'e', 'i', 'o', 'u',
-    \ 'A', 'E', 'I', 'O', 'U',
-    \ 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
-    \ 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
-    \ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-    \ '_'
-    \ ]
+      \ 'a', 'e', 'i', 'o', 'u',
+      \ 'A', 'E', 'I', 'O', 'U',
+      \ 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l',
+      \ 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L',
+      \ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+      \ '_'
+      \ ]
 
 function! XueliangAutoComplete_ON()
   for key in g:xueliang_auto_complete_keys
@@ -229,27 +146,14 @@ function! XueliangAutoComplete_OFF()
   endfor
 endfunction
 
+" Enable my autocomplete globaly
 autocmd BufRead * call XueliangAutoComplete_ON()
-command! XueliangAutoCompleteOFF call XueliangAutoComplete_OFF()
+command! AutoCompleteOFF call XueliangAutoComplete_OFF()
 
 " Improve <Enter> key's behaviour in autocomplete.
 inoremap <expr> <CR> pumvisible() ? "\<C-Y>" : "\<CR>"
 " Improve <Tab> key's behaviour in autocomplete, like a clever tab.
 inoremap <expr> <Tab> pumvisible() ? "\<C-n>" : "\<Tab>"
-
-function! Xueliang_IDE_Windows_View_Toggle()
-  execute 'NERDTreeToggle'
-  execute 'TagbarToggle'
-  " Return to the original window
-  execute 'wincmd w'
-endfunction
-
-" Autocomplete with dictionary words when :set spell
-set complete+=kspell
-" For better performance in auto complete.
-set complete-=i
-set pumheight=9
-set completeopt=menuone
 
 filetype plugin indent on
 
@@ -264,42 +168,72 @@ tnoremap § <C-W>N
 tnoremap <F4> <C-W>N<ESC>:q!<CR>
 set notimeout ttimeout timeoutlen=100
 
+" Better window movements in normal mode
+nnoremap <C-h> <C-w><C-h>
+nnoremap <C-j> <C-w><C-j>
+nnoremap <C-k> <C-w><C-k>
+nnoremap <C-l> <C-w><C-l>
+
+" Better window movements in insert mode
+inoremap <C-h> <C-\><C-n><C-w><C-h>
+inoremap <C-j> <C-\><C-n><C-w><C-j>
+inoremap <C-k> <C-\><C-n><C-w><C-k>
+inoremap <C-l> <C-\><C-n><C-w><C-l>
+
+" My fuzzy search in /
+cnoremap <expr> <Space> getcmdtype() == '/' ? '.*' : ' '
+
+" Fold
 " <Tab> in normal mode will toggle folds, similar to emacs org-mode.
+" - create fold: <tab> in visual mode (vip zf)
+" - delete fold: zd
+" - toggle fold: <Tab> or <Shift-Tab> (za)
+vnoremap <Tab> :fold<CR>
+nnoremap <S-Tab> :let &foldlevel = (&foldlevel == 0 ? 99 : 0)<CR>
 nnoremap <Tab> za
 
 " <leader> key mappings
-map <leader>* <ESC>:XueliangCdGitRoot<CR><ESC>:exe "Ag! " . expand("<cword>")<CR>
-map <leader><leader> <ESC>:noh<CR><ESC>:History<CR>
-map <leader>/ <ESC>:BLines<CR>
-map <leader>? <ESC>:Maps<CR>
-map <leader>: <ESC>:History:<CR>
-map <leader>F <ESC>:Files!<CR>
-map <leader>X <ESC>:Commands<CR>
-map <leader>bs <ESC><C-W><C-N>
-map <leader>wg <ESC><C-W>10+
-map <leader>ff <ESC>:XueliangCdGitRoot<CR><ESC>:GFiles<CR>
-" the + register is the register used for the OS clipboard in Vim.
-map <leader>fy <ESC>:let @+=expand('%:p')<CR>
-map <leader>gg <ESC>:Git<CR>
-map <leader>gl <ESC>:Glog<CR><CR>
-map <leader>gd <ESC>:Gdiff<CR><CR>
-map <leader>th <ESC>:set cursorline<CR>
-map <leader>x <ESC>:History:<CR>
+let mapleader=" "
+nnoremap <leader><leader> <ESC>:buffers<CR>:buffer<Space>
+" this should be consistent with <f9>
+nnoremap <leader>ff :find **<C-d><Delete><Delete>
+nnoremap <leader>gg <ESC>:terminal git status<CR>
+nnoremap <leader>bs <ESC><C-W><C-N>
+nnoremap <leader>fy <ESC>:let @+=expand('%:p')<CR>:echom "File path coped"<CR>
+nnoremap <leader>th :if &cursorline == 1 \| set nocursorline \| else \| set cursorline \| endif<CR>
+nnoremap <leader>? :map<CR> " Show key bindings
+nnoremap <leader>* <ESC>:on<CR>ma:grep <cword> %<CR>:copen<CR><C-w><C-w>`a
 
-" Show key bindings
-nnoremap <Leader>? :Maps<CR>
+command! LeaderRecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
+nnoremap <leader><CR> <ESC>:LeaderRecentFiles<CR>
 
-" tag jumping
-map <C-]>     <ESC>:exe "Tags " . expand("<cword>")<CR>
+vnoremap J :m '>+1<CR>gv=gv
+vnoremap K :m '<-2<CR>gv=gv
 
-map <F4>      <ESC>:x<CR>
+" Keybindings for moving lines like moving tasks in org-mode
+vnoremap <S-Down> :m '>+1<CR>gv=gv
+vnoremap <S-Up>   :m '<-2<CR>gv=gv
+nnoremap <S-Down> V:m '>+1<CR>gv=gv
+nnoremap <S-Up>   V:m '<-2<CR>gv=gv
 
-" <F5> given to tmux's split window, i.e. create a terminal in tmux, rather than vim.
-" In vim, if I need, :terminal is quite easy to type anyway.
-nnoremap <F5>  :terminal<CR>
+nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
+nnoremap <F4>  <ESC>:x<CR>
+nnoremap <F6>  <ESC>:registers<CR>
+nnoremap <F5>  <ESC>:terminal<CR>
+nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 
-nnoremap <F7>  :NERDTreeToggle<CR>
-nnoremap <F8>  :TagbarToggle<CR>
-nnoremap <F9>  :Files<CR>
-mrnnoremap <F11> :call Xueliang_IDE_Windows_View_Toggle()<CR>
-nnoremap <F12> :!~/bin/links<CR><CR>
+" both approaches are cool
+" nnoremap <F9>  <ESC>:vi .<CR>
+nnoremap <F9> :find **<C-d><Delete><Delete>
+
+nnoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
+inoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
+function! DeleteBlankLines()
+  " Start a loop to delete all consecutive blank lines
+  while getline('.') =~ '^\s*$'
+    execute "normal! dd"
+    if line('.') > line('$')
+      break
+    endif
+  endwhile
+endfunction
