@@ -278,6 +278,23 @@ command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
 nnoremap <C-c>. <ESC>o<ESC>:InsertDate<CR>
 nnoremap <C-c><C-.> <ESC>o<ESC>:InsertDate<CR>
 
+nnoremap <CR> :call OpenUrlAtPoint()<CR>
+function! OpenUrlAtPoint()
+  let word = expand('<cWORD>')
+  let url_pattern = 'https\?://[^\s]*'
+  if word =~# url_pattern
+    echom "URL Found!"
+    if has("mac")
+      execute '!open ' . word
+    endif
+    if has("gui_running")
+      execute '!explorer.exe ' . word
+    endif
+  else
+    normal! j
+  endif
+endfunction
+
 function! OpenUrlWithExplorer()
   " Get the current line
   let line = getline('.')
