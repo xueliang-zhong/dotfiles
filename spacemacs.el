@@ -754,12 +754,6 @@ except for variables that should be set before packages are loaded."
        (xueliang-refresh)
        (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
        (goto-char (point-min))
-       (when (eq major-mode 'org-mode)
-         (unless (search-forward date-string nil t)
-           ;; go to end of file
-           (goto-char (point-max))
-           ;; insert today
-           (insert (format "\n\n* %s\n" date-string))))
        (swiper date-string)
        (evil-ex-nohighlight) (evil-force-normal-state))
 
