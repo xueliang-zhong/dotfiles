@@ -673,12 +673,18 @@ except for variables that should be set before packages are loaded."
    company-tooltip-limit 9
    company-tooltip-minimum-width 33
    company-minimum-prefix-length 1)
-  (setq-default company-backends '(company-files company-capf company-dabbrev-code company-dabbrev company-gtags company-keywords))
+  (setq-default company-backends '(company-files
+                                   company-capf
+                                   company-dabbrev-code
+                                   company-dabbrev
+                                   company-gtags
+                                   company-keywords))
   (global-company-mode)
 
-  ;;
+  ;; justfile (just use makefile-mode)
+  (add-to-list 'auto-mode-alist '("justfile" . makefile-mode))
+
   ;; eshell settings
-  ;;
   (add-hook 'eshell-mode-hook #'(lambda () (setq-local company-idle-delay 600)))  ;; company auto complete can be annoying in eshell
   (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
   (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
@@ -702,7 +708,7 @@ except for variables that should be set before packages are loaded."
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'xueliang-org-zen-mode-start-present)
+  (global-set-key (kbd "<f3>")  #'treemacs)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
@@ -710,7 +716,6 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f8>")  #'xueliang-org-find-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
   (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
-  ;; (global-set-key (kbd "<f11>") #'xueliang-org-focus-tasks)
   (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
   )
@@ -729,7 +734,8 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-eshell-popup ()
   "Invokes a new eshell in a popup window and ready for command" (interactive)
-  (xueliang-cd-current-dir) (evil-window-split) (other-window 1) (eshell) (evil-append-line 1))
+  (xueliang-cd-current-dir) (evil-window-split) (other-window 1)
+  (eshell) (evil-append-line 1))
 
 (defun xueliang-open-link-in-browser ()
   "F12 to select from a list of favourite links to open." (interactive)
@@ -792,11 +798,11 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
-  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2024.org | tail -n 8"))))
+  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2025.org | tail -n 8"))))
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
-  (evil-window-vsplit) (spacemacs/switch-to-scratch-buffer))
+  (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
 
 (defun xueliang-magit-status-window ()
   (interactive)
@@ -838,29 +844,6 @@ except for variables that should be set before packages are loaded."
   (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
   (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
   (evil-force-normal-state) (message git-cmd))
-
-(defun xueliang-create-regular-routine (my-routine-text days)
-  "Generate a 6 months' regular routine based on the input and days (frequency)."
-  (let* ((routine-text my-routine-text)
-         (current-date (current-time))
-         (output-buffer (generate-new-buffer "*Weekly Routine*")))
-    (with-current-buffer output-buffer
-      (dotimes (i 24) ; 6 months * 4 weeks/month approximately
-        (insert "* " (format-time-string "<%Y-%m-%d %a>" current-date) "\n")
-        (insert "** " routine-text "\n\n")
-        (setq current-date (time-add current-date (days-to-time days))))
-      (display-buffer output-buffer) (org-mode))))
-
-(defun xueliang-generate-DAY-TO-DAY-routine (start end)
-  "Generate a 6 month weekly routine based on the selected region."
-  (interactive "r") (setq-local my-routine-text (buffer-substring-no-properties start end))
-  (xueliang-create-regular-routine my-routine-text 1))
-
-(defun xueliang-generate-WEEKLY-routine (start end)
-  "Generate a 6 month weekly routine based on the selected region."
-  (interactive "r")
-  (setq-local my-routine-text (buffer-substring-no-properties start end))
-  (xueliang-create-regular-routine my-routine-text 7))
 
 (defun xueliang-org-focus-tasks () (interactive)
        ;; Search for FOCUS tasks in org mode, helping roll over tasks to
