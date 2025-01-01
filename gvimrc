@@ -474,6 +474,11 @@ nnoremap ,mo   <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>0
 nnoremap ,mc   <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>0w
 nnoremap ,mt   <ESC>:read ~/workspace/dotfiles/ob-daily-note-snippets.txt<CR>gg0dd
 
+" I like quick key bindings
+nnoremap ,o   <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>0w
+nnoremap ,c   <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>0w
+nnoremap ,T   <ESC>:read ~/workspace/dotfiles/ob-daily-note-snippets.txt<CR>gg0dd
+
 nnoremap ,-    <ESC>o-<ESC>a  <ESC>i
 nnoremap ,<CR> <ESC>o+<ESC>a  <ESC>i
 " t stands for time, timestamp
