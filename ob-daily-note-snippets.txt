@@ -1,0 +1,30 @@
+---
+modification date: (vim:,mt)
+tags:
+  - "#daily"
+  - "#reflection"
+---
+
+### Title
++ TODO
+- TODO
+- TODO
+
+
+### Tasks
++ 
+- 
+
+
+### Schedule
+- 
+- 
+
+
+### HGIH & Reflection & Gratitude
++ things I’m grateful for:
+- What went well today?
+
+### References
+- 
+

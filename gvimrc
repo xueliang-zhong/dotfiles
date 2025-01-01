@@ -478,11 +478,14 @@ command! XueliangOrgSort execute "normal! vip:sort\<CR>"
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => My Snippets
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" NOTE: , as prefix for all my snippets
-nnoremap ,o    <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>$viwo
-nnoremap ,c    <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>$viwo
+" NOTE:
+" , as prefix for all my snippets
+" ,m stands for markdown snipets
+nnoremap ,mo   <ESC>o<ESC>:read ~/workspace/dotfiles/org-snippets.txt<CR>w<ESC>0w
+nnoremap ,mc   <ESC>o<ESC>:read ~/workspace/dotfiles/code-snippets.txt<CR>0w
+nnoremap ,mt   <ESC>:read ~/workspace/dotfiles/ob-daily-note-snippets.txt<CR>gg0dd
+
 nnoremap ,-    <ESC>o-<ESC>a  <ESC>i
 nnoremap ,<CR> <ESC>o+<ESC>a  <ESC>i
-
 " t stands for time, timestamp
 nnoremap ,t <ESC>o<ESC>:InsertDate<CR>
