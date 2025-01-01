@@ -113,6 +113,7 @@ command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler 
 
 " command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
+command! DailyWebsite call MyDailyWebsite()
 
 " Get some nice syntax highlighting
 autocmd BufRead *.log set filetype=asm
@@ -221,8 +222,12 @@ nnoremap <leader><CR> <ESC>:LeaderRecentFiles<CR>
 
 vnoremap J :m '>+1<CR>gv=gv
 vnoremap K :m '<-2<CR>gv=gv
+
+" Keybindings for moving lines like moving tasks in org-mode
 vnoremap <S-Down> :m '>+1<CR>gv=gv
 vnoremap <S-Up>   :m '<-2<CR>gv=gv
+nnoremap <S-Down> V:m '>+1<CR>gv=gv
+nnoremap <S-Up>   V:m '<-2<CR>gv=gv
 
 nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
 nnoremap <F4>  <ESC>:x<CR>
@@ -263,13 +268,10 @@ if has("gui_running")
 
     " AUTOCMD & COMMANDS
     autocmd BufEnter xzhong-links.txt nnoremap <CR> :call OpenUrlWithExplorer()<CR>
-    command! MyWorkSpace call MyWorkSpace()
-    command! DailyWebsite call MyDailyWebsite()
 endif
 
 if has("mac")
     command! MyWorkSpace call MyWorkSpaceMac()
-    command! DailyWebsite call MyDailyWebsite()
 endif
 
 command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
@@ -369,7 +371,6 @@ function! ToggleDiffLine()
 endfunction
 
 nnoremap <C-c><C-c> :call MarkdownTaskDone()<CR>
-
 function! MarkdownTaskDone()
   let line = getline(".")
   " If the first character is '-' or '+'
@@ -379,25 +380,6 @@ function! MarkdownTaskDone()
   elseif line[0] == '-' || line[0] == '+'
     " Mark task as done (+/-/* are all standard markdown list)
     call setline('.', '* [x] DONE:' . line[1:])
-  endif
-endfunction
-
-function! OrgTaskDone()
-  let line = getline(".")
-  " If the first character is '-' or '+'
-  " Match done task first
-  if line =~ '= \[x\] DONE:'
-    " Replace '- DONE' with '-'
-    call setline('.', '-' . line[11:])
-  elseif line =~ '\*\*\* DONE:'
-    " Replace '*** DONE:' with '***'
-    call setline('.', '***' . line[9:])
-  " Mark task as done (+/-/* are all standard markdown list)
-  elseif line[0] == '-' || line[0] == '+'
-    call setline('.', '* [x] DONE:' . line[1:])
-  " If the first character is '*'
-  elseif line =~ '\*\*\* '
-    call setline('.', '*** DONE: ' . line[4:])
   endif
 endfunction
 
