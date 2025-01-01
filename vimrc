@@ -141,12 +141,18 @@ endfunction
 
 function! XueliangAutoComplete_OFF()
   for key in g:xueliang_auto_complete_keys
+    " Create the map again to avoid the "no such mapping" error when calling
+    " this function twice.
+    execute 'inoremap ' . key . ' ' . key . '<C-n><C-p>'
+    " Then properly unmap the key.
     execute 'iunmap ' . key
   endfor
 endfunction
 
-" Enable my autocomplete globaly
-autocmd BufRead * call XueliangAutoComplete_ON()
+" Enable my autocomplete globaly, however only for vim (nvim's v:verion == 801)
+if v:version >= 900
+    autocmd BufRead * call XueliangAutoComplete_ON()
+endif
 command! AutoCompleteOFF call XueliangAutoComplete_OFF()
 
 " Improve <Enter> key's behaviour in autocomplete.
@@ -222,7 +228,7 @@ nnoremap <F5>  <ESC>:terminal<CR>
 nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 
 " <F8> behaviour depends on the file type
-autocmd BufRead vimrc,gvimrc,.vimrc nnoremap <F8> <ESC>on<CR><ESC>ma:grep "=> " %<CR>:copen<CR>'a
+autocmd BufRead vimrc,gvimrc,.vimrc nnoremap <F8> <ESC>:grep "=> " %<CR>:copen<CR>
 autocmd BufRead *.org nnoremap <F8> <ESC>:grep "^\* " %<CR>:copen<CR>
 autocmd BufRead *.el nnoremap <F8> <ESC>:grep "defun " %<CR>:copen<CR>
 
