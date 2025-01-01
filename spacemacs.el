@@ -41,7 +41,7 @@ This function should only modify configuration layer settings."
      auto-completion
      ;; better-defaults
      emacs-lisp
-     ;; git
+     git
      ;; helm
      ivy
      ;; lsp
@@ -630,7 +630,7 @@ except for variables that should be set before packages are loaded."
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
-   org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
+   org-todo-keywords        ; This overwrites the default org-todo-keywords
    '((sequence
       "FOCUS(f)"     ; A task that I am focusing
       "TODO(t)"      ; A task that is ready to be tackled
@@ -794,10 +794,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
   (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2024.org | tail -n 8"))))
-
-(defun xueliang-doom-emacs-doctor()
-  "Run the doctor command" (interactive)
-  (xueliang-eshell-popup) (insert "~/.config/emacs/bin/doom doctor") (eshell-send-input))
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
