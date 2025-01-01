@@ -787,9 +787,8 @@ except for variables that should be set before packages are loaded."
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
 
 (defun xueliang-find-file-in-project ()
-  "projectile-find-file if it's in a project, find-file otherwise" (interactive)
-  (xueliang-cd-current-dir)
-  (if (projectile-project-root) (counsel-projectile-find-file) (counsel-find-file)))
+  "just do find-file for best performance" (interactive)
+  (xueliang-cd-current-dir) (counsel-find-file))
 
 (defun xueliang-daily-website ()
   "Open daily website more easily" (interactive)
