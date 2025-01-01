@@ -105,7 +105,6 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-
 " Git commands
 command! Gblame  :terminal git blame %
 command! Gcommit :terminal git commit -m "update %s"
@@ -222,6 +221,11 @@ nnoremap <F6>  <ESC>:registers<CR>
 nnoremap <F5>  <ESC>:terminal<CR>
 nnoremap <F7>  <ESC>:make<CR>:copen<CR>
 
+" <F8> behaviour depends on the file type
+autocmd BufRead vimrc,gvimrc,.vimrc nnoremap <F8> <ESC>on<CR><ESC>ma:grep "=> " %<CR>:copen<CR>'a
+autocmd BufRead *.org nnoremap <F8> <ESC>:grep "^\* " %<CR>:copen<CR>
+autocmd BufRead *.el nnoremap <F8> <ESC>:grep "defun " %<CR>:copen<CR>
+
 " both approaches are cool
 " nnoremap <F9>  <ESC>:vi .<CR>
 nnoremap <F9> :find **<C-d><Delete><Delete>
@@ -237,3 +241,21 @@ function! DeleteBlankLines()
     endif
   endwhile
 endfunction
+
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Windows GUI Support
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+if has("gui_running")
+    " GUI SETTINGS
+    set grepformat=%f:%l:%m
+    set grepprg=findstr\ /n\ /s
+    set guifont=JetBrains\ Mono\ NL:h12
+    set guioptions-=T
+    " start with full screen
+    autocmd GUIEnter * simalt ~x
+
+    " SHELL : set shell to Git Bash
+    set shell=C:/Program\ Files/Git/bin/bash.exe
+    set shellcmdflag=-c
+    set shellxquote=
+endif
