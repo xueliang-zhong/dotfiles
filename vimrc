@@ -48,6 +48,7 @@ let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
 set colorcolumn=100  " useful in code review
+set ttyfast " Faster redrawing
 
 " avoid traditional vi stuff: EX mode, compatible with vi, ...
 nnoremap Q <esc>
@@ -69,14 +70,21 @@ set splitbelow splitright
 set spell spelllang=en_gb
 set nospell
 
- " Faster redrawing
-set ttyfast
-
 " Jump to the last position when reopening a file
-if has("autocmd")
-  au BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$")
-    \| exe "normal! g'\"" | endif
-endif
+autocmd BufRead * normal! g'"
+
+" Get some nice syntax highlighting
+autocmd BufRead *.log,*.txt,*.sc set filetype=asm
+autocmd BufRead *.org,*.md set filetype=diff
+autocmd BufRead *.def,*.cl set filetype=c
+autocmd BufRead justfile,BUILD set filetype=bash
+
+" Highlight trailing whitespaces
+highlight ExtraWhitespace ctermbg=red guibg=red
+
+" Match trailing whitespaces on specific events
+autocmd BufEnter,BufRead,InsertLeave * match ExtraWhitespace /\s\+$/
+autocmd InsertEnter * match none
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
@@ -214,10 +222,6 @@ autocmd BufRead *.el nnoremap <F8> <ESC>:grep "defun " %<CR>:copen<CR>
 nnoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
 inoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
 function! DeleteBlankLines()
-  " Avoid deleting the first line, like emacs's behaviour
-  if getline('.') =~ '^\s*$'
-    execute "normal! j"
-  endif
   " Start a loop to delete all consecutive blank lines
   while getline('.') =~ '^\s*$'
     execute "normal! dd"

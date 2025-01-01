@@ -12,7 +12,6 @@ just-list:
 install:
     @ls -l ~/.config/nvim/init.lua
     @ls -l ~/.vimrc
-    @ls -l ~/.doom.d/*.el
     @bash env.sh
     @echo "Scripts Installed"
 
