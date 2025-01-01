@@ -716,6 +716,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f8>")  #'xueliang-org-find-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
   (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
+  (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
   (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
   )
@@ -740,18 +741,14 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-open-link-in-browser ()
   "F12 to select from a list of favourite links to open." (interactive)
   (setq weblink-list
-        (with-temp-buffer (insert-file-contents "~/workspace/org-notes/xzhong-links.txt")
+        (with-temp-buffer (insert-file-contents "~/Dropbox/xzhong-links.txt")
                           (split-string (buffer-string) "\n" t)))
   (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
   (org-link-open-from-string xueliang-weblink-str))
 
 (defun xueliang-T-open-T-in-browser () (interactive)
-       ;; only enable this on my MacOS
        (when (string-equal system-type "darwin")
-         (setq ticker (thing-at-point 'word))
-         (unless ticker (setq ticker "SPY"))
-         (setq sc-string "https://stockcharts.com/h-sc/ui?s=%s")
-         (org-link-open-from-string (message sc-string ticker))))
+         (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY")))
 
 (defun xueliang-org-find-today () (interactive)
        (xueliang-refresh)
@@ -770,12 +767,6 @@ except for variables that should be set before packages are loaded."
   "Easily replace all TAB in current buffer with spaces." (interactive)
   (untabify (point-min) (point-max))
   (delete-trailing-whitespace))
-
-(defun xueliang-split-words-to-lines (start end)
-  "Easily split tab or space separated words in the region into multiple lines."
-  (interactive "r")
-  (goto-char start)
-  (while (re-search-forward "[ \t]" end t) (replace-match "\n")))
 
 (defun xueliang-what-face (pos)
   "Show the face under current cursor" (interactive "d")
@@ -804,31 +795,16 @@ except for variables that should be set before packages are loaded."
   "Open scratch buffer window" (interactive)
   (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
 
-(defun xueliang-magit-status-window ()
-  (interactive)
-  (xueliang-cd-current-dir) (evil-window-vsplit) (magit-status))
+(defun xueliang-magit-status-window () (interactive)
+       (xueliang-cd-current-dir) (evil-window-vsplit) (magit-status))
 
 (defun xueliang-refresh () (interactive)
        (xueliang-cd-current-dir) (evil-force-normal-state)
-       (set-auto-mode) (hl-line-mode -1)
-       (message "Refresh!"))
+       (set-auto-mode) (hl-line-mode -1) (message "Refresh!"))
 
 (defun xueliang-duckduckgo-search ()
-  (interactive)
-  (let ((my-word (if (region-active-p) (buffer-substring-no-properties (region-beginning) (region-end))
-                   (thing-at-point 'word t))))
-    (if my-word
-        (org-link-open-from-string (concat "https://duckduckgo.com/?q=" (url-hexify-string my-word)))
-      (org-link-open-from-string "https://duckduckgo.com/aichat"))))
-
-(defun xueliang-open-notes-app ()
-  (interactive)
-  (when (string-equal system-type "darwin")
-    (setq app-cmd (message "open -a Notes"))
-    (xueliang-eshell-popup) (insert app-cmd) (eshell-send-input) (evil-window-delete)
-    (evil-force-normal-state) (message app-cmd))
-  (when (string-equal system-type "windows-nt") (org-link-open-from-string "https://www.icloud.com/notes"))
-  (when (string-equal system-type "gnu/linux") (org-link-open-from-string "https://www.icloud.com/notes")))
+  "keep it simple search"
+  (interactive) (org-link-open-from-string "https://duckduckgo.com"))
 
 (defun Gcommit-xueliang-gcommit-git-commit ()
   "Support :Gcommit similar to vim." (interactive)
@@ -856,10 +832,8 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-find-file-in-dotfiles () (interactive)
        (counsel-find-file nil "~/workspace/dotfiles/"))
 
-(defun xueliang-just-make ()
-  (interactive)
-  ;; this will rely on myself write a good justfile
-  (xueliang-eshell-popup) (insert "just all") (eshell-send-input))
+(defun xueliang-just-make () (interactive)
+       (xueliang-eshell-popup) (insert "just all") (eshell-send-input))
 
 (defun eshell/e (f) (find-file-other-frame f))
 (defalias 'eshell/vi 'eshell/e)
@@ -871,7 +845,6 @@ except for variables that should be set before packages are loaded."
 (defalias 'xueliang-sort 'org-sort)
 (defalias 'xueliang-capitalize-region 'capitalize-region)
 (defalias 'copen-xueliang-quickfix 'xueliang-copen-quickfix) ;; once copen, just do 'n' or 'N' search
-
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
