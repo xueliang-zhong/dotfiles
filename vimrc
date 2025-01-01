@@ -101,7 +101,8 @@ command! Sort execute "normal! vip:sort\<CR>"
 command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline noruler colorcolumn=0
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
 command! RecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
-command! XueliangCdGitRoot cd `git rev-parse --show-toplevel`
+command! GitRoot cd `git rev-parse --show-toplevel`
+command! XueliangGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -204,6 +205,12 @@ nnoremap <leader>th :if &cursorline == 1 \| set nocursorline \| else \| set curs
 nnoremap <leader>? :map<CR> " Show key bindings
 nnoremap <leader>* <ESC>:on<CR>ma:grep <cword> %<CR>:copen<CR><C-w><C-w>`a
 nnoremap <leader><CR> <ESC>:RecentFiles<CR>
+
+" simple tags support
+" support both fast (./tags) & slow (GIT_ROOT/tags) tags generation & loading
+nnoremap <leader>tt <ESC>:!ctags -R --exclude=.git --exclude=build<CR><C-\><C-n>:set tags+=tags<CR>
+nnoremap <leader>tT <ESC>:GitRoot<CR>:!ctags -R --exclude=.git --exclude=build<CR><C-\><C-n>:set tags+=tags<CR>
+nnoremap <leader>] <ESC>g]
 
 " function keys
 nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
