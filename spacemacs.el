@@ -618,8 +618,14 @@ except for variables that should be set before packages are loaded."
   ;; ivy
   (setq counsel-grep-swiper-limit 30000000)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
+  (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
   ;; org mode settings
+  (setq org-log-done nil)
+  ;; better CMD key behaviour on MacOS
+  (global-set-key (kbd "s-<right>")  'org-metaright)
+  (global-set-key (kbd "s-<left>")   'org-metaleft)
+  (global-set-key (kbd "s-<return>") 'org-meta-return)
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
@@ -642,9 +648,6 @@ except for variables that should be set before packages are loaded."
                                  (kbd "<return>")  #'xueliang-org-open-at-point
                                  (kbd "RET")       #'xueliang-org-open-at-point
                                  (kbd "<f8>")      #'xueliang-org-find-today)
-                               (evil-define-key 'insert evil-org-mode-map
-                                 (kbd "M-<left>")  #'org-shiftmetaleft
-                                 (kbd "M-<right>") #'org-shiftmetaright)
                                ;; face settings
                                (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
                                (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
