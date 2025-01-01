@@ -221,6 +221,9 @@ vnoremap <S-Up>   :m '<-2<CR>gv=gv
 nnoremap <S-Down> V:m '>+1<CR>gv=gv
 nnoremap <S-Up>   V:m '<-2<CR>gv=gv
 
+" Better J behaviour in joining lines
+nnoremap J mzJ`z
+
 nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
 nnoremap <F4>  <ESC>:x<CR>
 nnoremap <F6>  <ESC>:registers<CR>
