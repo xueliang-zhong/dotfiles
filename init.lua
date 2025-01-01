@@ -3,21 +3,9 @@
 vim.cmd('source ~/.vimrc')
 
 -- Basic Settings
+-- NOTE: this is on top of basic settings in vimrc
 local function ___basic_settings__() end
 
-vim.opt.number = true          -- Show line numbers
-vim.opt.relativenumber = false -- Relative line numbers
-vim.opt.cursorline = true      -- highlight current line
-vim.opt.tabstop = 4            -- Number of spaces a <Tab> counts for
-vim.opt.shiftwidth = 4         -- Number of spaces for indentation
-vim.opt.expandtab = true       -- Use spaces instead of tabs
-vim.opt.smartindent = true     -- Auto-indent new lines
-vim.opt.wrap = false           -- Don't wrap lines
-vim.opt.ignorecase = true      -- Case-insensitive search
-vim.opt.smartcase = true       -- Smart case sensitivity
-vim.opt.splitright = true      -- Open vertical splits to the right
-vim.opt.splitbelow = true      -- Open horizontal splits below
-vim.opt.autochdir = true       -- Automatically changes the current working directory of current file.
 vim.g.loaded_netrw = 1         -- Required for neo-tree
 vim.g.loaded_netrwPlugin = 1   -- Required for neo-tree
 vim.opt.clipboard = "unnamedplus" -- System clipboard for MacOS
@@ -66,6 +54,7 @@ require("lazy").setup({
 
     -- LSP support
     -- NOTE: don't have to enable it, just keep nvim light weight & simple
+
 
     -- Autocomplete
     {
@@ -293,38 +282,15 @@ end
 --
 local function ___keys_leader_Fn_remap__() end
 
--- Awesome remap keys
--- Move selected region up or down, works great with 'vip'
-vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv")
-vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
-
-vim.keymap.set("n", "J", "mzJ`z") -- better J behaviour
-
-vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv")
-
 -- Efficient quickfix navigation; make sure to it with Telescope and <C-q>
 vim.keymap.set("n", "<C-n>", ":cnext<CR>")
 vim.keymap.set("n", "<C-p>", ":cprev<CR>")
 
 -- some emacs key bindings that work well for me
-vim.keymap.set({"n", "i"}, "<C-x><C-o>", function()
-  local current_line = vim.api.nvim_get_current_line()
-  while current_line:match("^%s*$") do
-    vim.api.nvim_command("normal! dd")
-    current_line = vim.api.nvim_get_current_line()
-  end
-end, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
-
 -- emacs's <C-a> and <C-k> in :ex mode and / search
 vim.cmd("cmap <C-a> <Home>")
 vim.cmd("cmap <C-k> <C-\\>e strpart(getcmdline(), 0, getcmdpos() - 1)<CR>")
-
--- better window movements
-vim.keymap.set({"n","i"}, "<C-h>", "<C-w><C-h>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<C-j>", "<C-w><C-j>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<C-k>", "<C-w><C-k>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<C-l>", "<C-w><C-l>", { noremap = true, silent = true })
 
 -- Gitsigns
 vim.keymap.set("n", "gh", "<ESC>:Gitsigns next_hunk<CR><ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
@@ -360,36 +326,11 @@ vim.api.nvim_create_user_command(
     justfile_to_makefile,
     { desc = "Convert Justfile syntax to Makefile syntax" })
 
--- SmallWindow Function
-vim.api.nvim_create_user_command(
-    'SmallWindow',
-    function()
-        vim.cmd("set nonu")
-        vim.cmd("set nocursorline")
-        -- Hide Gitsigns
-        require('gitsigns').toggle_signs(false)     -- Disable signs in the gutter
-        require('gitsigns').toggle_linehl(false)    -- Disable line highlights
-        require('gitsigns').toggle_numhl(false)     -- Disable number column highlights
-        require('gitsigns').toggle_word_diff(false) -- Disable word diffs
-    end, { desc = "make nvim suiable for small window or tmux copy" })
-
-vim.api.nvim_create_user_command(
-    'BigWindow',
-    function()
-        vim.cmd("set nu")
-        vim.cmd("set cursorline")
-        -- Show Gitsigns
-        require('gitsigns').toggle_signs(true)     -- Enable signs in the gutter
-        require('gitsigns').toggle_linehl(true)    -- Enable line highlights
-        require('gitsigns').toggle_numhl(true)     -- Enable number column highlights
-        require('gitsigns').toggle_word_diff(true) -- Enable word diffs
-    end, { desc = "make nvim suiable for big window and development" })
-
 -- Leader Keys
 -- Note : TODO: space as leader key makes typing <space> sluggish
 vim.g.mapleader = " "
 
--- Telescope related leader kesy
+-- Telescope related leader keys (NOTE: this is different from vim)
 vim.keymap.set("n", "<leader><leader>", ":Telescope buffers<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>/",        ":Telescope current_buffer_fuzzy_find<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>?",        ":Telescope keymaps<CR>", { noremap = true, silent = true })
@@ -409,7 +350,6 @@ vim.keymap.set("n", "<leader>gg",      "<ESC>:Git<CR>", { noremap = true, silent
 vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Misc leader keys
-vim.keymap.set("n", "<leader>bs",       ":vs<CR>:enew<CR>", { noremap = true, silent = true, desc = "Open scratch buffer" })
 vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 
 vim.keymap.set("n", "<leader>tt", function()
@@ -449,21 +389,10 @@ end, { noremap = true, silent = true, desc = "ctags preview current <cword>" })
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
 -- NOTE: :fc<CR> to close floating window (not supported in older nvim)
-vim.keymap.set({"n","i"}, "<f4>", "<ESC>:q<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
-
--- use vim's F11
--- vim.keymap.set({"n", "i"}, "<F11>", function()
---     local original_win = vim.fn.win_getid()  -- Remember the current window ID
---     vim.cmd('stopinsert')           -- Ensure exiting insert mode if in it
---     vim.cmd('only')                 -- Close all other windows
---     vim.cmd('TagbarOpen')           -- Tagbar works best here
---     vim.cmd('NvimTreeFindFile')     -- Toggle NvimTree
---     vim.fn.win_gotoid(original_win) -- Doesn't work all the time, but good enough
--- end, { noremap = true, silent = true })
 
 -- <f5> and <f12>: used by tmux
