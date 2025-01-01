@@ -80,8 +80,6 @@ set diffopt=vertical
 " Open new split panes to right and bottom, which feels more natural
 set splitbelow splitright
 
-let mapleader=" "
-
 " Spell, use British English.
 set spell spelllang=en_gb
 set nospell
@@ -207,19 +205,15 @@ inoremap <C-l> <C-\><C-n><C-w><C-l>
 cnoremap <expr> <Space> getcmdtype() == '/' ? '.*' : ' '
 
 " <leader> key mappings
-
+let mapleader=" "
 nnoremap <leader><leader> <ESC>:buffers<CR>:buffer<Space>
-
 " this should be consistent with <f9>
 nnoremap <leader>ff :find **<C-d><Delete><Delete>
-
 nnoremap <leader>gg <ESC>:terminal git status<CR>
-
 nnoremap <leader>bs <ESC><C-W><C-N>
 nnoremap <leader>fy <ESC>:let @+=expand('%:p')<CR>:echom "File path coped"<CR>
 nnoremap <leader>th <ESC>:set cursorline<CR>
 nnoremap <leader>? :map<CR> " Show key bindings
-
 nnoremap <leader>* <ESC>:on<CR>ma:grep <cword> %<CR>:copen<CR><C-w><C-w>`a
 
 command! LeaderRecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
@@ -276,10 +270,6 @@ endif
 if has("mac")
     command! MyWorkSpace call MyWorkSpaceMac()
     command! DailyWebsite call MyDailyWebsite()
-
-    " org-mode: Leader-Enter to start a new task
-    " TODO: haven't found a good way to map CMD or Option keys yet
-    nnoremap <leader><CR> <ESC>o-<ESC>a  <ESC>i
 endif
 
 command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
