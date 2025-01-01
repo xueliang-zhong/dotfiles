@@ -4,7 +4,13 @@
 # Define a function for cp to ensure -f flag is always used
 CP_CMD() {
     cp -f "$@"
+    echo copying "$@"
 }
+
+# emacs
+rm -f ~/.spacemacs
+CP_CMD ./spacemacs.el  ~/.spacemacs
+
 
 # vim
 rm -f ~/.vimrc

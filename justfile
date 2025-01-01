@@ -3,6 +3,7 @@
 ###########################
 
 all: just-list install # docker-build
+make: just-list install
 
 just-list:
     @echo just get familiar with justfile for this project
