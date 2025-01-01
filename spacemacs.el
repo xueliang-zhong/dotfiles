@@ -41,7 +41,7 @@ This function should only modify configuration layer settings."
      auto-completion
      ;; better-defaults
      emacs-lisp
-     git
+     ;; git
      ;; helm
      ivy
      ;; lsp
@@ -729,7 +729,7 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-eshell-popup ()
   "Invokes a new eshell in a popup window and ready for command" (interactive)
-  (xueliang-cd-current-dir) (evil-window-split) (eshell) (evil-append-line 1))
+  (xueliang-cd-current-dir) (evil-window-split) (other-window 1) (eshell) (evil-append-line 1))
 
 (defun xueliang-open-link-in-browser ()
   "F12 to select from a list of favourite links to open." (interactive)
