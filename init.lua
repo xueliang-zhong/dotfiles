@@ -61,6 +61,14 @@ require("lazy").setup({
     -- Git
     "lewis6991/gitsigns.nvim",         -- Git Gutter
     "tpope/vim-fugitive",              -- Gread, Gwrite
+    {
+        "NeogitOrg/neogit",
+        version = 'v0.0.1',            -- for nvim 0.9
+        dependencies = {
+            "sindrets/diffview.nvim",  -- optional - Diff integration
+        },
+        config = true
+    },
 
     -- Which-key
     {
@@ -253,8 +261,7 @@ vim.keymap.set("n", "z=",               ":Telescope spell_suggest<CR>", { norema
 
 -- git related leader keys
 vim.keymap.set("n", "<leader>gf",      ":Telescope git_files<CR>", { noremap = true, silent = true })
--- vim.keymap.set("n", "<leader>gg",      "<ESC>:on<CR><ESC>:terminal lazygit<CR>:startinsert<CR>", { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>gg",      "<ESC>:terminal lazygit<CR>i", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>gg",      "<ESC>:Neogit kind=vsplit<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Misc leader keys
