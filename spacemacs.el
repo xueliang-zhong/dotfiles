@@ -639,7 +639,19 @@ except for variables that should be set before packages are loaded."
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
-   org-todo-keywords '((sequence "FOCUS(f)" "TODO(t)" "PROG(p)" "|" "DONE(d)")))
+   org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
+   '(("DDG" . "https://duckduckgo.com/?q=")
+     ("SC" . "https://stockcharts.com/h-sc/ui?s=%s")
+     ("wiki" . "https://en.wikipedia.org/wiki/"))
+   org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
+   '((sequence
+      "FOCUS(f)"     ; A task that I am focusing
+      "TODO(t)"      ; A task that is ready to be tackled
+      "PROG(p)"      ; A task that is in progress but no need to focus right now
+      "|"            ; The pipe necessary to separate "active" states and "inactive" states
+      "DONE(d)"      ; Task has been completed
+      )))
+
   (setq org-log-done nil)
   ;; key bindings
   (evil-define-key 'normal evil-org-mode-map
