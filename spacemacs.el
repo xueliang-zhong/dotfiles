@@ -595,15 +595,21 @@ dump."
   "Configuration for user code: This function is called at the very end of
 Spacemacs startup, after layer configuration. Put your configuration code here,
 except for variables that should be set before packages are loaded."
+  (xueliang-reload-spacemacs-config)
+  )
 
+;;
+;; My own functions
+;;
+(defun xueliang-reload-spacemacs-config ()
+  "reload my spacemacs config" (interactive)
   ;; global settings
-  (add-hook 'org-mode-hook 'org-indent-mode)
   (when (spacemacs/system-is-mac) ;; make sure M-x works on MacOS
     (global-set-key (kbd "s-x") 'execute-extended-command)
     (global-set-key (kbd "s-<return>") 'org-meta-return))
 
-  ;; appearance
-  (setq-default truncate-lines t) ;; Enable truncate-lines globally
+  ;; reload this function when enter org-mode
+  (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config)
 
   ;; evil mode settings
   ;; modern style 'paste' in evil insert mode.
@@ -621,48 +627,34 @@ except for variables that should be set before packages are loaded."
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
   ;; org mode settings
-  (setq org-log-done nil)
-  ;; better CMD key behaviour on MacOS
+  ;; better org-mode CMD key behaviour on MacOS
   (global-set-key (kbd "s-<right>")  'org-metaright)
   (global-set-key (kbd "s-<left>")   'org-metaleft)
   (global-set-key (kbd "s-<return>") 'org-meta-return)
+  ;; Make sure these settings are called only when org-mode are loaded
+  ;; org-mode appearance settings
+  (org-indent-mode 1)
+  (org-superstar-mode 1)
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
-   org-todo-keywords        ; This overwrites the default org-todo-keywords
-   '((sequence
-      "FOCUS(f)"     ; A task that I am focusing
-      "TODO(t)"      ; A task that is ready to be tackled
-      "PROG(p)"      ; A task that is in progress but no need to focus right now
-      "|"            ; The pipe necessary to separate "active" states and "inactive" states
-      "DONE(d)"      ; Task has been completed
-      )))
-
-  ;; Make sure these settings are called only when org-mode are loaded, and when I'm entering org
-  (add-hook 'org-mode-hook #'(lambda()
-                               (toggle-truncate-lines 1)
-                               (org-superstar-mode 1)
-                               ;; key bindings
-                               (evil-define-key 'normal evil-org-mode-map
-                                 (kbd "<return>")  #'xueliang-org-open-at-point
-                                 (kbd "RET")       #'xueliang-org-open-at-point
-                                 (kbd "<f8>")      #'xueliang-org-find-today)
-                               ;; face settings
-                               (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'medium)
-                               (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
-                               ;; light mode settings
-                               (when (eq 'light (frame-parameter nil 'background-mode))
-                                 (set-face-attribute 'org-level-3 nil :foreground "#275fe4")
-                                 (set-face-attribute 'org-level-4 nil :foreground "#23974a")
-                                 (set-face-attribute 'font-lock-variable-name-face nil :foreground "DarkSlateBlue"))
-                               ))
+   org-todo-keywords '((sequence "FOCUS(f)" "TODO(t)" "PROG(p)" "|" "DONE(d)")))
+  (setq org-log-done nil)
+  ;; key bindings
+  (evil-define-key 'normal evil-org-mode-map
+    (kbd "<return>")  #'xueliang-org-open-at-point
+    (kbd "RET")       #'xueliang-org-open-at-point
+    (kbd "<f8>")      #'xueliang-org-find-today)
+  ;; face settings
+  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
 
   ;; Company
   (setq
@@ -721,9 +713,6 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
   )
 
-;;
-;; My own functions
-;;
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
   (when buffer-file-name
