@@ -11,6 +11,9 @@ CP_CMD() {
 rm -f ~/.vimrc
 CP_CMD ./vimrc ~/.vimrc
 
+# gvim support
+cat ./gvimrc >> ~/.vimrc
+
 # nvim (Goal: <= 300 LOC)
 mkdir -p ~/.config/nvim/
 rm -f ~/.config/nvim/init.lua
