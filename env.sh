@@ -31,3 +31,6 @@ CP_CMD ./tmux.conf ~/.tmux.conf
 mkdir -p ~/bin/
 rm -rf ~/bin/links
 CP_CMD ./links ~/bin/
+
+rm -rf ~/bin/org-table-to-dotty.sh
+CP_CMD ./org-table-to-dotty.sh ~/bin/
