@@ -58,11 +58,12 @@
 ;;
 ;; Function Keys
 ;;
+(global-set-key (kbd "<f3>")  #'+treemacs/toggle)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-org-refresh)
-(global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
+(global-set-key (kbd "<f8>")  #'xueliang-treemacs-or-org-today)
 (global-set-key (kbd "<f9>")  #'counsel-find-file)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
@@ -174,11 +175,11 @@
   "my :Git" (interactive)
   (xueliang-open-scratch-buffer) (magit-status-setup-buffer))
 
-(defun xueliang-imenu-or-org-today ()
+(defun xueliang-treemacs-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
-      (counsel-imenu)))
+      (+treemacs/toggle)))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
