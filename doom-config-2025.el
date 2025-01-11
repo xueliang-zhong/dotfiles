@@ -121,11 +121,23 @@
 )
 
 ;;
+;; Auto completion
+;;
+(setq-default completion-at-point-functions
+            (list
+             #'cape-file         ; File path completion.
+             #'cape-dabbrev      ; Dynamic abbrev completion (from all buffers).
+             #'cape-keyword      ; Programming language keywords.
+             #'yasnippet-capf)
+)
+
+(setq-default cape-dabbrev-min-length 1)
+(setq-default corfu-auto-delay 0.1)
+
+;;
 ;; Org
 ;;
-(after! org-mode
-  (add-hook 'org-mode-hook #'xueliang-org-refresh)
-)
+(add-hook 'org-mode-hook #'xueliang-org-refresh)
 
 ;;
 ;; My own functions
