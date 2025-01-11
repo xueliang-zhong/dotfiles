@@ -50,6 +50,7 @@
       "SPC" #'ivy-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer
       "bw"  #'read-only-mode
+      "gg"  #'xueliang-magit-status
       "/"   #'counsel-grep-or-swiper
       "RET" #'counsel-recentf
 )
@@ -66,6 +67,13 @@
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
+
+;;
+;; evil
+;;
+(after! evil
+  (toggle-frame-maximized)
+)
 
 ;;
 ;; ivy/counsel settings
@@ -93,14 +101,12 @@
 (after! magit
   ;; The h,j,k,l keys should be for basic moving around, even in magit buffer
   (define-key magit-mode-map (kbd "l") 'evil-forward-char)
-
 )
 
 ;;
 ;; Org
 ;;
 (after! org
-  (toggle-frame-maximized)
   (add-hook 'org-mode-hook #'xueliang-org-refresh)
 )
 
@@ -163,6 +169,10 @@
   "Open scratch buffer in my preferred layout" (interactive)
   (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow)
   (doom/open-scratch-buffer nil nil t))
+
+(defun xueliang-magit-status ()
+  "my :Git" (interactive)
+  (xueliang-open-scratch-buffer) (magit-status-setup-buffer))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
