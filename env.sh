@@ -23,6 +23,10 @@ CP_CMD ./init.lua ~/.config/nvim/init.lua
 rm -f ~/.spacemacs
 CP_CMD ./spacemacs.el  ~/.spacemacs
 
+# emacs (Goal: <= 200 LOC)
+rm -f ~/.doom.d/config.el
+CP_CMD doom-config-2025.el ~/.doom.d/config.el
+
 # tmux
 rm -f ~/.tmux.conf
 CP_CMD ./tmux.conf ~/.tmux.conf

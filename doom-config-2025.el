@@ -93,20 +93,15 @@
 (after! magit
   ;; The h,j,k,l keys should be for basic moving around, even in magit buffer
   (define-key magit-mode-map (kbd "l") 'evil-forward-char)
-  (define-key magit-mode-map (kbd "h") 'evil-backward-char)
+
 )
 
+;;
+;; Org
+;;
 (after! org
   (toggle-frame-maximized)
   (add-hook 'org-mode-hook #'xueliang-org-refresh)
-)
-
-(defun xueliang-setup-org-superstar ()
-  "Custom configuration for org-superstar-mode."
-  (org-superstar-mode 1)
-  (setq
-   org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)))
 )
 
 ;;
@@ -155,6 +150,14 @@
   (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
 
   (message "Refresh!"))
+
+(defun xueliang-setup-org-superstar ()
+  "Custom configuration for org-superstar-mode."
+  (org-superstar-mode 1)
+  (setq
+   org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)))
+)
 
 (defun xueliang-open-scratch-buffer ()
   "Open scratch buffer in my preferred layout" (interactive)
