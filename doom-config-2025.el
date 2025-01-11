@@ -62,7 +62,7 @@
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-(global-set-key (kbd "<f7>")  #'xueliang-org-refresh)
+(global-set-key (kbd "<f7>")  #'xueliang-eshell-just-make)
 (global-set-key (kbd "<f8>")  #'xueliang-treemacs-or-org-today)
 (global-set-key (kbd "<f9>")  #'counsel-find-file)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
@@ -74,6 +74,22 @@
 ;;
 (after! evil
   (toggle-frame-maximized)
+
+  (setq evil-emacs-state-modes nil
+        evil-insert-state-modes nil
+        evil-motion-state-modes nil
+        evil-shift-width 2)
+
+  (define-key evil-visual-state-map (kbd "s-x") #'counsel-M-x)
+  (define-key evil-insert-state-map (kbd "TAB") #'(lambda() (interactive) (insert "  ")))
+
+  ;; Windows:
+  ;; modern style 'paste' in evil insert mode.
+  (define-key evil-insert-state-map (kbd "C-v") #'yank)
+
+  ;; Mac:
+  ;; MacBook UK layout '#' symbol
+  (define-key evil-insert-state-map (kbd "M-3") #'(lambda() (interactive) (insert "#")))
 )
 
 ;;
@@ -88,7 +104,6 @@
 ;;
 ;; eshell settings
 ;;
-(add-hook 'eshell-mode-hook #'(lambda () (setq-local company-idle-delay 600)))  ;; company auto complete can be annoying in eshell
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
@@ -123,6 +138,20 @@
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
    (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1))
+
+(defun xueliang-eshell-just-make ()
+   "Invokes a new eshell in a popup window and ready for command" (interactive)
+   (xueliang-eshell-popup)
+   (insert "just all") (eshell-send-input))
+
+(defun xueliang-open-scratch-buffer ()
+  "Open scratch buffer in my preferred layout" (interactive)
+  (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow)
+  (doom/open-scratch-buffer nil nil t))
+
+(defun xueliang-magit-status ()
+  "my :Git" (interactive)
+  (xueliang-open-scratch-buffer) (magit-status-setup-buffer))
 
 (defun xueliang-org-refresh ()
    "reset my org-mode settings" (interactive)
@@ -166,20 +195,11 @@
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)))
 )
 
-(defun xueliang-open-scratch-buffer ()
-  "Open scratch buffer in my preferred layout" (interactive)
-  (xueliang-cd-current-dir) (+evil/window-vsplit-and-follow)
-  (doom/open-scratch-buffer nil nil t))
-
-(defun xueliang-magit-status ()
-  "my :Git" (interactive)
-  (xueliang-open-scratch-buffer) (magit-status-setup-buffer))
-
 (defun xueliang-treemacs-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
-      (+treemacs/toggle)))
+      (+treemacs/toggle) (treemacs-follow-mode t)))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
