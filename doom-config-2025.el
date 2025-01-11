@@ -29,6 +29,7 @@
 ;; refresh your font settings. If Emacs still can't find your font, it likely
 ;; wasn't installed correctly. Font issues are rarely Doom issues!
 (setq doom-font (cond
+                 ;; quickly look for fonts: counsel-fonts
                 ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 18 :weight 'regular))
                 ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
                 ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
@@ -237,7 +238,7 @@
 ;;
 (defalias 'xueliang-cap-region 'capitalize-region)
 (defalias 'xueliang-org-sort 'org-sort)
-(defalias 'eshell/e 'find-file-other-frame)
+(defalias 'eshell/e 'find-file-other-window)
 (defalias 'eshell/vi 'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
 
