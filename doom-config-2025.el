@@ -58,7 +58,7 @@
 ;;
 ;; Function Keys
 ;;
-(global-set-key (kbd "<f3>")  #'+treemacs/toggle)
+(global-set-key (kbd "<f3>")  #'xueliang-treemacs)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
@@ -114,15 +114,16 @@
 ;;
 ;; Magit
 ;;
-(after! magit
-  ;; The h,j,k,l keys should be for basic moving around, even in magit buffer
+;; The h,j,k,l keys should be for basic moving around, even in magit buffer
+(after! magit-mode
+  (define-key magit-mode-map (kbd "h") 'evil-backward-char)
   (define-key magit-mode-map (kbd "l") 'evil-forward-char)
 )
 
 ;;
 ;; Org
 ;;
-(after! org
+(after! org-mode
   (add-hook 'org-mode-hook #'xueliang-org-refresh)
 )
 
@@ -192,14 +193,18 @@
   (org-superstar-mode 1)
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)))
-)
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓))))
 
 (defun xueliang-treemacs-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
-      (+treemacs/toggle) (treemacs-follow-mode t)))
+      (xueliang-treemacs)))
+
+(defun xueliang-treemacs ()
+  "my treemacs settings" (interactive)
+  (+treemacs/toggle) (treemacs-follow-mode t) (treemacs-tag-follow-mode t)
+  (setq treemacs-tag-follow-delay 0.3))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
@@ -214,6 +219,15 @@
                            (split-string (buffer-string) "\n" t)))
    (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
    (org-link-open-from-string xueliang-weblink-str))
+
+;;
+;; Some useful alias
+;;
+(defalias 'xueliang-cap-region 'capitalize-region)
+(defalias 'xueliang-org-sort 'org-sort)
+(defalias 'eshell/e 'find-file-other-frame)
+(defalias 'eshell/vi 'eshell/e)
+(defalias 'eshell/vim 'eshell/e)
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
