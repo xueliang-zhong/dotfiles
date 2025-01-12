@@ -64,7 +64,7 @@
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-eshell-just-make)
 (global-set-key (kbd "<f8>")  #'xueliang-treemacs-or-org-today)
-(global-set-key (kbd "<f9>")  #'counsel-find-file)
+(global-set-key (kbd "<f9>")  #'counsel-imenu)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -151,8 +151,8 @@
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
    (xueliang-cd-current-dir)
-   ;; (+evil/window-split-and-follow)
-   (evil-window-split) ;; cape-history works better if eshell window is on top
+   ;; cape-history works better if eshell window is a drop down terminal
+   (evil-window-split)  ;; (+evil/window-split-and-follow)
    (eshell) (evil-append-line 1)
    ;; avoid auto completion in eshell
    (setq-local cape-dabbrev-min-length 100)
