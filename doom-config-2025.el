@@ -105,7 +105,7 @@
 ;; eshell settings
 ;;
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
-(add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
+(add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'cape-history)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
 ;; to be consistent with my vim/nvim/tmux: in shell, F1 acts like ESC key
@@ -150,7 +150,10 @@
 
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
-   (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1)
+   (xueliang-cd-current-dir)
+   ;; (+evil/window-split-and-follow)
+   (evil-window-split) ;; cape-history works better if eshell window is on top
+   (eshell) (evil-append-line 1)
    ;; avoid auto completion in eshell
    (setq-local cape-dabbrev-min-length 100)
    (setq-local corfu-auto-delay 100)
