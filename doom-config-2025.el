@@ -154,6 +154,9 @@
    (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1)
    ;; make eshell window more prominent among other emacs windows
    (face-remap-add-relative 'default :background "grey12" :foreground "grey75")
+   ;; avoid auto completion in eshell
+   (setq-local cape-dabbrev-min-length 100)
+   (setq-local corfu-auto-delay 100)
 )
 
 (defun xueliang-eshell-just-make ()
