@@ -151,8 +151,7 @@
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
    (xueliang-cd-current-dir)
-   ;; cape-history works better if eshell window is a drop down terminal
-   (evil-window-split)  ;; (+evil/window-split-and-follow)
+   (+evil/window-split-and-follow) ;; more natural position of eshell window
    (eshell) (evil-append-line 1)
    ;; avoid auto completion in eshell
    (setq-local cape-dabbrev-min-length 100)
