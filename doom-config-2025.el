@@ -32,12 +32,12 @@
                  ;; quickly look for fonts: counsel-fonts
                 ((string-equal system-type "darwin") (font-spec :family "JetBrains Mono" :size 18 :weight 'regular))
                 ((string-equal system-type "gnu/linux") (font-spec :family "Monospace" :size 24))
-                ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 27))))
+                ((string-equal system-type "windows-nt") (font-spec :family "JetBrains Mono" :size 29))))
 
 ;; There are two ways to load a theme. Both assume the theme is installed and
 ;; available. You can either set `doom-theme' or manually load a theme with the
 ;; `load-theme' function. This is the default:
-(setq doom-theme 'doom-one)
+(setq doom-theme 'doom-acario-light)
 
 ;; This determines the style of line numbers in effect. If set to `nil', line
 ;; numbers are disabled. For relative line numbers, set this to `relative'.
@@ -152,11 +152,12 @@
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
    (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1)
-   ;; make eshell window more prominent among other emacs windows
-   (face-remap-add-relative 'default :background "grey12" :foreground "grey75")
    ;; avoid auto completion in eshell
    (setq-local cape-dabbrev-min-length 100)
    (setq-local corfu-auto-delay 100)
+   ;; make eshell window more prominent among other emacs windows;
+   ;; this colour setting should work with both light and dark themes
+   (face-remap-add-relative 'default :background "grey9" :foreground "grey75")
 )
 
 (defun xueliang-eshell-just-make ()
@@ -233,6 +234,23 @@
   (when (derived-mode-p 'org-mode)
     (if (string-match "^\*[\*]* " (thing-at-point 'line))
         (org-open-at-point) (+org/dwim-at-point))))
+
+(defun xueliang-git-command (git-cmd)
+  "silently execute a git command in eshell"
+  (xueliang-cd-current-dir) (save-buffer)
+  (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
+  (evil-force-normal-state) (message git-cmd))
+
+(defun Gwrite ()
+  "Support :Gwrite similar to vim." (interactive)
+  (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
+  (xueliang-git-command git-cmd))
+
+(defun Gcommit ()
+  "Support :Gcommit similar to vim." (interactive)
+  (xueliang-cd-current-dir)
+  (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
+  (xueliang-git-command git-cmd))
 
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
