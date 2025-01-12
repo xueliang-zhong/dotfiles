@@ -151,12 +151,18 @@
 
 (defun xueliang-eshell-popup ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
-   (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1))
+   (xueliang-cd-current-dir) (+evil/window-split-and-follow) (eshell) (evil-append-line 1)
+   ;; make eshell window more prominent among other emacs windows
+   (face-remap-add-relative 'default :background "grey12" :foreground "grey75")
+)
 
 (defun xueliang-eshell-just-make ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
    (xueliang-eshell-popup)
    (insert "just all") (eshell-send-input))
+
+(defun xueliang-eshell-fzf ()
+  (xueliang-open-scratch-buffer) (counsel-fzf))
 
 (defun xueliang-open-scratch-buffer ()
   "Open scratch buffer in my preferred layout" (interactive)
@@ -237,10 +243,12 @@
 ;; Some useful alias
 ;;
 (defalias 'xueliang-cap-region 'capitalize-region)
-(defalias 'xueliang-org-sort 'org-sort)
-(defalias 'eshell/e 'find-file-other-window)
-(defalias 'eshell/vi 'eshell/e)
+(defalias 'xueliang-org-sort   'org-sort)
+(defalias 'eshell/e   'find-file-other-window)
+(defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
+(defalias 'eshell/f   'xueliang-eshell-fzf)
+(defalias 'eshell/fzf 'eshell/f)
 
 ;; Whenever you reconfigure a package, make sure to wrap your config in an
 ;; `after!' block, otherwise Doom's defaults may override your settings. E.g.
