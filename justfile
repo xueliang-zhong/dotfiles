@@ -19,7 +19,7 @@ maintenance-check:
   @echo "maintenance check of vimrc/init.lua/spacemacs"
   @echo "vimrc (goal <= 250 LOC):" && wc -l vimrc
   @echo "init.lua (goal <= 250 LOC):" && wc -l init.lua
-  @echo "doom-emacs (goal <= 250 LOC):" && grep -v "^[ ]*;" doom-config-2025.el | wc -l
+  @echo "doom-emacs (goal <= 200 LOC):" && grep -v "^[ ]*;" doom-config-2025.el | wc -l
 
 ###########################
 # Docker Environment
