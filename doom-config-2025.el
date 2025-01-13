@@ -63,8 +63,8 @@
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-eshell-just-make)
-(global-set-key (kbd "<f8>")  #'xueliang-treemacs-or-org-today)
-(global-set-key (kbd "<f9>")  #'counsel-imenu)
+(global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
+(global-set-key (kbd "<f9>")  #'xueliang-treemacs)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -163,6 +163,7 @@
 
 (defun xueliang-eshell-just-make ()
    "Invokes a new eshell in a popup window and ready for command" (interactive)
+   (xueliang-org-refresh) ;; just a good point to do my org refresh
    (xueliang-eshell-popup)
    (insert "just all") (eshell-send-input))
 
@@ -219,11 +220,11 @@
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓))))
 
-(defun xueliang-treemacs-or-org-today ()
+(defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
-      (xueliang-treemacs)))
+      (counsel-imenu)))
 
 (defun xueliang-treemacs ()
   "my treemacs settings" (interactive)
@@ -252,6 +253,13 @@
   (xueliang-cd-current-dir)
   (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
   (xueliang-git-command git-cmd))
+
+(defun xueliang-open-knowledge-links ()
+  "My knowledge links quick open" (interactive)
+  (setq-local current-buffer-string (split-string (buffer-string) "\n" t))
+  (setq-local url-list (cl-remove-if-not (lambda (line) (or (string-match "http" line) (string-match "file:" line))) current-buffer-string))
+  (setq-local xueliang-url-str (nth 1 (split-string (ivy-read "Knowledge Link: " url-list))))
+  (org-link-open-from-string xueliang-url-str))
 
 (defun xueliang-open-link-in-browser ()
    "F12 to select from a list of favourite links to open." (interactive)
