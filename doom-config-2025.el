@@ -58,7 +58,7 @@
 ;;
 ;; Function Keys
 ;;
-(global-set-key (kbd "<f3>")  #'+dired/dirvish-side-and-follow)
+(global-set-key (kbd "<f3>")  #'xueliang-dired-window)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
@@ -226,6 +226,16 @@
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
       (counsel-imenu)))
+
+(defvar my-dired-toggle-state nil
+  "State variable to toggle between `dired-side-window` functions.")
+
+(defun xueliang-dired-window ()
+  "Toggle between `+dired/dirvish-side-and-follow` and `+dired/quit-all`."
+  (interactive)
+  (if my-dired-toggle-state
+      (progn (+dired/quit-all) (setq my-dired-toggle-state nil))
+    (progn (+dired/dirvish-side-and-follow) (setq my-dired-toggle-state t))))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
