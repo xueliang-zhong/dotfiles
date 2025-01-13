@@ -21,6 +21,17 @@ maintenance-check:
   @echo "init.lua (goal <= 250 LOC):" && wc -l init.lua
   @echo "doom-emacs (goal <= 200 LOC):" && grep -v "^[ ]*;" doom-config-2025.el | wc -l
 
+doom-emacs-install:
+  # make sure no other emacs files under $HOME
+  rm -rf ~/.emacs.d
+  rm -rf ~/.emacs*
+  rm -rf ~/.config/emacs
+  # standard installation
+  git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
+  ~/.config/emacs/bin/doom install
+  # a must step after installation
+  ~/.config/emacs/bin/doom sync
+
 ###########################
 # Docker Environment
 ###########################
