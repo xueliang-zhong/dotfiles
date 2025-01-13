@@ -56,16 +56,16 @@
 )
 
 ;;
-;; Function Keys
+;; Function Keys - match with vim/nvim
 ;;
-(global-set-key (kbd "<f3>")  #'xueliang-dired-window)
+(global-set-key (kbd "<f3>")  #'dirvish-side) ;; +dired/dirvish-side-and-follow
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-eshell-just-make)
 (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
-(global-set-key (kbd "<f9>")  #'counsel-find-file)
-(global-set-key (kbd "<f10>") #'counsel-switch-buffer)
+(global-set-key (kbd "<f9>")  #'dirvish)
+(global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
@@ -227,15 +227,12 @@
       (swiper (format-time-string "<%Y-%m-%d %a>"))
       (counsel-imenu)))
 
-(defvar my-dired-toggle-state nil "State variable to toggle between dired-side-window functions.")
-
-(defun xueliang-dired-window ()
-  "Toggle between +dired/dirvish-side-and-follow and +dired/quit-all."
+(defun xueliang-telescope-counsel ()
+  "Show all useful counsel commands"
   (interactive)
-  (if my-dired-toggle-state (progn (+dired/quit-all) (setq my-dired-toggle-state nil))
-    (progn (+dired/dirvish-side-and-follow) (setq my-dired-toggle-state t))))
+  (counsel-M-x "counsel-"))
 
-(defun xueliang-org-open-at-point()
+(defun xueliang-org-open-at-point ()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
   (when (derived-mode-p 'org-mode)
     (if (string-match "^\*[\*]* " (thing-at-point 'line))
