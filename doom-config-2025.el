@@ -227,14 +227,12 @@
       (swiper (format-time-string "<%Y-%m-%d %a>"))
       (counsel-imenu)))
 
-(defvar my-dired-toggle-state nil
-  "State variable to toggle between `dired-side-window` functions.")
+(defvar my-dired-toggle-state nil "State variable to toggle between dired-side-window functions.")
 
 (defun xueliang-dired-window ()
-  "Toggle between `+dired/dirvish-side-and-follow` and `+dired/quit-all`."
+  "Toggle between +dired/dirvish-side-and-follow and +dired/quit-all."
   (interactive)
-  (if my-dired-toggle-state
-      (progn (+dired/quit-all) (setq my-dired-toggle-state nil))
+  (if my-dired-toggle-state (progn (+dired/quit-all) (setq my-dired-toggle-state nil))
     (progn (+dired/dirvish-side-and-follow) (setq my-dired-toggle-state t))))
 
 (defun xueliang-org-open-at-point()
