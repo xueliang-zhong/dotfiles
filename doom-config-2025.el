@@ -58,13 +58,13 @@
 ;;
 ;; Function Keys
 ;;
-(global-set-key (kbd "<f3>")  #'xueliang-treemacs)
+(global-set-key (kbd "<f3>")  #'+dired/dirvish-side-and-follow)
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
 (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
 (global-set-key (kbd "<f7>")  #'xueliang-eshell-just-make)
 (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
-(global-set-key (kbd "<f9>")  #'xueliang-treemacs)
+(global-set-key (kbd "<f9>")  #'counsel-find-file)
 (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
 (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -188,6 +188,7 @@
   (setq org-ellipsis " ▶")
   ;; key bindings
   (evil-define-key 'normal evil-org-mode-map (kbd "RET") #'xueliang-org-open-at-point)
+  (evil-define-key 'normal evil-org-mode-map (kbd "<return>") #'xueliang-org-open-at-point)
   ;; better org-mode CMD key behaviour on MacOS
   (global-set-key (kbd "s-<right>")  'org-metaright)
   (global-set-key (kbd "s-<left>")   'org-metaleft)
@@ -225,11 +226,6 @@
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
       (counsel-imenu)))
-
-(defun xueliang-treemacs ()
-  "my treemacs settings" (interactive)
-  (+treemacs/toggle) (treemacs-follow-mode t) (treemacs-tag-follow-mode t)
-  (setq treemacs-tag-follow-delay 0.3))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
