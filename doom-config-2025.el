@@ -51,6 +51,7 @@
       "bs"  #'xueliang-open-scratch-buffer
       "bw"  #'read-only-mode
       "gg"  #'xueliang-magit-status
+      "ti"  #'imenu-list-smart-toggle
       "/"   #'counsel-grep-or-swiper
       "RET" #'counsel-recentf
 )
@@ -140,6 +141,11 @@
 (add-hook 'org-mode-hook #'xueliang-org-refresh)
 
 ;;
+;; Misc
+;;
+(setq-default imenu-list-focus-after-activation t)
+
+;;
 ;; My own functions
 ;;
 (defun xueliang-cd-current-dir ()
@@ -225,7 +231,7 @@
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (swiper (format-time-string "<%Y-%m-%d %a>"))
-      (counsel-imenu)))
+      (imenu-list-smart-toggle)))
 
 (defun xueliang-telescope-counsel ()
   "Show all useful counsel commands"
