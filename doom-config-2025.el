@@ -50,8 +50,9 @@
       "SPC" #'ivy-switch-buffer
       "bs"  #'xueliang-open-scratch-buffer
       "bw"  #'read-only-mode
+      "fd"  #'dirvish
       "gg"  #'xueliang-magit-status
-      "ti"  #'imenu-list-smart-toggle
+      "si"  #'imenu-list-smart-toggle
       "/"   #'counsel-grep-or-swiper
       "RET" #'counsel-recentf
 )
