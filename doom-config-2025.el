@@ -66,7 +66,7 @@
 (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
 (global-set-key (kbd "<f9>")  #'dirvish)
 (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
-(global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
+(global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
 ;;
@@ -259,7 +259,14 @@
   "My knowledge links quick open" (interactive)
   (setq-local current-buffer-string (split-string (buffer-string) "\n" t))
   (setq-local url-list (cl-remove-if-not (lambda (line) (or (string-match "http" line) (string-match "file:" line))) current-buffer-string))
-  (setq-local xueliang-url-str (nth 1 (split-string (ivy-read "Knowledge Link: " url-list))))
+  (setq-local selected-str (ivy-read "Knowledge Link: " url-list))
+  ;; find the URL substr (Knowledge Link) within the selected line
+  (when (string-match "\\(https?://[^\s]+\\)" selected-str)
+      (setq-local xueliang-url-str (match-string 1 selected-str)))
+  (when (string-match "\\(file:[^\s]+\\)" selected-str)
+      (setq-local xueliang-url-str (match-string 1 selected-str))
+      ;; for file notes, it's better to open in a different window
+      (+evil/window-vsplit-and-follow))
   (org-link-open-from-string xueliang-url-str))
 
 (defun xueliang-open-link-in-browser ()
@@ -277,7 +284,6 @@
 (defalias 'xueliang-org-sort   'org-sort)
 (defalias 'eshell/d   'dirvish)
 (defalias 'eshell/dir 'dirvish)
-(defalias 'eshell/ls  'dirvish)
 (defalias 'eshell/e   'find-file-other-window)
 (defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
