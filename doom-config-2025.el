@@ -60,6 +60,7 @@
 ;;
 ;; Function Keys - match with vim/nvim
 ;;
+(global-set-key (kbd "<f2>")  #'imenu-list-smart-toggle) ;; F2 and F3 can be a good combo
 (global-set-key (kbd "<f3>")  #'dirvish-side) ;; +dired/dirvish-side-and-follow
 (global-set-key (kbd "<f4>")  #'evil-window-delete)
 (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
@@ -107,7 +108,7 @@
 ;; eshell settings
 ;;
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
-(add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'cape-history)))
+(add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
 (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
 ;; to be consistent with my vim/nvim/tmux: in shell, F1 acts like ESC key
