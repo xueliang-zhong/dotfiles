@@ -595,21 +595,10 @@ dump."
   "Configuration for user code: This function is called at the very end of
 Spacemacs startup, after layer configuration. Put your configuration code here,
 except for variables that should be set before packages are loaded."
-  (xueliang-reload-spacemacs-config)
-  )
-
-;;
-;; My own functions
-;;
-(defun xueliang-reload-spacemacs-config ()
-  "reload my spacemacs config" (interactive)
   ;; global settings
   (when (spacemacs/system-is-mac) ;; make sure M-x works on MacOS
     (global-set-key (kbd "s-x") 'execute-extended-command)
     (global-set-key (kbd "s-<return>") 'org-meta-return))
-
-  ;; reload this function when enter org-mode
-  (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config)
 
   ;; evil mode settings
   ;; modern style 'paste' in evil insert mode.
@@ -626,6 +615,68 @@ except for variables that should be set before packages are loaded."
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
+  ;; Company
+  (setq
+   company-dabbrev-code-other-buffers 'all
+   company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
+   company-idle-delay 0
+   company-tooltip-minimum 9
+   company-tooltip-limit 9
+   company-tooltip-minimum-width 33
+   company-minimum-prefix-length 1)
+  (setq-default company-backends '(company-files
+                                   company-capf
+                                   company-dabbrev-code
+                                   company-dabbrev
+                                   company-gtags
+                                   company-keywords))
+  (global-company-mode)
+
+  ;; eshell settings
+  (add-hook 'eshell-mode-hook #'(lambda () (setq-local company-idle-delay 600)))  ;; company auto complete can be annoying in eshell
+  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
+  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
+  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
+  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
+
+  ;; leader keys
+  (spacemacs/set-leader-keys "SPC"'counsel-switch-buffer)
+  (spacemacs/set-leader-keys "bs" 'xueliang-open-scratch-buffer-window)
+  (spacemacs/set-leader-keys "bw" 'read-only-mode)
+  (spacemacs/set-leader-keys "ff" 'xueliang-find-file-in-project)
+  (spacemacs/set-leader-keys "gg" 'xueliang-magit-status-window)
+  (spacemacs/set-leader-keys "tf" 'toggle-frame-fullscreen)
+  (spacemacs/set-leader-keys "/"  'counsel-grep-or-swiper)
+  (spacemacs/set-leader-keys "x"  'counsel-M-x)
+  (spacemacs/set-leader-keys "wg" 'golden-ratio)
+  (spacemacs/set-leader-keys "w=" 'balance-windows)
+  (spacemacs/set-leader-keys "fp" 'xueliang-find-file-in-dotfiles)
+  (spacemacs/set-leader-keys ","  'ivy-yasnippet)
+  (spacemacs/set-leader-keys "RET" 'counsel-recentf)
+
+  ;; function keys
+  (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
+  (global-set-key (kbd "<f3>")  #'treemacs) ;; use treemacs over dirvish
+  (global-set-key (kbd "<f4>")  #'evil-window-delete)
+  (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
+  (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
+  (global-set-key (kbd "<f7>")  #'xueliang-just-make)
+  (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
+  (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
+  (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
+  (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
+  (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
+  (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
+
+  ;; reload this function when enter org-mode
+  (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config)
+  )
+
+;;
+;; My own functions
+;;
+(defun xueliang-reload-spacemacs-config ()
+  "reload my spacemacs config" (interactive)
   ;; org mode settings
   ;; better org-mode CMD key behaviour on MacOS
   (global-set-key (kbd "s-<right>")  'org-metaright)
@@ -667,61 +718,6 @@ except for variables that should be set before packages are loaded."
   (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'medium)
   (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
 
-  ;; Company
-  (setq
-   company-dabbrev-code-other-buffers 'all
-   company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
-   company-idle-delay 0
-   company-tooltip-minimum 9
-   company-tooltip-limit 9
-   company-tooltip-minimum-width 33
-   company-minimum-prefix-length 1)
-  (setq-default company-backends '(company-files
-                                   company-capf
-                                   company-dabbrev-code
-                                   company-dabbrev
-                                   company-gtags
-                                   company-keywords))
-  (global-company-mode)
-
-  ;; justfile: use makefile-mode is good enough
-  (add-to-list 'auto-mode-alist '("justfile" . makefile-mode))
-
-  ;; eshell settings
-  (add-hook 'eshell-mode-hook #'(lambda () (setq-local company-idle-delay 600)))  ;; company auto complete can be annoying in eshell
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
-
-  ;; leader keys
-  (spacemacs/set-leader-keys "SPC"'counsel-switch-buffer)
-  (spacemacs/set-leader-keys "bs" 'xueliang-open-scratch-buffer-window)
-  (spacemacs/set-leader-keys "bw" 'read-only-mode)
-  (spacemacs/set-leader-keys "ff" 'xueliang-find-file-in-project)
-  (spacemacs/set-leader-keys "gg" 'xueliang-magit-status-window)
-  (spacemacs/set-leader-keys "tf" 'toggle-frame-fullscreen)
-  (spacemacs/set-leader-keys "/"  'counsel-grep-or-swiper)
-  (spacemacs/set-leader-keys "x"  'counsel-M-x)
-  (spacemacs/set-leader-keys "wg" 'golden-ratio)
-  (spacemacs/set-leader-keys "w=" 'balance-windows)
-  (spacemacs/set-leader-keys "fp" 'xueliang-find-file-in-dotfiles)
-  (spacemacs/set-leader-keys ","  'ivy-yasnippet)
-  (spacemacs/set-leader-keys "RET" 'counsel-recentf)
-
-  ;; function keys
-  (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'treemacs) ;; use treemacs over dirvish
-  (global-set-key (kbd "<f4>")  #'evil-window-delete)
-  (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
-  (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
-  (global-set-key (kbd "<f7>")  #'xueliang-just-make)
-  (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
-  (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
-  (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
-  (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
-  (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
   )
 
 (defun xueliang-telescope-counsel ()
