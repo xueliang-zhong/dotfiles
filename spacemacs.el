@@ -48,13 +48,13 @@ This function should only modify configuration layer settings."
      ;; markdown
      ;; multiple-cursors
      org
-     ;; (shell :variables
-     ;;        shell-default-height 30
-     ;;        shell-default-position 'bottom)
+     (shell :variables
+            shell-default-height 30
+            shell-default-position 'bottom)
      ;; spell-checking
      ;; syntax-checking
      ;; version-control
-     ;; treemacs
+     treemacs
      )
 
 
@@ -66,7 +66,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '()
+   dotspacemacs-additional-packages '(just-mode)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -656,8 +656,7 @@ except for variables that should be set before packages are loaded."
   ;; key bindings
   (evil-define-key 'normal evil-org-mode-map
     (kbd "<return>")  #'xueliang-org-open-at-point
-    (kbd "RET")       #'xueliang-org-open-at-point
-    (kbd "<f8>")      #'xueliang-org-find-today)
+    (kbd "RET")       #'xueliang-org-open-at-point)
   ;; face settings
   (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
   (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
@@ -712,18 +711,29 @@ except for variables that should be set before packages are loaded."
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'treemacs)
+  (global-set-key (kbd "<f3>")  #'treemacs) ;; use treemacs over dirvish
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
-  (global-set-key (kbd "<f8>")  #'xueliang-org-find-today) ;; counsel-imenu
+  (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
-  (global-set-key (kbd "<f10>") #'counsel-switch-buffer)
-  (global-set-key (kbd "<f11>") #'xueliang-duckduckgo-search)
-  (global-set-key (kbd "<f12>") #'xueliang-open-link-in-browser)
+  (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
+  (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
+  (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
   )
+
+(defun xueliang-telescope-counsel ()
+  "Show all useful counsel commands"
+  (interactive)
+  (counsel-M-x "counsel-"))
+
+(defun xueliang-imenu-or-org-today ()
+  "" (interactive)
+  (if (derived-mode-p 'org-mode)
+      (swiper (format-time-string "<%Y-%m-%d %a>"))
+    (imenu-list-smart-toggle)))
 
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
@@ -747,16 +757,30 @@ except for variables that should be set before packages are loaded."
   (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
   (org-link-open-from-string xueliang-weblink-str))
 
+(defun xueliang-open-knowledge-links ()
+  "My knowledge links quick open" (interactive)
+  (setq-local current-buffer-string (split-string (buffer-string) "\n" t))
+  (setq-local url-list (cl-remove-if-not (lambda (line) (or (string-match "http" line) (string-match "file:" line))) current-buffer-string))
+  (setq-local selected-str (ivy-read "Knowledge Link: " url-list))
+  ;; find the URL substr (Knowledge Link) within the selected line
+  (when (string-match "\\(https?://[^\s]+\\)" selected-str)
+    (setq-local xueliang-url-str (match-string 1 selected-str)))
+  (when (string-match "\\(file:[^\s]+\\)" selected-str)
+    (setq-local xueliang-url-str (match-string 1 selected-str))
+    ;; for file notes, it's better to open in a different window
+    (+evil/window-vsplit-and-follow))
+  (org-link-open-from-string xueliang-url-str))
+
+
 (defun xueliang-T-open-T-in-browser () (interactive)
        (when (string-equal system-type "darwin")
          (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY")))
 
-(defun xueliang-org-find-today () (interactive)
-       (xueliang-refresh)
-       (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
-       (goto-char (point-min))
-       (swiper date-string)
-       (evil-ex-nohighlight) (evil-force-normal-state))
+(defun xueliang-imenu-or-org-today ()
+  "" (interactive)
+  (if (derived-mode-p 'org-mode)
+      (swiper (format-time-string "<%Y-%m-%d %a>"))
+    (imenu-list-smart-toggle)))
 
 (defun xueliang-replace-tab-trailing-spaces()
   "Easily replace all TAB in current buffer with spaces." (interactive)
@@ -782,10 +806,6 @@ except for variables that should be set before packages are loaded."
   "just do find-file for best performance" (interactive)
   (xueliang-cd-current-dir) (counsel-find-file))
 
-(defun xueliang-daily-website ()
-  "Open daily website more easily" (interactive)
-  (mapcar 'org-open-link-from-string (split-string (shell-command-to-string "head -n 11 ~/Dropbox/daily_work_2025.org | tail -n 8"))))
-
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
   (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
@@ -801,20 +821,22 @@ except for variables that should be set before packages are loaded."
   "keep it simple search"
   (interactive) (org-link-open-from-string "https://duckduckgo.com"))
 
-(defun Gcommit-xueliang-gcommit-git-commit ()
-  "Support :Gcommit similar to vim." (interactive)
-  (xueliang-cd-current-dir) (setq os-name system-type)
-  (when (string-equal system-type "darwin") (setq os-name "MacOS"))
-  (setq commit-msg (message "git commit -m \"Update %s on %s.\"" (file-name-nondirectory buffer-file-name) os-name))
-  (xueliang-eshell-popup) (insert commit-msg) (eshell-send-input) (evil-window-delete)
-  (evil-force-normal-state) (message "Git Commit: %s" commit-msg))
-
-(defun Gwrite-xueliang-gwrite-git-add ()
-  "Support :Gwrite similar to vim." (interactive)
+(defun xueliang-git-command (git-cmd)
+  "silently execute a git command in eshell"
   (xueliang-cd-current-dir) (save-buffer)
-  (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
   (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
   (evil-force-normal-state) (message git-cmd))
+
+(defun Gwrite ()
+  "Support :Gwrite similar to vim." (interactive)
+  (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
+  (xueliang-git-command git-cmd))
+
+(defun Gcommit ()
+  "Support :Gcommit similar to vim." (interactive)
+  (xueliang-cd-current-dir)
+  (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
+  (xueliang-git-command git-cmd))
 
 (defun xueliang-org-focus-tasks () (interactive)
        ;; Search for FOCUS tasks in org-mode, helping roll over tasks to
@@ -830,16 +852,19 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-just-make () (interactive)
        (xueliang-eshell-popup) (insert "just all") (eshell-send-input))
 
-(defun eshell/e (f) (find-file-other-frame f))
-(defalias 'eshell/vi 'eshell/e)
+;;
+;; Some useful alias
+;;
+(defalias 'xueliang-cap-region 'capitalize-region)
+(defalias 'xueliang-org-sort   'org-sort)
+(defalias 'eshell/d   'treemacs)
+(defalias 'eshell/dir 'treemacs)
+(defalias 'eshell/e   'find-file-other-window)
+(defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
+(defalias 'eshell/f   'xueliang-eshell-fzf)
+(defalias 'eshell/fzf 'eshell/f)
 
-;;
-;; My Alias Functions
-;;
-(defalias 'xueliang-sort 'org-sort)
-(defalias 'xueliang-capitalize-region 'capitalize-region)
-(defalias 'copen-xueliang-quickfix 'xueliang-copen-quickfix) ;; once copen, just do 'n' or 'N' search
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
