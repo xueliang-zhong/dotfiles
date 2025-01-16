@@ -2,10 +2,10 @@
 # emacs & nvim config files
 ###########################
 
-all: just-list install maintenance-check # docker-build
+all: list install maintenance-check # docker-build
 make: all
 
-just-list:
+list:
     @echo just get familiar with justfile for this project
     just --list
 
@@ -21,16 +21,23 @@ maintenance-check:
   @echo "init.lua (goal <= 250 LOC):" && wc -l init.lua
   @echo "doom-emacs (goal <= 200 LOC):" && grep -v "^[ ]*;" doom-config-2025.el | wc -l
 
-doom-emacs-install:
+emacs-dotfiles-clean:
   # make sure no other emacs files under $HOME
   rm -rf ~/.emacs.d
   rm -rf ~/.emacs*
+  rm -rf ~/.spacemacs*
   rm -rf ~/.config/emacs
+
+doom-emacs-install:
   # standard installation
   git clone --depth 1 https://github.com/doomemacs/doomemacs ~/.config/emacs
   ~/.config/emacs/bin/doom install
   # a must step after installation
   ~/.config/emacs/bin/doom sync
+
+spacemacs-install:
+  # to be safe, not depending on emacs-dotfiles-clean
+  git clone https://github.com/syl20bnr/spacemacs ~/.emacs.d
 
 ###########################
 # Docker Environment
