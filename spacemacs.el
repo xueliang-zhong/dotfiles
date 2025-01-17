@@ -600,6 +600,11 @@ except for variables that should be set before packages are loaded."
     (global-set-key (kbd "s-x") 'execute-extended-command)
     (global-set-key (kbd "s-<return>") 'org-meta-return))
 
+  ;; avoid long line wrap
+  (add-hook 'dired-mode-hook (lambda () (setq truncate-lines t)))
+  (add-hook 'org-mode-hook (lambda () (setq truncate-lines t)))
+  (add-hook 'prog-mode-hook (lambda () (setq truncate-lines t)))
+
   ;; evil mode settings
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
@@ -614,6 +619,13 @@ except for variables that should be set before packages are loaded."
   (setq counsel-grep-swiper-limit 30000000)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
+
+  ;; dired settings
+  (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
+  (evil-define-key 'normal dired-mode-map
+    "h" 'dired-up-directory
+    "l" 'dired-find-file-other-window
+    "o" 'dired-find-file-other-window)
 
   ;; Company
   (setq
@@ -660,7 +672,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'dired-jump-other-window)
+  (global-set-key (kbd "<f9>")  #'dired-jump)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
