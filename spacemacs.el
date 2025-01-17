@@ -48,13 +48,13 @@ This function should only modify configuration layer settings."
      ;; markdown
      ;; multiple-cursors
      org
-     (shell :variables
-            shell-default-height 30
-            shell-default-position 'bottom)
+     ;; (shell :variables
+     ;;       shell-default-height 30
+     ;;       shell-default-position 'bottom)
      ;; spell-checking
      ;; syntax-checking
      ;; version-control
-     treemacs
+     ;; treemacs
      )
 
 
@@ -732,7 +732,6 @@ except for variables that should be set before packages are loaded."
   (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'regular)
   (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'regular)
   (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'regular)
-
   )
 
 (defun xueliang-telescope-counsel ()
@@ -745,7 +744,7 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-dired-sidebar ()
   "Open dired in a sidebar-like window." (interactive)
   ;; Move to the left most window, that's where the sidebar is, if there is one open
-  (while (windmove-find-other-window 'left) (evil-window-left 1))
+  (ignore-errors (evil-window-left 10))
   ;; Check if we already have sidebar open
   (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
     ;; Now open my sidebar window
@@ -803,16 +802,9 @@ except for variables that should be set before packages are loaded."
     (+evil/window-vsplit-and-follow))
   (org-link-open-from-string xueliang-url-str))
 
-
 (defun xueliang-T-open-T-in-browser () (interactive)
        (when (string-equal system-type "darwin")
          (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY")))
-
-(defun xueliang-imenu-or-org-today ()
-  "" (interactive)
-  (if (derived-mode-p 'org-mode)
-      (swiper (format-time-string "<%Y-%m-%d %a>"))
-    (imenu-list-smart-toggle)))
 
 (defun xueliang-replace-tab-trailing-spaces()
   "Easily replace all TAB in current buffer with spaces." (interactive)
