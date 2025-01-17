@@ -740,20 +740,26 @@ except for variables that should be set before packages are loaded."
   (interactive)
   (counsel-M-x "counsel "))
 
+;; My sidebar window
+;; the benefit of this approach is that it is not a sticky window.
 (defun xueliang-dired-sidebar ()
   "Open dired in a sidebar-like window." (interactive)
-  ;; the benefit of this approach is that it is not a sticky window.
+  ;; Move to the left most window, that's where the sidebar is, if there is one open
+  (while (windmove-find-other-window 'left) (evil-window-left 1))
+  ;; Check if we already have sidebar open
   (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
+    ;; Now open my sidebar window
     (xueliang-cd-current-dir)
     (evil-window-vsplit) (evil-window-move-far-left)
     (dired-jump) (dired-hide-details-mode 1)
+    (setq-local split-width-threshold 10) ; prefer vsplit when there is only dired window left
     (shrink-window-horizontally (/ (window-width) 2))))
 
 (defun xueliang-dired-window ()
   "Open Dired in a window." (interactive)
   (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
     (xueliang-cd-current-dir)
-    (dired-jump) (dired-hide-details-mode 0)))
+    (dired-jump) (dired-hide-details-mode 0) (setq-local split-width-threshold 10)))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
