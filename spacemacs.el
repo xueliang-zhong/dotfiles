@@ -723,7 +723,7 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-telescope-counsel ()
   "Show all useful counsel commands"
   (interactive)
-  (counsel-M-x "counsel-"))
+  (counsel-M-x "counsel "))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
