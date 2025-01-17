@@ -624,8 +624,11 @@ except for variables that should be set before packages are loaded."
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
-    "l" 'xueliang-dired-preview
-    "o" 'dired-find-file-other-window)
+    "o" 'dired-find-file-other-window
+    "l" 'dired-display-file ;; since RET jumps to the file, would be nice to have a convinient preview key
+    )
+  (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
+  (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
 
   ;; Company
   (setq
@@ -666,13 +669,13 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f3>")  #'treemacs)
+  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'dired-jump)
+  (global-set-key (kbd "<f9>")  #'xueliang-dired-window)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -735,16 +738,24 @@ except for variables that should be set before packages are loaded."
   (interactive)
   (counsel-M-x "counsel "))
 
+(defun xueliang-dired-sidebar ()
+  "Open dired in a sidebar-like window." (interactive)
+  ;; the benefit of this approach is that it is not a sticky window.
+  (xueliang-cd-current-dir)
+  (evil-window-vsplit) (evil-window-move-far-left)
+  (dired-jump) (dired-hide-details-mode 1)
+  (shrink-window-horizontally (/ (window-width) 2)))
+
+(defun xueliang-dired-window ()
+  "Open Dired in a window." (interactive)
+  (xueliang-cd-current-dir)
+  (dired-jump) (dired-hide-details-mode 0))
+
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
     (imenu-list-smart-toggle)))
-
-(defun xueliang-dired-preview ()
-  "simple dired preview" (interactive)
-  (if (one-window-p) (evil-window-vsplit) (evil-window-move-far-left))
-  (dired-find-file-other-window) (other-window 1))
 
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
