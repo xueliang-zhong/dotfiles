@@ -624,8 +624,8 @@ except for variables that should be set before packages are loaded."
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
-    "o" 'dired-find-file-other-window
-    "l" 'dired-display-file ;; since RET jumps to the file, would be nice to have a convinient preview key
+    "o" 'dired-find-file
+    "l" 'dired-find-file-other-window ;; since RET jumps to the file, would be nice to have a convinient preview key
     )
   (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
   (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
@@ -663,6 +663,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
   (spacemacs/set-leader-keys "si"  'counsel-imenu)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
+  (spacemacs/set-leader-keys "wg"  'golden-ratio)
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
   (spacemacs/set-leader-keys "x"   'counsel-M-x)
   (spacemacs/set-leader-keys "fp"  'xueliang-find-file-in-dotfiles)
@@ -742,15 +743,17 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-dired-sidebar ()
   "Open dired in a sidebar-like window." (interactive)
   ;; the benefit of this approach is that it is not a sticky window.
-  (xueliang-cd-current-dir)
-  (evil-window-vsplit) (evil-window-move-far-left)
-  (dired-jump) (dired-hide-details-mode 1)
-  (shrink-window-horizontally (/ (window-width) 2)))
+  (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
+    (xueliang-cd-current-dir)
+    (evil-window-vsplit) (evil-window-move-far-left)
+    (dired-jump) (dired-hide-details-mode 1)
+    (shrink-window-horizontally (/ (window-width) 2))))
 
 (defun xueliang-dired-window ()
   "Open Dired in a window." (interactive)
-  (xueliang-cd-current-dir)
-  (dired-jump) (dired-hide-details-mode 0))
+  (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
+    (xueliang-cd-current-dir)
+    (dired-jump) (dired-hide-details-mode 0)))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
