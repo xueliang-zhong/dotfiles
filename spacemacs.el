@@ -624,7 +624,7 @@ except for variables that should be set before packages are loaded."
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
-    "l" 'dired-find-file-other-window
+    "l" 'xueliang-dired-preview
     "o" 'dired-find-file-other-window)
 
   ;; Company
@@ -740,6 +740,11 @@ except for variables that should be set before packages are loaded."
   (if (derived-mode-p 'org-mode)
       (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
     (imenu-list-smart-toggle)))
+
+(defun xueliang-dired-preview ()
+  "simple dired preview" (interactive)
+  (if (one-window-p) (evil-window-vsplit) (evil-window-move-far-left))
+  (dired-find-file-other-window) (other-window 1))
 
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
