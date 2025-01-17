@@ -66,7 +66,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(just-mode)
+   dotspacemacs-additional-packages '(just-mode doom-themes)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -748,7 +748,7 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-open-link-in-browser ()
   "F12 to select from a list of favourite links to open." (interactive)
   (setq weblink-list
-        (with-temp-buffer (insert-file-contents "~/Dropbox/xzhong-links.txt")
+        (with-temp-buffer (insert-file-contents "~/workspace/xzhong-links.txt")
                           (split-string (buffer-string) "\n" t)))
   (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
   (org-link-open-from-string xueliang-weblink-str))
