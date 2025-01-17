@@ -257,7 +257,7 @@ It should only modify the values of Spacemacs settings."
    ;; Point size is recommended, because it's device independent. (default 10.0)
    dotspacemacs-default-font '("JetBrains Mono"
                                :size 18
-                               :weight normal
+                               :weight regular
                                :width normal)
 
    ;; The leader key (default "SPC")
@@ -640,29 +640,27 @@ except for variables that should be set before packages are loaded."
   (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
 
   ;; leader keys
-  (spacemacs/set-leader-keys "SPC"'counsel-switch-buffer)
-  (spacemacs/set-leader-keys "bs" 'xueliang-open-scratch-buffer-window)
-  (spacemacs/set-leader-keys "bw" 'read-only-mode)
-  (spacemacs/set-leader-keys "ff" 'xueliang-find-file-in-project)
-  (spacemacs/set-leader-keys "gg" 'xueliang-magit-status-window)
-  (spacemacs/set-leader-keys "tf" 'toggle-frame-fullscreen)
-  (spacemacs/set-leader-keys "/"  'counsel-grep-or-swiper)
-  (spacemacs/set-leader-keys "x"  'counsel-M-x)
-  (spacemacs/set-leader-keys "wg" 'golden-ratio)
-  (spacemacs/set-leader-keys "w=" 'balance-windows)
-  (spacemacs/set-leader-keys "fp" 'xueliang-find-file-in-dotfiles)
-  (spacemacs/set-leader-keys ","  'ivy-yasnippet)
+  (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
+  (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
+  (spacemacs/set-leader-keys "bw"  'read-only-mode)
+  (spacemacs/set-leader-keys "ff"  'xueliang-find-file-in-project)
+  (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
+  (spacemacs/set-leader-keys "si"  'counsel-imenu)
+  (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
+  (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
+  (spacemacs/set-leader-keys "x"   'counsel-M-x)
+  (spacemacs/set-leader-keys "fp"  'xueliang-find-file-in-dotfiles)
+  (spacemacs/set-leader-keys ","   'ivy-yasnippet)
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
   (global-set-key (kbd "<f3>")  #'treemacs) ;; use treemacs over dirvish
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'xueliang-find-file-in-project)
+  (global-set-key (kbd "<f9>")  #'dired-jump-other-window)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -709,14 +707,14 @@ except for variables that should be set before packages are loaded."
     (kbd "<return>")  #'xueliang-org-open-at-point
     (kbd "RET")       #'xueliang-org-open-at-point)
   ;; face settings
-  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'medium)
-  (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'medium)
+  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'regular)
+  (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'regular)
 
   )
 
@@ -728,7 +726,7 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
-      (swiper (format-time-string "<%Y-%m-%d %a>"))
+      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
     (imenu-list-smart-toggle)))
 
 (defun xueliang-cd-current-dir ()
