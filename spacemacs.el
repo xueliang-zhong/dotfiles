@@ -598,6 +598,7 @@ except for variables that should be set before packages are loaded."
   ;; global settings
   (when (spacemacs/system-is-mac) ;; make sure M-x works on MacOS
     (global-set-key (kbd "s-x") 'execute-extended-command))
+  (spacemacs/toggle-highlight-current-line-globally-off)
 
   ;; avoid long line wrap
   (add-hook 'dired-mode-hook (lambda () (setq truncate-lines t)))
