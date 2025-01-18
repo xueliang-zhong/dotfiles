@@ -597,8 +597,7 @@ Spacemacs startup, after layer configuration. Put your configuration code here,
 except for variables that should be set before packages are loaded."
   ;; global settings
   (when (spacemacs/system-is-mac) ;; make sure M-x works on MacOS
-    (global-set-key (kbd "s-x") 'execute-extended-command)
-    (global-set-key (kbd "s-<return>") 'org-meta-return))
+    (global-set-key (kbd "s-x") 'execute-extended-command))
 
   ;; avoid long line wrap
   (add-hook 'dired-mode-hook (lambda () (setq truncate-lines t)))
@@ -649,11 +648,14 @@ except for variables that should be set before packages are loaded."
   (global-company-mode)
 
   ;; eshell settings
-  (add-hook 'eshell-mode-hook #'(lambda () (setq-local company-idle-delay 600)))  ;; company auto complete can be annoying in eshell
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)))
-  (add-hook 'eshell-mode-hook #'(lambda () (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
+  (add-hook 'eshell-mode-hook
+            (lambda ()
+              (setq-local company-idle-delay 600)
+              (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
+              (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
+              (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)
+              (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)
+              (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
 
   ;; leader keys
   (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
