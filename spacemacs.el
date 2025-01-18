@@ -693,10 +693,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-reload-spacemacs-config ()
   "reload my spacemacs config" (interactive)
   ;; org mode settings
-  ;; better org-mode CMD key behaviour on MacOS
-  (global-set-key (kbd "s-<right>")  'org-metaright)
-  (global-set-key (kbd "s-<left>")   'org-metaleft)
-  (global-set-key (kbd "s-<return>") 'org-meta-return)
   ;; Make sure these settings are called only when org-mode are loaded
   ;; org-mode appearance settings
   (org-indent-mode 1)
@@ -717,21 +713,18 @@ except for variables that should be set before packages are loaded."
       "|"            ; The pipe necessary to separate "active" states and "inactive" states
       "DONE(d)"      ; Task has been completed
       )))
-
   (setq org-log-done nil)
   ;; key bindings
   (evil-define-key 'normal evil-org-mode-map
     (kbd "<return>")  #'xueliang-org-open-at-point
     (kbd "RET")       #'xueliang-org-open-at-point)
-  ;; face settings
-  (set-face-attribute 'org-level-1 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-level-2 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-level-3 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-level-4 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-level-5 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-level-6 nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-link    nil :bold nil :height 1.0 :weight 'regular)
-  (set-face-attribute 'org-table   nil :bold nil :height 1.0 :weight 'regular)
+  ;; better org-mode CMD key behaviour on MacOS
+  (define-key org-mode-map (kbd "s-<right>")  'org-metaright)
+  (define-key org-mode-map (kbd "s-<left>")   'org-metaleft)
+  (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
+  ;; Face settings
+  (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5 org-level-6 org-link org-table))
+    (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
   )
 
 (defun xueliang-telescope-counsel ()
