@@ -68,6 +68,7 @@
     "bs"  'xueliang-open-scratch-buffer-window
     "bw"  'read-only-mode
     "ff"  'find-file
+    "ht"  'counsel-load-theme
     "gg"  'xueliang-git-status-window
     "si"  'counsel-imenu
     "tl"  'hl-line-mode
