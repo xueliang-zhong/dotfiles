@@ -275,8 +275,8 @@
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
-      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
-    (imenu-list-smart-toggle)))
+      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight) (xueliang-refresh))
+    (counsel-imenu)))
 
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
