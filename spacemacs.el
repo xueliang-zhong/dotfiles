@@ -833,10 +833,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-magit-status-window () (interactive)
        (xueliang-cd-current-dir) (evil-window-vsplit) (magit-status))
 
-(defun xueliang-refresh () (interactive)
-       (xueliang-cd-current-dir) (evil-force-normal-state)
-       (set-auto-mode) (hl-line-mode -1) (message "Refresh!"))
-
 (defun xueliang-duckduckgo-search ()
   "keep it simple search"
   (interactive) (org-link-open-from-string "https://duckduckgo.com"))
