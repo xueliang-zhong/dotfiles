@@ -36,6 +36,7 @@
 (setq large-file-warning-threshold 10000000)
 ;; Enable line numbers
 (global-display-line-numbers-mode 0)
+(add-hook 'prog-mode-hook #'display-line-numbers-mode)
 ;; Use spaces instead of tabs
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
@@ -375,14 +376,6 @@
   (xueliang-cd-current-dir)
   (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
   (xueliang-git-command git-cmd))
-
-(defun xueliang-org-focus-tasks () (interactive)
-       ;; Search for FOCUS tasks in org-mode, helping roll over tasks to
-       ;; current/future days.
-       (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
-       (setq-local my-task-list (list "FOCUS" "TODO" "PROG" "DONE"))
-       (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
-       (evil-ex-nohighlight))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
        (counsel-find-file nil "~/workspace/dotfiles/"))
