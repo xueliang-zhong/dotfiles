@@ -848,6 +848,8 @@ except for variables that should be set before packages are loaded."
 ;;
 (defalias 'xueliang-cap-region 'capitalize-region)
 (defalias 'xueliang-org-sort   'org-sort)
+(defalias 'eshell/d   'dirvish)
+(defalias 'eshell/dir 'dirvish)
 (defalias 'eshell/e   'find-file-other-window)
 (defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
