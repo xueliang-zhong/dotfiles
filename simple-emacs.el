@@ -104,8 +104,7 @@
   :config
   (setq-default
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
-   ))
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓))))
 
 ;; Evil Mode
 (use-package evil-org
@@ -181,13 +180,19 @@
   (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window))
 
-(use-package dirvish :ensure t :config (dirvish-override-dired-mode 1))
+(use-package dirvish
+  :ensure t
+  :config (dirvish-override-dired-mode 1))
 
 ;; Which-key (Keybinding helper)
-(use-package which-key :config (which-key-mode 1))
+(use-package which-key
+  :ensure t
+  :config (which-key-mode 1))
 
 ;; Snippets
-(use-package yasnippet :ensure t :config (yas-global-mode 1))
+(use-package yasnippet
+  :ensure t
+  :config (yas-global-mode 1))
 (use-package ivy-yasnippet :ensure t)
 (use-package yasnippet-snippets :ensure t)
 
