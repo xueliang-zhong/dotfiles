@@ -808,9 +808,8 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-magit-status-window ()
   "Open magit status on the right split" (interactive)
-  (xueliang-cd-current-dir)
   (setq-local split-width-threshold 10) ;; prefer vsplit
-  (magit-status))
+  (xueliang-cd-current-dir) (magit-status))
 
 (defun xueliang-duckduckgo-search ()
   "keep it simple search"
