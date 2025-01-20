@@ -66,7 +66,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(just-mode doom-themes)
+   dotspacemacs-additional-packages '(dirvish just-mode doom-themes)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -328,7 +328,7 @@ It should only modify the values of Spacemacs settings."
 
    ;; Which-key delay in seconds. The which-key buffer is the popup listing
    ;; the commands bound to the current keystroke sequence. (default 0.4)
-   dotspacemacs-which-key-delay 0.4
+   dotspacemacs-which-key-delay 0.3
 
    ;; Which-key frame position. Possible values are `right', `bottom' and
    ;; `right-then-bottom'. right-then-bottom tries to display the frame to the
@@ -627,9 +627,9 @@ except for variables that should be set before packages are loaded."
     "o" 'dired-find-file
     "l" 'dired-find-file-other-window ;; since RET jumps to the file, would be nice to have a convinient preview key
     )
-  (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
   (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
+  (dirvish-override-dired-mode 1)
 
   ;; Company
   (setq
@@ -674,13 +674,13 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar)
+  (global-set-key (kbd "<f3>")  #'treemacs-find-tag)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'xueliang-dired-window)
+  (global-set-key (kbd "<f9>")  #'dirvish)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -735,27 +735,6 @@ except for variables that should be set before packages are loaded."
   (interactive)
   (counsel-M-x "counsel "))
 
-;; My sidebar window
-;; the benefit of this approach is that it is not a sticky window.
-(defun xueliang-dired-sidebar ()
-  "Open dired in a sidebar-like window." (interactive)
-  ;; Move to the left most window, that's where the sidebar is, if there is one open
-  (ignore-errors (evil-window-left 10))
-  ;; Check if we already have sidebar open
-  (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
-    ;; Now open my sidebar window
-    (xueliang-cd-current-dir)
-    (evil-window-vsplit) (evil-window-move-far-left)
-    (dired-jump) (dired-hide-details-mode 1)
-    (setq-local split-width-threshold 10) ; prefer vsplit when there is only dired window left
-    (shrink-window-horizontally (/ (window-width) 2))))
-
-(defun xueliang-dired-window ()
-  "Open Dired in a window." (interactive)
-  (if (derived-mode-p 'dired-mode) (message "Already in a dired window.")
-    (xueliang-cd-current-dir)
-    (dired-jump) (dired-hide-details-mode 0) (setq-local split-width-threshold 10)))
-
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
@@ -767,9 +746,6 @@ except for variables that should be set before packages are loaded."
   (when buffer-file-name
     (cd (file-name-directory buffer-file-name))
     (message "pwd: %s" (file-name-directory buffer-file-name))))
-
-(defun xueliang-find-file () (interactive)
-       (xueliang-cd-current-dir) (counsel-find-file))
 
 (defun xueliang-eshell-popup ()
   "Invokes a new eshell in a popup window and ready for command" (interactive)
@@ -830,8 +806,11 @@ except for variables that should be set before packages are loaded."
   "Open scratch buffer window" (interactive)
   (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
 
-(defun xueliang-magit-status-window () (interactive)
-       (xueliang-cd-current-dir) (evil-window-vsplit) (magit-status))
+(defun xueliang-magit-status-window ()
+  "Open magit status on the right split" (interactive)
+  (xueliang-cd-current-dir)
+  (setq-local split-width-threshold 10) ;; prefer vsplit
+  (magit-status))
 
 (defun xueliang-duckduckgo-search ()
   "keep it simple search"
@@ -853,14 +832,6 @@ except for variables that should be set before packages are loaded."
   (xueliang-cd-current-dir)
   (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
   (xueliang-git-command git-cmd))
-
-(defun xueliang-org-focus-tasks () (interactive)
-       ;; Search for FOCUS tasks in org-mode, helping roll over tasks to
-       ;; current/future days.
-       (setq-local date-string (format-time-string "<%Y-%m-%d %a>" (current-time)))
-       (setq-local my-task-list (list "FOCUS" "TODO" "PROG" "DONE"))
-       (swiper (concat "^ * " (ivy-read "Task: " my-task-list)))
-       (evil-ex-nohighlight))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
        (counsel-find-file nil "~/workspace/dotfiles/"))
