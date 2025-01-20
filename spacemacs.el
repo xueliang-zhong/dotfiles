@@ -620,6 +620,10 @@ except for variables that should be set before packages are loaded."
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
+  ;; treemacs settings
+  (setq-default treemacs-follow-mode t)
+  (setq-default treemacs-tag-follow-mode t)
+
   ;; dired settings
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
@@ -675,7 +679,7 @@ except for variables that should be set before packages are loaded."
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'treemacs-find-tag)
+  (global-set-key (kbd "<f3>")  #'treemacs)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
