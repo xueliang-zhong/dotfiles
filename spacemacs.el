@@ -620,10 +620,6 @@ except for variables that should be set before packages are loaded."
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
-  ;; treemacs settings
-  (setq-default treemacs-follow-mode t)
-  (setq-default treemacs-tag-follow-mode t)
-
   ;; dired settings
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
@@ -667,6 +663,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
   (spacemacs/set-leader-keys "ff"  'xueliang-find-file-in-project)
+  (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
   (spacemacs/set-leader-keys "si"  'counsel-imenu)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
@@ -679,7 +676,7 @@ except for variables that should be set before packages are loaded."
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'treemacs)
+  (global-set-key (kbd "<f3>")  #'dirvish) ;; dirvish-side didn't work well for me
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
