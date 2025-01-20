@@ -259,11 +259,22 @@
   ;; better org-mode key behaviour on MacOS
   (define-key org-mode-map (kbd "TAB")        'org-cycle)
   (define-key org-mode-map (kbd "<tab>")      'org-cycle)
-  (define-key org-mode-map (kbd "<return>")   'org-open-at-point)
-  (define-key org-mode-map (kbd "RET")        'org-open-at-point)
   (define-key org-mode-map (kbd "s-<right>")  'org-metaright)
   (define-key org-mode-map (kbd "s-<left>")   'org-metaleft)
   (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
+
+  ;; better keys for org mode
+  (define-key evil-normal-state-local-map (kbd "O")
+              (lambda () (interactive)
+                (if (org-at-table-p) (org-table-insert-row) (evil-open-above 1)) (evil-insert 1)))
+
+  (define-key evil-normal-state-local-map (kbd "o")
+              (lambda () (interactive)
+                (if (org-at-table-p) (org-table-insert-row 1) (evil-open-below 1)) (evil-insert 1)))
+
+  (define-key evil-normal-state-local-map (kbd "<return>") 'org-open-at-point)
+  (define-key evil-normal-state-local-map (kbd "RET")      'org-open-at-point)
+
   ;; Face settings
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5 org-level-6 org-link org-table))
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
