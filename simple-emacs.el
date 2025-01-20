@@ -109,7 +109,6 @@
 
 ;; Evil Mode
 (use-package evil-org
-  :bind ("TAB" . org-cycle)
   :after org
   :config (evil-org-mode))
 
@@ -273,8 +272,6 @@
 
   ;; key bindings
   ;; better org-mode key behaviour on MacOS
-  (define-key org-mode-map (kbd "TAB")        'org-cycle)
-  (define-key org-mode-map (kbd "<tab>")      'org-cycle)
   (define-key org-mode-map (kbd "s-<right>")  'org-metaright)
   (define-key org-mode-map (kbd "s-<left>")   'org-metaleft)
   (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
@@ -288,6 +285,8 @@
               (lambda () (interactive)
                 (if (org-at-table-p) (org-table-insert-row 1) (evil-open-below 1)) (evil-insert 1)))
 
+  (define-key evil-insert-state-local-map (kbd "TAB") #'(lambda() (interactive) (insert "  ")))
+  (define-key evil-normal-state-local-map (kbd "TAB") 'org-cycle)
   (define-key evil-normal-state-local-map (kbd "<return>") 'org-open-at-point)
   (define-key evil-normal-state-local-map (kbd "RET")      'org-open-at-point)
 
