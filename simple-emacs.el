@@ -19,10 +19,11 @@
 ;; Global Settings
 ;;
 ;; Set default font
-(if (string-equal system-type "windows-nt")
-    (setq-default my-font-size 120)
-    (setq-default my-font-size 180))
-(set-face-attribute 'default nil :family "JetBrains Mono" :height my-font-size :weight 'regular :width 'normal)
+(set-face-attribute 'default nil
+                    :family "JetBrains Mono"
+                    :height (if (string-equal system-type "windows-nt") 120 180)
+                    :weight 'regular
+                    :width 'normal)
 ;; Avoid menu bar and tool bar
 (menu-bar-mode -1) (tool-bar-mode -1)
 ;; Start Emacs window maximized
@@ -74,6 +75,7 @@
     "ht"  'counsel-load-theme
     "gg"  'xueliang-git-status-window
     "si"  'counsel-imenu
+    "ss"  'swiper-all    ;; search in all open buffers
     "tl"  'hl-line-mode
     "wc"  'delete-window ;; window close
     "wg"  'golden-ratio
@@ -127,16 +129,24 @@
                                    company-keywords))
   (global-company-mode))
 
+;;
 ;; Ivy, Counsel, and Swiper
 (use-package ivy
   :after org
   :config
   (ivy-mode 1)
-  (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line))
+  (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
+  (define-key ivy-minibuffer-map (kbd "ESC") 'minibuffer-keyboard-quit))
 
 (use-package ivy-rich :after ivy :config (ivy-rich-mode 1))
 (use-package counsel :after ivy :config (counsel-mode 1))
-(use-package swiper :after ivy :bind ("C-s" . swiper))
+
+(use-package swiper
+  :after ivy
+  :bind ("C-s" . swiper)
+  :config
+  (define-key swiper-map (kbd "ESC") 'minibuffer-keyboard-quit)
+  (define-key swiper-all-map (kbd "ESC") 'minibuffer-keyboard-quit))
 
 ;; Eshell Settings
 (use-package eshell
@@ -249,8 +259,8 @@
   ;; better org-mode key behaviour on MacOS
   (define-key org-mode-map (kbd "TAB")        'org-cycle)
   (define-key org-mode-map (kbd "<tab>")      'org-cycle)
-  (define-key org-mode-map (kbd "<return>")   'xueliang-org-open-at-point)
-  (define-key org-mode-map (kbd "RET")        'xueliang-org-open-at-point)
+  (define-key org-mode-map (kbd "<return>")   'org-open-at-point)
+  (define-key org-mode-map (kbd "RET")        'org-open-at-point)
   (define-key org-mode-map (kbd "s-<right>")  'org-metaright)
   (define-key org-mode-map (kbd "s-<left>")   'org-metaleft)
   (define-key org-mode-map (kbd "s-<return>") 'org-meta-return)
@@ -319,12 +329,6 @@
   "Show the face under current cursor" (interactive "d")
   (let ((face (or (get-char-property (point) 'read-face-name) (get-char-property (point) 'face))))
     (if face (message "Face: %s" face) (message "No face at %d" pos))))
-
-(defun xueliang-org-open-at-point()
-  "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
-  (when (string-equal major-mode "org-mode")
-    (if (string-match "^\*[\*]* " (thing-at-point 'line))
-        (org-open-at-point) (+org/dwim-at-point))))
 
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
