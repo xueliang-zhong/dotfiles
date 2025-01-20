@@ -101,7 +101,11 @@
 
 (use-package org-superstar
   :after org
-  :config (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config))
+  :config
+  (setq-default
+   org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
+   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
+   ))
 
 ;; Evil Mode
 (use-package evil-org
@@ -205,6 +209,20 @@
   :config (doom-modeline-mode 1)
   :custom (doom-modeline-icon nil))
 
+;; NOTE: all the icons only enabled for macos, to simplify the UI (especially on Windows)
+(when (string-equal system-type "darwin")
+  (use-package all-the-icons
+    :ensure t
+    :config (setq-default all-the-icons-dired-monochrome nil)) ;; colourful icons
+
+  (use-package all-the-icons-dired
+    :after all-the-icons
+    :config (add-hook 'dired-mode-hook #'all-the-icons-dired-mode))
+
+  (use-package all-the-icons-ivy-rich
+    :after all-the-icons
+    :config (all-the-icons-ivy-rich-mode)))
+
 ;; Key bindings
 (global-set-key (kbd "s-x") 'execute-extended-command)
 (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -224,7 +242,7 @@
 ;;
 ;; My own functions
 ;;
-(defun xueliang-reload-spacemacs-config ()
+(defun xueliang-reload-org-config ()
   "reload my spacemacs config" (interactive)
   ;; ivy settings
   (setq ivy-use-virtual-buffers t
@@ -237,8 +255,6 @@
   ;; org-mode appearance settings
   (org-indent-mode 1) (org-superstar-mode 1)
   (setq
-   org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
-   org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
    org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
    '(("DDG" . "https://duckduckgo.com/?q=")
@@ -288,7 +304,7 @@
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
-      (progn (xueliang-refresh) (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
+      (progn (xueliang-reload-org-config) (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
     (counsel-imenu)))
 
 (defun xueliang-cd-current-dir ()
