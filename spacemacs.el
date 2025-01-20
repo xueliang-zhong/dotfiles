@@ -674,6 +674,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
+  (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
   (global-set-key (kbd "<f3>")  #'treemacs-find-tag)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
@@ -739,7 +740,7 @@ except for variables that should be set before packages are loaded."
   "" (interactive)
   (if (derived-mode-p 'org-mode)
       (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
-    (imenu-list-smart-toggle)))
+    (counsel-imenu)))
 
 (defun xueliang-cd-current-dir ()
   "cd to directory of current buffer/file." (interactive)
