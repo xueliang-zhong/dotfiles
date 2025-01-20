@@ -255,6 +255,8 @@
       "DONE(d)"      ; Task has been completed
       )))
   (setq org-log-done nil)
+  (setq org-confirm-babel-evaluate nil)
+
   ;; key bindings
   ;; better org-mode key behaviour on MacOS
   (define-key org-mode-map (kbd "TAB")        'org-cycle)
