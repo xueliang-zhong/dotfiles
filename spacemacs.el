@@ -774,9 +774,7 @@ except for variables that should be set before packages are loaded."
   (when (string-match "\\(https?://[^\s]+\\)" selected-str)
     (setq-local xueliang-url-str (match-string 1 selected-str)))
   (when (string-match "\\(file:[^\s]+\\)" selected-str)
-    (setq-local xueliang-url-str (match-string 1 selected-str))
-    ;; for file notes, it's better to open in a different window
-    (+evil/window-vsplit-and-follow))
+    (setq-local xueliang-url-str (match-string 1 selected-str)))
   (org-link-open-from-string xueliang-url-str))
 
 (defun xueliang-T-open-T-in-browser () (interactive)
@@ -797,7 +795,7 @@ except for variables that should be set before packages are loaded."
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
   (when (string-equal major-mode "org-mode")
     (if (string-match "^\*[\*]* " (thing-at-point 'line))
-        (org-open-at-point) (+org/dwim-at-point))))
+        (org-open-at-point) (evil-ret))))
 
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
@@ -855,7 +853,6 @@ except for variables that should be set before packages are loaded."
 (defalias 'eshell/vim 'eshell/e)
 (defalias 'eshell/f   'xueliang-eshell-fzf)
 (defalias 'eshell/fzf 'eshell/f)
-
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
