@@ -19,7 +19,10 @@
 ;; Global Settings
 ;;
 ;; Set default font
-(set-face-attribute 'default nil :family "JetBrains Mono" :height 180 :weight 'regular :width 'normal)
+(if (string-equal system-type "windows-nt")
+    (setq-default my-font-size 120)
+    (setq-default my-font-size 180))
+(set-face-attribute 'default nil :family "JetBrains Mono" :height my-font-size :weight 'regular :width 'normal)
 ;; Avoid menu bar and tool bar
 (menu-bar-mode -1) (tool-bar-mode -1)
 ;; Start Emacs window maximized
@@ -41,7 +44,7 @@
 (setq-default indent-tabs-mode nil)
 (setq-default tab-width 4)
 
-;; Evil Mode (Vim keybindings)
+;; Evil Mode (vim keybindings)
 (use-package evil
   :config
   (evil-mode 1)
@@ -79,8 +82,7 @@
     "fp"  'xueliang-find-file-in-dotfiles
     "is"  'ivy-yasnippet ;; insert snippet
     "RET" 'counsel-recentf
-    )
-  )
+    ))
 
 ;; Org Mode
 (use-package org
@@ -93,20 +95,17 @@
   ;; avoid long line wrap
   (add-hook 'dired-mode-hook (lambda () (setq-default truncate-lines t)))
   (add-hook 'org-mode-hook (lambda () (setq-default truncate-lines t)))
-  (add-hook 'prog-mode-hook (lambda () (setq-default truncate-lines t)))
-  )
+  (add-hook 'prog-mode-hook (lambda () (setq-default truncate-lines t))))
 
 (use-package org-superstar
   :after org
-  :config
-  (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config))
+  :config (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config))
 
 ;; Evil Mode
 (use-package evil-org
   :bind ("TAB" . org-cycle)
   :after org
-  :config
-  (evil-org-mode))
+  :config (evil-org-mode))
 
 ;; Company Mode (Auto-completion)
 (use-package company
@@ -135,19 +134,9 @@
   (ivy-mode 1)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line))
 
-(use-package ivy-rich
-  :after ivy
-  :config
-  (ivy-rich-mode 1))
-
-(use-package counsel
-  :after ivy
-  :config
-  (counsel-mode 1))
-
-(use-package swiper
-  :after ivy
-  :bind ("C-s" . swiper))
+(use-package ivy-rich :after ivy :config (ivy-rich-mode 1))
+(use-package counsel :after ivy :config (counsel-mode 1))
+(use-package swiper :after ivy :bind ("C-s" . swiper))
 
 ;; Eshell Settings
 (use-package eshell
@@ -179,33 +168,32 @@
   (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window))
 
-(use-package dirvish
-  :config
-  (dirvish-override-dired-mode 1))
+(use-package dirvish :ensure t :config (dirvish-override-dired-mode 1))
 
 ;; Which-key (Keybinding helper)
-(use-package which-key
-  :config
-  (which-key-mode 1))
+(use-package which-key :config (which-key-mode 1))
 
-;; All the icons
-(use-package all-the-icons)
+;; Snippets
+(use-package yasnippet :ensure t :config (yas-global-mode 1))
+(use-package ivy-yasnippet :ensure t)
+(use-package yasnippet-snippets :ensure t)
 
-(use-package all-the-icons-ivy-rich
-  :after (ivy-rich all-the-icons)
+;; Better undo/redo
+(use-package undo-fu
+  :ensure t
+  :after evil
   :config
-  (all-the-icons-ivy-rich-mode 1))
-
-(use-package all-the-icons-dired
-  :after dired
-  :hook (dired-mode . all-the-icons-dired-mode)
-  :config
-  (setq all-the-icons-dired-monochrome nil))
+  (setq evil-undo-system 'undo-fu)
+  ;; Bind undo and redo keys explicitly
+  (define-key evil-normal-state-map (kbd "u") 'undo-fu-only-undo)
+  (define-key evil-normal-state-map (kbd "C-r") 'undo-fu-only-redo))
 
 ;; Theme Pack
-(use-package doom-themes
-  :config
-  (load-theme 'doom-one t))
+;; NOTE: all the icons avoided, to simplify the UI (especially on Windows)
+(use-package doom-themes :ensure t :config (load-theme 'doom-one t))
+(use-package doom-modeline :ensure t
+  :config (doom-modeline-mode 1)
+  :custom (doom-modeline-icon nil))
 
 ;; Key bindings
 (global-set-key (kbd "s-x") 'execute-extended-command)
@@ -279,7 +267,7 @@
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
   (if (derived-mode-p 'org-mode)
-      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight) (xueliang-refresh))
+      (progn (xueliang-refresh) (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
     (counsel-imenu)))
 
 (defun xueliang-cd-current-dir ()
@@ -408,6 +396,7 @@
  ;; If there is more than one, they won't work right.
  '(package-selected-packages
    '(all-the-icons-ivy-rich ivy-rich all-the-icons-dired all-the-icons evil-leader which-key evil doom-themes counsel company)))
+
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
