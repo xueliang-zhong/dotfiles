@@ -822,14 +822,14 @@ except for variables that should be set before packages are loaded."
 
 (defun Gwrite ()
   "Support :Gwrite similar to vim." (interactive)
-  (setq git-cmd (message "git add %s" (file-name-nondirectory buffer-file-name)))
-  (xueliang-git-command git-cmd))
+  (setq-local git-cmd (message "!git add %s" (file-name-nondirectory buffer-file-name)))
+  (evil-ex-execute git-cmd))
 
 (defun Gcommit ()
   "Support :Gcommit similar to vim." (interactive)
   (xueliang-cd-current-dir)
-  (setq git-cmd (message "git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
-  (xueliang-git-command git-cmd))
+  (setq git-cmd (message "!git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
+  (evil-ex-execute git-cmd))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
        (counsel-find-file nil "~/workspace/dotfiles/"))
