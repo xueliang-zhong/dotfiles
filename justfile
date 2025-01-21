@@ -19,7 +19,7 @@ maintenance-check:
   @echo "maintenance check of vimrc/init.lua/spacemacs"
   @echo "vimrc (goal <= 250 LOC):" && wc -l vimrc
   @echo "init.lua (goal <= 250 LOC):" && wc -l init.lua
-  @echo "emacs config (goal <= 250 LOC):"
+  @echo "emacs config (goal <= 200 LOC):"
   @grep -v "^[ ]*;" spacemacs.el | grep -v "^[ ]*$" | grep -A 1000 "defun.*dotspacemacs/user-config" | wc -l
 
 emacs-dotfiles-clean:
