@@ -630,21 +630,10 @@ except for variables that should be set before packages are loaded."
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
 
   ;; Company
-  (setq
-   company-dabbrev-code-other-buffers 'all
+  (setq-default
    company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
    company-idle-delay 0
-   company-tooltip-minimum 9
-   company-tooltip-limit 9
-   company-tooltip-minimum-width 33
    company-minimum-prefix-length 1)
-  (setq-default company-backends '(company-files
-                                   company-capf
-                                   company-dabbrev-code
-                                   company-dabbrev
-                                   company-gtags
-                                   company-keywords))
-  (global-company-mode)
 
   ;; eshell settings
   (add-hook 'eshell-mode-hook
