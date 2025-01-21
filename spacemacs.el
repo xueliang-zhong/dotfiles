@@ -66,7 +66,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(dirvish just-mode doom-themes)
+   dotspacemacs-additional-packages '(just-mode doom-themes)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -624,12 +624,10 @@ except for variables that should be set before packages are loaded."
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
-    "o" 'dired-find-file
-    "l" 'dired-find-file-other-window ;; since RET jumps to the file, would be nice to have a convinient preview key
-    )
+    "l" 'dired-find-file-other-window)
+  (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
   (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
-  (dirvish-override-dired-mode 1)
 
   ;; Company
   (setq
@@ -671,18 +669,17 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
   (spacemacs/set-leader-keys "x"   'counsel-M-x)
   (spacemacs/set-leader-keys "fp"  'xueliang-find-file-in-dotfiles)
-  (spacemacs/set-leader-keys ","   'ivy-yasnippet)
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'dirvish) ;; dirvish-side didn't work well for me
+  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar) ;; dirvish-side didn't work well for me
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'dirvish)
+  (global-set-key (kbd "<f9>")  #'xueliang-dirvish-like-window)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -736,6 +733,19 @@ except for variables that should be set before packages are loaded."
   "Show all useful counsel commands"
   (interactive)
   (counsel-M-x "counsel "))
+
+;; the benefit of this approach is that it is not a sticky window.
+(defun xueliang-dired-sidebar ()
+  "Open dired in a sidebar-like window. Calling this function x2 will create dirvish like windows" (interactive)
+  (xueliang-cd-current-dir)
+  (evil-window-vsplit) (evil-window-move-far-left)
+  (dired-jump) (dired-hide-details-mode 1)
+  (shrink-window-horizontally (/ (window-width) 2)))
+
+(defun xueliang-dirvish-like-window ()
+  "Open Dirvish like window." (interactive)
+  (delete-other-windows) (xueliang-dired-sidebar) (xueliang-dired-sidebar)
+  (dired-find-file-other-window))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
@@ -843,8 +853,6 @@ except for variables that should be set before packages are loaded."
 ;;
 (defalias 'xueliang-cap-region 'capitalize-region)
 (defalias 'xueliang-org-sort   'org-sort)
-(defalias 'eshell/d   'dirvish)
-(defalias 'eshell/dir 'dirvish)
 (defalias 'eshell/e   'find-file-other-window)
 (defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
