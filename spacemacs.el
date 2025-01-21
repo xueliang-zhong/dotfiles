@@ -652,7 +652,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "ff"  'xueliang-find-file-in-project)
   (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
-  (spacemacs/set-leader-keys "si"  'counsel-imenu)
+  (spacemacs/set-leader-keys "si"  'xueliang-imenu-for-ivy-occur)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
   (spacemacs/set-leader-keys "wg"  'golden-ratio)
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
@@ -662,7 +662,7 @@ except for variables that should be set before packages are loaded."
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
-  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar) ;; dirvish-side didn't work well for me
+  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
@@ -684,7 +684,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-reload-spacemacs-config ()
   "reload my spacemacs config" (interactive)
   ;; org mode settings
-  ;; Make sure these settings are called only when org-mode are loaded
   ;; org-mode appearance settings
   (org-indent-mode 1)
   (org-superstar-mode 1)
@@ -719,8 +718,7 @@ except for variables that should be set before packages are loaded."
   )
 
 (defun xueliang-telescope-counsel ()
-  "Show all useful counsel commands"
-  (interactive)
+  "Show all useful counsel commands" (interactive)
   (counsel-M-x "counsel "))
 
 ;; the benefit of this approach is that it is not a sticky window.
@@ -801,6 +799,11 @@ except for variables that should be set before packages are loaded."
   "just do find-file for best performance" (interactive)
   (xueliang-cd-current-dir) (counsel-find-file))
 
+(defun xueliang-imenu-for-ivy-occur ()
+  "open imenu and prepare for ivy-occur (C-c C-o) to open on vsplit" (interactive)
+  (setq-local split-width-threshold 10) ;; prefer vsplit
+  (counsel-imenu))
+
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
   (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
@@ -809,16 +812,6 @@ except for variables that should be set before packages are loaded."
   "Open magit status on the right split" (interactive)
   (setq-local split-width-threshold 10) ;; prefer vsplit
   (xueliang-cd-current-dir) (magit-status))
-
-(defun xueliang-duckduckgo-search ()
-  "keep it simple search"
-  (interactive) (org-link-open-from-string "https://duckduckgo.com"))
-
-(defun xueliang-git-command (git-cmd)
-  "silently execute a git command in eshell"
-  (xueliang-cd-current-dir) (save-buffer)
-  (xueliang-eshell-popup) (insert git-cmd) (eshell-send-input) (evil-window-delete)
-  (evil-force-normal-state) (message git-cmd))
 
 (defun Gwrite ()
   "Support :Gwrite similar to vim." (interactive)
