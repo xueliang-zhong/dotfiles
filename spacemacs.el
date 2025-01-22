@@ -634,6 +634,9 @@ except for variables that should be set before packages are loaded."
    company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
    company-idle-delay 0
    company-minimum-prefix-length 1)
+  ;; vim style completions
+  (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
+  (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
 
   ;; eshell settings
   (add-hook 'eshell-mode-hook
@@ -670,7 +673,6 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-dirvish-like-window)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
-  (global-set-key (kbd "<f11>") #'xueliang-open-link-in-browser)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
@@ -704,6 +706,9 @@ except for variables that should be set before packages are loaded."
       "DONE(d)"      ; Task has been completed
       )))
   (setq org-log-done nil)
+  ;; org-babel improvements
+  (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
+  (setq org-confirm-babel-evaluate nil)
   ;; key bindings
   (evil-define-key 'normal evil-org-mode-map
     (kbd "<return>")  #'xueliang-org-open-at-point
@@ -721,7 +726,13 @@ except for variables that should be set before packages are loaded."
   "Show all useful counsel commands" (interactive)
   (counsel-M-x "counsel "))
 
-;; the benefit of this approach is that it is not a sticky window.
+(defun xueliang-complete-line ()
+  "Like vim's Blines completion" (interactive)
+  (setq-local comp-line
+              (ivy-read "Complete Line > " (split-string (buffer-string) "\n" t) :initial-input (thing-at-point 'line)))
+  (delete-region (line-beginning-position) (line-end-position))
+  (insert comp-line))
+
 (defun xueliang-dired-sidebar ()
   "Open dired in a sidebar-like window. Calling this function x2 will create dirvish like windows" (interactive)
   (xueliang-cd-current-dir)
@@ -761,8 +772,16 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-open-knowledge-links ()
   "My knowledge links quick open" (interactive)
+  ;; list 1
   (setq-local current-buffer-string (split-string (buffer-string) "\n" t))
   (setq-local url-list (cl-remove-if-not (lambda (line) (or (string-match "http" line) (string-match "file:" line))) current-buffer-string))
+  ;; list 2
+  (setq-local weblink-list
+              (with-temp-buffer (insert-file-contents "~/workspace/xzhong-links.txt")
+                                (split-string (buffer-string) "\n" t)))
+  ;; comebine both lists
+  (setq-local url-list (delete-dups (append url-list weblink-list)))
+  ;; ivy workflow
   (setq-local selected-str (ivy-read "Knowledge Link: " url-list))
   ;; find the URL substr (Knowledge Link) within the selected line
   (when (string-match "\\(https?://[^\s]+\\)" selected-str)
