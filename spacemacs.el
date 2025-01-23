@@ -626,8 +626,8 @@ except for variables that should be set before packages are loaded."
     "h" 'dired-up-directory
     "l" 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
-  (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
-  (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
+  (define-key dired-mode-map (kbd "RET") 'dired-find-file)
+  (define-key dired-mode-map (kbd "<return>") 'dired-find-file)
 
   ;; Company
   (setq-default
@@ -738,7 +738,7 @@ except for variables that should be set before packages are loaded."
   (xueliang-cd-current-dir)
   (evil-window-vsplit) (evil-window-move-far-left)
   (dired-jump) (dired-hide-details-mode 1)
-  (shrink-window-horizontally (/ (window-width) 2)))
+  (evil-window-decrease-width (floor (* (window-width) 0.382))))
 
 (defun xueliang-dirvish-like-window ()
   "Open Dirvish like window." (interactive)

@@ -177,8 +177,8 @@
     "l" 'dired-find-file-other-window ;; since RET jumps to the file, would be nice to have a convinient preview key
     )
   (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
-  (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
-  (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window))
+  (define-key dired-mode-map (kbd "RET") 'dired-find-file)
+  (define-key dired-mode-map (kbd "<return>") 'dired-find-file))
 
 (use-package dirvish
   :ensure t
