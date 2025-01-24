@@ -637,6 +637,7 @@ except for variables that should be set before packages are loaded."
   ;; vim style completions
   (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
+  (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
 
   ;; eshell settings
   (add-hook 'eshell-mode-hook
@@ -762,14 +763,6 @@ except for variables that should be set before packages are loaded."
   (xueliang-cd-current-dir) (evil-window-split) (other-window 1)
   (eshell) (evil-append-line 1))
 
-(defun xueliang-open-link-in-browser ()
-  "F12 to select from a list of favourite links to open." (interactive)
-  (setq weblink-list
-        (with-temp-buffer (insert-file-contents "~/workspace/xzhong-links.txt")
-                          (split-string (buffer-string) "\n" t)))
-  (setq-local xueliang-weblink-str (nth 1 (split-string (ivy-read "Link: " weblink-list))))
-  (org-link-open-from-string xueliang-weblink-str))
-
 (defun xueliang-open-knowledge-links ()
   "My knowledge links quick open" (interactive)
   ;; list 1
@@ -790,19 +783,14 @@ except for variables that should be set before packages are loaded."
     (setq-local xueliang-url-str (match-string 1 selected-str)))
   (org-link-open-from-string xueliang-url-str))
 
-(defun xueliang-T-open-T-in-browser () (interactive)
-       (when (string-equal system-type "darwin")
-         (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY")))
+(defun xueliang-T-open-T-in-browser ()
+  "" (interactive)
+  (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY"))
 
 (defun xueliang-replace-tab-trailing-spaces()
   "Easily replace all TAB in current buffer with spaces." (interactive)
   (untabify (point-min) (point-max))
   (delete-trailing-whitespace))
-
-(defun xueliang-what-face (pos)
-  "Show the face under current cursor" (interactive "d")
-  (let ((face (or (get-char-property (point) 'read-face-name) (get-char-property (point) 'face))))
-    (if face (message "Face: %s" face) (message "No face at %d" pos))))
 
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
@@ -852,6 +840,7 @@ except for variables that should be set before packages are loaded."
 ;;
 ;; Some useful alias
 ;;
+(defalias 'xueliang-what-face 'describe-face)
 (defalias 'xueliang-cap-region 'capitalize-region)
 (defalias 'xueliang-org-sort   'org-sort)
 (defalias 'eshell/e   'find-file-other-window)
