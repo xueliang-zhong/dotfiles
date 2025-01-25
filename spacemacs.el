@@ -653,7 +653,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
-  (spacemacs/set-leader-keys "ff"  'xueliang-find-file-in-project)
+  (spacemacs/set-leader-keys "ff"  'spacemacs/counsel-find-file)
   (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
   (spacemacs/set-leader-keys "si"  'xueliang-imenu-for-ivy-occur)
@@ -765,15 +765,10 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-open-knowledge-links ()
   "My knowledge links quick open" (interactive)
-  ;; list 1
-  (setq-local current-buffer-string (split-string (buffer-string) "\n" t))
-  (setq-local url-list (cl-remove-if-not (lambda (line) (or (string-match "http" line) (string-match "file:" line))) current-buffer-string))
-  ;; list 2
-  (setq-local weblink-list
+  ;; fast search in pre-compiled URL list
+  (setq-local url-list
               (with-temp-buffer (insert-file-contents "~/workspace/xzhong-links.txt")
                                 (split-string (buffer-string) "\n" t)))
-  ;; comebine both lists
-  (setq-local url-list (delete-dups (append url-list weblink-list)))
   ;; ivy workflow
   (setq-local selected-str (ivy-read "Knowledge Link: " url-list))
   ;; find the URL substr (Knowledge Link) within the selected line
@@ -801,10 +796,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
-
-(defun xueliang-find-file-in-project ()
-  "just do find-file for best performance" (interactive)
-  (xueliang-cd-current-dir) (counsel-find-file))
 
 (defun xueliang-imenu-for-ivy-occur ()
   "open imenu and prepare for ivy-occur (C-c C-o) to open on vsplit" (interactive)
@@ -840,14 +831,13 @@ except for variables that should be set before packages are loaded."
 ;;
 ;; Some useful alias
 ;;
-(defalias 'xueliang-what-face 'describe-face)
+(defalias 'xueliang-what-face  'describe-face)
 (defalias 'xueliang-cap-region 'capitalize-region)
 (defalias 'xueliang-org-sort   'org-sort)
 (defalias 'eshell/e   'find-file-other-window)
 (defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
-(defalias 'eshell/f   'xueliang-eshell-fzf)
-(defalias 'eshell/fzf 'eshell/f)
+(defalias 'eshell/fzf 'counsel-fzf)
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
