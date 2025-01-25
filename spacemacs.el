@@ -656,7 +656,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "ff"  'spacemacs/counsel-find-file)
   (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
-  (spacemacs/set-leader-keys "si"  'xueliang-imenu-for-ivy-occur)
+  (spacemacs/set-leader-keys "si"  'counsel-imenu)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
   (spacemacs/set-leader-keys "wg"  'golden-ratio)
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
@@ -796,11 +796,6 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
   (message "Sum: %s" (cl-reduce #'+ (split-string (buffer-substring start end)) :key #'string-to-number)))
-
-(defun xueliang-imenu-for-ivy-occur ()
-  "open imenu and prepare for ivy-occur (C-c C-o) to open on vsplit" (interactive)
-  (setq-local split-width-threshold 10) ;; prefer vsplit
-  (counsel-imenu))
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
