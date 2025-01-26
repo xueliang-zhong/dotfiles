@@ -821,7 +821,7 @@ except for variables that should be set before packages are loaded."
        (counsel-find-file nil "~/workspace/dotfiles/"))
 
 (defun xueliang-just-make () (interactive)
-       (xueliang-eshell-popup) (insert "just all") (eshell-send-input))
+       (evil-ex-execute "!just all"))
 
 ;;
 ;; Some useful alias
