@@ -823,6 +823,9 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-just-make () (interactive)
        (evil-ex-execute "!just all"))
 
+(defun xueliang-daily-websites() (interactive)
+       (evil-ex-execute "!just daily-websites"))
+
 ;;
 ;; Some useful alias
 ;;
