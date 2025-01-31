@@ -2,7 +2,7 @@
 # emacs & nvim config files
 ###########################
 
-all: list install maintenance-check # docker-build
+all: install maintenance-check # docker-build
 make: all
 
 list:

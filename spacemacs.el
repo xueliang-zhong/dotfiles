@@ -634,6 +634,7 @@ except for variables that should be set before packages are loaded."
    company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
    company-idle-delay 0
    company-minimum-prefix-length 1)
+
   ;; vim style completions
   (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
@@ -690,6 +691,7 @@ except for variables that should be set before packages are loaded."
   ;; org-mode appearance settings
   (org-indent-mode 1)
   (org-superstar-mode 1)
+  (setq-default split-width-threshold 160) ;; works better for org-timestamp
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
