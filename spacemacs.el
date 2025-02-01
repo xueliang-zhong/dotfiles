@@ -724,8 +724,7 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-dired-sidebar ()
   "Open dired in a sidebar-like window. Calling this function x2 will create dirvish like windows" (interactive)
-  (xueliang-cd-current-dir)
-  (evil-window-vsplit) (evil-window-move-far-left)
+  (xueliang-cd-current-dir) (evil-window-vsplit) (evil-window-move-far-left)
   (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
   (evil-window-decrease-width (floor (* (window-width) 0.382))))
 
@@ -781,6 +780,7 @@ except for variables that should be set before packages are loaded."
   (xueliang-cd-current-dir) (magit-status))
 
 (defun Gwrite () (interactive) (evil-ex-execute "!git add %"))
+
 (defun Gcommit ()
   "Support :Gcommit similar to vim." (interactive)
   (xueliang-cd-current-dir)
