@@ -673,7 +673,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'xueliang-dirvish-like-window)
+  (global-set-key (kbd "<f9>")  #'xueliang-dired-jump)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
@@ -696,19 +696,9 @@ except for variables that should be set before packages are loaded."
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
-   org-link-abbrev-alist    ; This overwrites the default Doom org-link-abbrev-list
-   '(("DDG" . "https://duckduckgo.com/?q=")
-     ("SC" . "https://stockcharts.com/h-sc/ui?s=%s")
-     ("wiki" . "https://en.wikipedia.org/wiki/"))
-   org-todo-keywords        ; This overwrites the default Doom org-todo-keywords
-   '((sequence
-      "FOCUS(f)"     ; A task that I am focusing
-      "TODO(t)"      ; A task that is ready to be tackled
-      "PROG(p)"      ; A task that is in progress but no need to focus right now
-      "|"            ; The pipe necessary to separate "active" states and "inactive" states
-      "DONE(d)"      ; Task has been completed
-      )))
-  (setq org-log-done nil)
+   org-log-done nil
+   org-link-abbrev-alist '(("SC" . "https://stockcharts.com/h-sc/ui?s=%s"))
+   org-todo-keywords '((sequence "FOCUS(f)" "TODO(t)" "PROG(p)" "|" "DONE(d)")))
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   (setq org-confirm-babel-evaluate nil)
@@ -725,10 +715,6 @@ except for variables that should be set before packages are loaded."
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
   )
 
-(defun xueliang-telescope-counsel ()
-  "Show all useful counsel commands" (interactive)
-  (counsel-M-x "counsel "))
-
 (defun xueliang-complete-line ()
   "Like vim's Blines completion" (interactive)
   (setq-local comp-line
@@ -740,13 +726,8 @@ except for variables that should be set before packages are loaded."
   "Open dired in a sidebar-like window. Calling this function x2 will create dirvish like windows" (interactive)
   (xueliang-cd-current-dir)
   (evil-window-vsplit) (evil-window-move-far-left)
-  (dired-jump) (dired-hide-details-mode 1)
+  (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
   (evil-window-decrease-width (floor (* (window-width) 0.382))))
-
-(defun xueliang-dirvish-like-window ()
-  "Open Dirvish like window." (interactive)
-  (delete-other-windows) (xueliang-dired-sidebar) (xueliang-dired-sidebar)
-  (dired-find-file-other-window))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
@@ -780,15 +761,6 @@ except for variables that should be set before packages are loaded."
     (setq-local xueliang-url-str (match-string 1 selected-str)))
   (org-link-open-from-string xueliang-url-str))
 
-(defun xueliang-T-open-T-in-browser ()
-  "" (interactive)
-  (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY"))
-
-(defun xueliang-replace-tab-trailing-spaces()
-  "Easily replace all TAB in current buffer with spaces." (interactive)
-  (untabify (point-min) (point-max))
-  (delete-trailing-whitespace))
-
 (defun xueliang-org-open-at-point()
   "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
   (when (string-equal major-mode "org-mode")
@@ -808,25 +780,22 @@ except for variables that should be set before packages are loaded."
   (setq-local split-width-threshold 10) ;; prefer vsplit
   (xueliang-cd-current-dir) (magit-status))
 
-(defun Gwrite ()
-  "Support :Gwrite similar to vim." (interactive)
-  (setq-local git-cmd (message "!git add %s" (file-name-nondirectory buffer-file-name)))
-  (evil-ex-execute git-cmd))
-
+(defun Gwrite () (interactive) (evil-ex-execute "!git add %"))
 (defun Gcommit ()
   "Support :Gcommit similar to vim." (interactive)
   (xueliang-cd-current-dir)
-  (setq git-cmd (message "!git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name)))
-  (evil-ex-execute git-cmd))
+  (evil-ex-execute (message "!git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name))))
 
-(defun xueliang-find-file-in-dotfiles () (interactive)
-       (counsel-find-file nil "~/workspace/dotfiles/"))
-
-(defun xueliang-just-make () (interactive)
-       (evil-ex-execute "!just all"))
-
-(defun xueliang-daily-websites() (interactive)
-       (evil-ex-execute "!just daily-websites"))
+;;
+;; My one liner commands
+;;
+(defun xueliang-replace-tab-trailing-spaces() (interactive) (untabify (point-min) (point-max)) (delete-trailing-whitespace))
+(defun xueliang-T-open-T-in-browser () (interactive) (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY"))
+(defun xueliang-telescope-counsel () (interactive) (counsel-M-x "counsel "))
+(defun xueliang-dired-jump () (interactive) (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
+(defun xueliang-find-file-in-dotfiles () (interactive) (counsel-find-file nil "~/workspace/dotfiles/"))
+(defun xueliang-just-make () (interactive) (evil-ex-execute "!just all"))
+(defun xueliang-daily-websites() (interactive) (evil-ex-execute "!just daily-websites"))
 
 ;;
 ;; Some useful alias
