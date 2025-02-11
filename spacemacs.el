@@ -794,8 +794,8 @@ except for variables that should be set before packages are loaded."
 (defun xueliang-telescope-counsel () (interactive) (counsel-M-x "counsel "))
 (defun xueliang-dired-jump () (interactive) (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
 (defun xueliang-find-file-in-dotfiles () (interactive) (counsel-find-file nil "~/workspace/dotfiles/"))
-(defun xueliang-just-make () (interactive) (evil-ex-execute "!just all"))
-(defun xueliang-daily-websites() (interactive) (evil-ex-execute "!just daily-websites"))
+(defun xueliang-just-make () (interactive) (evil-ex-execute "!just all &"))
+(defun xueliang-daily-websites() (interactive) (evil-ex-execute "!just daily-websites &"))
 
 ;;
 ;; Some useful alias
