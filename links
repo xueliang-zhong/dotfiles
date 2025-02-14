@@ -22,7 +22,8 @@ if [ ! -f "$FILE" ]; then
 fi
 
 # Select URL from the file using fzf
-URL=$(cat "$FILE" | fzf +s -e | awk '{print $2}')
+# URL=$(cat "$FILE" | fzf +s -e | awk '{print $2}') # my old approach
+URL=$(cat "$FILE" | fzf +s -e | grep -oE 'https?://[^[:space:]"<>]+' | head -n 1)
 if [ -z "$URL" ]; then
   echo "No URL selected."
 else

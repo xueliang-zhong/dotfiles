@@ -697,7 +697,8 @@ except for variables that should be set before packages are loaded."
    org-superstar-item-bullet-alist '((?* . ?•) (?+ . ?➜) (?- . ?✓)) ; changes +/- symbols in item lists
    org-ellipsis " ▶"
    org-log-done nil
-   org-link-abbrev-alist '(("SC" . "https://stockcharts.com/h-sc/ui?s=%s"))
+   org-link-abbrev-alist '(("SC"    . "https://stockcharts.com/h-sc/ui?s=%s")
+                           ("piano" . "https://www.scales-chords.com/chord/piano/%s"))
    org-todo-keywords '((sequence "FOCUS(f)" "TODO(t)" "PROG(p)" "|" "DONE(d)")))
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
@@ -742,8 +743,7 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-eshell-popup ()
   "Invokes a new eshell in a popup window and ready for command" (interactive)
-  (xueliang-cd-current-dir) (evil-window-split) (other-window 1)
-  (eshell) (evil-append-line 1))
+  (xueliang-cd-current-dir) (split-window-below-and-focus) (eshell) (evil-append-line 1))
 
 (defun xueliang-open-knowledge-links ()
   "My knowledge links quick open" (interactive)
@@ -772,7 +772,7 @@ except for variables that should be set before packages are loaded."
 
 (defun xueliang-open-scratch-buffer-window ()
   "Open scratch buffer window" (interactive)
-  (evil-window-vsplit) (other-window 1) (spacemacs/switch-to-scratch-buffer))
+  (split-window-right-and-focus) (spacemacs/switch-to-scratch-buffer))
 
 (defun xueliang-magit-status-window ()
   "Open magit status on the right split" (interactive)
