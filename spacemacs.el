@@ -66,7 +66,7 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(just-mode doom-themes)
+   dotspacemacs-additional-packages '(just-mode doom-themes ellama)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -489,7 +489,7 @@ It should only modify the values of Spacemacs settings."
    ;; Note that saved undo history does not get transferred when changing
    ;; your undo system. The default is currently `undo-fu' as `undo-tree'
    ;; is not maintained anymore and `undo-redo' is very basic."
-   dotspacemacs-undo-system 'undo-fu
+   dotspacemacs-undo-system 'undo-redo
 
    ;; Format specification for setting the frame title.
    ;; %a - the `abbreviated-file-name', or `buffer-name'
@@ -675,6 +675,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-dired-jump)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
+  (global-set-key (kbd "<f11>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
@@ -778,6 +779,11 @@ except for variables that should be set before packages are loaded."
   "Open magit status on the right split" (interactive)
   (setq-local split-width-threshold 10) ;; prefer vsplit
   (xueliang-cd-current-dir) (magit-status))
+
+(defun xueliang-org-sort-upheading ()
+  "Sort org tree entries by priority." (interactive)
+  (when (derived-mode-p 'org-mode)
+    (evil-next-line 1) (outline-up-heading 1 t) (org-sort-entries nil ?o)))
 
 (defun Gwrite () (interactive) (evil-ex-execute "!git add %"))
 
