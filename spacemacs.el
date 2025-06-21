@@ -675,7 +675,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
   (global-set-key (kbd "<f9>")  #'xueliang-dired-jump)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
-  (global-set-key (kbd "<f11>") #'xueliang-telescope-counsel)
+  (global-set-key (kbd "<f11>") #'xueliang-org-sort-upheading)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
