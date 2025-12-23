@@ -24,16 +24,6 @@ if [ ! -d "$HOME/.fzf" ]; then
     ~/.fzf/install --all
 fi
 
-if [ ! -d "~/bin/lazygit" ]; then
-    echo "Installing lazygit ..."
-    git clone https://github.com/jesseduffield/lazygit.git &> /dev/null
-    cd lazygit
-    go install
-    cd -
-fi
-cp -f ~/go/bin/lazygit ~/bin/
-echo "export PATH=$PATH:$HOME/bin/" >> ~/.zshrc
-
 # Set ZSH_THEME "essembeh"
 sed -i 's/^ZSH_THEME=.*/ZSH_THEME="essembeh"/' ~/.zshrc
 

@@ -234,8 +234,7 @@ It should only modify the values of Spacemacs settings."
    ;; package can be defined with `:package', or a theme can be defined with
    ;; `:location' to download the theme package, refer the themes section in
    ;; DOCUMENTATION.org for the full theme specifications.
-   dotspacemacs-themes '(spacemacs-dark
-                         spacemacs-light)
+   dotspacemacs-themes '(spacemacs-dark)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
    ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
@@ -673,7 +672,7 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'xueliang-dired-jump)
+  (global-set-key (kbd "<f9>")  #'counsel-find-file)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-org-sort-upheading)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -692,6 +691,7 @@ except for variables that should be set before packages are loaded."
   ;; org-mode appearance settings
   (org-indent-mode 1)
   (org-superstar-mode 1)
+  (org-set-frame-title "YI")
   (setq-default split-width-threshold 160) ;; works better for org-timestamp
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
@@ -796,7 +796,7 @@ except for variables that should be set before packages are loaded."
 ;; My one liner commands
 ;;
 (defun xueliang-replace-tab-trailing-spaces() (interactive) (untabify (point-min) (point-max)) (delete-trailing-whitespace))
-(defun xueliang-T-open-T-in-browser () (interactive) (org-link-open-from-string "https://stockcharts.com/h-sc/ui?s=SPY"))
+(defun xueliang-T-open-T-in-browser () (interactive) (org-link-open-from-string "https://stockcharts.com/sc3/ui/?s=VWRL.L"))
 (defun xueliang-telescope-counsel () (interactive) (counsel-M-x "counsel "))
 (defun xueliang-dired-jump () (interactive) (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
 (defun xueliang-find-file-in-dotfiles () (interactive) (counsel-find-file nil "~/workspace/dotfiles/"))

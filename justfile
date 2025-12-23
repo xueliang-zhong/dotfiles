@@ -44,8 +44,8 @@ spacemacs-install:
 # Docker Environment
 ###########################
 
-IMAGE := "ubuntu-24.10"
-CONTAINER := "ubuntu-24.10-container"
+IMAGE := "ubuntu:24.04"
+CONTAINER := "ubuntu-24.04-container"
 
 docker-build:
     docker build -t {{IMAGE}} .
