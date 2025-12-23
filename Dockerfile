@@ -5,7 +5,7 @@ RUN apt-get update && apt-get install -y \
     bat binutils bison build-essential chrpath cmake cpio curl debianutils diffstat  \
     file flex fontconfig gawk gcc gettext git git-core gnupg htop iputils-ping  \
     libacl1 libgl1-mesa-dev libxml2-utils \
-    libvulkan-dev vulkan-tools \
+    libvulkan-dev vulkan-tools spirv-tools \
     locales make just nano neovim golang-go ninja-build python3 python3-git python3-jinja2 \
     python3-pexpect python3-pip python3-subunit ripgrep socat sudo texinfo tree  \
     universal-ctags unzip wget xsltproc xz-utils zip zlib1g-dev zsh zstd \
