@@ -37,7 +37,10 @@ require("lazy").setup({
     "nvim-lualine/lualine.nvim",       -- nice status line
 
     -- Fuzzy finder
-    "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+    {
+      "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
+      version = 'v0.1.9',                -- for nvim 0.9
+    },
     "nvim-lua/plenary.nvim",           -- dependency for telescope
 
     -- justfile support
