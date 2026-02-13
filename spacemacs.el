@@ -46,10 +46,6 @@ This function should only modify configuration layer settings."
      ;; New layers for modern workflow (non-intrusive)
      ;; ----------------------------------------------------------------
      better-defaults
-     (shell :variables
-            shell-default-shell 'eshell
-            shell-default-height 30
-            shell-default-position 'bottom)
      syntax-checking
      treemacs
      )
@@ -529,7 +525,7 @@ It should only modify the values of Spacemacs settings."
    ;; which major modes have whitespace cleanup enabled or disabled
    ;; by default.
    ;; (default nil)
-   dotspacemacs-whitespace-cleanup nil
+   dotspacemacs-whitespace-cleanup 'trailing
 
    ;; If non-nil activate `clean-aindent-mode' which tries to correct
    ;; virtual indentation of simple modes. This can interfere with mode specific
@@ -655,7 +651,9 @@ except for variables that should be set before packages are loaded."
   (setq ivy-height 15
         ivy-fixed-height-minibuffer t
         ivy-count-format "(%d/%d) "
-        ivy-virtual-abbreviate 'full)
+        ivy-virtual-abbreviate 'full
+        ivy-use-selectable-prompt t
+        ivy-wrap t)
 
   ;; ============================================================
   ;; Dired Settings
@@ -680,7 +678,10 @@ except for variables that should be set before packages are loaded."
    company-minimum-prefix-length 1
    company-tooltip-align-annotations t
    company-require-match 'never
-   company-selection-wrap-around t)
+   company-selection-wrap-around t
+   company-global-modes '(not eshell-mode comint-mode ielm-mode)
+   company-backends '(company-capf company-dabbrev company-files))
+  (setq company-transformers '(company-sort-by-occurrence))
 
   ;; Better company keybindings (vim-friendly)
   (with-eval-after-load 'company
@@ -700,7 +701,15 @@ except for variables that should be set before packages are loaded."
               (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
               (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)
               (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)
-              (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)))
+              (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)
+              (define-key evil-insert-state-local-map (kbd "<f1>") #'evil-force-normal-state) ;; just like tmux
+              (evil-insert-state)))
+
+  ;; ============================================================
+  ;; Projectile - Better project handling
+  ;; ============================================================
+  (setq projectile-switch-project-action 'projectile-find-file
+        projectile-track-known-projects-automatically nil)
 
   ;; leader keys
   (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
@@ -754,6 +763,19 @@ except for variables that should be set before packages are loaded."
 
   ;; reload this function when enter org-mode
   (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config)
+
+  ;; ============================================================
+  ;; Git settings - Improve magit experience
+  ;; ============================================================
+  (setq magit-display-buffer-function 'display-buffer
+        magit-diff-refine-hunk 'all)
+
+  ;; ============================================================
+  ;; Better help and discoverability
+  ;; ============================================================
+  (setq which-key-sort-order 'which-key-key-order
+        which-key-sort-uppercase-first nil
+        which-key-add-column-padding 1)
   )
 
 ;;
@@ -781,7 +803,8 @@ except for variables that should be set before packages are loaded."
   (setq org-startup-folded 'content
         org-cycle-separator-lines 2
         org-src-fontify-natively t
-        org-src-tab-acts-natively t)
+        org-src-tab-acts-natively t
+        org-pretty-entities t)
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   (setq org-confirm-babel-evaluate nil)
