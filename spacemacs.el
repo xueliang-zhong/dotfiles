@@ -601,9 +601,23 @@ except for variables that should be set before packages are loaded."
     (global-set-key (kbd "s-x") 'execute-extended-command))
   (spacemacs/toggle-highlight-current-line-globally-off)
 
+  ;; keep editing state persistent and predictable
+  (setq auto-revert-verbose nil
+        global-auto-revert-non-file-buffers t)
+  (save-place-mode 1)
+  (savehist-mode 1)
+  (global-auto-revert-mode 1)
+
   ;; Performance: Disable bidirectional text for speed
   (setq-default bidi-display-reordering nil)
   (setq-default bidi-paragraph-direction 'left-to-right)
+  (setq-default scroll-margin 3)
+
+  ;; Keep indentation and tab behaviour aligned with Neovim
+  (setq-default indent-tabs-mode nil
+                tab-width 2
+                standard-indent 2)
+  (add-hook 'before-save-hook #'xueliang-create-missing-directories-h)
 
   ;; avoid long line wrap
   (add-hook 'dired-mode-hook (lambda () (setq truncate-lines t)))
@@ -624,7 +638,7 @@ except for variables that should be set before packages are loaded."
   (setq evil-emacs-state-modes nil
         evil-insert-state-modes nil
         evil-motion-state-modes nil
-        evil-shift-width 4)
+        evil-shift-width 2)
 
   ;; Additional evil improvements (non-intrusive)
   (setq evil-want-fine-undo t)
@@ -783,6 +797,13 @@ except for variables that should be set before packages are loaded."
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5 org-level-6 org-link org-table))
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
   )
+
+(defun xueliang-create-missing-directories-h ()
+  "Create missing parent directories before saving current file."
+  (when (and buffer-file-name (not (file-remote-p buffer-file-name)))
+    (let ((parent-dir (file-name-directory buffer-file-name)))
+      (when (and parent-dir (not (file-exists-p parent-dir)))
+        (make-directory parent-dir t)))))
 
 (defun xueliang-complete-line ()
   "Like vim's Blines completion" (interactive)
