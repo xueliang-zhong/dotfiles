@@ -34,27 +34,24 @@ This function should only modify configuration layer settings."
    dotspacemacs-configuration-layers
    '(
      ;; ----------------------------------------------------------------
-     ;; Example of useful layers you may want to use right away.
-     ;; Uncomment some layer names and press `SPC f e R' (Vim style) or
-     ;; `M-m f e R' (Emacs style) to install them.
+     ;; Core layers - keeping your existing setup
      ;; ----------------------------------------------------------------
      auto-completion
-     ;; better-defaults
      emacs-lisp
      git
-     ;; helm
      ivy
-     ;; lsp
-     ;; markdown
-     ;; multiple-cursors
      org
-     ;; (shell :variables
-     ;;       shell-default-height 30
-     ;;       shell-default-position 'bottom)
-     ;; spell-checking
-     ;; syntax-checking
-     ;; version-control
-     ;; treemacs
+
+     ;; ----------------------------------------------------------------
+     ;; New layers for modern workflow (non-intrusive)
+     ;; ----------------------------------------------------------------
+     better-defaults
+     (shell :variables
+            shell-default-shell 'eshell
+            shell-default-height 30
+            shell-default-position 'bottom)
+     syntax-checking
+     treemacs
      )
 
 
@@ -66,7 +63,9 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(just-mode doom-themes ellama)
+   dotspacemacs-additional-packages '(just-mode doom-themes ellama
+                                                ;; Modern enhancements
+                                                org-superstar evil-collection)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -122,6 +121,7 @@ It should only modify the values of Spacemacs settings."
    ;; This is an advanced option and should not be changed unless you suspect
    ;; performance issues due to garbage collection operations.
    ;; (default '(100000000 0.1))
+   ;; Optimized GC settings for better performance
    dotspacemacs-gc-cons '(100000000 0.1)
 
    ;; Set `read-process-output-max' when startup finishes.
@@ -234,7 +234,7 @@ It should only modify the values of Spacemacs settings."
    ;; package can be defined with `:package', or a theme can be defined with
    ;; `:location' to download the theme package, refer the themes section in
    ;; DOCUMENTATION.org for the full theme specifications.
-   dotspacemacs-themes '(spacemacs-dark)
+   dotspacemacs-themes '(spacemacs-dark doom-tokyo-night doom-spacegrey)
 
    ;; Set the theme for the Spaceline. Supported themes are `spacemacs',
    ;; `all-the-icons', `custom', `doom', `vim-powerline' and `vanilla'. The
@@ -594,17 +594,28 @@ dump."
   "Configuration for user code: This function is called at the very end of
 Spacemacs startup, after layer configuration. Put your configuration code here,
 except for variables that should be set before packages are loaded."
-  ;; global settings
+  ;; ============================================================
+  ;; Global Settings - Preserving your existing habits
+  ;; ============================================================
   (when (spacemacs/system-is-mac) ;; make sure M-x works on MacOS
     (global-set-key (kbd "s-x") 'execute-extended-command))
   (spacemacs/toggle-highlight-current-line-globally-off)
+
+  ;; Performance: Disable bidirectional text for speed
+  (setq-default bidi-display-reordering nil)
+  (setq-default bidi-paragraph-direction 'left-to-right)
 
   ;; avoid long line wrap
   (add-hook 'dired-mode-hook (lambda () (setq truncate-lines t)))
   (add-hook 'org-mode-hook (lambda () (setq truncate-lines t)))
   (add-hook 'prog-mode-hook (lambda () (setq truncate-lines t)))
 
-  ;; evil mode settings
+  ;; Enable visual-line-mode only where it makes sense
+  (add-hook 'text-mode-hook #'visual-line-mode)
+
+  ;; ============================================================
+  ;; Evil Mode Settings - Preserving your vim habits
+  ;; ============================================================
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
   (define-key evil-insert-state-map (kbd "TAB") #'(lambda() (interactive) (insert "  ")))
@@ -614,12 +625,26 @@ except for variables that should be set before packages are loaded."
         evil-motion-state-modes nil
         evil-shift-width 4)
 
-  ;; ivy mode settings
+  ;; Additional evil improvements (non-intrusive)
+  (setq evil-want-fine-undo t)
+  (setq evil-want-Y-yank-to-eol t)
+
+  ;; ============================================================
+  ;; Ivy/Counsel Settings - Enhanced completion
+  ;; ============================================================
   (setq counsel-grep-swiper-limit 30000000)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
-  ;; dired settings
+  ;; Performance: Faster ivy settings
+  (setq ivy-height 15
+        ivy-fixed-height-minibuffer t
+        ivy-count-format "(%d/%d) "
+        ivy-virtual-abbreviate 'full)
+
+  ;; ============================================================
+  ;; Dired Settings
+  ;; ============================================================
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
@@ -628,11 +653,24 @@ except for variables that should be set before packages are loaded."
   (define-key dired-mode-map (kbd "RET") 'dired-find-file)
   (define-key dired-mode-map (kbd "<return>") 'dired-find-file)
 
-  ;; Company
+  ;; Enable dired-x for extra features
+  (require 'dired-x)
+
+  ;; ============================================================
+  ;; Company - Better completion experience
+  ;; ============================================================
   (setq-default
    company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
    company-idle-delay 0
-   company-minimum-prefix-length 1)
+   company-minimum-prefix-length 1
+   company-tooltip-align-annotations t
+   company-require-match 'never
+   company-selection-wrap-around t)
+
+  ;; Better company keybindings (vim-friendly)
+  (with-eval-after-load 'company
+    (define-key company-active-map (kbd "C-n") #'company-select-next)
+    (define-key company-active-map (kbd "C-p") #'company-select-previous))
 
   ;; vim style completions
   (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
@@ -678,6 +716,23 @@ except for variables that should be set before packages are loaded."
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
   (global-set-key (kbd "C-<f4>") #'kill-buffer-and-window)
 
+  ;; ============================================================
+  ;; Recent Files & Session Management
+  ;; ============================================================
+  (setq recentf-max-saved-items 1000
+        recentf-max-menu-items 50
+        recentf-auto-cleanup 'never)
+
+  ;; ============================================================
+  ;; Backup Settings
+  ;; ============================================================
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backups"))
+        backup-by-copying t
+        version-control t
+        delete-old-versions t
+        kept-new-versions 6
+        kept-old-versions 2)
+
   ;; reload this function when enter org-mode
   (add-hook 'org-mode-hook 'xueliang-reload-spacemacs-config)
   )
@@ -687,8 +742,9 @@ except for variables that should be set before packages are loaded."
 ;;
 (defun xueliang-reload-spacemacs-config ()
   "reload my spacemacs config" (interactive)
-  ;; org mode settings
-  ;; org-mode appearance settings
+  ;; ============================================================
+  ;; Org Mode Settings - Enhanced appearance
+  ;; ============================================================
   (org-indent-mode 1)
   (org-superstar-mode 1)
   (org-set-frame-title "YI")
@@ -701,6 +757,12 @@ except for variables that should be set before packages are loaded."
    org-link-abbrev-alist '(("SC"    . "https://stockcharts.com/h-sc/ui?s=%s")
                            ("piano" . "https://www.scales-chords.com/chord/piano/%s"))
    org-todo-keywords '((sequence "FOCUS(f)" "TODO(t)" "PROG(p)" "|" "DONE(d)")))
+
+  ;; Enhanced org settings
+  (setq org-startup-folded 'content
+        org-cycle-separator-lines 2
+        org-src-fontify-natively t
+        org-src-tab-acts-natively t)
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   (setq org-confirm-babel-evaluate nil)
@@ -725,10 +787,20 @@ except for variables that should be set before packages are loaded."
   (insert comp-line))
 
 (defun xueliang-dired-sidebar ()
-  "Open dired in a sidebar-like window. Calling this function x2 will create dirvish like windows" (interactive)
-  (xueliang-cd-current-dir) (evil-window-vsplit) (evil-window-move-far-left)
-  (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
-  (evil-window-decrease-width (floor (* (window-width) 0.382))))
+  "Toggle dired sidebar. Open or close the sidebar window." (interactive)
+  (let ((dired-sidebar-window nil))
+    ;; Check if there's already a dired sidebar window
+    (dolist (win (window-list))
+      (when (with-current-buffer (window-buffer win)
+              (eq major-mode 'dired-mode))
+        (setq dired-sidebar-window win)))
+    ;; If sidebar exists, close it; otherwise open it
+    (if dired-sidebar-window
+        (delete-window dired-sidebar-window)
+      (xueliang-cd-current-dir)
+      (evil-window-vsplit) (evil-window-move-far-left)
+      (dired-jump) (dired-hide-details-mode)
+      (hl-line-mode 1) (evil-window-decrease-width (floor (* (window-width) 0.382))))))
 
 (defun xueliang-imenu-or-org-today ()
   "" (interactive)
