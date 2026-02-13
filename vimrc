@@ -100,6 +100,9 @@ command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler 
 command! RecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
 command! GitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
+command! Scratch rightbelow vsplit | enew | setlocal buftype=nofile bufhidden=wipe noswapfile
+command! TerminalPopup botright split | resize 12 | terminal
+command! ToggleReadonly setlocal readonly!
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Auto complete
@@ -149,7 +152,8 @@ map <C-g> <ESC><ESC>
 " Terminal keys
 tnoremap <F1> <C-W>N
 tnoremap § <C-W>N
-tnoremap <F4> <C-W>N<ESC>:q!<CR>
+tnoremap <F4> <C-\><C-n>:close<CR>
+tnoremap <C-F4> <C-\><C-n>:bdelete<CR>
 set notimeout ttimeout timeoutlen=100
 
 " Better window movements in normal mode
@@ -194,9 +198,22 @@ vmap > >gv
 " <leader> key mappings
 let mapleader=" "
 nnoremap <leader><leader> <ESC>:buffers<CR>:buffer<Space>
+nnoremap <leader>/ /
 nnoremap <leader>ff :find **<C-d><Delete><Delete>
+nnoremap <leader>fp :find ~/workspace/dotfiles/**<C-d><Delete><Delete>
+nnoremap <leader>fr :RecentFiles<CR>
+nnoremap <leader>\ :RecentFiles<CR>
 nnoremap <leader>gg <ESC>:terminal git status<CR>
-nnoremap <leader>bs <ESC><C-W><C-N>
+nnoremap <leader>gf <ESC>:GitRoot<CR>:find **<C-d><Delete><Delete>
+nnoremap <leader>gh <ESC>:Gdiff<CR>
+nnoremap <leader>bs :Scratch<CR>
+nnoremap <leader>bw :ToggleReadonly<CR>
+nnoremap <leader>cc :make<CR>:copen<CR>
+nnoremap <leader>wc :close<CR>
+nnoremap <leader>wg <C-w>=
+nnoremap <leader>sj :jumps<CR>
+nnoremap <leader>si :call XueliangIndexOrToday()<CR>
+nnoremap <leader>x :command<CR>
 nnoremap <leader>fy <ESC>:let @+=expand('%:p')<CR>:echom "File path coped"<CR>
 nnoremap <leader>th :if &cursorline == 1 \| set nocursorline \| else \| set cursorline \| endif<CR>
 nnoremap <leader>? :map<CR> " Show key bindings
@@ -211,16 +228,35 @@ nnoremap <leader>] <ESC>g]
 
 " function keys
 nnoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
-nnoremap <F4>  <ESC>:x<CR>
+inoremap <F3>  <ESC>:leftabove vs .<CR>:vertical resize 30<CR>
+nnoremap <F4>  <ESC>:close<CR>
+inoremap <F4>  <ESC>:close<CR>
+nnoremap <C-F4> <ESC>:bdelete<CR>
+inoremap <C-F4> <ESC>:bdelete<CR>
 nnoremap <F6>  <ESC>:registers<CR>
-nnoremap <F5>  <ESC>:terminal<CR>
+inoremap <F6>  <ESC>:registers<CR>
+nnoremap <F5>  :TerminalPopup<CR>
+inoremap <F5>  <ESC>:TerminalPopup<CR>
 nnoremap <F7>  <ESC>:make<CR>:copen<CR>
+inoremap <F7>  <ESC>:make<CR>:copen<CR>
 nnoremap <F9> :find **<C-d><Delete><Delete>
+inoremap <F9> <ESC>:find **<C-d><Delete><Delete>
+nnoremap <F10> <ESC>:command<CR>
+inoremap <F10> <ESC>:command<CR>
 
-" <F8> behaviour depends on the file type
-autocmd BufRead vimrc,gvimrc,.vimrc nnoremap <F8> <ESC>:grep "=> " %<CR>:copen<CR>
-autocmd BufRead *.org nnoremap <F8> <ESC>:grep "^\* " %<CR>:copen<CR>
-autocmd BufRead *.el nnoremap <F8> <ESC>:grep "defun " %<CR>:copen<CR>
+function! XueliangIndexOrToday()
+  if expand('%:e') ==# 'org' || expand('%:e') ==# 'md'
+    execute '/' . strftime('%Y-%m-%d')
+    normal! zz
+    noh
+  else
+    silent! vimgrep /\v^\s*(def|class|function|local function|defun)\>/j %
+    copen
+  endif
+endfunction
+
+nnoremap <F8> :call XueliangIndexOrToday()<CR>
+inoremap <F8> <ESC>:call XueliangIndexOrToday()<CR>
 
 " emacs's DeleteBlankLines approach is so good
 nnoremap <C-x><C-o> <ESC>:call DeleteBlankLines()<CR>
