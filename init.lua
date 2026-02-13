@@ -162,6 +162,13 @@ telescope.setup({
         },
         mappings = {
             i = {
+                -- Allow space in search (like fzf/ivy)
+                ["<space>"] = function(prompt_bufnr)
+                    local action_state = require("telescope.actions.state")
+                    local current_picker = action_state.get_current_picker(prompt_bufnr)
+                    local text = current_picker:_get_prompt() .. " "
+                    current_picker:set_prompt(text)
+                end,
                 -- make <C-a> and <C-k> mappings more like emacs in Telescope search
                 ["<C-a>"] = function()
                     vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Home>", true, false, true), "n", true)
@@ -173,6 +180,9 @@ telescope.setup({
         },
     },
 })
+
+-- Load fzf extension for better fzf-like behavior (optional, requires telescope-fzf-native.nvim)
+-- telescope.load_extension('fzf')
 
 -- IDE (tagbar & nvim-tree) setup
 require("nvim-tree").setup({
