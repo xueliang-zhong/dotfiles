@@ -18,7 +18,7 @@ vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
 -- Plugin Management with lazy.nvim
 --
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
-if not vim.loop.fs_stat(lazypath) then
+if not (vim.uv or vim.loop).fs_stat(lazypath) then
     vim.fn.system({
         "git",
         "clone",
@@ -79,7 +79,10 @@ require("lazy").setup({
         preset = "helix", -- "modern" can be too distracting
         event = "VeryLazy",
         opts = {
-            delay = 500, -- ms (?)
+            delay = 1000, -- increased to reduce typing interference
+            filter = function(mapping)
+                return mapping.desc and mapping.desc ~= ""
+            end,
         },
     },
 
@@ -96,8 +99,8 @@ require("lazy").setup({
 
 -- Colorscheme
 vim.opt.termguicolors = true
-vim.cmd("colorscheme catppuccin-mocha") -- Good ones: catppuccin-mocha, tokyonight-night
 require("catppuccin").setup({})
+vim.cmd("colorscheme catppuccin-mocha") -- Good ones: catppuccin-mocha, tokyonight-night
 
 --
 -- Autocomplete
@@ -106,6 +109,11 @@ local function ___auto_complete_support__() end
 
 local cmp = require("cmp")
 cmp.setup({
+    performance = {
+        debounce = 60,
+        throttle = 30,
+        max_view_entries = 7,
+    },
     mapping = cmp.mapping.preset.insert({
         ['<C-b>'] = cmp.mapping.scroll_docs(-4),
         ['<C-f>'] = cmp.mapping.scroll_docs(4),
@@ -178,8 +186,8 @@ require("nvim-tree").setup({
 
 -- Git (Neogit, Gitsigns)
 require('gitsigns').setup()
--- Need to have this <ESC> map to make sure preview_hunk is closed by ESC very quickly
-vim.keymap.set("n", "<ESC>", "<ESC>jk<ESC>", { noremap = true, silent = true })
+-- Clear search highlight and close any floating windows on ESC
+vim.keymap.set("n", "<ESC>", "<ESC>:noh<CR>", { noremap = true, silent = true })
 
 -- lualine
 require("lualine").setup({
@@ -237,7 +245,7 @@ vim.keymap.set("n", "gs", "<ESC>:Gitsigns stage_hunk<CR>", { noremap = true, sil
 local function ___My_Commands__() end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
-vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %"') end, { desc = "Git commit current file" })
+vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %:t"') end, { desc = "Git commit current file" })
 vim.api.nvim_create_user_command('Gblame', function() vim.cmd('Git blame') end, { desc = "Git blame" })
 vim.api.nvim_create_user_command('Gshow', function() vim.cmd('Git show') end, { desc = "Git show" })
 vim.api.nvim_create_user_command('Gdiff', function()
@@ -246,8 +254,8 @@ vim.api.nvim_create_user_command('Gdiff', function()
 end, { desc = "Git diff" })
 
 -- Leader Keys
--- Note : NOTE: space as leader key makes typing <space> sluggish in nvim
 vim.g.mapleader = " "
+vim.g.maplocalleader = " "
 
 -- Telescope related leader keys (NOTE: this is different from vim)
 vim.keymap.set("n", "<leader><leader>", ":Telescope buffers<CR>", { noremap = true, silent = true })
@@ -268,7 +276,16 @@ vim.keymap.set("n", "<leader>gg",      "<ESC>:Neogit kind=vsplit<CR>", { noremap
 vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { noremap = true, silent = true })
 
 -- Misc leader keys
-vim.keymap.set({"n","i"}, "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true })
+-- NOTE: Only map in normal mode to prevent space key delay in insert mode
+vim.keymap.set("n", "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix" })
+
+-- Which-key registration
+local wk = require("which-key")
+wk.add({
+  { "<leader>f", group = "Find" },
+  { "<leader>g", group = "Git" },
+  { "<leader>s", group = "Search" },
+})
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })

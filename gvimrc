@@ -23,7 +23,6 @@ if has("gui_running")
     set shellxquote=
 
     " KEYS
-    nnoremap <F8>  <ESC>:grep "^\*" %<CR>:copen<CR>
     nnoremap <F11> <ESC>:call OpenUrlWithExplorer()<CR>
     nnoremap <F12> <ESC>:terminal<CR>
 
@@ -43,23 +42,6 @@ endif
 command! InsertDate execute "normal! i" . strftime("%Y-%m-%d %H:%M")
 nnoremap <C-c>. <ESC>o<ESC>:InsertDate<CR>
 nnoremap <C-c><C-.> <ESC>o<ESC>:InsertDate<CR>
-
-nnoremap <CR> :call OpenUrlAtPoint()<CR>
-function! OpenUrlAtPoint()
-  let word = expand('<cWORD>')
-  let url_pattern = 'https\?://[^\s]*'
-  if word =~# url_pattern
-    echom "URL Found!"
-    if has("mac")
-      execute '!open ' . word
-    endif
-    if has("gui_running")
-      execute '!explorer.exe ' . word
-    endif
-  else
-    normal! j
-  endif
-endfunction
 
 function! OpenUrlWithExplorer()
   " Get the current line
@@ -90,15 +72,15 @@ endfunction
 function! MyWorkSpace()
   execute 'only'
   " Open a vertical split with the specified file
-  execute 'vs ~\OneDrive - Arm\work-notes'
-  execute 'sp ~\workspace\dotfiles\gvimrc'
+  execute 'vs ~/OneDrive - Arm/work-notes'
+  execute 'sp ~/workspace/dotfiles/gvimrc'
   " Move to the first window
   execute 'wincmd w'
   execute 'vi ~/workspace/org-notes/vim-work-2025.org'
-  execute 'vi ~\OneDrive - Arm\work-notes\vim-work-2025.md'
+  execute 'vi ~/OneDrive - Arm/work-notes/vim-work-2025.md'
   " just to help autocompletion
-  execute 'tabnew ~\OneDrive - Arm\work-notes\daily_work_2024.org'
-  execute 'tabnew ~\OneDrive - Arm\work-notes\daily_work_2025.org'
+  execute 'tabnew ~/OneDrive - Arm/work-notes/daily_work_2024.org'
+  execute 'tabnew ~/OneDrive - Arm/work-notes/daily_work_2025.org'
   " back to vim-work-2025.md
   execute 'tabfirst'
   execute 'tabonly'
@@ -120,8 +102,14 @@ endfunction
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => My Org Mode
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
-nnoremap <ESC> :noh<CR><ESC>
-inoremap <ESC> <ESC>:noh<CR><ESC>
+" Helper function to clear search highlighting
+function! s:ClearSearchHL()
+  noh
+  return "\<ESC>"
+endfunction
+
+nnoremap <silent> <ESC> :<C-u>noh<CR><ESC>
+inoremap <silent> <ESC> <ESC>:noh<CR><ESC>
 autocmd BufRead,BufEnter *.org set filetype=diff
 " treat obsidian markdown as diff type
 autocmd BufRead,BufEnter *.md set filetype=diff
@@ -131,13 +119,7 @@ nnoremap <S-Right> <ESC>:call ToggleDiffLine()<CR>
 inoremap <S-Left>  <ESC>l<ESC>:call ToggleDiffLine()<CR>
 inoremap <S-Right> <ESC>l<ESC>:call ToggleDiffLine()<CR>
 
-" Fold
-" <Tab> in normal mode will toggle folds, similar to emacs org-mode.
-" - create fold: <tab> in visual mode (vip zf)
-" - delete fold: zd
-" - toggle fold: <Tab> or <Shift-Tab> (za)
-vnoremap <Tab> :fold<CR>
-nnoremap <S-Tab> :let &foldlevel = (&foldlevel == 0 ? 99 : 0)<CR>
+
 
 " Define the function to toggle the first character
 function! ToggleDiffLine()
@@ -188,11 +170,7 @@ endfunction
 " Move to the head of the org-tree
 nnoremap <C-c><C-u> <ESC>vipo
 
-" My Org Sort Function
-" Or just simply: vip:sort
-command! Sort execute "normal! vip:sort\<CR>"
-command! OrgSort execute "normal! vip:sort\<CR>"
-command! XueliangOrgSort execute "normal! vip:sort\<CR>"
+
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => My Snippets

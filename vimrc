@@ -11,9 +11,8 @@ filetype plugin indent on
 set autochdir
 set autowrite
 set autoread " detect when a file is changed
-set clipboard=unnamedplus
-set clipboard+=unnamed " works on Mac OS
-set cursorline
+set clipboard=unnamed,unnamedplus " works on both Linux and Mac OS
+" set cursorline  " Disabled for performance
 set history=1000
 set laststatus=2
 set modeline
@@ -52,7 +51,6 @@ set ttyfast " Faster redrawing
 
 " avoid traditional vi stuff: EX mode, compatible with vi, ...
 nnoremap Q <esc>
-set nocompatible
 set noswapfile
 
 " folding
@@ -71,7 +69,7 @@ set spell spelllang=en_gb
 set nospell
 
 " Jump to the last position when reopening a file
-autocmd BufRead * normal! g'"
+autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "normal! g'\"" | endif
 
 " Get some nice syntax highlighting
 autocmd BufRead *.log,*.txt,*.sc set filetype=asm
@@ -82,16 +80,15 @@ autocmd BufRead justfile,BUILD set filetype=bash
 " Highlight trailing whitespaces
 highlight ExtraWhitespace ctermbg=red guibg=red
 
-" Match trailing whitespaces on specific events
-autocmd BufEnter,BufRead,InsertLeave * match ExtraWhitespace /\s\+$/
-autocmd InsertEnter * match none
+" Match trailing whitespaces - only on BufRead to reduce lag
+autocmd BufRead * match ExtraWhitespace /\s\+$/
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Commands
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Git commands
 command! Gblame  :terminal git blame %
-command! Gcommit :terminal git commit -m "update %s"
+command! Gcommit :terminal git commit -m "update %"
 command! Gdiff   :vertical terminal git diff HEAD
 command! Glog    :terminal git log
 command! Gshow   :terminal git show
@@ -102,7 +99,6 @@ command! Smallwindow  set nonu norelativenumber laststatus=0 nocursorline norule
 command! Bigwindow    set   nu norelativenumber laststatus=2   cursorline ruler   colorcolumn=100
 command! RecentFiles execute 'browse oldfiles' | execute 'let v:oldfiles = v:oldfiles[0:15]'
 command! GitRoot cd `git rev-parse --show-toplevel`
-command! XueliangGitRoot cd `git rev-parse --show-toplevel`
 command! XueliangTABTrailingSpaces retab | %s/\s\+$//e | noh
 
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -134,7 +130,8 @@ function! XueliangAutoComplete_OFF()
 endfunction
 
 " Enable my autocomplete globaly, however only for vim (nvim's v:verion == 801)
-if v:version >= 900
+" DISABLED for Neovim since nvim-cmp handles autocomplete
+if v:version >= 900 && !has('nvim')
     autocmd BufRead * call XueliangAutoComplete_ON()
 endif
 command! AutoCompleteOFF call XueliangAutoComplete_OFF()
