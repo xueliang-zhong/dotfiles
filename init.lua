@@ -13,6 +13,14 @@ vim.opt.tags = ""
 vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
+vim.opt.scrolloff = 3
+vim.opt.sidescrolloff = 5
+vim.opt.softtabstop = 2
+
+vim.opt.undofile = true
+local undo_dir = vim.fn.stdpath("state") .. "/undo"
+vim.fn.mkdir(undo_dir, "p")
+vim.opt.undodir = undo_dir
 
 --
 -- Plugin Management with lazy.nvim
@@ -226,6 +234,28 @@ vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
     callback = function()
         -- invoke 'just' when typing :make
         vim.bo.makeprg = "just"
+    end,
+})
+
+-- Keep buffer content in sync when files change outside Neovim
+vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
+    callback = function()
+        if vim.fn.mode() ~= "c" then
+            vim.cmd("checktime")
+        end
+    end,
+})
+
+-- Create missing parent directories automatically on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+    callback = function(args)
+        if args.file == "" then
+            return
+        end
+        local parent = vim.fn.fnamemodify(args.file, ":p:h")
+        if vim.fn.isdirectory(parent) == 0 then
+            vim.fn.mkdir(parent, "p")
+        end
     end,
 })
 
