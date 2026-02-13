@@ -240,6 +240,7 @@ vim.keymap.set("n", "<C-p>", ":cprev<CR>")
 
 -- some emacs key bindings that work well for me
 vim.keymap.set({"n","i"}, "<C-g>", "<ESC><ESC>", { noremap = true, silent = true })  -- emacs style
+vim.keymap.set("i", "<C-v>", "<C-r>+", { noremap = true, silent = true })
 -- emacs's <C-a> and <C-k> in :ex mode and / search
 vim.cmd("cmap <C-a> <Home>")
 vim.cmd("cmap <C-k> <C-\\>e strpart(getcmdline(), 0, getcmdpos() - 1)<CR>")
@@ -253,6 +254,67 @@ vim.keymap.set("n", "gs", "<ESC>:Gitsigns stage_hunk<CR>", { noremap = true, sil
 --
 
 local function ___My_Commands__() end
+
+local function xueliang_stop_insert_if_needed()
+    local mode = vim.api.nvim_get_mode().mode
+    if mode:match("^[it]") then
+        vim.cmd("stopinsert")
+    end
+end
+
+local function xueliang_open_scratch_buffer_window()
+    vim.cmd("rightbelow vsplit")
+    vim.cmd("enew")
+    vim.bo.buftype = "nofile"
+    vim.bo.bufhidden = "wipe"
+    vim.bo.swapfile = false
+end
+
+local function xueliang_toggle_readonly()
+    vim.cmd("setlocal readonly!")
+end
+
+local function xueliang_close_window()
+    xueliang_stop_insert_if_needed()
+    if vim.fn.winnr("$") > 1 then
+        vim.cmd("close")
+    else
+        vim.cmd("bdelete")
+    end
+end
+
+local function xueliang_kill_buffer_and_window()
+    xueliang_stop_insert_if_needed()
+    vim.cmd("bdelete")
+    if vim.fn.winnr("$") > 1 then
+        pcall(vim.cmd, "close")
+    end
+end
+
+local function xueliang_terminal_popup()
+    xueliang_stop_insert_if_needed()
+    vim.cmd("botright split")
+    vim.cmd("resize 12")
+    vim.cmd("terminal")
+    vim.cmd("startinsert")
+end
+
+local function xueliang_imenu_or_org_today()
+    local ext = vim.fn.expand("%:e")
+    if ext == "org" or ext == "md" then
+        local date = os.date("%Y-%m-%d")
+        local pattern = ext == "org" and ("<" .. date) or date
+        local found = vim.fn.search("\\V" .. pattern, "w")
+        if found == 0 then
+            vim.notify("No entry found for " .. date)
+        else
+            vim.cmd("normal! zz")
+            vim.cmd("nohlsearch")
+        end
+        return
+    end
+    vim.cmd("TagbarToggle")
+end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
 vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %:t"') end, { desc = "Git commit current file" })
@@ -278,6 +340,8 @@ vim.keymap.set("n", "<leader>fr",       ":Telescope oldfiles<CR>", { noremap = t
 vim.keymap.set("n", "<leader>\\",       ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader><CR>",     ":Telescope oldfiles<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>sj",       ":Telescope jumplist<CR>", { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>si",       xueliang_imenu_or_org_today, { noremap = true, silent = true, desc = "symbols or today's note" })
+vim.keymap.set("n", "<leader>x",        ":Telescope commands<CR>", { noremap = true, silent = true })
 vim.keymap.set("n", "z=",               ":Telescope spell_suggest<CR>", { noremap = true, silent = true })
 
 -- git related leader keys
@@ -287,21 +351,30 @@ vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { nore
 
 -- Misc leader keys
 -- NOTE: Only map in normal mode to prevent space key delay in insert mode
+vim.keymap.set("n", "<leader>bs", xueliang_open_scratch_buffer_window, { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>bw", xueliang_toggle_readonly, { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix" })
+vim.keymap.set("n", "<leader>wc", xueliang_close_window, { noremap = true, silent = true })
+vim.keymap.set("n", "<leader>wg", "<C-w>=", { noremap = true, silent = true })
 
 -- Which-key registration
 local wk = require("which-key")
 wk.add({
+  { "<leader>b", group = "Buffer" },
   { "<leader>f", group = "Find" },
   { "<leader>g", group = "Git" },
   { "<leader>s", group = "Search" },
+  { "<leader>w", group = "Window" },
 })
 
 -- Function Keys
 vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i","t"}, "<f4>", xueliang_close_window, { noremap = true, silent = true })
+vim.keymap.set({"n","i","t"}, "<c-f4>", xueliang_kill_buffer_and_window, { noremap = true, silent = true })
+vim.keymap.set({"n","i","t"}, "<f5>", xueliang_terminal_popup, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f8>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope fd<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope<CR>", { noremap = true, silent = true })
--- <f5> and <f12>: used by tmux
+vim.keymap.set({"n","i"}, "<f8>", xueliang_imenu_or_org_today, { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope find_files<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope commands<CR>", { noremap = true, silent = true })
+-- <f12>: used by tmux

@@ -618,6 +618,7 @@ except for variables that should be set before packages are loaded."
   ;; ============================================================
   ;; modern style 'paste' in evil insert mode.
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
+  (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
   (define-key evil-insert-state-map (kbd "TAB") #'(lambda() (interactive) (insert "  ")))
   ;; better evil behaviour
   (setq evil-emacs-state-modes nil
@@ -689,10 +690,14 @@ except for variables that should be set before packages are loaded."
 
   ;; leader keys
   (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
+  (spacemacs/set-leader-keys "?"   'which-key-show-top-level)
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
-  (spacemacs/set-leader-keys "ff"  'spacemacs/counsel-find-file)
+  (spacemacs/set-leader-keys "cc"  'xueliang-just-make)
+  (spacemacs/set-leader-keys "ff"  'projectile-find-file)
+  (spacemacs/set-leader-keys "fr"  'counsel-recentf)
   (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
+  (spacemacs/set-leader-keys "gf"  'counsel-git)
   (spacemacs/set-leader-keys "gg"  'xueliang-magit-status-window)
   (spacemacs/set-leader-keys "si"  'counsel-imenu)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
