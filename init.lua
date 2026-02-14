@@ -78,7 +78,27 @@ require("lazy").setup({
         dependencies = {
             "sindrets/diffview.nvim",  -- optional - Diff integration
         },
-        config = true
+        config = function()
+            require("neogit").setup({
+                mappings = {
+                    popup = {
+                        ["l"] = false,  -- Avoid default LogPopup on 'l'
+                    },
+                    status = {
+                        ["h"] = false,
+                        ["l"] = false,
+                    },
+                },
+            })
+            -- Simple left/right movement like arrow keys
+            vim.api.nvim_create_autocmd("FileType", {
+                pattern = "NeogitStatus",
+                callback = function()
+                    vim.keymap.set("n", "h", "h", { buffer = true, remap = false, silent = true })
+                    vim.keymap.set("n", "l", "l", { buffer = true, remap = false, silent = true })
+                end,
+            })
+        end,
     },
 
     -- Which-key
