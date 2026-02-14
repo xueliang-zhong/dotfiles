@@ -13,7 +13,7 @@ vim.opt.tags = ""
 vim.opt.guicursor = ""
 vim.opt.timeoutlen = 100       -- Makes leader key more responsive in INSERT mode
 vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
-vim.opt.scrolloff = 3
+vim.opt.scrolloff = 0
 vim.opt.sidescrolloff = 5
 vim.opt.softtabstop = 2
 
