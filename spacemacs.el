@@ -607,7 +607,7 @@ except for variables that should be set before packages are loaded."
   ;; Performance: Disable bidirectional text for speed
   (setq-default bidi-display-reordering nil)
   (setq-default bidi-paragraph-direction 'left-to-right)
-  (setq-default scroll-margin 3)
+  (setq-default scroll-margin 0)
 
   ;; Keep indentation and tab behaviour aligned with Neovim
   (setq-default indent-tabs-mode nil
@@ -802,9 +802,9 @@ except for variables that should be set before packages are loaded."
   ;; Enhanced org settings
   (setq org-startup-folded 'content
         org-cycle-separator-lines 2
-        org-src-fontify-natively t
+        org-src-fontify-natively nil
         org-src-tab-acts-natively t
-        org-pretty-entities t)
+        org-pretty-entities nil)
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   (setq org-confirm-babel-evaluate nil)
