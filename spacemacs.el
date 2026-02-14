@@ -693,6 +693,12 @@ except for variables that should be set before packages are loaded."
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
 
+  ;; Enable company-mode for just-mode with files prioritized
+  (add-hook 'just-mode-hook
+            (lambda ()
+              (company-mode 1)
+              (setq-local company-backends '(company-files company-capf company-dabbrev))))
+
   ;; eshell settings
   (add-hook 'eshell-mode-hook
             (lambda ()
@@ -769,6 +775,13 @@ except for variables that should be set before packages are loaded."
   ;; ============================================================
   (setq magit-display-buffer-function 'display-buffer
         magit-diff-refine-hunk 'all)
+
+  ;; Vim-style navigation in Magit
+  (with-eval-after-load 'magit
+    (define-key magit-mode-map (kbd "h") #'evil-backward-char)
+    (define-key magit-mode-map (kbd "j") #'magit-next-line)
+    (define-key magit-mode-map (kbd "k") #'magit-previous-line)
+    (define-key magit-mode-map (kbd "l") #'evil-forward-char))
 
   ;; ============================================================
   ;; Better help and discoverability
