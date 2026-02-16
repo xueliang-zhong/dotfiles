@@ -815,7 +815,7 @@ except for variables that should be set before packages are loaded."
   ;; Enhanced org settings
   (setq org-startup-folded 'content
         org-cycle-separator-lines 2
-        org-src-fontify-natively nil
+        org-src-fontify-natively t
         org-src-tab-acts-natively t
         org-pretty-entities nil)
   ;; org-babel improvements
