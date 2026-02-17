@@ -901,7 +901,7 @@ except for variables that should be set before packages are loaded."
         (org-open-at-point) (evil-ret))))
 
 (defun xueliang-open-mindmap ()
-  "Open SVG mindmap files from mindmap folder using ivy-read."
+  "Open mindmap files from mindmap folder using ivy-read."
   (interactive)
   (let* ((mindmap-dir "~/workspace/mindmap/")
          (svg-files (when (file-directory-p (expand-file-name mindmap-dir))
