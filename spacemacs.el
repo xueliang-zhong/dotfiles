@@ -658,6 +658,9 @@ except for variables that should be set before packages are loaded."
   ;; ============================================================
   ;; Dired Settings
   ;; ============================================================
+  ;; Suppress dired-quick-sort warning on macOS (BSD ls doesn't support --dired)
+  (setq dired-quick-sort-suppress-setup-warning t)
+  (setq dired-use-ls-dired nil)
   (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
   (evil-define-key 'normal dired-mode-map
     "h" 'dired-up-directory
@@ -737,12 +740,13 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
+  (global-set-key (kbd "<f2>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
   (global-set-key (kbd "<f3>")  #'xueliang-open-mindmap) ;; F3 is my domain learning hot key
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
-  (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
+  (global-set-key (kbd "<f8>")  #'counsel-imenu)
   (global-set-key (kbd "<f9>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-org-sort-upheading)
@@ -958,6 +962,10 @@ except for variables that should be set before packages are loaded."
 (defalias 'eshell/vi  'eshell/e)
 (defalias 'eshell/vim 'eshell/e)
 (defalias 'eshell/fzf 'counsel-fzf)
+
+;; Load YI.el if it exists
+(when (file-exists-p "~/workspace/life-notes/YI/YI.el")
+  (load-file "~/workspace/life-notes/YI/YI.el"))
 
 ;; Do not write anything past this comment. This is where Emacs will
 ;; auto-generate custom variable definitions.
