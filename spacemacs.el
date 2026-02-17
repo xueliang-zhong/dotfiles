@@ -663,8 +663,8 @@ except for variables that should be set before packages are loaded."
     "h" 'dired-up-directory
     "l" 'dired-find-file-other-window)
   (define-key dired-mode-map (kbd "TAB") 'dired-display-file)
-  (define-key dired-mode-map (kbd "RET") 'dired-find-file)
-  (define-key dired-mode-map (kbd "<return>") 'dired-find-file)
+  (define-key dired-mode-map (kbd "RET") 'dired-find-file-other-window)
+  (define-key dired-mode-map (kbd "<return>") 'dired-find-file-other-window)
 
   ;; Enable dired-x for extra features
   (require 'dired-x)
@@ -737,14 +737,13 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f2>")  #'xueliang-open-mindmap)
-  (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar)
+  (global-set-key (kbd "<f3>")  #'xueliang-open-mindmap) ;; F3 is my domain learning hot key
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
   (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
-  (global-set-key (kbd "<f9>")  #'counsel-find-file)
+  (global-set-key (kbd "<f9>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-org-sort-upheading)
   (global-set-key (kbd "<f12>") #'xueliang-open-knowledge-links)
@@ -910,9 +909,7 @@ except for variables that should be set before packages are loaded."
         (let ((selected (ivy-read "Open Mindmap: "
                                   (mapcar #'file-name-nondirectory svg-files)
                                   :action (lambda (filename)
-                                            (shell-command (format "open '%s'" (expand-file-name filename mindmap-dir)))))))
-          (when selected
-            (shell-command (format "open '%s'" (expand-file-name selected mindmap-dir)))))
+                                            (shell-command (format "open '%s'" (expand-file-name filename mindmap-dir))))))))
       (message "No SVG files found in %s" mindmap-dir))))
 
 (defun xueliang-sum-numbers-in-region (start end)
