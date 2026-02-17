@@ -366,6 +366,15 @@ local function xueliang_imenu_or_org_today()
     vim.cmd("TagbarToggle")
 end
 
+local function xueliang_dired_sidebar()
+    -- Toggle nvim-tree sidebar
+    vim.cmd("NvimTreeToggle")
+end
+
+local function xueliang_telescope_counsel()
+    vim.cmd("Telescope commands")
+end
+
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
 vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %:t"') end, { desc = "Git commit current file" })
 vim.api.nvim_create_user_command('Gblame', function() vim.cmd('Git blame') end, { desc = "Git blame" })
@@ -417,14 +426,42 @@ wk.add({
   { "<leader>w", group = "Window" },
 })
 
--- Function Keys
-vim.keymap.set({"n","i"}, "<f3>", "<ESC>:NvimTreeFindFileToggle<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i","t"}, "<f4>", xueliang_close_window, { noremap = true, silent = true })
-vim.keymap.set({"n","i","t"}, "<c-f4>", xueliang_kill_buffer_and_window, { noremap = true, silent = true })
+-- Open SVG mindmap files from mindmap folder
+local function xueliang_open_mindmap()
+    local mindmap_dir = vim.fn.expand("~/workspace/mindmap/")
+    if vim.fn.isdirectory(mindmap_dir) == 0 then
+        vim.notify("Directory not found: " .. mindmap_dir)
+        return
+    end
+    require("telescope.builtin").find_files({
+        prompt_title = "Open Mindmap",
+        cwd = mindmap_dir,
+        find_command = { "find", ".", "-maxdepth", "1", "-name", "*.svg", "-type", "f" },
+        attach_mappings = function(prompt_bufnr, map)
+            local actions = require("telescope.actions")
+            local action_state = require("telescope.actions.state")
+            actions.select_default:replace(function()
+                local selection = action_state.get_selected_entry()
+                actions.close(prompt_bufnr)
+                if selection then
+                    local filepath = mindmap_dir .. selection.value
+                    vim.fn.system("open '" .. filepath .. "'")
+                end
+            end)
+            return true
+        end,
+    })
+end
+
+-- Function Keys (aligned with spacemacs.el)
+vim.keymap.set({"n","i"}, "<f2>", xueliang_open_mindmap, { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f3>", xueliang_dired_sidebar, { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f4>", "<ESC>:x<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i","t"}, "<f5>", xueliang_terminal_popup, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f7>", "<ESC>:make<CR>:copen<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f7>", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", xueliang_imenu_or_org_today, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", "<ESC>:Telescope find_files<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f10>", "<ESC>:Telescope commands<CR>", { noremap = true, silent = true })
--- <f12>: used by tmux
+vim.keymap.set({"n","i"}, "<f10>", xueliang_telescope_counsel, { noremap = true, silent = true })
+vim.keymap.set({"n","i","t"}, "<c-f4>", xueliang_kill_buffer_and_window, { noremap = true, silent = true })
+-- Note: F1 is used by tmux
