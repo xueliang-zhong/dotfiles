@@ -73,7 +73,7 @@ autocmd BufReadPost * if line("'\"") > 0 && line("'\"") <= line("$") | exe "norm
 
 " Get some nice syntax highlighting
 autocmd BufRead *.log,*.txt,*.sc set filetype=asm
-autocmd BufRead *.org,*.md set filetype=diff
+autocmd BufRead *.org set filetype=diff
 autocmd BufRead *.def,*.cl set filetype=c
 autocmd BufRead justfile,BUILD set filetype=bash
 
@@ -245,7 +245,7 @@ nnoremap <F10> <ESC>:command<CR>
 inoremap <F10> <ESC>:command<CR>
 
 function! XueliangIndexOrToday()
-  if expand('%:e') ==# 'org' || expand('%:e') ==# 'md'
+  if expand('%:e') ==# 'org'
     execute '/' . strftime('%Y-%m-%d')
     normal! zz
     noh

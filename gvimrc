@@ -111,15 +111,11 @@ endfunction
 nnoremap <silent> <ESC> :<C-u>noh<CR><ESC>
 inoremap <silent> <ESC> <ESC>:noh<CR><ESC>
 autocmd BufRead,BufEnter *.org set filetype=diff
-" treat obsidian markdown as diff type
-autocmd BufRead,BufEnter *.md set filetype=diff
 
 nnoremap <S-Left>  <ESC>:call ToggleDiffLine()<CR>
 nnoremap <S-Right> <ESC>:call ToggleDiffLine()<CR>
 inoremap <S-Left>  <ESC>l<ESC>:call ToggleDiffLine()<CR>
 inoremap <S-Right> <ESC>l<ESC>:call ToggleDiffLine()<CR>
-
-
 
 " Define the function to toggle the first character
 function! ToggleDiffLine()
