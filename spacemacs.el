@@ -506,7 +506,7 @@ It should only modify the values of Spacemacs settings."
    ;; performance issues, instead of calculating the frame title by
    ;; `spacemacs/title-prepare' all the time.
    ;; (default "%I@%S")
-   dotspacemacs-frame-title-format "%I@%S"
+   dotspacemacs-frame-title-format "%b"
 
    ;; Format specification for setting the icon title format
    ;; (default nil - same as frame-title-format)
@@ -737,7 +737,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f2>")  #'xueliang-T-open-T-in-browser)
+  (global-set-key (kbd "<f2>")  #'xueliang-open-mindmap)
   (global-set-key (kbd "<f3>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
@@ -801,7 +801,6 @@ except for variables that should be set before packages are loaded."
   ;; ============================================================
   (org-indent-mode 1)
   (org-superstar-mode 1)
-  (org-set-frame-title "YI")
   (setq-default split-width-threshold 160) ;; works better for org-timestamp
   (setq
    org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
@@ -900,6 +899,21 @@ except for variables that should be set before packages are loaded."
   (when (string-equal major-mode "org-mode")
     (if (string-match "^\*[\*]* " (thing-at-point 'line))
         (org-open-at-point) (evil-ret))))
+
+(defun xueliang-open-mindmap ()
+  "Open SVG mindmap files from mindmap folder using ivy-read."
+  (interactive)
+  (let* ((mindmap-dir "~/workspace/mindmap/")
+         (svg-files (when (file-directory-p (expand-file-name mindmap-dir))
+                      (directory-files (expand-file-name mindmap-dir) t "\\.svg$"))))
+    (if (and svg-files (> (length svg-files) 0))
+        (let ((selected (ivy-read "Open Mindmap: "
+                                  (mapcar #'file-name-nondirectory svg-files)
+                                  :action (lambda (filename)
+                                            (shell-command (format "open '%s'" (expand-file-name filename mindmap-dir)))))))
+          (when selected
+            (shell-command (format "open '%s'" (expand-file-name selected mindmap-dir)))))
+      (message "No SVG files found in %s" mindmap-dir))))
 
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
