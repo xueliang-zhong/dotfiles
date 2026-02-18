@@ -80,6 +80,11 @@ require("lazy").setup({
         },
         config = function()
             require("neogit").setup({
+                auto_refresh = true,
+                filewatcher = {
+                    enabled = true,
+                    interval = 1000,
+                },
                 mappings = {
                     popup = {
                         ["l"] = false,  -- Avoid default LogPopup on 'l'
@@ -262,6 +267,43 @@ vim.api.nvim_create_autocmd({ "FocusGained", "BufEnter" }, {
     callback = function()
         if vim.fn.mode() ~= "c" then
             vim.cmd("checktime")
+        end
+    end,
+})
+
+-- Highlight trailing whitespace
+vim.api.nvim_create_autocmd("BufWinEnter", {
+    callback = function()
+        vim.fn.matchadd("TrailingWhitespace", "\\s\\+$", 10)
+    end,
+})
+vim.api.nvim_set_hl(0, "TrailingWhitespace", { bg = "#f7768e" })
+
+-- Clean trailing whitespace on save
+vim.api.nvim_create_autocmd("BufWritePre", {
+    callback = function()
+        local save_cursor = vim.fn.getpos(".")
+        vim.cmd([[%s/\s\+$//e]])
+        vim.fn.setpos(".", save_cursor)
+    end,
+})
+
+-- Flash yanked text for visual feedback
+vim.api.nvim_create_autocmd("TextYankPost", {
+    callback = function()
+        vim.highlight.on_yank({ higroup = "IncSearch", timeout = 150 })
+    end,
+})
+
+-- Auto-save with debounce (only for normal files, not special buffers)
+vim.api.nvim_create_autocmd({ "InsertLeave", "TextChanged" }, {
+    callback = function()
+        if vim.bo.buftype == "" and vim.bo.modifiable and vim.bo.modified then
+            vim.defer_fn(function()
+                if vim.bo.modified then
+                    vim.cmd("silent! write")
+                end
+            end, 1000) -- 1 second debounce
         end
     end,
 })
