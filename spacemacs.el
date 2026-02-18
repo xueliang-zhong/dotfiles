@@ -755,13 +755,13 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "RET" 'counsel-recentf)
 
   ;; function keys
-  (global-set-key (kbd "<f2>")  #'xueliang-imenu-or-org-today) ;; counsel-imenu
+  (global-set-key (kbd "<f2>")  #'counsel-imenu)
   (global-set-key (kbd "<f3>")  #'xueliang-open-mindmap) ;; F3 is my domain learning hot key
-  (global-set-key (kbd "<f4>")  #'evil-window-delete)
+  (global-set8key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
-  (global-set-key (kbd "<f8>")  #'counsel-imenu)
+  (global-set-key (kbd "<f8>")  #'xueliang-imenu-or-org-today)
   (global-set-key (kbd "<f9>")  #'xueliang-dired-sidebar)
   (global-set-key (kbd "<f10>") #'xueliang-telescope-counsel)
   (global-set-key (kbd "<f11>") #'xueliang-org-sort-upheading)
