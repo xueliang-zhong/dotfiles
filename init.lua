@@ -44,6 +44,23 @@ require("lazy").setup({
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
 
+    -- Seamless navigation between nvim splits and tmux panes
+    {
+        "christoomey/vim-tmux-navigator",
+        lazy = false,
+        config = function()
+            -- Disable default mappings (they use C-h/j/k/l)
+            vim.g.tmux_navigator_no_mappings = 1
+            -- Set up C-w prefixed mappings for directional navigation
+            vim.keymap.set('n', '<C-w>h', ':TmuxNavigateLeft<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w>j', ':TmuxNavigateDown<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w>k', ':TmuxNavigateUp<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w>l', ':TmuxNavigateRight<cr>', { silent = true })
+            -- C-w C-w cycles through windows and can navigate to tmux
+            vim.keymap.set('n', '<C-w><C-w>', ':TmuxNavigatePrevious<cr>', { silent = true })
+        end,
+    },
+
     -- Fuzzy finder
     {
       "nvim-telescope/telescope.nvim",   -- telescope fuzzy finder
