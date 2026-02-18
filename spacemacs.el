@@ -640,6 +640,15 @@ except for variables that should be set before packages are loaded."
   (setq evil-want-fine-undo t)
   (setq evil-want-Y-yank-to-eol t)
 
+  ;; Flash yanked text for visual feedback (like Neovim highlight-on-yank)
+  (setq evil-flash-delay 0.15)
+  ;; Define custom face for yank highlighting
+  (defface xueliang-yank-flash '((t (:background "#e0af68" :foreground "#1a1b26"))) :group 'xueliang-faces)
+  ;; Flash yanked text briefly like Neovim
+  (defun xueliang-flash-yanked-text (beg end &rest _)
+    (when (called-interactively-p 'any) (pulse-momentary-highlight-region beg end 'xueliang-yank-flash)))
+  (advice-add 'evil-yank :after #'xueliang-flash-yanked-text)
+
   ;; ============================================================
   ;; Ivy/Counsel Settings - Enhanced completion
   ;; ============================================================
