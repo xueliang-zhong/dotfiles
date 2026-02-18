@@ -56,8 +56,22 @@ require("lazy").setup({
             vim.keymap.set('n', '<C-w>j', ':TmuxNavigateDown<cr>', { silent = true })
             vim.keymap.set('n', '<C-w>k', ':TmuxNavigateUp<cr>', { silent = true })
             vim.keymap.set('n', '<C-w>l', ':TmuxNavigateRight<cr>', { silent = true })
+            -- Also support C-w C-h/j/k/l for easier key pressing
+            vim.keymap.set('n', '<C-w><C-h>', ':TmuxNavigateLeft<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w><C-j>', ':TmuxNavigateDown<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w><C-k>', ':TmuxNavigateUp<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w><C-l>', ':TmuxNavigateRight<cr>', { silent = true })
             -- C-w C-w cycles through windows and can navigate to tmux
-            vim.keymap.set('n', '<C-w><C-w>', ':TmuxNavigatePrevious<cr>', { silent = true })
+            vim.keymap.set('n', '<C-w><C-w>', function()
+                local wins = vim.api.nvim_tabpage_list_wins(0)
+                if #wins == 1 then
+                    -- Only one window, try to go to tmux
+                    vim.cmd('TmuxNavigatePrevious')
+                else
+                    -- Cycle to next window
+                    vim.cmd('wincmd w')
+                end
+            end, { silent = true })
         end,
     },
 
