@@ -59,9 +59,11 @@ This function should only modify configuration layer settings."
    ;; `dotspacemacs/user-config'. To use a local version of a package, use the
    ;; `:location' property: '(your-package :location "~/path/to/your-package/")
    ;; Also include the dependencies as they will not be resolved automatically.
-   dotspacemacs-additional-packages '(just-mode doom-themes ellama
-                                                ;; Modern enhancements
-                                                org-superstar evil-collection)
+   dotspacemacs-additional-packages '(just-mode
+                                      doom-themes
+                                      org-superstar
+                                      ivy-rich
+                                      evil-collection)
 
    ;; A list of packages that cannot be updated.
    dotspacemacs-frozen-packages '()
@@ -643,7 +645,7 @@ except for variables that should be set before packages are loaded."
   ;; Flash yanked text for visual feedback (like Neovim highlight-on-yank)
   (setq evil-flash-delay 0.15)
   ;; Define custom face for yank highlighting
-  (defface xueliang-yank-flash '((t (:background "#e0af68" :foreground "#1a1b26"))) :group 'xueliang-faces)
+  (defface xueliang-yank-flash '((t (:background "#e0af68" :foreground "#1a1b26"))) "Face for flashing yanked text" :group 'faces)
   ;; Flash yanked text briefly like Neovim
   (defun xueliang-flash-yanked-text (beg end &rest _)
     (when (called-interactively-p 'any) (pulse-momentary-highlight-region beg end 'xueliang-yank-flash)))
@@ -663,6 +665,10 @@ except for variables that should be set before packages are loaded."
         ivy-virtual-abbreviate 'full
         ivy-use-selectable-prompt t
         ivy-wrap t)
+
+  ;; Enable ivy-rich for enhanced ivy display with file info
+  (ivy-rich-mode 1)
+  (setq ivy-rich-path-style 'abbrev)
 
   ;; ============================================================
   ;; Dired Settings
@@ -735,7 +741,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
   (spacemacs/set-leader-keys "cc"  'xueliang-just-make)
-  (spacemacs/set-leader-keys "ff"  'projectile-find-file)
+  (spacemacs/set-leader-keys "ff"  'counsel-find-file)
   (spacemacs/set-leader-keys "fr"  'counsel-recentf)
   (spacemacs/set-leader-keys "fT"  'treemacs-find-tag)
   (spacemacs/set-leader-keys "gf"  'counsel-git)
