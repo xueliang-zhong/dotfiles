@@ -102,7 +102,7 @@ require("lazy").setup({
 
     -- Git
     "lewis6991/gitsigns.nvim",         -- Git Gutter
-    "tpope/vim-fugitive",              -- Gread, Gwrite
+    "tpope/vim-fugitive",              -- Gread
     {
         "NeogitOrg/neogit",
         version = 'v0.0.1',            -- for nvim 0.9
@@ -456,6 +456,14 @@ vim.api.nvim_create_user_command('Gdiff', function()
     vim.cmd('Git diff')
     vim.cmd('wincmd L')
 end, { desc = "Git diff" })
+
+vim.api.nvim_create_user_command('Gwrite', function()
+    -- Override vim-fugitive's Gwrite to avoid index.lock race condition
+    -- See: https://github.com/tpope/vim-fugitive/issues/1624
+    vim.cmd('silent !git add %')
+    -- Clear the "Press ENTER" prompt
+    vim.cmd('redraw!')
+end, { desc = "Git add current file" })
 
 -- Leader Keys
 vim.g.mapleader = " "
