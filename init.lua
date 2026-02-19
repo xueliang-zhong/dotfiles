@@ -43,6 +43,7 @@ local function ___lazy_plugin_management__() end
 require("lazy").setup({
     "tpope/vim-commentary",            -- commenting plugin
     "nvim-lualine/lualine.nvim",       -- nice status line
+    { "lukas-reineke/indent-blankline.nvim", main = "ibl", opts = {} }, -- Indentation guides
 
     -- Seamless navigation between nvim splits and tmux panes
     {
@@ -266,7 +267,7 @@ vim.keymap.set("n", "<ESC>", "<ESC>:noh<CR>", { noremap = true, silent = true })
 -- lualine
 require("lualine").setup({
     options = {
-        theme = "onedark",       -- Choose a theme (e.g., gruvbox, onedark, dracula)
+        theme = "catppuccin",    -- Match the main colorscheme
         section_separators = "", -- Remove separators for a cleaner look
         component_separators = "",
     },
@@ -274,7 +275,7 @@ require("lualine").setup({
         lualine_a = { "mode" },
         lualine_b = { "branch", "diff" },
         lualine_c = { { "filename", path = 1 }, "diagnostics" },
-        lualine_x = { "diagnostics", "encoding", "fileformat", "filetype" },
+        lualine_x = { "encoding", "fileformat", "filetype" },
         lualine_y = { "progress" },
         lualine_z = { "location" },
     },
