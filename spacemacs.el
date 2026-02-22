@@ -912,11 +912,30 @@ except for variables that should be set before packages are loaded."
     (setq-local xueliang-url-str (match-string 1 selected-str)))
   (org-link-open-from-string xueliang-url-str))
 
-(defun xueliang-org-open-at-point()
-  "Open links in org-mode headings, otherwise just behave like dwim-at-point." (interactive)
-  (when (string-equal major-mode "org-mode")
-    (if (string-match "^\*[\*]* " (thing-at-point 'line))
-        (org-open-at-point) (evil-ret))))
+(defun xueliang-org-open-at-point ()
+  "Open Org links, otherwise keep normal RET behavior."
+  (interactive)
+  (if (and (derived-mode-p 'org-mode)
+           (eq (org-element-type (org-element-context)) 'link))
+      (org-open-at-point)
+    (evil-ret)))
+
+(defun xueliang-org-open-at-point-split-advice (orig-fn &optional arg)
+  "Open Org links with RET in a new split and follow in that split."
+  (let ((pressed-ret (member (key-description (this-single-command-keys)) '("RET" "<return>"))))
+    (if (and (derived-mode-p 'org-mode)
+             (null arg)
+             pressed-ret
+             (eq (org-element-type (org-element-context)) 'link))
+        (let ((new-window (or (ignore-errors (split-window-right))
+                              (split-window-below))))
+          (when new-window
+            (select-window new-window))
+          (funcall orig-fn arg))
+      (funcall orig-fn arg))))
+
+(advice-remove 'org-open-at-point #'xueliang-org-open-at-point-split-advice)
+(advice-add 'org-open-at-point :around #'xueliang-org-open-at-point-split-advice)
 
 (defun xueliang-open-mindmap ()
   "Open mindmap files from mindmap folder using ivy-read."
