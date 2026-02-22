@@ -493,7 +493,7 @@ local function xueliang_dired_sidebar()
 end
 
 local function xueliang_telescope_counsel()
-    vim.cmd("Telescope commands")
+    vim.cmd("Telescope builtin")
 end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
@@ -556,6 +556,36 @@ wk.add({
 })
 
 -- Open SVG mindmap files from mindmap folder
+local function xueliang_open_external_file(filepath)
+    -- Prefer Neovim's native opener when available (cross-platform).
+    if vim.ui and type(vim.ui.open) == "function" then
+        local ok = pcall(vim.ui.open, filepath)
+        if ok then
+            return
+        end
+    end
+
+    -- Fallback for older Neovim versions without vim.ui.open.
+    local cmd = nil
+    if vim.fn.has("macunix") == 1 then
+        cmd = { "open", filepath }
+    elseif vim.fn.has("win32") == 1 then
+        cmd = { "cmd.exe", "/c", "start", "", filepath }
+    elseif vim.fn.executable("xdg-open") == 1 then
+        cmd = { "xdg-open", filepath }
+    end
+
+    if not cmd then
+        vim.notify("No external opener available for: " .. filepath, vim.log.levels.WARN)
+        return
+    end
+
+    local job_id = vim.fn.jobstart(cmd, { detach = true })
+    if job_id <= 0 then
+        vim.notify("Failed to open file: " .. filepath, vim.log.levels.ERROR)
+    end
+end
+
 local function xueliang_open_mindmap()
     local mindmap_dir = vim.fn.expand("~/workspace/mindmap/")
     if vim.fn.isdirectory(mindmap_dir) == 0 then
@@ -566,7 +596,7 @@ local function xueliang_open_mindmap()
         prompt_title = "Open Mindmap",
         cwd = mindmap_dir,
         find_command = { "find", ".", "-maxdepth", "1", "-name", "*.svg", "-type", "f" },
-        attach_mappings = function(prompt_bufnr, map)
+        attach_mappings = function(prompt_bufnr, _)
             local actions = require("telescope.actions")
             local action_state = require("telescope.actions.state")
             actions.select_default:replace(function()
@@ -574,7 +604,7 @@ local function xueliang_open_mindmap()
                 actions.close(prompt_bufnr)
                 if selection then
                     local filepath = mindmap_dir .. selection.value
-                    vim.fn.system("open '" .. filepath .. "'")
+                    xueliang_open_external_file(filepath)
                 end
             end)
             return true
