@@ -16,6 +16,12 @@ vim.o.makeprg = "just"         -- invoke 'just' when typing :make<CR>
 vim.opt.scrolloff = 0
 vim.opt.sidescrolloff = 5
 vim.opt.softtabstop = 2
+vim.opt.updatetime = 300       -- Faster diagnostics/git signs refresh cadence
+vim.opt.signcolumn = "yes"     -- Prevent text jitter when signs appear/disappear
+vim.opt.inccommand = "split"   -- Preview substitutions incrementally
+vim.opt.splitkeep = "screen"   -- Keep viewport stable when splitting/resizing
+vim.opt.shada = "!,'100,<50,s10,h" -- Better command/search/register persistence
+vim.opt.sessionoptions:append({ "globals", "localoptions", "tabpages" })
 
 vim.opt.undofile = true
 local undo_dir = vim.fn.stdpath("state") .. "/undo"
@@ -52,6 +58,8 @@ require("lazy").setup({
         config = function()
             -- Disable default mappings (they use C-h/j/k/l)
             vim.g.tmux_navigator_no_mappings = 1
+            -- Auto-save modified buffers when crossing vim/tmux panes
+            vim.g.tmux_navigator_save_on_switch = 2
             -- Set up C-w prefixed mappings for directional navigation
             vim.keymap.set('n', '<C-w>h', ':TmuxNavigateLeft<cr>', { silent = true })
             vim.keymap.set('n', '<C-w>j', ':TmuxNavigateDown<cr>', { silent = true })
@@ -353,6 +361,31 @@ vim.api.nvim_create_autocmd("BufWritePre", {
     end,
 })
 
+-- Open quickfix/location list only when there are entries
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+    pattern = "[^l]*",
+    callback = function()
+        local qf = vim.fn.getqflist({ size = 0 })
+        if qf.size > 0 then
+            vim.cmd("cwindow")
+        else
+            vim.cmd("cclose")
+        end
+    end,
+})
+
+vim.api.nvim_create_autocmd("QuickFixCmdPost", {
+    pattern = "l*",
+    callback = function()
+        local loc = vim.fn.getloclist(0, { size = 0 })
+        if loc.size > 0 then
+            vim.cmd("lwindow")
+        else
+            vim.cmd("lclose")
+        end
+    end,
+})
+
 --
 -- Keys (Leader Key and Function Keys)
 --
@@ -494,7 +527,7 @@ vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { nore
 -- NOTE: Only map in normal mode to prevent space key delay in insert mode
 vim.keymap.set("n", "<leader>bs", xueliang_open_scratch_buffer_window, { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bw", xueliang_toggle_readonly, { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix" })
+vim.keymap.set("n", "<leader>cc", ":make<CR>:cwindow<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix if needed" })
 vim.keymap.set("n", "<leader>wc", xueliang_close_window, { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>wg", "<C-w>=", { noremap = true, silent = true })
 
@@ -541,7 +574,7 @@ vim.keymap.set({"n","i"}, "<f3>", xueliang_open_mindmap, { noremap = true, silen
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:x<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i","t"}, "<f5>", xueliang_terminal_popup, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f7>", ":make<CR>:copen<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f7>", ":make<CR>:cwindow<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", xueliang_imenu_or_org_today, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", xueliang_dired_sidebar, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", xueliang_telescope_counsel, { noremap = true, silent = true })
