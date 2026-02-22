@@ -662,7 +662,7 @@ except for variables that should be set before packages are loaded."
   (setq ivy-height 15
         ivy-fixed-height-minibuffer t
         ivy-count-format "(%d/%d) "
-        ivy-virtual-abbreviate 'full
+        ivy-virtual-abbreviate 'abbrev
         ivy-use-selectable-prompt t
         ivy-wrap t)
 
@@ -757,7 +757,7 @@ except for variables that should be set before packages are loaded."
   ;; function keys
   (global-set-key (kbd "<f2>")  #'counsel-imenu)
   (global-set-key (kbd "<f3>")  #'xueliang-open-mindmap) ;; F3 is my domain learning hot key
-  (global-set8key (kbd "<f4>")  #'evil-window-delete)
+  (global-set-key (kbd "<f4>")  #'evil-window-delete)
   (global-set-key (kbd "<f5>")  #'xueliang-eshell-popup)
   (global-set-key (kbd "<f6>")  #'counsel-yank-pop)
   (global-set-key (kbd "<f7>")  #'xueliang-just-make)
