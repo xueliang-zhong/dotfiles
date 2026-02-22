@@ -252,6 +252,18 @@ telescope.setup({
             },
         },
     },
+    pickers = {
+        oldfiles = {
+            path_display = function(_, path)
+                local filename = vim.fn.fnamemodify(path, ":t")
+                local parent = vim.fn.fnamemodify(path, ":~:h")
+                if parent == "." then
+                    return filename
+                end
+                return string.format("%s  (%s)", filename, vim.fn.pathshorten(parent))
+            end,
+        },
+    },
 })
 
 -- Load fzf extension for better fzf-like behavior (optional, requires telescope-fzf-native.nvim)
