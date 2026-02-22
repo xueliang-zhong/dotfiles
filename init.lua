@@ -367,7 +367,7 @@ vim.api.nvim_create_autocmd("QuickFixCmdPost", {
     callback = function()
         local qf = vim.fn.getqflist({ size = 0 })
         if qf.size > 0 then
-            vim.cmd("cwindow")
+            vim.cmd("copen")
         else
             vim.cmd("cclose")
         end
@@ -527,7 +527,7 @@ vim.keymap.set("n", "<leader>gh",      "<ESC>:Gitsigns preview_hunk<CR>", { nore
 -- NOTE: Only map in normal mode to prevent space key delay in insert mode
 vim.keymap.set("n", "<leader>bs", xueliang_open_scratch_buffer_window, { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>bw", xueliang_toggle_readonly, { noremap = true, silent = true })
-vim.keymap.set("n", "<leader>cc", ":make<CR>:cwindow<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix if needed" })
+vim.keymap.set("n", "<leader>cc", ":make<CR>:copen<CR>", { noremap = true, silent = true, desc = "Run make and open quickfix if needed" })
 vim.keymap.set("n", "<leader>wc", xueliang_close_window, { noremap = true, silent = true })
 vim.keymap.set("n", "<leader>wg", "<C-w>=", { noremap = true, silent = true })
 
@@ -574,7 +574,7 @@ vim.keymap.set({"n","i"}, "<f3>", xueliang_open_mindmap, { noremap = true, silen
 vim.keymap.set({"n","i"}, "<f4>", "<ESC>:x<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i","t"}, "<f5>", xueliang_terminal_popup, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f6>", "<ESC>:Telescope registers<CR>", { noremap = true, silent = true })
-vim.keymap.set({"n","i"}, "<f7>", ":make<CR>:cwindow<CR>", { noremap = true, silent = true })
+vim.keymap.set({"n","i"}, "<f7>", ":make<CR>:copen<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f8>", xueliang_imenu_or_org_today, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f9>", xueliang_dired_sidebar, { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f10>", xueliang_telescope_counsel, { noremap = true, silent = true })
