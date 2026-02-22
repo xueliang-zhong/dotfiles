@@ -921,18 +921,26 @@ except for variables that should be set before packages are loaded."
     (evil-ret)))
 
 (defun xueliang-org-open-at-point-split-advice (orig-fn &optional arg)
-  "Open Org links with RET in a new split and follow in that split."
-  (let ((pressed-ret (member (key-description (this-single-command-keys)) '("RET" "<return>"))))
-    (if (and (derived-mode-p 'org-mode)
-             (null arg)
-             pressed-ret
-             (eq (org-element-type (org-element-context)) 'link))
-        (let ((new-window (or (ignore-errors (split-window-right))
-                              (split-window-below))))
-          (when new-window
-            (select-window new-window))
-          (funcall orig-fn arg))
-      (funcall orig-fn arg))))
+  "Open Org links with RET in a split, except web URLs."
+  (let* ((ret-pressed (member (key-description (this-single-command-keys))
+                              '("RET" "<return>")))
+         (in-org-mode (derived-mode-p 'org-mode))
+         (context (and in-org-mode (org-element-context)))
+         (linkp (and context (eq (org-element-type context) 'link)))
+         (link-type (and linkp (org-element-property :type context)))
+         (web-linkp (member link-type '("http" "https")))
+         (should-split (and in-org-mode
+                            (null arg)
+                            ret-pressed
+                            linkp
+                            (not web-linkp))))
+    (if (not should-split)
+        (funcall orig-fn arg)
+      (let ((new-window (or (ignore-errors (split-window-right))
+                            (split-window-below))))
+        (when new-window
+          (select-window new-window))
+        (funcall orig-fn arg)))))
 
 (advice-remove 'org-open-at-point #'xueliang-org-open-at-point-split-advice)
 (advice-add 'org-open-at-point :around #'xueliang-org-open-at-point-split-advice)
