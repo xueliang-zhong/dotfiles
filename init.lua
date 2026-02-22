@@ -278,6 +278,8 @@ require("nvim-tree").setup({
     dotfiles = true,
   },
 })
+-- Tagbar: use org-style fold toggle key
+vim.g.tagbar_map_togglefold = { "<Tab>", "o", "za" }
 
 -- Git (Neogit, Gitsigns)
 require('gitsigns').setup()
