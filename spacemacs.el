@@ -635,6 +635,12 @@ except for variables that should be set before packages are loaded."
         evil-motion-state-modes nil
         evil-shift-width 2)
 
+  ;; Make vs and sp should behave like vim
+  (evil-ex-define-cmd "vs"     'split-window-right-and-focus)
+  (evil-ex-define-cmd "vsplit" 'split-window-right-and-focus)
+  (evil-ex-define-cmd "sp"     'split-window-below-and-focus)
+  (evil-ex-define-cmd "split"  'split-window-below-and-focus)
+
   ;; Additional evil improvements (non-intrusive)
   (setq evil-want-fine-undo t)
   (setq evil-want-Y-yank-to-eol t)
