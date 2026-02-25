@@ -622,9 +622,6 @@ except for variables that should be set before packages are loaded."
   (add-hook 'org-mode-hook (lambda () (setq truncate-lines t)))
   (add-hook 'prog-mode-hook (lambda () (setq truncate-lines t)))
 
-  ;; Enable visual-line-mode only where it makes sense
-  (add-hook 'text-mode-hook #'visual-line-mode)
-
   ;; ============================================================
   ;; Evil Mode Settings - Preserving your vim habits
   ;; ============================================================
@@ -656,6 +653,7 @@ except for variables that should be set before packages are loaded."
   ;; ============================================================
   (setq counsel-grep-swiper-limit 30000000)
   (define-key ivy-mode-map (kbd "C-k") 'evil-delete-line)
+  (define-key ivy-mode-map (kbd "C-q") 'ivy-occur)
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
   ;; Performance: Faster ivy settings
