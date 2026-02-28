@@ -740,7 +740,7 @@ except for variables that should be set before packages are loaded."
         projectile-track-known-projects-automatically nil)
 
   ;; leader keys
-  (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
+  (spacemacs/set-leader-keys "SPC" 'switch-to-buffer)
   (spacemacs/set-leader-keys "?"   'which-key-show-top-level)
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
@@ -932,7 +932,7 @@ except for variables that should be set before packages are loaded."
          (context (and in-org-mode (org-element-context)))
          (linkp (and context (eq (org-element-type context) 'link)))
          (link-type (and linkp (org-element-property :type context)))
-         (web-linkp (member link-type '("http" "https")))
+         (web-linkp (member link-type '("http" "https" "file")))
          (should-split (and in-org-mode
                             (null arg)
                             ret-pressed
