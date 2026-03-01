@@ -61,8 +61,8 @@ This function should only modify configuration layer settings."
    ;; Also include the dependencies as they will not be resolved automatically.
    dotspacemacs-additional-packages '(just-mode
                                       doom-themes
+                                      graphviz-dot-mode
                                       org-superstar
-                                      ivy-rich
                                       evil-collection)
 
    ;; A list of packages that cannot be updated.
@@ -670,10 +670,6 @@ except for variables that should be set before packages are loaded."
         ivy-use-selectable-prompt t
         ivy-wrap t)
 
-  ;; Enable ivy-rich for enhanced ivy display with file info
-  (ivy-rich-mode 1)
-  (setq ivy-rich-path-style 'abbrev)
-
   ;; ============================================================
   ;; Dired Settings
   ;; ============================================================
@@ -740,7 +736,7 @@ except for variables that should be set before packages are loaded."
         projectile-track-known-projects-automatically nil)
 
   ;; leader keys
-  (spacemacs/set-leader-keys "SPC" 'switch-to-buffer)
+  (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
   (spacemacs/set-leader-keys "?"   'which-key-show-top-level)
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
