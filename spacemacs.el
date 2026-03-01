@@ -665,8 +665,7 @@ except for variables that should be set before packages are loaded."
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
   ;; Performance: Faster ivy settings
-  (setq ivy-height 30 ;; big enough to feed into ivy-posframe
-        ivy-fixed-height-minibuffer t
+  (setq ivy-fixed-height-minibuffer t
         ivy-count-format "(%d/%d) "
         ivy-virtual-abbreviate 'abbrev
         ivy-use-selectable-prompt t
@@ -677,8 +676,9 @@ except for variables that should be set before packages are loaded."
 
   (require 'ivy-posframe)
   (ivy-posframe-mode 1)
-  (setq ivy-posframe-width (floor (* (frame-width) 0.618)))
-  (setq ivy-posframe-height (floor (* (frame-height) 0.50)))
+  (setq ivy-height 15) ;; big enough to feed into ivy-posframe
+  (setq ivy-posframe-width (floor (* (frame-width) 0.72)))
+  (setq ivy-posframe-height (floor (* (frame-height) 0.45)))
   (setq ivy-posframe-position 'center)
   (setq ivy-posframe-parameters '((left-fringe . 9) (right-fringe . 9)))
   (set-face-background 'ivy-posframe (face-background 'default))
