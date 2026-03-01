@@ -675,10 +675,7 @@ except for variables that should be set before packages are loaded."
   (ivy-rich-mode 1)
 
   (require 'ivy-posframe)
-  (ivy-posframe-mode 1)
-  (setq ivy-height (floor (* (frame-height) 0.45)))
-  (setq ivy-posframe-height ivy-height)
-  (setq ivy-posframe-width (floor (* (frame-width) 0.72)))
+  (xueliang-toggle-ivy-posframe)
   (setq ivy-posframe-position 'center)
   (setq ivy-posframe-parameters '((left-fringe . 9) (right-fringe . 9)))
   (set-face-background 'ivy-posframe (face-background 'default))
@@ -686,6 +683,7 @@ except for variables that should be set before packages are loaded."
   (setq ivy-posframe-display-functions-alist
         '((swiper . ivy-posframe-display) ;; ivy-display-function-fallback
           (t . ivy-posframe-display)))
+  (add-hook 'window-configuration-change-hook #'xueliang-toggle-ivy-posframe)
 
   ;; ============================================================
   ;; Dired Settings
@@ -867,6 +865,15 @@ except for variables that should be set before packages are loaded."
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5 org-level-6 org-link org-table))
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
   )
+
+(defun xueliang-toggle-ivy-posframe ()
+  "Toggle ivy-posframe based on frame maximized state."
+  (if (eq (frame-parameter nil 'fullscreen) 'maximized)
+      (progn
+        (ivy-posframe-mode 1)
+        (setq ivy-posframe-width (floor (* (frame-width) 0.72)))
+        (setq ivy-posframe-height (floor (* (frame-height) 0.45))))
+    (ivy-posframe-mode 0)))
 
 (defun xueliang-create-missing-directories-h ()
   "Create missing parent directories before saving current file."
