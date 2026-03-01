@@ -63,6 +63,8 @@ This function should only modify configuration layer settings."
                                       doom-themes
                                       graphviz-dot-mode
                                       org-superstar
+                                      ivy-rich
+                                      ivy-posframe
                                       evil-collection)
 
    ;; A list of packages that cannot be updated.
@@ -663,12 +665,27 @@ except for variables that should be set before packages are loaded."
   (setq ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
 
   ;; Performance: Faster ivy settings
-  (setq ivy-height 15
+  (setq ivy-height 30 ;; big enough to feed into ivy-posframe
         ivy-fixed-height-minibuffer t
         ivy-count-format "(%d/%d) "
         ivy-virtual-abbreviate 'abbrev
         ivy-use-selectable-prompt t
         ivy-wrap t)
+
+  (require 'ivy-rich)
+  (ivy-rich-mode 1)
+
+  (require 'ivy-posframe)
+  (ivy-posframe-mode 1)
+  (setq ivy-posframe-width (floor (* (frame-width) 0.618)))
+  (setq ivy-posframe-height (floor (* (frame-height) 0.50)))
+  (setq ivy-posframe-position 'center)
+  (setq ivy-posframe-parameters '((left-fringe . 9) (right-fringe . 9)))
+  (set-face-background 'ivy-posframe (face-background 'default))
+  ;; Can use different display functions for different commands
+  (setq ivy-posframe-display-functions-alist
+        '((swiper . ivy-posframe-display)
+          (t . ivy-posframe-display)))
 
   ;; ============================================================
   ;; Dired Settings
@@ -736,7 +753,7 @@ except for variables that should be set before packages are loaded."
         projectile-track-known-projects-automatically nil)
 
   ;; leader keys
-  (spacemacs/set-leader-keys "SPC" 'counsel-switch-buffer)
+  (spacemacs/set-leader-keys "SPC" 'ivy-switch-buffer)
   (spacemacs/set-leader-keys "?"   'which-key-show-top-level)
   (spacemacs/set-leader-keys "bs"  'xueliang-open-scratch-buffer-window)
   (spacemacs/set-leader-keys "bw"  'read-only-mode)
