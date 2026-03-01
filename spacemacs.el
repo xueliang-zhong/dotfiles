@@ -676,15 +676,15 @@ except for variables that should be set before packages are loaded."
 
   (require 'ivy-posframe)
   (ivy-posframe-mode 1)
-  (setq ivy-height 15) ;; big enough to feed into ivy-posframe
+  (setq ivy-height (floor (* (frame-height) 0.45)))
+  (setq ivy-posframe-height ivy-height)
   (setq ivy-posframe-width (floor (* (frame-width) 0.72)))
-  (setq ivy-posframe-height (floor (* (frame-height) 0.45)))
   (setq ivy-posframe-position 'center)
   (setq ivy-posframe-parameters '((left-fringe . 9) (right-fringe . 9)))
   (set-face-background 'ivy-posframe (face-background 'default))
   ;; Can use different display functions for different commands
   (setq ivy-posframe-display-functions-alist
-        '((swiper . ivy-posframe-display)
+        '((swiper . ivy-posframe-display) ;; ivy-display-function-fallback
           (t . ivy-posframe-display)))
 
   ;; ============================================================
