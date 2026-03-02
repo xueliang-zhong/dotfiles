@@ -765,6 +765,8 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "si"  'counsel-imenu)
   (spacemacs/set-leader-keys "wc"  'spacemacs/delete-window) ;; window close
   (spacemacs/set-leader-keys "wg"  'golden-ratio)
+  (spacemacs/set-leader-keys "wv"  'split-window-right-and-focus)
+  (spacemacs/set-leader-keys "ws"  'split-window-below-and-focus)
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
   (spacemacs/set-leader-keys "x"   'counsel-M-x)
   (spacemacs/set-leader-keys "fp"  'xueliang-find-file-in-dotfiles)
