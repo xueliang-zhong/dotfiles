@@ -852,7 +852,12 @@ except for variables that should be set before packages are loaded."
         org-cycle-separator-lines 2
         org-src-fontify-natively t
         org-src-tab-acts-natively t
-        org-pretty-entities nil)
+        org-pretty-entities nil
+        org-file-apps '(("\\.svg\\'" . default)
+                        (auto-mode . emacs)
+                        (directory . emacs)
+                        (remote . emacs)))
+
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   (setq org-confirm-babel-evaluate nil)
