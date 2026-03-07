@@ -725,6 +725,7 @@ except for variables that should be set before packages are loaded."
   ;; vim style completions
   (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
+  (define-key evil-insert-state-map (kbd "@") #'xueliang-insert-at-or-file-reference)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
 
   ;; Enable company-mode for just-mode with files prioritized
@@ -896,6 +897,33 @@ except for variables that should be set before packages are loaded."
               (ivy-read "Complete Line > " (split-string (buffer-string) "\n" t) :initial-input (thing-at-point 'line)))
   (delete-region (line-beginning-position) (line-end-position))
   (insert comp-line))
+
+(defun xueliang-at-file-reference-context-p ()
+  "Return non-nil when @ should insert a file reference."
+  (let ((prev-char (char-before)))
+    (or (null prev-char)
+        (memq prev-char '(?\s ?\t ?\n ?\( ?\[ ?\{ ?< ?\" ?\' ?`)))))
+
+(defun xueliang-read-file-reference ()
+  "Read a file path with ivy/counsel style completion."
+  (let* ((base-dir (or (ignore-errors (projectile-project-root))
+                       default-directory))
+         (picked
+          (condition-case nil
+              (read-file-name "@ File Name: " base-dir nil t)
+            (quit nil))))
+    (when (and picked (> (length picked) 0))
+      (file-relative-name (expand-file-name picked) base-dir))))
+
+(defun xueliang-insert-at-or-file-reference ()
+  "Insert literal @ or insert @<relative-file-path>."
+  (interactive)
+  (if (not (xueliang-at-file-reference-context-p))
+      (insert "@")
+    (insert "@")
+    (let ((file-reference (xueliang-read-file-reference)))
+      (when file-reference
+        (insert file-reference " ")))))
 
 (defun xueliang-dired-sidebar ()
   "Toggle dired sidebar. Open or close the sidebar window." (interactive)

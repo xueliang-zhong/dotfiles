@@ -331,7 +331,7 @@ vim.api.nvim_create_autocmd("BufWinEnter", {
         vim.fn.matchadd("TrailingWhitespace", "\\s\\+$", 10)
     end,
 })
-vim.api.nvim_set_hl(0, "TrailingWhitespace", { bg = "#f7768e" })
+-- vim.api.nvim_set_hl(0, "TrailingWhitespace", { bg = "#f7768e" })
 
 -- Clean trailing whitespace on save
 vim.api.nvim_create_autocmd("BufWritePre", {
@@ -612,6 +612,48 @@ local function xueliang_open_mindmap()
     })
 end
 
+-- @ key: insert literal @ or @<relative-file-path> in insert mode
+-- Mirrors xueliang-insert-at-or-file-reference from spacemacs.el
+local function xueliang_at_file_reference_context()
+    local col = vim.fn.col('.') - 1
+    if col == 0 then return true end
+    local prev_char = vim.fn.getline('.'):sub(col, col)
+    return (' \t([{<"\'`'):find(prev_char, 1, true) ~= nil
+end
+
+local function xueliang_insert_at_or_file_reference()
+    local should_pick = xueliang_at_file_reference_context()
+    vim.api.nvim_put({'@'}, 'c', false, true)
+    if not should_pick then return end
+    vim.schedule(function()
+        local base_dir = vim.fn.expand('%:p:h')
+        local git_root = vim.fn.systemlist('git rev-parse --show-toplevel 2>/dev/null')[1]
+        if git_root and git_root ~= '' and vim.fn.isdirectory(git_root) == 1 then
+            base_dir = git_root
+        end
+        require('telescope.builtin').find_files({
+            prompt_title = '@ File Reference',
+            cwd = base_dir,
+            attach_mappings = function(prompt_bufnr, _)
+                local actions = require('telescope.actions')
+                local action_state = require('telescope.actions.state')
+                actions.select_default:replace(function()
+                    local selection = action_state.get_selected_entry()
+                    actions.close(prompt_bufnr)
+                    if selection then
+                        local text = selection.value .. '  '
+                        vim.schedule(function()
+                            vim.api.nvim_put({text}, 'c', true, true)
+                            vim.cmd('startinsert')
+                        end)
+                    end
+                end)
+                return true
+            end,
+        })
+    end)
+end
+
 -- Function Keys (aligned with spacemacs.el)
 vim.keymap.set({"n","i"}, "<f2>", "<ESC>:TagbarToggle<CR>", { noremap = true, silent = true })
 vim.keymap.set({"n","i"}, "<f3>", xueliang_open_mindmap, { noremap = true, silent = true })
@@ -624,3 +666,4 @@ vim.keymap.set({"n","i"}, "<f9>", xueliang_dired_sidebar, { noremap = true, sile
 vim.keymap.set({"n","i"}, "<f10>", xueliang_telescope_counsel, { noremap = true, silent = true })
 vim.keymap.set({"n","i","t"}, "<c-f4>", xueliang_kill_buffer_and_window, { noremap = true, silent = true })
 -- Note: F1 is used by tmux
+vim.keymap.set('i', '@', xueliang_insert_at_or_file_reference, { noremap = true, silent = true })
