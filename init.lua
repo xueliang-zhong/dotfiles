@@ -497,7 +497,11 @@ local function xueliang_telescope_counsel()
 end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
-vim.api.nvim_create_user_command('Gcommit', function() vim.cmd('!git commit -m "update %:t"') end, { desc = "Git commit current file" })
+vim.api.nvim_create_user_command('Gcommit', function(opts)
+    local commit_message = vim.fn.shellescape('update ' .. vim.fn.expand('%:t'))
+    local extra_args = opts.args ~= '' and (' ' .. opts.args) or ' --signoff'
+    vim.cmd('!' .. 'git commit -m ' .. commit_message .. extra_args)
+end, { desc = "Git commit current file", nargs = '*' })
 vim.api.nvim_create_user_command('Gblame', function() vim.cmd('Git blame') end, { desc = "Git blame" })
 vim.api.nvim_create_user_command('Gshow', function() vim.cmd('Git show') end, { desc = "Git show" })
 vim.api.nvim_create_user_command('Gdiff', function()
