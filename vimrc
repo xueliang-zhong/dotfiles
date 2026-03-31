@@ -131,10 +131,9 @@ function! XueliangAutoComplete_OFF()
   endfor
 endfunction
 
-" Enable my autocomplete globaly, however only for vim (nvim's v:verion == 801)
-" DISABLED for Neovim since nvim-cmp handles autocomplete
-if v:version >= 900 && !has('nvim')
-    autocmd BufRead * call XueliangAutoComplete_ON()
+" Prefer built-in completion over external completion plugins.
+if v:version >= 900 || has('nvim')
+    autocmd VimEnter * call XueliangAutoComplete_ON()
 endif
 command! AutoCompleteOFF call XueliangAutoComplete_OFF()
 
