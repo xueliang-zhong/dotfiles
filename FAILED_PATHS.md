@@ -1,0 +1,1 @@
+- `python3 -m pytest test_vimrc_gen.py -q` failed because `pytest` is not installed in this sandbox; use direct Python assertions or another available runner instead.

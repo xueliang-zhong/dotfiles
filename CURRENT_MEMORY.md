@@ -1,0 +1,3 @@
+- `vimrc` is already near-zero-plugin; the remaining wins come from removing plugin-oriented assumptions, not from deleting a plugin manager.
+- The autocomplete block was still excluding Neovim because it assumed `nvim-cmp`; prefer Vim built-ins and install mappings once per session.
+- There are local helper files `vimrc_gen.py` and `test_vimrc_gen.py` in the repo root that are useful for quick validation, even though they are not tracked.
