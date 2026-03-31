@@ -6,7 +6,7 @@
 " => Global Settings
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 syntax on
-filetype plugin indent on
+filetype on
 
 set autochdir
 set autowrite
@@ -43,7 +43,6 @@ set backspace=indent,eol,start
 " color/scheme settings
 " good options: evening, elflord, desert, delek, koehler, lunaperche, pablo
 colorscheme lunaperche
-let base16colorspace=256  " Access colors present in 256 colorspace
 set t_Co=256 " Explicitly tell vim that the terminal supports 256 colors
 set background=dark
 set colorcolumn=100  " useful in code review
