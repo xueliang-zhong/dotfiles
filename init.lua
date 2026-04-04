@@ -266,6 +266,16 @@ telescope.setup({
     },
 })
 
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "TelescopePrompt",
+    callback = function(args)
+        local auto_complete_keys = vim.g.xueliang_auto_complete_keys or {}
+        for _, key in ipairs(auto_complete_keys) do
+            vim.keymap.set("i", key, key, { buffer = args.buf, noremap = true, silent = true })
+        end
+    end,
+})
+
 -- Load fzf extension for better fzf-like behavior (optional, requires telescope-fzf-native.nvim)
 -- telescope.load_extension('fzf')
 
