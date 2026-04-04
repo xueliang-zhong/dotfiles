@@ -132,7 +132,7 @@ function! XueliangAutoComplete_OFF()
 endfunction
 
 " Prefer built-in completion over external completion plugins.
-if v:version >= 900 || has('nvim')
+if v:version <= 100 || has('nvim')
     autocmd VimEnter * call XueliangAutoComplete_ON()
 endif
 command! AutoCompleteOFF call XueliangAutoComplete_OFF()
