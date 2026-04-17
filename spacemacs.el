@@ -676,7 +676,7 @@ except for variables that should be set before packages are loaded."
   (ivy-rich-mode 1)
 
   (require 'ivy-posframe)
-  (xueliang-toggle-ivy-posframe)
+  (ivy-posframe-mode 0) ;; (xueliang-toggle-ivy-posframe)
   (setq ivy-posframe-position 'center)
   (setq ivy-posframe-parameters '((left-fringe . 9) (right-fringe . 9)))
   (set-face-background 'ivy-posframe (face-background 'default))
@@ -878,7 +878,7 @@ except for variables that should be set before packages are loaded."
   "Toggle ivy-posframe based on frame maximized state."
   (if (eq (frame-parameter nil 'fullscreen) 'maximized)
       (progn
-        (ivy-posframe-mode 1)
+        (ivy-posframe-mode 0)
         (setq ivy-posframe-width (floor (* (frame-width) 0.72)))
         (setq ivy-posframe-height (floor (* (frame-height) 0.45))))
     (ivy-posframe-mode 0)))
