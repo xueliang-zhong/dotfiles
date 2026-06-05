@@ -508,7 +508,7 @@ end
 
 vim.api.nvim_create_user_command('Glog', function() vim.cmd("Telescope git_commits") end, { desc = "git log" })
 vim.api.nvim_create_user_command('Gcommit', function(opts)
-    local commit_message = vim.fn.shellescape('update ' .. vim.fn.expand('%:t'))
+    local commit_message = vim.fn.shellescape('Update ' .. vim.fn.expand('%:t'))
     local extra_args = opts.args ~= '' and (' ' .. opts.args) or ' --signoff'
     vim.cmd('!' .. 'git commit -m ' .. commit_message .. extra_args)
 end, { desc = "Git commit current file", nargs = '*' })
