@@ -770,7 +770,7 @@ except for variables that should be set before packages are loaded."
   (spacemacs/set-leader-keys "/"   'counsel-grep-or-swiper)
   (spacemacs/set-leader-keys "x"   'counsel-M-x)
   (spacemacs/set-leader-keys "fp"  'xueliang-find-file-in-dotfiles)
-  (spacemacs/set-leader-keys "RET" 'counsel-recentf)
+  (spacemacs/set-leader-keys "RET" 'ivy-switch-buffer) ;; counsel-recentf
 
   ;; function keys
   (global-set-key (kbd "<f2>")  #'counsel-imenu)
