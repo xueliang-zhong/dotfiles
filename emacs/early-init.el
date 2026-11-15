@@ -2,10 +2,10 @@
 ;; Loaded by the stub in ~/.emacs-profiles/crafted/early-init.el, which
 ;; defines `xl-dotfiles' and `xl-crafted-home'.
 
-;; Crafted's init requires `info', which reads .gz files through jka-compr.
-;; Loading jka-compr first avoids a recursive load when Emacs starts as a
-;; daemon (or any start where jka-compr is not loaded yet).
-(require 'jka-compr)
+;; Crafted writes custom.el and the selected-package list back on every start.
+;; I set my options explicitly, so nothing needs saving at startup.
+(setq crafted-init-auto-save-customized nil
+      crafted-init-auto-save-selected-packages nil)
 
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
 (setq gc-cons-threshold most-positive-fixnum)
@@ -20,9 +20,9 @@
 ;; No JIT native compilation: it compiles packages in the background on
 ;; first use and slows the whole machine. Packages run as byte code.
 ;; Emacs 31 has no job-count or threshold setting to limit it, so it stays off.
-(setq native-comp-jit-compilation nil
+(setq native-comp-jit-compilation t
       inhibit-automatic-native-compilation t
-      package-native-compile nil
+      package-native-compile t
       native-comp-async-report-warnings-errors 'silent)
 
 ;; Compiled packages are not portable across Emacs versions.
