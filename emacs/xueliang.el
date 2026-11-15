@@ -7,7 +7,7 @@
 
 ;; The shim reads this first form to know what to install, so keep it first.
 (defconst xl-packages
-  '(ivy counsel ivy-rich company
+  '(ivy counsel ivy-rich corfu cape
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode markdown-mode))
 
@@ -129,8 +129,16 @@
 (defun xueliang-split-right () (interactive) (select-window (split-window-right)))
 (defun xueliang-split-below () (interactive) (select-window (split-window-below)))
 
-;; TAB always inserts two spaces, as in my vimrc
-(defun xueliang-insert-two-spaces () (interactive) (insert "  "))
+;; TAB inserts two spaces, as in my vimrc; but in an open Corfu popup it
+;; moves down like C-n. Needed because evil's insert-state map (an
+;; emulation keymap) shadows `corfu-map', so TAB cannot be bound there.
+;; The corfu section below adds this command to `corfu-continue-commands',
+;; so the popup stays open instead of accepting the candidate after TAB.
+(defun xueliang-tab-or-corfu-next ()
+  (interactive)
+  (if (and (bound-and-true-p corfu-mode) (bound-and-true-p corfu--candidates))
+      (corfu-next)
+    (insert "  ")))
 
 ;; IME: back to the English layout when leaving insert state (macOS + macism)
 (defvar xl-macism (or (executable-find "macism")
@@ -153,8 +161,8 @@
   (define-keymap :keymap evil-insert-state-map
     "C-v"     #'yank                    ; modern style 'paste' in insert mode
     "C-g"     #'evil-normal-state
-    "TAB"     #'xueliang-insert-two-spaces
-    "C-x C-f" #'company-files           ; vim style completions: file names,
+    "TAB"     #'xueliang-tab-or-corfu-next
+    "C-x C-f" #'cape-file               ; vim style completions: file names,
     "C-x C-l" #'xueliang-complete-line) ; and whole lines
   (define-keymap :keymap evil-normal-state-map
     "C-x C-l" #'xueliang-complete-line
@@ -202,30 +210,34 @@
   "C-q" #'ivy-occur)                    ; turn the candidates into a buffer
 
 ;; ============================================================
-;; Company - Better completion experience
+;; Corfu + Cape - in-buffer completion popup
 ;; ============================================================
-;; Pop up at once after one character; words may contain - _ ' /
-(setq-default company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
-              company-idle-delay 0
-              company-minimum-prefix-length 1
-              company-tooltip-align-annotations t
-              company-require-match 'never
-              company-selection-wrap-around t
-              company-global-modes '(not eshell-mode comint-mode ielm-mode)
-              company-backends '(company-capf company-dabbrev company-files))
-(setq company-transformers '(company-sort-by-occurrence))
-(global-company-mode 1)
+;; Corfu shows the popup, Cape adds sources; both sit on Emacs' own
+;; completion-at-point, the stack Crafted itself uses.
+;; Pop up at once after one character, wrap around at the ends
+(setq corfu-auto t
+      corfu-auto-delay 0
+      corfu-auto-prefix 1
+      corfu-cycle t
+      ;; no popup in shells and REPLs
+      global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
+(global-corfu-mode 1)
 
-;; Better company keybindings (vim-friendly)
-(with-eval-after-load 'company
-  (define-keymap :keymap company-active-map
-    "C-n" #'company-select-next
-    "C-p" #'company-select-previous))
+;; TAB moves down the popup via `xueliang-tab-or-corfu-next' (bound in
+;; evil insert state above).  Without this entry corfu would insert the
+;; selected candidate and close the popup right after the command, so
+;; TAB would only work once.
+(with-eval-after-load 'corfu
+  (add-to-list 'corfu-continue-commands #'xueliang-tab-or-corfu-next))
 
-;; Enable company-mode for just-mode with files prioritized
+
+;; Sources after the mode's own: words from open buffers, then file paths
+(add-hook 'completion-at-point-functions #'cape-dabbrev t)
+(add-hook 'completion-at-point-functions #'cape-file t)
+
+;; justfiles are mostly paths and recipe names: file paths first
 (defun xueliang-just-mode-setup ()
-  (company-mode 1)
-  (setq-local company-backends '(company-files company-capf company-dabbrev)))
+  (setq-local completion-at-point-functions (list #'cape-file #'cape-dabbrev t)))
 (add-hook 'just-mode-hook #'xueliang-just-mode-setup)
 
 ;; ============================================================
