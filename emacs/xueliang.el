@@ -181,6 +181,8 @@
             ;; binds it to `newline' (repl-newline theme), which silently
             ;; swallows the command - restore the old behavior.
             (define-key evil-insert-state-local-map (kbd "RET") #'eshell-send-input)
+            (define-key evil-insert-state-local-map (kbd "<return>") #'eshell-send-input)
+            (define-key evil-insert-state-local-map (kbd "s-<return>") #'eshell-send-input)
             (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
             (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
             (define-key evil-insert-state-local-map (kbd "C-r") #'xl-history)
