@@ -63,6 +63,7 @@
 
   "b" "buffers" nil
   "b b" "switch buffer" #'ivy-switch-buffer
+  "b h" "home"          #'xl-sk-home-buffer
   "b d" "kill buffer"   #'kill-current-buffer
   "b x" "kill buffer & window" #'kill-buffer-and-window
   "b n" "next buffer"   #'next-buffer
@@ -220,6 +221,51 @@
   "h" "help" nil
   "h h" "describe symbol" #'describe-symbol)
 (push (cons 'emacs-lisp-mode xl-elisp-leader-map) xl-major-leader-maps)
+
+;;; Home buffer: SPC b h, recent files numbered 1-9 like Spacemacs startup lists
+(defvar-local xl-sk--home-files nil "Recent files listed on the home buffer.")
+(defun xl-sk-home-recentf ()
+  "Insert up to 9 recent files, each with the number that opens it."
+  (setq xl-sk--home-files (seq-take recentf-list 9))
+  (when xl-sk--home-files
+    (fancy-splash-insert :face '(variable-pitch font-lock-string-face italic)
+                         "Recent Files:\n")
+    (seq-do-indexed
+     (lambda (file i)
+       (fancy-splash-insert :face 'default (format "[%d]  " (1+ i))
+                            :link (list (abbreviate-file-name file)
+                                        (lambda (_button) (find-file file)))
+                            "\n"))
+     xl-sk--home-files)))
+(setq crafted-startup-module-list '(xl-sk-home-recentf))
+
+(defun xl-sk-home-tail (&optional _concise)
+  "Bottom of the home buffer: quick links only, no how-to-disable text."
+  (fancy-splash-insert
+   :face 'variable-pitch
+   "\nTo start...     "
+   :link `("Open a File" ,(lambda (_button) (call-interactively #'find-file)))
+   "     "
+   :link `("Open Home Directory" ,(lambda (_button) (dired "~")))
+   "     "
+   :link `("Open Dotfiles" ,(lambda (_button) (dired xl-dotfiles)))
+   "\n"))
+(advice-add 'crafted-startup-tail :override #'xl-sk-home-tail)
+
+(defun xl-sk--home-keys (&rest _)
+  "In the home buffer, digits 1-9 open the listed recent files."
+  (with-current-buffer "*Crafted Emacs*"
+    (dotimes (i 9)
+      (let ((n i))
+        (dolist (state '(normal motion))
+          (evil-local-set-key state (kbd (number-to-string (1+ n)))
+                              (lambda () (interactive)
+                                (when-let* ((file (nth n xl-sk--home-files)))
+                                  (find-file file)))))))))
+(advice-add 'crafted-startup--display-startup-screen :after #'xl-sk--home-keys)
+
+(defun xl-sk-home-buffer () "Redraw and show the Crafted home buffer." (interactive)
+  (crafted-startup-screen))
 
 ;;; Vim extras that ship with Spacemacs
 (setq evil-escape-key-sequence "fd" evil-escape-delay 0.1)
