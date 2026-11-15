@@ -1,6 +1,6 @@
 ;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; -*-
 (defconst xl-packages                   ; must stay the first form: shims read it
-  '(ivy counsel ivy-rich ivy-prescient
+  '(ivy counsel ivy-rich ivy-prescient company
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode))
 ;; Loaded last by a framework shim (emacs/crafted/init.el, ...) which must
@@ -77,6 +77,12 @@
 (defalias 'xl-find (xl-pick 'counsel-fzf 'find-file))
 (defalias 'xl-M-x (xl-pick 'counsel-M-x 'execute-extended-command))
 
+(defun xl-complete-file ()
+  "In-buffer file path completion (company backend)."
+  (interactive)
+  (require 'company)
+  (company-files))
+
 (defun xl-search-line (&optional initial)
   "Search lines of this buffer, starting from INITIAL."
   (interactive)
@@ -113,6 +119,7 @@
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
   (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
   (define-key evil-insert-state-map (kbd "TAB") (lambda () (interactive) (insert "  ")))
+  (define-key evil-insert-state-map (kbd "C-x C-f") #'xl-complete-file)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (dolist (cmd '("vs" "vsplit")) (evil-ex-define-cmd cmd #'xueliang-split-right))
@@ -124,7 +131,7 @@
     (add-hook 'evil-insert-state-exit-hook
               (lambda () (call-process macism nil 0 nil "com.apple.keylayout.British")))))
 
-;;; Completion: minibuffer (ivy & counsel)
+;;; Completion: minibuffer (ivy & counsel), in-buffer popup (company)
 (require 'counsel)
 (fido-mode -1) (icomplete-mode -1)      ; plain-Emacs completion UIs, off under ivy
 (ivy-mode 1) (counsel-mode 1)
@@ -132,6 +139,23 @@
 (when (fboundp 'ivy-prescient-mode)
   (ivy-prescient-mode 1) (prescient-persist-mode 1))
 (keymap-set ivy-minibuffer-map "C-k" #'kill-line)
+(setq-default company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
+              company-idle-delay 0
+              company-minimum-prefix-length 1
+              company-tooltip-align-annotations t
+              company-require-match 'never
+              company-selection-wrap-around t
+              company-global-modes '(not eshell-mode comint-mode ielm-mode)
+              company-backends '(company-capf company-dabbrev company-files))
+(setq company-transformers '(company-sort-by-occurrence))
+(global-company-mode 1)
+(with-eval-after-load 'company
+  (define-key company-active-map (kbd "C-n") #'company-select-next)
+  (define-key company-active-map (kbd "C-p") #'company-select-previous))
+(add-hook 'just-mode-hook
+          (lambda ()
+            (company-mode 1)
+            (setq-local company-backends '(company-files company-capf company-dabbrev))))
 
 ;;; Dired
 (setq dired-use-ls-dired nil)

@@ -12,7 +12,7 @@ no longer installed at all.
 ## Changes
 
 1. **`emacs/xueliang.el`** (framework-neutral, stays that way):
-   - Add `ivy counsel ivy-rich ivy-prescient` to `xl-packages`.
+   - Add `ivy counsel ivy-rich ivy-prescient company` to `xl-packages`.
    - Replace the vertico config block with an ivy block: `(require 'counsel)`,
      turn off `fido-mode`/`icomplete-mode` (previously disabled by
      `crafted-completion-config`, which is going away), enable
@@ -20,6 +20,11 @@ no longer installed at all.
      `prescient-persist-mode`, keep the `C-k` = `kill-line` minibuffer habit.
    - Add `xl-M-x` intent alias (`counsel-M-x` when present) for `SPC x` and `s-x`,
      following the existing `xl-pick` pattern.
+   - Port the company-mode in-buffer popup from `spacemacs.el`: idle 0, prefix
+     1, backends `company-capf company-dabbrev company-files`, occurrence
+     sorting, `C-n`/`C-p` selection, no company in eshell/comint/ielm, a
+     files-first backend set for just-mode, and evil-insert `C-x C-f` →
+     `xl-complete-file` (`company-files`).
 2. **`emacs/crafted/init.el`**:
    - Drop `(require 'crafted-completion-packages)` and
      `(require 'crafted-completion-config)`.
