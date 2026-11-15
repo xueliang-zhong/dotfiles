@@ -76,7 +76,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 平台、路径、字体、主题；可选的 `~/.emacs-profiles/local.el`（只放机器相关的路径，不进仓库）。
 - 全局设置：备份、recentf、which-key、缩进、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- ivy/counsel：候选窗口占 frame 高度的 38.2%，prescient 排序。
+- ivy/counsel：候选窗口占 frame 高度的 38.2%，列表保持原始顺序。
 - company、dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 

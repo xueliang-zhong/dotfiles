@@ -7,7 +7,7 @@
 
 ;; The shim reads this first form to know what to install, so keep it first.
 (defconst xl-packages
-  '(ivy counsel ivy-rich ivy-prescient company
+  '(ivy counsel ivy-rich company
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode markdown-mode))
 
@@ -103,7 +103,7 @@
     (make-directory (file-name-directory buffer-file-name) t)))
 (add-hook 'before-save-hook #'xueliang-create-missing-directories-h)
 
-;; Completion in file order: vertico/prescient would otherwise re-sort lists
+;; Completion in file order: vertico or any sorter would otherwise re-sort lists
 ;; such as my links file or the lines of the buffer
 (defun xueliang-read-in-order (prompt candidates &optional initial)
   "Pick one of CANDIDATES with PROMPT, keeping their order (the UI may re-sort)."
@@ -180,13 +180,6 @@
 (ivy-rich-mode 1)                       ; extra columns in ivy lists
 (keymap-set counsel-mode-map "<remap> <imenu>" nil) ; plain imenu, not counsel-imenu
 
-;; Most-used first, but only where that helps; these lists keep their own
-;; order (imenu = position in file, yank-pop = kill ring, recentf = recency)
-(setq ivy-prescient-sort-commands
-      '(:not swiper swiper-isearch ivy-switch-buffer counsel-imenu counsel-yank-pop
-             counsel-recentf counsel-grep-or-swiper counsel-rg counsel-esh-history))
-(ivy-prescient-mode 1)
-(prescient-persist-mode 1)
 
 ;; Same ivy behaviour as in Spacemacs
 (setq counsel-grep-swiper-limit 30000000 ; swiper stays usable on huge files
