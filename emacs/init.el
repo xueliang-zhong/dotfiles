@@ -39,7 +39,7 @@
   (remove-hook 'prog-mode-hook #'flyspell-prog-mode))
 
 ;; => Spacemacs key habits: SPC tree, M-m, `,' major-mode leader, fd, surround
-(load (expand-file-name "emacs/crafted/spacemacs-keys.el" xl-dotfiles))
+(load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
 
 ;; => Personal config
 (load xl-personal-file)

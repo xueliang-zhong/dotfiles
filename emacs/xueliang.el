@@ -1,8 +1,8 @@
 ;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; -*-
 ;;
-;; Loaded last by a framework shim (emacs/crafted/init.el, ...), which must
+;; Loaded last by a framework shim (emacs/init.el, ...), which must
 ;; provide `xl-leader-map' and install `xl-packages'.  Spacemacs' own default
-;; keys live in emacs/crafted/spacemacs-keys.el; only my overrides are here.
+;; keys live in emacs/spacemacs-keys.el; only my overrides are here.
 ;; Plain Emacs and package APIs only: no spacemacs/, doom, crafted- symbols.
 
 ;; The shim reads this first form to know what to install, so keep it first.
@@ -481,31 +481,16 @@
 ;; ============================================================
 ;; Leader keys - my overrides on top of the Spacemacs defaults
 ;; ============================================================
-;; Each entry is KEY, which-key label, COMMAND
+;; Only my own commands here; Spacemacs-position keys are in spacemacs-keys.el
 (defun xl-leader (&rest specs)
   "Bind KEY LABEL COMMAND triples from SPECS under the SPC leader."
   (while specs
     (keymap-set xl-leader-map (pop specs) (cons (pop specs) (pop specs)))))
 
-(xl-leader "SPC" "switch buffer"  #'ivy-switch-buffer ; Spacemacs default is M-x
-           "RET" "switch buffer"  #'ivy-switch-buffer
-           "?"   "all keys"       #'which-key-show-top-level
-           "/"   "search buffer"  #'counsel-grep-or-swiper
-           "x"   "M-x"            #'counsel-M-x
-           "b s" "scratch window" #'xueliang-open-scratch-buffer-window
-           "b w" "read-only"      #'read-only-mode
+(xl-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "c c" "just all"       #'xueliang-just-make
-           "f f" "find file"      #'find-file
-           "f r" "recent files"   #'counsel-recentf
            "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
-           "f T" "imenu"          #'imenu
-           "g f" "git files"      #'project-find-file
-           "g g" "magit status"   #'xueliang-magit-status-window
-           "s i" "imenu"          #'imenu
-           "w c" "close window"   #'delete-window
-           "w g" "golden ratio"   #'golden-ratio
-           "w v" "split right"    #'xueliang-split-right
-           "w s" "split below"    #'xueliang-split-below)
+           "g g" "magit status"   #'xueliang-magit-status-window)
 
 ;; ============================================================
 ;; Personal modules outside this repo

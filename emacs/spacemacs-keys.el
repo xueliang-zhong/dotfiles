@@ -2,7 +2,7 @@
 ;; Crafted has no leader-key system; this file recreates the Spacemacs
 ;; defaults my fingers use: the SPC tree, `M-m' in insert/emacs state, the
 ;; `,' / `SPC m' major-mode leader, `fd' escape, surround and window numbers.
-;; Loaded by emacs/crafted/init.el before xueliang.el, so personal bindings
+;; Loaded by emacs/init.el before xueliang.el, so personal bindings
 ;; there win on conflicts (e.g. SPC SPC, SPC x, SPC g f).
 
 (require 'seq)
@@ -45,7 +45,7 @@
 (evil-define-key '(insert emacs) 'global (kbd "M-m") xl-leader-map)
 
 (xl-sk-bind xl-leader-map
-  "SPC" "M-x"            #'execute-extended-command
+  "SPC" "switch buffer"  #'ivy-switch-buffer ; Spacemacs default is M-x
   "TAB" "last buffer"    #'mode-line-other-buffer
   "!"   "shell command"  #'shell-command
   "'"   "eshell"         #'eshell
@@ -268,6 +268,19 @@
 
 (defun xl-sk-home-buffer () "Redraw and show the Crafted home buffer." (interactive)
   (crafted-startup-screen))
+
+;;; Leader keys that sit on Spacemacs' own positions, with the commands I use
+(xl-sk-bind xl-leader-map
+  "RET" "switch buffer"  #'ivy-switch-buffer
+  "?"   "all keys"       #'which-key-show-top-level
+  "/"   "search buffer"  #'counsel-grep-or-swiper
+  "x"   "M-x"            #'counsel-M-x
+  "b w" "read-only"      #'read-only-mode
+  "f T" "imenu"          #'imenu
+  "g f" "git files"      #'project-find-file
+  "s i" "imenu"          #'imenu
+  "w c" "close window"   #'delete-window
+  "w g" "golden ratio"   #'golden-ratio)
 
 ;;; Vim extras that ship with Spacemacs
 (setq evil-escape-key-sequence "fd" evil-escape-delay 0.1)
