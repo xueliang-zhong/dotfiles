@@ -415,7 +415,7 @@
 ;; web links go to the system default browser on any OS, file links open here
 (defun xueliang-open-link (link)
   "Open LINK: http(s) in the default browser, file: links inside Emacs.
-A file link may end in ::LINE or ::TEXT to jump there, as in Org."
+  A file link may end in ::LINE or ::TEXT to jump there, as in Org."
   (if (string-match-p "\\`https?://" link)
       ;; Not `browse-url': a buffer may set eww as its browser (the Crafted
       ;; home buffer does), and web pages belong in the real browser.
