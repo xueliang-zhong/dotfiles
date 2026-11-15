@@ -394,7 +394,7 @@
   "In Org jump to today's timestamp, elsewhere imenu." (interactive)
   (if (derived-mode-p 'org-mode)
       (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
-    (imenu)))
+    (counsel-imenu)))
 
 (defun xueliang-eshell-popup ()
   "Open eshell below, in the current file's directory, ready for input." (interactive)
