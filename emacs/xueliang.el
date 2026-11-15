@@ -25,11 +25,10 @@
 
 ;; First installed font wins, so the same file works on macOS, Windows, Linux
 (when (display-graphic-p)
-  (let ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
-                        '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
-    (when font
-      (set-face-attribute 'default nil :family font
-                          :height (if (eq system-type 'windows-nt) 120 180))))
+  (when-let* ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
+                              '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
+    (set-face-attribute 'default nil :family font
+                        :height (if (eq system-type 'windows-nt) 120 180)))
   (set-frame-parameter nil 'fullscreen 'maximized))
 (add-to-list 'default-frame-alist '(fullscreen . maximized)) ; new frames too
 ;; Same look as Spacemacs; fall back to tokyo-night if the theme is missing
@@ -88,8 +87,9 @@
 (global-hl-line-mode -1)                ; no current-line highlight
 
 ;; avoid long line wrap
+(defun xueliang-truncate-lines () (setq truncate-lines t))
 (dolist (hook '(dired-mode-hook org-mode-hook prog-mode-hook))
-  (add-hook hook (lambda () (setq truncate-lines t))))
+  (add-hook hook #'xueliang-truncate-lines))
 
 ;; Saving a file in a new folder creates the folder, like `mkdir -p'
 (defun xueliang-create-missing-directories-h ()
@@ -124,6 +124,15 @@
 (defun xueliang-split-right () (interactive) (select-window (split-window-right)))
 (defun xueliang-split-below () (interactive) (select-window (split-window-below)))
 
+;; TAB always inserts two spaces, as in my vimrc
+(defun xueliang-insert-two-spaces () (interactive) (insert "  "))
+
+;; IME: back to the English layout when leaving insert state (macOS + macism)
+(defvar xl-macism (or (executable-find "macism")
+                      (car (file-expand-wildcards "~/.local/bin/macism"))))
+(defun xueliang-ime-english ()
+  (call-process xl-macism nil 0 nil "com.apple.keylayout.British"))
+
 (with-eval-after-load 'evil
   ;; better evil behaviour: every buffer starts in normal state
   (setq evil-emacs-state-modes nil
@@ -136,34 +145,26 @@
   ;; * and # take the whole symbol: foo-bar is one word, not foo
   (setq-default evil-symbol-word-search t)
 
-  ;; modern style 'paste' in evil insert mode
-  (define-key evil-insert-state-map (kbd "C-v") #'yank)
-  (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
-  ;; TAB always inserts two spaces, as in my vimrc
-  (define-key evil-insert-state-map (kbd "TAB") (lambda () (interactive) (insert "  ")))
-
-  ;; vim style completions: C-x C-f file names, C-x C-l whole lines
-  (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
-  (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
-  (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
-
-  ;; vim habit: C-u scrolls up half a page (C-d already scrolls down).
-  ;; Direct rebind: `evil-want-C-u-scroll' must be set before evil loads,
-  ;; which is too late here. Motion state keeps C-u as universal-argument.
-  (define-key evil-normal-state-map (kbd "C-u") #'evil-scroll-up)
-  (define-key evil-visual-state-map (kbd "C-u") #'evil-scroll-up)
+  (define-keymap :keymap evil-insert-state-map
+    "C-v"     #'yank                    ; modern style 'paste' in insert mode
+    "C-g"     #'evil-normal-state
+    "TAB"     #'xueliang-insert-two-spaces
+    "C-x C-f" #'company-files           ; vim style completions: file names,
+    "C-x C-l" #'xueliang-complete-line) ; and whole lines
+  (define-keymap :keymap evil-normal-state-map
+    "C-x C-l" #'xueliang-complete-line
+    ;; vim habit: C-u scrolls up half a page (C-d already scrolls down).
+    ;; Direct rebind: `evil-want-C-u-scroll' must be set before evil loads,
+    ;; which is too late here. Motion state keeps C-u as universal-argument.
+    "C-u"     #'evil-scroll-up)
+  (keymap-set evil-visual-state-map "C-u" #'evil-scroll-up)
 
   ;; Make vs and sp behave like vim
   (dolist (cmd '("vs" "vsplit")) (evil-ex-define-cmd cmd #'xueliang-split-right))
   (dolist (cmd '("sp" "split")) (evil-ex-define-cmd cmd #'xueliang-split-below))
 
   (advice-add 'evil-yank :after #'xueliang-flash-yanked-text)
-
-  ;; IME: back to the English layout when leaving insert state (macOS + macism)
-  (when-let* ((macism (or (executable-find "macism")
-                          (car (file-expand-wildcards "~/.local/bin/macism")))))
-    (add-hook 'evil-insert-state-exit-hook
-              (lambda () (call-process macism nil 0 nil "com.apple.keylayout.British")))))
+  (when xl-macism (add-hook 'evil-insert-state-exit-hook #'xueliang-ime-english)))
 
 ;; ============================================================
 ;; Ivy/Counsel Settings - Enhanced completion
@@ -171,16 +172,16 @@
 (require 'counsel)
 (fido-mode -1) (icomplete-mode -1)      ; plain-Emacs completion UIs, off under ivy
 (ivy-mode 1) (counsel-mode 1)
-(define-key counsel-mode-map [remap imenu] nil) ; plain imenu, not counsel-imenu
-(when (fboundp 'ivy-rich-mode) (ivy-rich-mode 1)) ; extra columns in ivy lists
+(ivy-rich-mode 1)                       ; extra columns in ivy lists
+(keymap-set counsel-mode-map "<remap> <imenu>" nil) ; plain imenu, not counsel-imenu
 
 ;; Most-used first, but only where that helps; these lists keep their own
 ;; order (imenu = position in file, yank-pop = kill ring, recentf = recency)
-(when (fboundp 'ivy-prescient-mode)
-  (setq ivy-prescient-sort-commands
-        '(:not swiper swiper-isearch ivy-switch-buffer counsel-imenu counsel-yank-pop
-               counsel-recentf counsel-grep-or-swiper counsel-rg counsel-esh-history))
-  (ivy-prescient-mode 1) (prescient-persist-mode 1))
+(setq ivy-prescient-sort-commands
+      '(:not swiper swiper-isearch ivy-switch-buffer counsel-imenu counsel-yank-pop
+             counsel-recentf counsel-grep-or-swiper counsel-rg counsel-esh-history))
+(ivy-prescient-mode 1)
+(prescient-persist-mode 1)
 
 ;; Same ivy behaviour as in Spacemacs
 (setq counsel-grep-swiper-limit 30000000 ; swiper stays usable on huge files
@@ -193,9 +194,9 @@
       ivy-use-selectable-prompt t
       ivy-wrap t)
 
-;; C-k deletes to end of line, C-q turns the candidates into an occur buffer
-(define-key ivy-mode-map (kbd "C-k") #'evil-delete-line)
-(define-key ivy-mode-map (kbd "C-q") #'ivy-occur)
+(define-keymap :keymap ivy-mode-map
+  "C-k" #'evil-delete-line              ; delete to end of line
+  "C-q" #'ivy-occur)                    ; turn the candidates into a buffer
 
 ;; ============================================================
 ;; Company - Better completion experience
@@ -214,14 +215,15 @@
 
 ;; Better company keybindings (vim-friendly)
 (with-eval-after-load 'company
-  (define-key company-active-map (kbd "C-n") #'company-select-next)
-  (define-key company-active-map (kbd "C-p") #'company-select-previous))
+  (define-keymap :keymap company-active-map
+    "C-n" #'company-select-next
+    "C-p" #'company-select-previous))
 
 ;; Enable company-mode for just-mode with files prioritized
-(add-hook 'just-mode-hook
-          (lambda ()
-            (company-mode 1)
-            (setq-local company-backends '(company-files company-capf company-dabbrev))))
+(defun xueliang-just-mode-setup ()
+  (company-mode 1)
+  (setq-local company-backends '(company-files company-capf company-dabbrev)))
+(add-hook 'just-mode-hook #'xueliang-just-mode-setup)
 
 ;; ============================================================
 ;; Dired Settings
@@ -234,30 +236,31 @@
   (evil-define-key 'normal dired-mode-map
     "h" #'dired-up-directory
     "l" #'dired-find-file-other-window)
-  (define-key dired-mode-map (kbd "TAB") #'dired-display-file) ; preview, stay in dired
-  (define-key dired-mode-map (kbd "RET") #'dired-find-file-other-window)
-  (define-key dired-mode-map (kbd "<return>") #'dired-find-file-other-window))
+  (define-keymap :keymap dired-mode-map
+    "TAB"      #'dired-display-file     ; preview, stay in dired
+    "RET"      #'dired-find-file-other-window
+    "<return>" #'dired-find-file-other-window))
 
 ;; ============================================================
 ;; Eshell Settings - Shell keys like in a terminal
 ;; ============================================================
-(add-hook 'eshell-mode-hook
-          (lambda ()
-            ;; RET in insert state submits the command. Newer evil-collection
-            ;; binds it to `newline' (repl-newline theme), which silently
-            ;; swallows the command - restore the old behavior.
-            (define-key evil-insert-state-local-map (kbd "RET") #'eshell-send-input)
-            (define-key evil-insert-state-local-map (kbd "<return>") #'eshell-send-input)
-            (define-key evil-insert-state-local-map (kbd "s-<return>") #'eshell-send-input)
-            ;; Readline habits: C-a line start, C-k kill, C-r history, C-d quit
-            (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
-            (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
-            (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)
-            (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)
-            (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)
-            ;; F1 acts like ESC, just like tmux
-            (define-key evil-insert-state-local-map (kbd "<f1>") #'evil-force-normal-state)
-            (evil-insert-state)))           ; ready to type a command
+(defun xueliang-eshell-setup ()
+  "Insert-state keys for eshell, then start ready to type a command."
+  (define-keymap :keymap evil-insert-state-local-map
+    ;; RET submits the command. Newer evil-collection binds it to `newline'
+    ;; (repl-newline theme), which silently swallows the command.
+    "RET"        #'eshell-send-input
+    "<return>"   #'eshell-send-input
+    "s-<return>" #'eshell-send-input
+    ;; Readline habits: C-a line start, C-k kill, C-r history, C-d quit
+    "C-a"        #'eshell-bol
+    "C-k"        #'kill-line
+    "C-r"        #'counsel-esh-history
+    "TAB"        #'completion-at-point
+    "C-d"        #'kill-buffer-and-window
+    "<f1>"       #'evil-force-normal-state) ; F1 acts like ESC, just like tmux
+  (evil-insert-state))
+(add-hook 'eshell-mode-hook #'xueliang-eshell-setup)
 
 ;; Shell words that open files the vim way
 (defalias 'eshell/e   #'find-file-other-window)
@@ -269,7 +272,7 @@
 ;; Org Mode Settings - Enhanced appearance
 ;; ============================================================
 ;; Set once when org loads (not on every org buffer); only buffer-local
-;; work happens in the hook below
+;; work happens in `xueliang-org-setup'
 (with-eval-after-load 'org
   (setq org-superstar-headline-bullets-list '("◉" "●" "○" "◆" "●" "○" "◆")
         ;; changes +/- symbols in item lists
@@ -293,26 +296,25 @@
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   ;; better org-mode CMD key behaviour on MacOS
-  (define-key org-mode-map (kbd "s-<right>")  #'org-metaright)
-  (define-key org-mode-map (kbd "s-<left>")   #'org-metaleft)
-  (define-key org-mode-map (kbd "s-<return>") #'org-meta-return)
+  (define-keymap :keymap org-mode-map
+    "s-<right>"  #'org-metaright
+    "s-<left>"   #'org-metaleft
+    "s-<return>" #'org-meta-return)
+  ;; RET on a link follows it; anywhere else it is a normal RET
+  (evil-define-key 'normal org-mode-map
+    (kbd "<return>") #'xueliang-org-open-at-point
+    (kbd "RET")      #'xueliang-org-open-at-point)
   ;; Face settings: headings same size and weight as body text
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5
                   org-level-6 org-link org-table))
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
   (advice-add 'org-open-at-point :around #'xueliang-org-open-at-point-split-advice))
 
-(add-hook 'org-mode-hook
-          (lambda ()
-            (org-indent-mode 1)
-            (when (fboundp 'org-superstar-mode) (org-superstar-mode 1))
-            (when (fboundp 'evil-org-mode) (evil-org-mode 1))))
-
-;; RET on a link follows it; anywhere else it is a normal RET
-(with-eval-after-load 'org
-  (evil-define-key 'normal org-mode-map
-    (kbd "<return>") #'xueliang-org-open-at-point
-    (kbd "RET")      #'xueliang-org-open-at-point))
+(defun xueliang-org-setup ()
+  (org-indent-mode 1)
+  (org-superstar-mode 1)
+  (evil-org-mode 1))
+(add-hook 'org-mode-hook #'xueliang-org-setup)
 
 (defun xueliang-org-open-at-point ()
   "Open Org links, otherwise keep normal RET behavior." (interactive)
@@ -347,10 +349,11 @@
 
 ;; Vim-style navigation in Magit: h,j,k,l stay for moving around
 (with-eval-after-load 'magit
-  (define-key magit-mode-map (kbd "h") #'evil-backward-char)
-  (define-key magit-mode-map (kbd "j") #'magit-next-line)
-  (define-key magit-mode-map (kbd "k") #'magit-previous-line)
-  (define-key magit-mode-map (kbd "l") #'evil-forward-char))
+  (define-keymap :keymap magit-mode-map
+    "h" #'evil-backward-char
+    "j" #'magit-next-line
+    "k" #'magit-previous-line
+    "l" #'evil-forward-char))
 
 ;; ============================================================
 ;; My own functions
@@ -372,16 +375,15 @@
 ;; F9: my file tree, a narrow dired window on the left (golden-ratio width)
 (defun xueliang-dired-sidebar ()
   "Toggle a dired sidebar on the far left." (interactive)
-  (let ((sidebar (seq-find (lambda (win)
-                             (eq (buffer-local-value 'major-mode (window-buffer win))
-                                 'dired-mode))
-                           (window-list))))
-    (if sidebar
-        (delete-window sidebar)
-      (xueliang-cd-current-dir)
-      (evil-window-vsplit) (evil-window-move-far-left)
-      (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
-      (evil-window-decrease-width (floor (* (window-width) 0.382))))))
+  (if-let* ((sidebar (seq-find (lambda (win)
+                                 (eq (buffer-local-value 'major-mode (window-buffer win))
+                                     'dired-mode))
+                               (window-list))))
+      (delete-window sidebar)
+    (xueliang-cd-current-dir)
+    (evil-window-vsplit) (evil-window-move-far-left)
+    (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
+    (evil-window-decrease-width (floor (* (window-width) 0.382)))))
 
 (defun xueliang-imenu-or-org-today ()
   "In Org jump to today's timestamp, elsewhere imenu." (interactive)
@@ -430,15 +432,12 @@
 ;; F10: like Telescope's command list in Neovim
 (defun xueliang-telescope ()
   "M-x narrowed to the search commands of the ivy stack." (interactive)
-  (minibuffer-with-setup-hook
-      (lambda () (insert "counsel-"))
+  (minibuffer-with-setup-hook (lambda () (insert "counsel-"))
     (call-interactively #'execute-extended-command)))
 
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
   (let ((default-directory xl-dotfiles-dir)) (call-interactively #'find-file)))
-(defun xueliang-golden-ratio () (interactive)
-  (if (fboundp 'golden-ratio) (golden-ratio) (balance-windows)))
 (defun Gwrite () (interactive) (evil-ex-execute "!git add %")) ; like vim-fugitive
 (defun Gcommit () "Like vim-fugitive :Gcommit." (interactive)
   (xueliang-cd-current-dir)
@@ -460,19 +459,19 @@
 ;; ============================================================
 ;; Function keys - match with vim/nvim
 ;; ============================================================
-(dolist (binding '(("<f2>" . imenu)
-                   ("<f3>" . xueliang-open-mindmap) ; my domain learning hot key
-                   ("<f4>" . evil-window-delete)
-                   ("<f5>" . xueliang-eshell-popup)
-                   ("<f6>" . counsel-yank-pop)
-                   ("<f7>" . xueliang-just-make)
-                   ("<f8>" . xueliang-imenu-or-org-today)
-                   ("<f9>" . xueliang-dired-sidebar)
-                   ("<f10>" . xueliang-telescope)
-                   ("<f11>" . xueliang-org-sort-upheading)
-                   ("<f12>" . xueliang-open-knowledge-links)
-                   ("C-<f4>" . kill-buffer-and-window)))
-  (keymap-global-set (car binding) (cdr binding)))
+(define-keymap :keymap global-map
+  "<f2>"   #'imenu
+  "<f3>"   #'xueliang-open-mindmap      ; my domain learning hot key
+  "<f4>"   #'evil-window-delete
+  "<f5>"   #'xueliang-eshell-popup
+  "<f6>"   #'counsel-yank-pop
+  "<f7>"   #'xueliang-just-make
+  "<f8>"   #'xueliang-imenu-or-org-today
+  "<f9>"   #'xueliang-dired-sidebar
+  "<f10>"  #'xueliang-telescope
+  "<f11>"  #'xueliang-org-sort-upheading
+  "<f12>"  #'xueliang-open-knowledge-links
+  "C-<f4>" #'kill-buffer-and-window)
 
 ;; ============================================================
 ;; Leader keys - my overrides on top of the Spacemacs defaults
@@ -483,25 +482,25 @@
   (while specs
     (keymap-set xl-leader-map (pop specs) (cons (pop specs) (pop specs)))))
 
-(xl-leader "SPC" "switch buffer" #'ivy-switch-buffer ; Spacemacs default is M-x
-           "RET" "switch buffer" #'ivy-switch-buffer
-           "?"   "all keys" #'which-key-show-top-level
-           "/"   "search buffer" #'counsel-grep-or-swiper
-           "x"   "M-x" #'counsel-M-x
+(xl-leader "SPC" "switch buffer"  #'ivy-switch-buffer ; Spacemacs default is M-x
+           "RET" "switch buffer"  #'ivy-switch-buffer
+           "?"   "all keys"       #'which-key-show-top-level
+           "/"   "search buffer"  #'counsel-grep-or-swiper
+           "x"   "M-x"            #'counsel-M-x
            "b s" "scratch window" #'xueliang-open-scratch-buffer-window
-           "b w" "read-only" #'read-only-mode
-           "c c" "just all" #'xueliang-just-make
-           "f f" "find file" #'find-file
-           "f r" "recent files" #'counsel-recentf
-           "f p" "dotfiles" #'xueliang-find-file-in-dotfiles
-           "f T" "imenu" #'imenu
-           "g f" "git files" #'project-find-file
-           "g g" "magit status" #'xueliang-magit-status-window
-           "s i" "imenu" #'imenu
-           "w c" "close window" #'delete-window
-           "w g" "golden ratio" #'xueliang-golden-ratio
-           "w v" "split right" #'xueliang-split-right
-           "w s" "split below" #'xueliang-split-below)
+           "b w" "read-only"      #'read-only-mode
+           "c c" "just all"       #'xueliang-just-make
+           "f f" "find file"      #'find-file
+           "f r" "recent files"   #'counsel-recentf
+           "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
+           "f T" "imenu"          #'imenu
+           "g f" "git files"      #'project-find-file
+           "g g" "magit status"   #'xueliang-magit-status-window
+           "s i" "imenu"          #'imenu
+           "w c" "close window"   #'delete-window
+           "w g" "golden ratio"   #'golden-ratio
+           "w v" "split right"    #'xueliang-split-right
+           "w s" "split below"    #'xueliang-split-below)
 
 ;; ============================================================
 ;; Personal modules outside this repo
