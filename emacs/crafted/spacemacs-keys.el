@@ -226,6 +226,8 @@
 (defvar-local xl-sk--home-files nil "Recent files listed on the home buffer.")
 (defun xl-sk-home-recentf ()
   "Insert up to 9 recent files, each with the number that opens it."
+  ;; One spelling per file: /Users/me/x and ~/x are the same entry
+  (setq recentf-list (seq-uniq (mapcar #'abbreviate-file-name recentf-list)))
   (setq xl-sk--home-files (seq-take recentf-list 9))
   (when xl-sk--home-files
     (fancy-splash-insert :face '(variable-pitch font-lock-string-face italic)
