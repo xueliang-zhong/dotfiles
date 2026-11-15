@@ -1,4 +1,7 @@
 ;;; init.el --- Crafted Emacs profile -*- lexical-binding: t; -*-
+;; Target: Emacs 31 (30 is the floor: built-in which-key, `restart-emacs').
+(when (< emacs-major-version 30)
+  (error "This profile needs Emacs 30+, this is %s" emacs-version))
 ;; Selects Crafted modules and packages, then loads the personal config.
 ;; Personal habits belong in emacs/xueliang.el, not here.
 
@@ -17,18 +20,17 @@
   (eval (read (current-buffer)) t))     ; defines `xl-packages'
 (dolist (pkg xl-packages)
   (add-to-list 'package-selected-packages pkg))
-(when (< emacs-major-version 30)        ; which-key is built in from Emacs 30
-  (add-to-list 'package-selected-packages 'which-key))
+;; Spacemacs habits that Crafted does not ship (see spacemacs-keys.el)
+(dolist (pkg '(evil-escape evil-surround winum avy))
+  (add-to-list 'package-selected-packages pkg))
 (package-install-selected-packages :noconfirm)
 
 ;; => Modules
-(setq evil-collection-key-blacklist '("SPC")) ; SPC stays the leader everywhere
+(setq evil-collection-key-blacklist '("SPC" ",")) ; leaders stay leaders everywhere
 (require 'crafted-defaults-config)
 (require 'crafted-evil-config)
 (require 'crafted-org-config)
 (require 'crafted-startup-config)
-(when (< emacs-major-version 30)
-  (which-key-mode 1))
 
 ;; => Crafted defaults that clash with my habits
 (customize-set-variable 'evil-want-C-h-delete nil) ; C-h stays the help prefix
@@ -36,9 +38,8 @@
   (remove-hook 'text-mode-hook #'flyspell-mode)
   (remove-hook 'prog-mode-hook #'flyspell-prog-mode))
 
-;; => Leader key
-(defvar-keymap xl-leader-map :doc "Keys under SPC.")
-(evil-define-key '(normal visual motion) 'global (kbd "SPC") xl-leader-map)
+;; => Spacemacs key habits: SPC tree, M-m, `,' major-mode leader, fd, surround
+(load (expand-file-name "emacs/crafted/spacemacs-keys.el" xl-dotfiles))
 
 ;; => Personal config
 (load xl-personal-file)

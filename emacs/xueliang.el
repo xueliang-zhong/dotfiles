@@ -4,7 +4,8 @@
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode))
 ;; Loaded last by a framework shim (emacs/crafted/init.el, ...) which must
-;; provide `xl-leader-map' and install `xl-packages'.  Only plain Emacs and
+;; provide `xl-leader-map' and install `xl-packages'.  Spacemacs' own default
+;; keys live in emacs/crafted/spacemacs-keys.el; only my overrides are here.  Only plain Emacs and
 ;; package APIs here: no spacemacs/, doom, crafted- symbols.
 
 ;;; Platform, paths, appearance
@@ -400,23 +401,6 @@
            "w g" "golden ratio" #'xueliang-golden-ratio
            "w v" "split right" #'xueliang-split-right
            "w s" "split below" #'xueliang-split-below)
-
-;; Starter set of Spacemacs defaults; trim or extend to what the fingers expect.
-(xl-leader "TAB" "last buffer" #'mode-line-other-buffer
-           "u"   "universal arg" #'universal-argument
-           "f s" "save" #'save-buffer
-           "b b" "switch buffer" #'xl-switch-buffer
-           "b d" "kill buffer" #'kill-current-buffer
-           "w h" "window left" #'evil-window-left
-           "w j" "window down" #'evil-window-down
-           "w k" "window up" #'evil-window-up
-           "w l" "window right" #'evil-window-right
-           "w d" "close window" #'delete-window
-           "w m" "maximize" #'delete-other-windows
-           "w /" "split right" #'xueliang-split-right
-           "w -" "split below" #'xueliang-split-below
-           "p f" "project file" #'project-find-file
-           "q q" "quit" #'save-buffers-kill-terminal)
 
 ;;; Personal modules outside this repo (binds F3 and SPC y ...)
 (when (file-exists-p xl-yi-file)

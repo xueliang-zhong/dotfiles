@@ -12,6 +12,13 @@
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
 
+;; No JIT native compilation: it compiles packages in the background on
+;; first use and slows the whole machine. Packages run as byte code.
+(setq native-comp-jit-compilation nil
+      inhibit-automatic-native-compilation t
+      package-native-compile nil
+      native-comp-async-report-warnings-errors 'silent)
+
 ;; Compiled packages are not portable across Emacs versions.
 (setq package-user-dir
       (expand-file-name (format "elpa-%d.%d" emacs-major-version emacs-minor-version)
@@ -23,7 +30,7 @@
 
 ;; Emacs 31 warns about every third-party file without a lexical-binding
 ;; cookie (e.g. spacemacs-theme); not actionable here.
-(setq warning-suppress-types '((files missing-lexbind-cookie)))
+(setq warning-suppress-log-types '((files missing-lexbind-cookie)))
 
 ;; The tagged evil release (1.15.0 on NonGNU ELPA) breaks on Emacs 30+
 ;; (void-variable evil-mode-buffers); take the evil family from MELPA.
