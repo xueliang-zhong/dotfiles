@@ -26,10 +26,11 @@ no longer installed at all.
 
 ## What stays untouched
 
-All `xl-pick` fallback aliases already resolve to counsel automatically once
-consult is absent (`xl-recent-file` → `counsel-recentf`, `xl-history` →
-`counsel-esh-history`, `SPC /` → `swiper`, `<f10>` inserts the `counsel-`
-prefix). The `justfile` install/try recipes are unchanged.
+The `xl-pick` intent aliases, now resolving directly to the ivy family
+(`xl-recent-file` → `counsel-recentf`, `xl-history` → `counsel-esh-history`,
+`SPC /` → `swiper`). consult entries were removed from the fallback chains
+since no profile installs consult anymore. The `justfile` install/try recipes
+are unchanged.
 
 ## Local cleanup (one-off)
 

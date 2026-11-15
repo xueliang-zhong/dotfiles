@@ -69,20 +69,18 @@
 
 ;;; Intents: one name per habit, whichever completion stack is installed
 (defun xl-pick (&rest commands) (seq-find #'fboundp commands))
-(defalias 'xl-switch-buffer (xl-pick 'consult-buffer 'ivy-switch-buffer 'switch-to-buffer))
-(defalias 'xl-recent-file (xl-pick 'consult-recent-file 'counsel-recentf 'recentf-open))
-(defalias 'xl-imenu (xl-pick 'consult-imenu 'counsel-imenu 'imenu))
-(defalias 'xl-yank-pop (xl-pick 'consult-yank-pop 'counsel-yank-pop 'yank-pop))
-(defalias 'xl-history (xl-pick 'consult-history 'counsel-esh-history 'eshell-list-history))
-(defalias 'xl-find (xl-pick 'consult-fd 'consult-find 'counsel-fzf 'find-file))
-(defalias 'xl-complete-file (xl-pick 'cape-file 'company-files 'comint-dynamic-complete-filename))
+(defalias 'xl-switch-buffer (xl-pick 'ivy-switch-buffer 'switch-to-buffer))
+(defalias 'xl-recent-file (xl-pick 'counsel-recentf 'recentf-open))
+(defalias 'xl-imenu (xl-pick 'counsel-imenu 'imenu))
+(defalias 'xl-yank-pop (xl-pick 'counsel-yank-pop 'yank-pop))
+(defalias 'xl-history (xl-pick 'counsel-esh-history 'eshell-list-history))
+(defalias 'xl-find (xl-pick 'counsel-fzf 'find-file))
 (defalias 'xl-M-x (xl-pick 'counsel-M-x 'execute-extended-command))
 
 (defun xl-search-line (&optional initial)
   "Search lines of this buffer, starting from INITIAL."
   (interactive)
-  (cond ((fboundp 'consult-line) (consult-line initial))
-        ((fboundp 'swiper) (swiper initial))
+  (cond ((fboundp 'swiper) (swiper initial))
         (t (isearch-forward))))
 
 (defun xueliang-read-in-order (prompt candidates &optional initial)
@@ -115,7 +113,6 @@
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
   (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
   (define-key evil-insert-state-map (kbd "TAB") (lambda () (interactive) (insert "  ")))
-  (define-key evil-insert-state-map (kbd "C-x C-f") #'xl-complete-file)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (dolist (cmd '("vs" "vsplit")) (evil-ex-define-cmd cmd #'xueliang-split-right))
@@ -127,9 +124,7 @@
     (add-hook 'evil-insert-state-exit-hook
               (lambda () (call-process macism nil 0 nil "com.apple.keylayout.British")))))
 
-;;; Completion: minibuffer (ivy & counsel) and in-buffer popup
-(setq corfu-auto-delay 0 corfu-auto-prefix 1
-      company-idle-delay 0 company-minimum-prefix-length 1)
+;;; Completion: minibuffer (ivy & counsel)
 (require 'counsel)
 (fido-mode -1) (icomplete-mode -1)      ; plain-Emacs completion UIs, off under ivy
 (ivy-mode 1) (counsel-mode 1)
@@ -153,7 +148,6 @@
 ;;; Eshell
 (add-hook 'eshell-mode-hook
           (lambda ()
-            (setq-local corfu-auto nil company-idle-delay 600)
             (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
             (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
             (define-key evil-insert-state-local-map (kbd "C-r") #'xl-history)
@@ -307,9 +301,9 @@
   (xueliang-cd-current-dir) (magit-status))
 
 (defun xueliang-telescope ()
-  "M-x narrowed to the search commands of the installed completion stack." (interactive)
+  "M-x narrowed to the search commands of the ivy stack." (interactive)
   (minibuffer-with-setup-hook
-      (lambda () (insert (if (fboundp 'consult-line) "consult-" "counsel-")))
+      (lambda () (insert "counsel-"))
     (call-interactively #'execute-extended-command)))
 
 (defun xueliang-find-file-in-dotfiles () (interactive)
