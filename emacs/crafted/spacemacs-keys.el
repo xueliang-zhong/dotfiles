@@ -139,7 +139,7 @@
   "s" "search" nil
   "s s" "this buffer" (xl-sk-cmd 'swiper 'consult-line 'isearch-forward)
   "s p" "project" (xl-sk-cmd 'counsel-rg 'consult-ripgrep 'project-find-regexp)
-  "s j" "imenu" (xl-sk-cmd 'counsel-imenu 'consult-imenu 'imenu)
+  "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
 
   "t" "toggles" nil

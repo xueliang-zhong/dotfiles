@@ -2,7 +2,7 @@
 (defconst xl-packages                   ; must stay the first form: shims read it
   '(ivy counsel ivy-rich ivy-prescient company
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
-    just-mode lua-mode graphviz-dot-mode))
+    just-mode lua-mode graphviz-dot-mode markdown-mode))
 ;; Loaded last by a framework shim (emacs/crafted/init.el, ...) which must
 ;; provide `xl-leader-map' and install `xl-packages'.  Spacemacs' own default
 ;; keys live in emacs/crafted/spacemacs-keys.el; only my overrides are here.  Only plain Emacs and
@@ -72,7 +72,7 @@
 (defun xl-pick (&rest commands) (seq-find #'fboundp commands))
 (defalias 'xl-switch-buffer (xl-pick 'ivy-switch-buffer 'switch-to-buffer))
 (defalias 'xl-recent-file (xl-pick 'counsel-recentf 'recentf-open))
-(defalias 'xl-imenu (xl-pick 'imenu 'counsel-imenu))
+(defalias 'xl-imenu #'imenu)
 (defalias 'xl-yank-pop (xl-pick 'counsel-yank-pop 'yank-pop))
 (defalias 'xl-history (xl-pick 'counsel-esh-history 'eshell-list-history))
 (defalias 'xl-find (xl-pick 'counsel-fzf 'find-file))
@@ -117,6 +117,8 @@
         evil-want-fine-undo t
         evil-flash-delay 0.15)
   (customize-set-variable 'evil-want-Y-yank-to-eol t)
+  ;; * and # take the whole symbol: foo-bar is one word, not foo
+  (setq-default evil-symbol-word-search t)
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
   (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
   (define-key evil-insert-state-map (kbd "TAB") (lambda () (interactive) (insert "  ")))
@@ -141,10 +143,25 @@
 (require 'counsel)
 (fido-mode -1) (icomplete-mode -1)      ; plain-Emacs completion UIs, off under ivy
 (ivy-mode 1) (counsel-mode 1)
+(define-key counsel-mode-map [remap imenu] nil) ; plain imenu, not counsel-imenu
 (when (fboundp 'ivy-rich-mode) (ivy-rich-mode 1))
 (when (fboundp 'ivy-prescient-mode)
+  ;; Recency sorting only where it helps; lists below keep their own order
+  ;; (imenu = position in file, yank-pop = kill ring, recentf = recency).
+  (setq ivy-prescient-sort-commands
+        '(:not swiper swiper-isearch ivy-switch-buffer counsel-imenu counsel-yank-pop
+               counsel-recentf counsel-grep-or-swiper counsel-rg counsel-esh-history))
   (ivy-prescient-mode 1) (prescient-persist-mode 1))
-(keymap-set ivy-minibuffer-map "C-k" #'kill-line)
+;; Same ivy behaviour as in Spacemacs
+(setq counsel-grep-swiper-limit 30000000
+      ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist)
+      ivy-fixed-height-minibuffer t
+      ivy-count-format "(%d/%d) "
+      ivy-virtual-abbreviate 'abbrev
+      ivy-use-selectable-prompt t
+      ivy-wrap t)
+(define-key ivy-mode-map (kbd "C-k") #'evil-delete-line)
+(define-key ivy-mode-map (kbd "C-q") #'ivy-occur)
 (setq-default company-dabbrev-char-regexp "[\\0-9a-zA-Z-_'/]"
               company-idle-delay 0
               company-minimum-prefix-length 1
