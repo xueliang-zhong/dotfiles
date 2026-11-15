@@ -188,7 +188,6 @@
 (ivy-rich-mode 1)                       ; extra columns in ivy lists
 (keymap-set counsel-mode-map "<remap> <imenu>" nil) ; plain imenu, not counsel-imenu
 
-
 ;; Same ivy behaviour as in Spacemacs
 (setq counsel-grep-swiper-limit 30000000 ; swiper stays usable on huge files
       ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
@@ -221,6 +220,7 @@
       corfu-cycle t
       ;; no popup in shells and REPLs
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
+
 (global-corfu-mode 1)
 
 ;; TAB moves down the popup via `xueliang-tab-or-corfu-next' (bound in
