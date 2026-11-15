@@ -411,6 +411,27 @@
   "Open eshell below, in the current file's directory, ready for input." (interactive)
   (xueliang-cd-current-dir) (xueliang-split-below) (eshell) (evil-append-line 1))
 
+;; Same behaviour as `org-link-open-from-string', without needing Org loaded:
+;; web links go to the system default browser on any OS, file links open here
+(defun xueliang-open-link (link)
+  "Open LINK: http(s) in the default browser, file: links inside Emacs.
+A file link may end in ::LINE or ::TEXT to jump there, as in Org."
+  (if (string-match-p "\\`https?://" link)
+      ;; Not `browse-url': a buffer may set eww as its browser (the Crafted
+      ;; home buffer does), and web pages belong in the real browser.
+      (browse-url-default-browser link)
+    (let* ((parts (split-string (string-remove-prefix "file:" link) "::"))
+           ;; file:///Users/me/a%20b.org -> /Users/me/a b.org
+           (path (url-unhex-string
+                  (replace-regexp-in-string "\\`//+" "/" (car parts))))
+           (target (cadr parts)))
+      (find-file (expand-file-name path))
+      (when target
+        (goto-char (point-min))
+        (if (string-match-p "\\`[0-9]+\\'" target)
+            (forward-line (1- (string-to-number target)))
+          (search-forward (string-remove-prefix "*" target) nil t))))))
+
 ;; F12: fast search in my pre-compiled URL list
 (defun xueliang-open-knowledge-links ()
   "Pick a line from my links file and open its URL or file link." (interactive)
@@ -419,7 +440,7 @@
                (with-temp-buffer (insert-file-contents xl-links-file)
                                  (split-string (buffer-string) "\n" t)))))
     (when (string-match "\\(\\(?:https?://\\|file:\\)[^ \t]+\\)" line)
-      (org-link-open-from-string (match-string 1 line)))))
+      (xueliang-open-link (match-string 1 line)))))
 
 (defun xueliang-open-mindmap ()
   "Pick an SVG from my mindmap folder and open it in the system viewer." (interactive)
@@ -460,8 +481,6 @@
   (evil-ex-execute (format "!git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name))))
 (defun xueliang-replace-tab-trailing-spaces () (interactive)
   (untabify (point-min) (point-max)) (delete-trailing-whitespace))
-(defun xueliang-T-open-T-in-browser () (interactive)
-  (org-link-open-from-string "https://stockcharts.com/sc3/ui/?s=VWRL.L"))
 (defun xueliang-dired-jump () (interactive)
   (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
 (defun xueliang-just-make () (interactive) (evil-ex-execute "!just all &"))

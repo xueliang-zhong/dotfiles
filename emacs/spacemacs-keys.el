@@ -257,6 +257,7 @@
 (defun xl-sk--home-keys (&rest _)
   "In the home buffer, digits 1-9 open the listed recent files."
   (with-current-buffer "*Crafted Emacs*"
+    (kill-local-variable 'browse-url-browser-function) ; Crafted sets eww here
     (dotimes (i 9)
       (let ((n i))
         (dolist (state '(normal motion))
