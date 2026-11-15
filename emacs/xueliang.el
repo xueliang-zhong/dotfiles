@@ -177,6 +177,10 @@
 ;;; Eshell
 (add-hook 'eshell-mode-hook
           (lambda ()
+            ;; RET in insert state submits the command. Newer evil-collection
+            ;; binds it to `newline' (repl-newline theme), which silently
+            ;; swallows the command - restore the old behavior.
+            (define-key evil-insert-state-local-map (kbd "RET") #'eshell-send-input)
             (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
             (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
             (define-key evil-insert-state-local-map (kbd "C-r") #'xl-history)
@@ -394,6 +398,7 @@
            "w g" "golden ratio" #'xueliang-golden-ratio
            "w v" "split right" #'xueliang-split-right
            "w s" "split below" #'xueliang-split-below)
+
 ;; Starter set of Spacemacs defaults; trim or extend to what the fingers expect.
 (xl-leader "TAB" "last buffer" #'mode-line-other-buffer
            "u"   "universal arg" #'universal-argument
