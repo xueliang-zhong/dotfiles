@@ -27,7 +27,7 @@
 (add-to-list 'default-frame-alist '(fullscreen . maximized))
 (or (ignore-errors (load-theme 'spacemacs-dark t))
     (ignore-errors (load-theme 'doom-tokyo-night t)))
-(when xl-mac-p (keymap-global-set "s-x" #'xl-M-x))
+(when xl-mac-p (keymap-global-set "s-x" #'counsel-M-x))
 
 ;;; Plain Emacs options
 (setq auto-revert-verbose nil
@@ -68,28 +68,6 @@
     (make-directory (file-name-directory buffer-file-name) t)))
 (add-hook 'before-save-hook #'xueliang-create-missing-directories-h)
 
-;;; Intents: one name per habit, whichever completion stack is installed
-(defun xl-pick (&rest commands) (seq-find #'fboundp commands))
-(defalias 'xl-switch-buffer (xl-pick 'ivy-switch-buffer 'switch-to-buffer))
-(defalias 'xl-recent-file (xl-pick 'counsel-recentf 'recentf-open))
-(defalias 'xl-imenu #'imenu)
-(defalias 'xl-yank-pop (xl-pick 'counsel-yank-pop 'yank-pop))
-(defalias 'xl-history (xl-pick 'counsel-esh-history 'eshell-list-history))
-(defalias 'xl-find (xl-pick 'counsel-fzf 'find-file))
-(defalias 'xl-M-x (xl-pick 'counsel-M-x 'execute-extended-command))
-
-(defun xl-complete-file ()
-  "In-buffer file path completion (company backend)."
-  (interactive)
-  (require 'company)
-  (company-files))
-
-(defun xl-search-line (&optional initial)
-  "Search lines of this buffer, starting from INITIAL."
-  (interactive)
-  (cond ((fboundp 'swiper) (swiper initial))
-        (t (isearch-forward))))
-
 (defun xueliang-read-in-order (prompt candidates &optional initial)
   "Pick one of CANDIDATES with PROMPT, keeping their order (the UI may re-sort)."
   (completing-read prompt
@@ -122,7 +100,7 @@
   (define-key evil-insert-state-map (kbd "C-v") #'yank)
   (define-key evil-insert-state-map (kbd "C-g") #'evil-normal-state)
   (define-key evil-insert-state-map (kbd "TAB") (lambda () (interactive) (insert "  ")))
-  (define-key evil-insert-state-map (kbd "C-x C-f") #'xl-complete-file)
+  (define-key evil-insert-state-map (kbd "C-x C-f") #'company-files)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   ;; vim habit: C-u scrolls up half a page (C-d already scrolls down).
@@ -203,7 +181,7 @@
             (define-key evil-insert-state-local-map (kbd "s-<return>") #'eshell-send-input)
             (define-key evil-insert-state-local-map (kbd "C-a") #'eshell-bol)
             (define-key evil-insert-state-local-map (kbd "C-k") #'kill-line)
-            (define-key evil-insert-state-local-map (kbd "C-r") #'xl-history)
+            (define-key evil-insert-state-local-map (kbd "C-r") #'counsel-esh-history)
             (define-key evil-insert-state-local-map (kbd "TAB") #'completion-at-point)
             (define-key evil-insert-state-local-map (kbd "C-d") #'kill-buffer-and-window)
             (define-key evil-insert-state-local-map (kbd "<f1>") #'evil-force-normal-state)
@@ -211,7 +189,7 @@
 (defalias 'eshell/e   #'find-file-other-window)
 (defalias 'eshell/vi  #'eshell/e)
 (defalias 'eshell/vim #'eshell/e)
-(defalias 'eshell/fzf #'xl-find)
+(defalias 'eshell/fzf #'counsel-fzf)
 
 ;;; Org: set once when org loads, only buffer-local work in the hook
 (with-eval-after-load 'org
@@ -313,8 +291,8 @@
 (defun xueliang-imenu-or-org-today ()
   "In Org jump to today's timestamp, elsewhere imenu." (interactive)
   (if (derived-mode-p 'org-mode)
-      (progn (xl-search-line (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
-    (xl-imenu)))
+      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
+    (imenu)))
 
 (defun xueliang-eshell-popup ()
   "Open eshell below, in the current file's directory, ready for input." (interactive)
@@ -380,11 +358,11 @@
 (defalias 'xueliang-org-sort   #'org-sort)
 
 ;;; Keys: function keys, then SPC leader (the string is the which-key label)
-(dolist (binding '(("<f2>" . xl-imenu)
+(dolist (binding '(("<f2>" . imenu)
                    ("<f3>" . xueliang-open-mindmap)
                    ("<f4>" . evil-window-delete)
                    ("<f5>" . xueliang-eshell-popup)
-                   ("<f6>" . xl-yank-pop)
+                   ("<f6>" . counsel-yank-pop)
                    ("<f7>" . xueliang-just-make)
                    ("<f8>" . xueliang-imenu-or-org-today)
                    ("<f9>" . xueliang-dired-sidebar)
@@ -399,21 +377,21 @@
   (while specs
     (keymap-set xl-leader-map (pop specs) (cons (pop specs) (pop specs)))))
 
-(xl-leader "SPC" "switch buffer" #'xl-switch-buffer
-           "RET" "switch buffer" #'xl-switch-buffer
+(xl-leader "SPC" "switch buffer" #'ivy-switch-buffer
+           "RET" "switch buffer" #'ivy-switch-buffer
            "?"   "all keys" #'which-key-show-top-level
-           "/"   "search buffer" #'xl-search-line
-           "x"   "M-x" #'xl-M-x
+           "/"   "search buffer" #'counsel-grep-or-swiper
+           "x"   "M-x" #'counsel-M-x
            "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "b w" "read-only" #'read-only-mode
            "c c" "just all" #'xueliang-just-make
            "f f" "find file" #'find-file
-           "f r" "recent files" #'xl-recent-file
+           "f r" "recent files" #'counsel-recentf
            "f p" "dotfiles" #'xueliang-find-file-in-dotfiles
-           "f T" "imenu" #'xl-imenu
+           "f T" "imenu" #'imenu
            "g f" "git files" #'project-find-file
            "g g" "magit status" #'xueliang-magit-status-window
-           "s i" "imenu" #'xl-imenu
+           "s i" "imenu" #'imenu
            "w c" "close window" #'delete-window
            "w g" "golden ratio" #'xueliang-golden-ratio
            "w v" "split right" #'xueliang-split-right

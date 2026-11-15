@@ -6,10 +6,7 @@
 ;; there win on conflicts (e.g. SPC SPC, SPC x, SPC g f).
 
 (require 'seq)
-
-(defun xl-sk-cmd (&rest commands)
-  "First of COMMANDS that is defined, so keys follow the installed stack."
-  (seq-find #'fboundp commands))
+(autoload 'flymake-show-buffer-diagnostics "flymake" nil t) ; SPC e l before flymake loads
 
 (defun xl-sk-bind (map &rest specs)
   "In MAP bind KEY LABEL DEF triples; a nil DEF only names a prefix."
@@ -65,7 +62,7 @@
   "a o a" "org agenda" #'org-agenda  "a o c" "org capture" #'org-capture
 
   "b" "buffers" nil
-  "b b" "switch buffer" (xl-sk-cmd 'ivy-switch-buffer 'consult-buffer 'switch-to-buffer)
+  "b b" "switch buffer" #'ivy-switch-buffer
   "b d" "kill buffer"   #'kill-current-buffer
   "b x" "kill buffer & window" #'kill-buffer-and-window
   "b n" "next buffer"   #'next-buffer
@@ -86,8 +83,8 @@
   "e l" "list errors" #'flymake-show-buffer-diagnostics
 
   "f" "files" nil
-  "f f" "find file"     (xl-sk-cmd 'counsel-find-file 'find-file)
-  "f r" "recent files"  (xl-sk-cmd 'counsel-recentf 'consult-recent-file 'recentf-open)
+  "f f" "find file"     #'counsel-find-file
+  "f r" "recent files"  #'counsel-recentf
   "f s" "save"          #'save-buffer
   "f S" "save all"      #'save-some-buffers
   "f R" "rename file"   #'rename-visited-file
@@ -126,19 +123,19 @@
   "p b" "project buffer" #'project-switch-to-buffer  "p d" "project dired" #'project-dired
   "p k" "kill buffers" #'project-kill-buffers  "p c" "compile" #'project-compile
   "p '" "eshell" #'project-eshell
-  "p s" "search" (xl-sk-cmd 'counsel-rg 'consult-ripgrep 'project-find-regexp)
+  "p s" "search" #'counsel-rg
 
   "q" "quit" nil
   "q q" "quit" #'save-buffers-kill-terminal  "q Q" "kill emacs" #'kill-emacs
   "q r" "restart" #'restart-emacs  "q z" "close frame" #'delete-frame
 
   "r" "resume/registers" nil
-  "r l" "resume search" (xl-sk-cmd 'ivy-resume 'vertico-repeat 'repeat-complex-command)
-  "r y" "kill ring" (xl-sk-cmd 'counsel-yank-pop 'consult-yank-pop 'yank-pop)
+  "r l" "resume search" #'ivy-resume
+  "r y" "kill ring" #'counsel-yank-pop
 
   "s" "search" nil
-  "s s" "this buffer" (xl-sk-cmd 'swiper 'consult-line 'isearch-forward)
-  "s p" "project" (xl-sk-cmd 'counsel-rg 'consult-ripgrep 'project-find-regexp)
+  "s s" "this buffer" #'swiper
+  "s p" "project" #'counsel-rg
   "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
 
