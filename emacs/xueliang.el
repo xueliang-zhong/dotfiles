@@ -71,7 +71,7 @@
 (defun xl-pick (&rest commands) (seq-find #'fboundp commands))
 (defalias 'xl-switch-buffer (xl-pick 'ivy-switch-buffer 'switch-to-buffer))
 (defalias 'xl-recent-file (xl-pick 'counsel-recentf 'recentf-open))
-(defalias 'xl-imenu (xl-pick 'counsel-imenu 'imenu))
+(defalias 'xl-imenu (xl-pick 'imenu 'counsel-imenu))
 (defalias 'xl-yank-pop (xl-pick 'counsel-yank-pop 'yank-pop))
 (defalias 'xl-history (xl-pick 'counsel-esh-history 'eshell-list-history))
 (defalias 'xl-find (xl-pick 'counsel-fzf 'find-file))
@@ -122,6 +122,11 @@
   (define-key evil-insert-state-map (kbd "C-x C-f") #'xl-complete-file)
   (define-key evil-insert-state-map (kbd "C-x C-l") #'xueliang-complete-line)
   (define-key evil-normal-state-map (kbd "C-x C-l") #'xueliang-complete-line)
+  ;; vim habit: C-u scrolls up half a page (C-d already scrolls down).
+  ;; Direct rebind: `evil-want-C-u-scroll' must be set before evil loads,
+  ;; which is too late here. Motion state keeps C-u as universal-argument.
+  (define-key evil-normal-state-map (kbd "C-u") #'evil-scroll-up)
+  (define-key evil-visual-state-map (kbd "C-u") #'evil-scroll-up)
   (dolist (cmd '("vs" "vsplit")) (evil-ex-define-cmd cmd #'xueliang-split-right))
   (dolist (cmd '("sp" "split")) (evil-ex-define-cmd cmd #'xueliang-split-below))
   (advice-add 'evil-yank :after #'xueliang-flash-yanked-text)
@@ -351,7 +356,7 @@
 (defalias 'xueliang-org-sort   #'org-sort)
 
 ;;; Keys: function keys, then SPC leader (the string is the which-key label)
-(dolist (binding '(("<f2>" . counsel-imenu)
+(dolist (binding '(("<f2>" . xl-imenu)
                    ("<f3>" . xueliang-open-mindmap)
                    ("<f4>" . evil-window-delete)
                    ("<f5>" . xueliang-eshell-popup)
