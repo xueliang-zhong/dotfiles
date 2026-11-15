@@ -194,6 +194,11 @@
       ivy-use-selectable-prompt t
       ivy-wrap t)
 
+;; Golden ratio: ivy lists take 38.2% of the frame height, like the F9 sidebar
+(defun xueliang-ivy-golden-height (caller) (round (* 0.382 (frame-height))))
+(setq ivy-height-alist '((t . xueliang-ivy-golden-height))
+      max-mini-window-height 0.5)       ; minibuffer may grow past the default 25%
+
 (define-keymap :keymap ivy-mode-map
   "C-k" #'evil-delete-line              ; delete to end of line
   "C-q" #'ivy-occur)                    ; turn the candidates into a buffer
