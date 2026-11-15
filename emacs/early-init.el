@@ -14,6 +14,7 @@
 
 ;; No JIT native compilation: it compiles packages in the background on
 ;; first use and slows the whole machine. Packages run as byte code.
+;; Emacs 31 has no job-count or threshold setting to limit it, so it stays off.
 (setq native-comp-jit-compilation nil
       inhibit-automatic-native-compilation t
       package-native-compile nil
