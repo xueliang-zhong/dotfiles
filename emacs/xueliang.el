@@ -45,6 +45,10 @@
       initial-major-mode 'text-mode         ; *scratch* is notes
       initial-scratch-message nil)          ; *scratch* starts empty, no boilerplate
 
+;; No beeps: C-g, reaching a buffer edge and similar errors stay silent
+(setq ring-bell-function #'ignore
+      visible-bell nil)
+
 ;; Recent files: keep a long history and never prune it behind my back
 (setq recentf-max-saved-items 1000
       recentf-max-menu-items 50
