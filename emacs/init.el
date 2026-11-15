@@ -16,7 +16,8 @@
 (require 'crafted-evil-packages)
 (require 'crafted-org-packages)
 (with-temp-buffer
-  (insert-file-contents xl-personal-file)
+  (let ((coding-system-for-read 'utf-8)) ; never guess: xueliang.el is UTF-8
+    (insert-file-contents xl-personal-file))
   (eval (read (current-buffer)) t))     ; defines `xl-packages'
 (dolist (pkg xl-packages)
   (add-to-list 'package-selected-packages pkg))

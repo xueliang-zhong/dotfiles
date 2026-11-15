@@ -42,7 +42,7 @@
 ;; ============================================================
 (setq auto-revert-verbose nil
       global-auto-revert-non-file-buffers t ; keep dired etc. fresh too
-      initial-major-mode 'text-mode         ; *scratch* is for notes, not Lisp
+      initial-major-mode 'text-mode         ; *scratch* is notes
       initial-scratch-message nil)          ; *scratch* starts empty, no boilerplate
 
 ;; Recent files: keep a long history and never prune it behind my back

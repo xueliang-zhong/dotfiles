@@ -2,6 +2,11 @@
 ;; Loaded by the stub in ~/.emacs-profiles/crafted/early-init.el, which
 ;; defines `xl-dotfiles' and `xl-crafted-home'.
 
+;; Crafted's init requires `info', which reads .gz files through jka-compr.
+;; Loading jka-compr first avoids a recursive load when Emacs starts as a
+;; daemon (or any start where jka-compr is not loaded yet).
+(require 'jka-compr)
+
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook
