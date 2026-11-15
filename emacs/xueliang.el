@@ -233,16 +233,29 @@
 ;; ============================================================
 (setq dired-use-ls-dired nil)           ; BSD ls on macOS has no --dired
 (setq-default dired-listing-switches "-alh") ; List file details in human-readable format
+;; Layout stays  | sidebar | code window |  : open the file in the window
+;; that is already there, and split only when dired is the sole window.
+;; (`dired-find-file-other-window' keeps splitting on a wide frame.)
+(defun xueliang-dired-open ()
+  "Open the file at point in the other window, reusing it if there is one."
+  (interactive)
+  (let ((display-buffer-overriding-action
+         (unless (one-window-p)
+           '((display-buffer-reuse-window display-buffer-use-some-window)
+             (inhibit-same-window . t)))))
+    (dired-find-file-other-window)))
+
 (with-eval-after-load 'dired
   (require 'dired-x)                    ; Enable dired-x for extra features
-  ;; h goes up a folder, l opens the file in the other window
+  ;; h goes up a folder; l and RET open the file in the code window.
+  ;; Bound in normal state: evil-collection binds RET there too, and a
+  ;; normal-state binding beats one in plain `dired-mode-map'.
   (evil-define-key 'normal dired-mode-map
-    "h" #'dired-up-directory
-    "l" #'dired-find-file-other-window)
-  (define-keymap :keymap dired-mode-map
-    "TAB"      #'dired-display-file     ; preview, stay in dired
-    "RET"      #'dired-find-file-other-window
-    "<return>" #'dired-find-file-other-window))
+    "h"              #'dired-up-directory
+    "l"              #'xueliang-dired-open
+    (kbd "RET")      #'xueliang-dired-open
+    (kbd "<return>") #'xueliang-dired-open)
+  (keymap-set dired-mode-map "TAB" #'dired-display-file)) ; preview, stay in dired
 
 ;; ============================================================
 ;; Eshell Settings - Shell keys like in a terminal
