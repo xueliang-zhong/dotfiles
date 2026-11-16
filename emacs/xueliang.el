@@ -1,10 +1,4 @@
 ;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; -*-
-;;
-;; Loaded last by a framework shim (emacs/init.el, ...), which must
-;; provide `xl-leader-map' and install the packages used here (the shim's
-;; `xl-packages').  Spacemacs' own default keys live in
-;; emacs/spacemacs-keys.el; only my overrides are here.
-;; Plain Emacs and package APIs only: no spacemacs/, doom, crafted- symbols.
 
 ;; ============================================================
 ;; Platform, Paths and Appearance
