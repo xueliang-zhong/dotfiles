@@ -439,17 +439,19 @@
         (message-log-max nil))
     (ignore-errors (require feature))))
 
-(defun xueliang-warmup-org ()
-  "Load Org once while idle."
-  (require 'org))
+(defun xl-idle-require (package priority)
+  "Load PACKAGE once Emacs has been idle based PRIORITY half-seconds."
+  (run-with-idle-timer
+   (* 0.5 priority) nil
+   (lambda ()
+     ;; Outside the silent `let' inside the helper, so a failure still shows.
+     (unless (xueliang-require-silently package)
+       (message "xl-idle-require: could not load %s" package)))))
 
-(defun xueliang-warmup-modules ()
-  "Load Eshell and Magit once while idle."
-  (xueliang-require-silently 'eshell)
-  (xueliang-require-silently 'magit))
-
-(run-with-idle-timer 0.5 nil #'xueliang-warmup-org)
-(run-with-idle-timer 1.0 nil #'xueliang-warmup-modules)
+;; 0.5s per priority step: 1 = 0.5s, 2 = 1s, 3 = 1.5s
+(xl-idle-require 'org 1)
+(xl-idle-require 'magit 2)
+(xl-idle-require 'eshell 3)
 
 ;; ============================================================
 ;; My own functions
