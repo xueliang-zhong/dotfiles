@@ -119,13 +119,30 @@ Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第
 | 升级 Crafted | 改 `frameworks.lock` 的提交号，再执行 `just emacs-crafted-install` |
 | 改启动期设置（GC、JIT、包目录） | `early-init.el` |
 
-修改后用下面这条命令检查：
+修改后用下面这几条命令检查：
 
 ```bash
-just emacs-smoke
+just emacs-smoke   # 完整加载一遍，只证明没有初始化错误
+just emacs-test    # ERT 测试：键位、钩子、变量、文件结构、真实操作
+just emacs-check   # 上面两条一起跑
 ```
 
-它以批处理方式完整加载配置，任何初始化错误都会返回非零状态。
+### `just emacs-test`
+
+`emacs/tests/smoke-tests.el` 里的 28 个 ERT 测试在配置完整加载后运行，覆盖：
+
+| 范围 | 例子 |
+| --- | --- |
+| 文件结构 | `xl-packages` 是 `xueliang.el` 的第一个表单；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
+| 启动设置 | 包目录按 Emacs 版本分开；菜单栏、工具栏关闭；evil 系列锁定 MELPA |
+| 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、F2–F12、`SPC t r`、`SPC T n` |
+| 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
+| Org | 变量、TODO 关键字、链接缩写、表头 face；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
+| Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
+| Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
+| 其它 | ivy/counsel/corfu 状态、主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
+
+测试不启动图形界面，全部在 `emacs --batch` 里完成。
 
 ## 在 Windows 上安装
 

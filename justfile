@@ -101,6 +101,17 @@ emacs-smoke profile="crafted":
       -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
       -l '{{PROFILES}}/{{profile}}/init.el' --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
 
+# run the ERT suite against a loaded profile: keys, hooks, files, behaviour
+emacs-test profile="crafted":
+    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
+      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
+      -l '{{PROFILES}}/{{profile}}/init.el' \
+      -l '{{DOTFILES}}/emacs/tests/smoke-tests.el' \
+      -f ert-run-tests-batch-and-exit
+
+# everything a config change must pass: smoke + ERT suite
+emacs-check: emacs-smoke emacs-test
+
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:

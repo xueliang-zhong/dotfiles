@@ -44,3 +44,17 @@
 
 ;; => Personal config
 (load xl-personal-file)
+
+;; => Keep `package-selected-packages' in sync with `xl-packages'
+;; Loading a theme replays Customize's saved value for the variable (the
+;; `user' theme), which would drop packages added above.  Re-apply the list,
+;; and do it again after each theme switch, so `package-autoremove' is safe.
+(defun xl-refresh-selected-packages (&rest _)
+  "Add every package in `xl-packages' to `package-selected-packages'."
+  (dolist (pkg xl-packages)
+    (add-to-list 'package-selected-packages pkg))
+  ;; Update the user-theme value as well: a later `load-theme' restores it.
+  (customize-set-variable 'package-selected-packages package-selected-packages))
+
+(xl-refresh-selected-packages)
+(add-hook 'enable-theme-functions #'xl-refresh-selected-packages)
