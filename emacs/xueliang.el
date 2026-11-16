@@ -41,6 +41,26 @@
 (when xl-mac-p (keymap-global-set "s-x" #'counsel-M-x))
 
 ;; ============================================================
+;; First-use latency - pay one-time costs while idle
+;; ============================================================
+;; Emacs cannot load packages asynchronously in-process.
+;; Idle timers are the safe compromise: they run only when you are not typing.
+(defun xueliang-require-silently (feature)
+  "Require FEATURE without echo-area or *Messages* output."
+  (let ((inhibit-message t) (message-log-max nil)) (ignore-errors (require feature))))
+
+(defun xl-idle-require (package priority)
+  "Load PACKAGE once Emacs has been idle based on PRIORITY."
+  (run-with-idle-timer (* 0.5 priority) nil (lambda() (xueliang-require-silently package))))
+
+;; Priority Suggestions: 1 = high, 2 = medium, 3 = low
+(xl-idle-require 'ivy-rich   0.3)
+(xl-idle-require 'org        0.5)
+(xl-idle-require 'org-indent 0.5)
+(xl-idle-require 'magit      1.5)
+(xl-idle-require 'eshell     2.0)
+
+;; ============================================================
 ;; Global Settings - Preserving your existing habits
 ;; ============================================================
 (setq auto-revert-verbose nil
@@ -426,31 +446,6 @@
                                  magit-insert-bisect-rest
                                  magit-insert-bisect-log)))
                     magit-status-sections-hook)))
-
-;; ============================================================
-;; First-use latency - pay one-time costs while idle
-;; ============================================================
-;; Emacs cannot load packages asynchronously in-process.  Idle timers are
-;; the safe compromise: they run only when you are not typing.
-(defun xueliang-require-silently (feature)
-  "Require FEATURE without echo-area or *Messages* output."
-  ;; `inhibit-message' alone still logs; `message-log-max' nil silences the log.
-  (let ((inhibit-message t)
-        (message-log-max nil))
-    (ignore-errors (require feature))))
-
-(defun xl-idle-require (package priority)
-  "Load PACKAGE once Emacs has been idle based PRIORITY; 0 or below turns the load off."
-  (when (> priority 0) (run-with-idle-timer (* 0.5 priority) nil
-     (lambda ()
-       ;; Outside the silent `let' inside the helper, so a failure still shows.
-       (unless (xueliang-require-silently package)
-         (message "xl-idle-require: could not load %s" package))))))
-
-;; Priority step: 1 = high, 2 = medium, 3 = low
-(xl-idle-require 'org    1)
-(xl-idle-require 'magit  2)
-(xl-idle-require 'eshell 3)
 
 ;; ============================================================
 ;; My own functions
