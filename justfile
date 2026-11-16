@@ -47,9 +47,9 @@ spacemacs-install:
 # Try another Emacs binary with: EMACS=/path/to/emacs just emacs-try
 ###########################
 
-# Emacs 31 is the default; on macOS it lives next to the old 29.4 app.
-EMACS31_MAC := env_var("HOME") / "Applications/Emacs-31/Emacs.app/Contents/MacOS/Emacs"
-EMACS := env_var_or_default("EMACS", if os() == "macos" { EMACS31_MAC } else { "emacs" })
+# The `emacs` on PATH (Emacs 31; on macOS /Applications/Emacs.app).
+# Try another binary with: EMACS=/path/to/emacs just emacs-try
+EMACS := env_var_or_default("EMACS", "emacs")
 PROFILES := env_var("HOME") / ".emacs-profiles"
 
 # clone Crafted Emacs at the locked commit and generate the profile stubs

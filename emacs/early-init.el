@@ -10,7 +10,7 @@
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook
-          (lambda () (setq gc-cons-threshold (* 64 1024 1024))))
+          (lambda () (setq gc-cons-threshold (* 128 1024 1024))))
 
 ;; Disable window chrome before the first frame is drawn.
 (push '(menu-bar-lines . 0) default-frame-alist)

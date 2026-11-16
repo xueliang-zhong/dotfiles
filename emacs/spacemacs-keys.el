@@ -135,7 +135,7 @@
   "r y" "kill ring" #'counsel-yank-pop
 
   "s" "search" nil
-  "s s" "this buffer" #'swiper
+  "s s" "this buffer" #'counsel-grep-or-swiper
   "s p" "project" #'counsel-rg
   "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
