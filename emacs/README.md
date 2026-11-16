@@ -51,11 +51,11 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 检查 Emacs 版本，低于 30 直接报错停止。
 - 加载 `custom.el`（如果存在），它是 Customize 写入的地方。
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
-- 从 `xueliang.el` 读出 `xl-packages`，加入需要安装的包列表，再装上 Spacemacs 习惯需要的几个包。
-- 在装包之前把已经由 vertico 取代的 ivy 系列从 `package-selected-packages` 移除；`custom.el` 里的旧记录会在这里被清掉，旧机器也不会再下载 ivy。
-- 加载 Crafted 的 defaults、evil、org、startup 四个模块。
+- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el` 和 `xueliang.el` 要用的包），然后一次装好缺少的。
+- 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查。
 - 加载 `spacemacs-keys.el`，然后加载 `xueliang.el`。
+- 最后把 `xl-packages` 补回安装名单，并在每次切换主题后再补一次：加载主题会恢复 `custom.el` 里保存的旧名单，不补回的话 `package-autoremove` 可能误删正在用的包。
 
 ### `spacemacs-keys.el`（适配层）
 
@@ -73,12 +73,11 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 我自己的全部设置，按段落组织：
 
-- 文件开头的 `xl-packages` 是第一个表单，`init.el` 只读这一段，用来决定装哪些包。
 - 平台、路径、字体、主题；可选的 `~/.emacs-profiles/local.el`（只放机器相关的路径，不进仓库）。
 - 全局设置：备份、recentf、which-key、缩进、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- vertico/consult：候选列表占 frame 高度的 38.2%，列表保持原始顺序；orderless 负责模糊匹配，marginalia 给候选加注解，embark 在候选列表里提供 `C-.` 动作和 `C-q` 导出。
-- corfu 与 cape（补全弹窗）、dired、eshell、Org、magit 的设置和小函数。
+- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出；corfu 输入一个字符就立即弹出，eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`）。
+- dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 
 这个文件不应该出现 `spacemacs/`、`doom`、`crafted-` 开头的符号，这样换掉框架时它不用改。
@@ -93,18 +92,19 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 4. Emacs 进入初始化，运行 `before-init-hook`：Crafted 检查包列表是否为空，为空则刷新。
 5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `emacs/init.el`。
 6. `emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
-7. 加载 `crafted-evil-packages` 和 `crafted-org-packages`，读取 `xueliang.el` 的 `xl-packages`，先把 ivy 系列移出选中列表，再调用 `package-install-selected-packages` 装包。
-8. 加载 `crafted-defaults-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
+7. 加载 `crafted-completion-packages`、`crafted-evil-packages`、`crafted-org-packages`，加入 `xl-packages`，再调用 `package-install-selected-packages` 装包。
+8. 加载 `crafted-defaults-config`、`crafted-completion-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
 10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
 11. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
-12. 启动完成，显示 Crafted 首页（`SPC b h` 随时可以回到首页）。
+12. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
+13. 启动完成，显示 Crafted 首页（`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
 
 ## 为什么这样排
 
-- **`xl-packages` 必须是 `xueliang.el` 的第一个表单**：`init.el` 只读第一个表单，这样装包时不需要加载整个个人配置。
+- **装包在加载任何模块和个人配置之前**：它们一加载就会用到这些包。
 - **Crafted 模块先于 `spacemacs-keys.el`**：键位需要 evil 已经加载。
 - **`spacemacs-keys.el` 先于 `xueliang.el`**：`xl-leader-map` 由前者建立，后者往里加个人绑定；同名键以后加载的为准。
 - **`evil-collection-key-blacklist` 在加载 Crafted 模块之前设置**：这样 evil-collection 一开始就不会抢走 SPC 和 `,`。
@@ -113,7 +113,8 @@ Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第
 
 | 想做的事 | 改哪里 |
 | --- | --- |
-| 增加或删除一个包 | `xueliang.el` 开头的 `xl-packages` |
+| 增加或删除一个包 | `init.el` 里的 `xl-packages`（Crafted 模块已提供的包不用再列） |
+| 调整补全（vertico、corfu 等） | `xueliang.el` 的补全段落；整套补全栈的开关在 `init.el` 的 `crafted-completion` |
 | 改一个个人键位或命令 | `xueliang.el` |
 | 改 Spacemacs 风格的默认键位 | `spacemacs-keys.el` |
 | 增加或去掉一个 Crafted 模块 | `init.el` 里的 `require` |
@@ -130,18 +131,19 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 29 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 30 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
-| 文件结构 | `xl-packages` 是 `xueliang.el` 的第一个表单；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
+| 文件结构 | `xl-packages` 定义在 `init.el`、`xueliang.el` 里没有；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
 | 启动设置 | 包目录按 Emacs 版本分开；菜单栏、工具栏关闭；evil 系列锁定 MELPA |
 | 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、F2–F12、`SPC t r`、`SPC T n` |
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
-| 其它 | vertico/consult/corfu 状态、主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
+| 补全 | vertico/consult/corfu 状态；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
+| 其它 | 主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
 
 测试不启动图形界面，全部在 `emacs --batch` 里完成。
 

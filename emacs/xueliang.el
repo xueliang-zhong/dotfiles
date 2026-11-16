@@ -1,17 +1,10 @@
 ;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; -*-
 ;;
 ;; Loaded last by a framework shim (emacs/init.el, ...), which must
-;; provide `xl-leader-map' and install `xl-packages'.  Spacemacs' own default
-;; keys live in emacs/spacemacs-keys.el; only my overrides are here.
+;; provide `xl-leader-map' and install the packages used here (the shim's
+;; `xl-packages').  Spacemacs' own default keys live in
+;; emacs/spacemacs-keys.el; only my overrides are here.
 ;; Plain Emacs and package APIs only: no spacemacs/, doom, crafted- symbols.
-
-;; The shim reads this first form to know what to install, so keep it first.
-;; Completion: vertico (minibuffer UI), consult (the commands counsel had),
-;; marginalia (annotations), orderless (matching), embark (actions).
-(defconst xl-packages
-  '(vertico consult marginalia orderless embark embark-consult corfu cape
-    magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
-    just-mode lua-mode graphviz-dot-mode markdown-mode))
 
 ;; ============================================================
 ;; Platform, Paths and Appearance

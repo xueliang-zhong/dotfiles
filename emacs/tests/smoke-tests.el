@@ -72,24 +72,34 @@
   (should (file-directory-p xl-dotfiles))
   (should (file-directory-p xl-crafted-home)))
 
-(ert-deftest xl-personal-file-starts-with-packages ()
-  "`init.el' reads only the first form of `xueliang.el', so it must stay first."
-  (with-temp-buffer
-    (insert-file-contents (expand-file-name "emacs/xueliang.el" xl-dotfiles))
-    (goto-char (point-min))
-    (let ((form (read (current-buffer))))
-      (should (eq (car form) 'defconst))
-      (should (eq (cadr form) 'xl-packages))
-      (should (equal (eval (caddr form) t) xl-packages))
-      (should (memq 'magit xl-packages))
-      (should (memq 'org-superstar xl-packages))
-      (should (memq 'corfu xl-packages)))))
+(ert-deftest xl-packages-are-listed-in-init ()
+  "`xl-packages' lives in `init.el'; `xueliang.el' does not define it."
+  (should (memq 'magit xl-packages))
+  (should (memq 'org-superstar xl-packages))
+  (should (memq 'evil-escape xl-packages))   ; Spacemacs habits are listed too
+  ;; The completion stack comes from Crafted, not from `xl-packages'.
+  (should-not (memq 'corfu xl-packages))
+  (should (equal (symbol-file 'xl-packages 'defvar)
+                 (expand-file-name "emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
+    (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-packages-are-selected-and-installed ()
   "Everything in `xl-packages' is requested by `init.el' and present on disk."
   (dolist (pkg xl-packages)
     (should (memq pkg package-selected-packages))
     (should (package-installed-p pkg))))
+
+(ert-deftest xl-completion-packages-come-from-crafted ()
+  "crafted-completion selects the completion stack; it stays selected and
+installed after the theme load, so `package-autoremove' keeps it."
+  (require 'package)
+  (let ((removable (package--removable-packages)))
+    (dolist (pkg '(vertico consult marginalia orderless embark embark-consult
+                   corfu cape))
+      (should (memq pkg package-selected-packages))
+      (should (package-installed-p pkg))
+      (should-not (memq pkg removable)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el' uses plain Emacs APIs, not Spacemacs/Doom/Crafted internals.
@@ -112,7 +122,7 @@ names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are allowed."
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
         (setq keys-line (car entry)))
-      (when (string-match-p "(load xl-personal-file)" (cdr entry))
+      (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should personal-line)
