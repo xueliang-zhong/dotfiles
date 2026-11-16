@@ -123,6 +123,30 @@
   (define-key magit-mode-map (kbd "l") 'evil-forward-char)
 )
 
+;; Fast status: drop sections that run extra git processes on every refresh.
+;; Logs: `l'.  Stashes: `z'.  Keep Doom/Forge's own extra sections.
+(after! magit-status
+  (setq magit-diff-refine-hunk t)       ; refine only the current hunk
+  (dolist (fn '(magit-insert-tags-header
+                magit-insert-diff-filter-header))
+    (remove-hook 'magit-status-headers-hook fn))
+  (setq magit-status-sections-hook
+        (seq-remove (lambda (fn)
+                      (memq fn '(magit-insert-unpushed-to-upstream-or-recent
+                                 magit-insert-unpushed-to-upstream
+                                 magit-insert-unpushed-to-pushremote
+                                 magit-insert-unpulled-from-upstream
+                                 magit-insert-unpulled-from-pushremote
+                                 magit-insert-merge-log
+                                 magit-insert-stashes
+                                 magit-insert-rebase-sequence
+                                 magit-insert-am-sequence
+                                 magit-insert-sequencer-sequence
+                                 magit-insert-bisect-output
+                                 magit-insert-bisect-rest
+                                 magit-insert-bisect-log)))
+                    magit-status-sections-hook)))
+
 ;;
 ;; Auto completion
 ;;

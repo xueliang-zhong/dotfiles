@@ -370,7 +370,7 @@
 ;; Git settings - Improve magit experience
 ;; ============================================================
 (setq magit-display-buffer-function #'display-buffer
-      magit-diff-refine-hunk 'all)      ; word-level highlight in every hunk
+      magit-diff-refine-hunk t)         ; refine only the current hunk
 
 ;; Vim-style navigation in Magit: h,j,k,l stay for moving around
 (with-eval-after-load 'magit
@@ -379,6 +379,30 @@
     "j" #'magit-next-line
     "k" #'magit-previous-line
     "l" #'evil-forward-char))
+
+;; Fast status: every status section starts extra git processes.  Drop the
+;; expensive ones; logs are still one key away (`l'), stashes another (`z').
+;; Kept: headers and the working tree.
+(with-eval-after-load 'magit-status
+  (dolist (fn '(magit-insert-tags-header
+                magit-insert-diff-filter-header))
+    (remove-hook 'magit-status-headers-hook fn))
+  (setq magit-status-sections-hook
+        (seq-remove (lambda (fn)
+                      (memq fn '(magit-insert-unpushed-to-upstream-or-recent
+                                 magit-insert-unpushed-to-upstream
+                                 magit-insert-unpushed-to-pushremote
+                                 magit-insert-unpulled-from-upstream
+                                 magit-insert-unpulled-from-pushremote
+                                 magit-insert-merge-log
+                                 magit-insert-stashes
+                                 magit-insert-rebase-sequence
+                                 magit-insert-am-sequence
+                                 magit-insert-sequencer-sequence
+                                 magit-insert-bisect-output
+                                 magit-insert-bisect-rest
+                                 magit-insert-bisect-log)))
+                    magit-status-sections-hook)))
 
 ;; ============================================================
 ;; My own functions
