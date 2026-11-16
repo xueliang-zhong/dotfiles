@@ -13,7 +13,7 @@
 
 ;; => Packages: Crafted's sets plus `xl-packages' (first form of xueliang.el)
 (defvar xl-personal-file (expand-file-name "emacs/xueliang.el" xl-dotfiles))
-(require 'crafted-completion-packages) ; vertico, consult, orderless, corfu, cape...
+(require 'crafted-completion-packages) ; vertico, consult, orderless, corfu, cape
 (require 'crafted-evil-packages)
 (require 'crafted-org-packages)
 (with-temp-buffer
