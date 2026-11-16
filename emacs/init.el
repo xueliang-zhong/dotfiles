@@ -13,6 +13,7 @@
 
 ;; => Packages: Crafted's sets plus `xl-packages' (first form of xueliang.el)
 (defvar xl-personal-file (expand-file-name "emacs/xueliang.el" xl-dotfiles))
+(require 'crafted-completion-packages) ; vertico, consult, orderless, corfu, cape...
 (require 'crafted-evil-packages)
 (require 'crafted-org-packages)
 (with-temp-buffer
@@ -29,6 +30,7 @@
 ;; => Modules
 (setq evil-collection-key-blacklist '("SPC" ",")) ; leaders stay leaders everywhere
 (require 'crafted-defaults-config)
+(require 'crafted-completion-config)
 (require 'crafted-evil-config)
 (require 'crafted-org-config)
 (require 'crafted-startup-config)

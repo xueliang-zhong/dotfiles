@@ -6,8 +6,10 @@
 ;; Plain Emacs and package APIs only: no spacemacs/, doom, crafted- symbols.
 
 ;; The shim reads this first form to know what to install, so keep it first.
+;; Completion: vertico (minibuffer UI), consult (the commands counsel had),
+;; marginalia (annotations), orderless (matching), embark (actions).
 (defconst xl-packages
-  '(ivy counsel ivy-rich corfu cape
+  '(vertico consult marginalia orderless embark embark-consult corfu cape
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode markdown-mode))
 
@@ -38,7 +40,7 @@
 (or (ignore-errors (load-theme 'spacemacs-dark t))
     (ignore-errors (load-theme 'doom-tokyo-night t)))
 ;; make sure M-x works on MacOS
-(when xl-mac-p (keymap-global-set "s-x" #'counsel-M-x))
+(when xl-mac-p (keymap-global-set "s-x" #'execute-extended-command))
 
 ;; ============================================================
 ;; First-use latency - pay one-time costs while idle
@@ -64,11 +66,13 @@ line can be switched off without deleting it."
          (message "xl-idle-require: could not load %s" package))))))
 
 ;; Priority Suggestions: 1 = high, 2 = medium, 3 = low
-(xl-idle-require 'ivy-rich   0.3)
 (xl-idle-require 'org        0.5)
 (xl-idle-require 'org-indent 0.5)
 (xl-idle-require 'magit      1.5)
 (xl-idle-require 'eshell     2.0)
+
+;; Other useful things to do when idle
+(run-with-idle-timer 10 t 'garbage-collect)
 
 ;; ============================================================
 ;; Global Settings - Preserving your existing habits
@@ -214,53 +218,63 @@ line can be switched off without deleting it."
   (when xl-macism (add-hook 'evil-insert-state-exit-hook #'xueliang-ime-english)))
 
 ;; ============================================================
-;; Ivy/Counsel Settings - Enhanced completion
+;; Vertico Stack - modern minibuffer completion
 ;; ============================================================
-(require 'counsel)
-(fido-mode -1) (icomplete-mode -1)      ; plain-Emacs completion UIs, off under ivy
-(ivy-mode 1) (counsel-mode 1)
-(ivy-rich-mode 1)                       ; extra columns in ivy lists
-;; The project column walks up from every visible candidate on every redraw:
-;; 53 ms per keystroke with ~23 buffers.  The cache brings that to 2.5 ms.
-(ivy-rich-project-root-cache-mode 1)
-(keymap-set counsel-mode-map "<remap> <imenu>" nil) ; plain imenu, not counsel-imenu
+;; Crafted's completion module turns on vertico (list UI), marginalia
+;; (annotations), orderless (matching; file names use partial-completion)
+;; and consult; only my additions to it are here.
+(require 'vertico-repeat)                ; `SPC r l': repeat the last list
+(add-hook 'minibuffer-setup-hook #'vertico-repeat-save)
 
-;; Same ivy behaviour as in Spacemacs
-(setq counsel-grep-swiper-limit 300000 ; above ~300 KB grep beats swiper
-      ivy-initial-inputs-alist (remove '(counsel-M-x . "^") ivy-initial-inputs-alist))
+;; Golden ratio: the candidate list takes 38.2% of the frame height, like
+;; the F9 sidebar.  Computed for every minibuffer, so a resized frame gets
+;; a resized list, exactly like the old `ivy-height-alist' function.
+(defun xueliang-vertico-golden-count ()
+  "Size the Vertico list to the golden ratio of the frame height."
+  (setq-local vertico-count (max 5 (round (* 0.382 (frame-height))))))
+(add-hook 'minibuffer-setup-hook #'xueliang-vertico-golden-count)
 
-;; Performance: Faster ivy settings
-(setq ivy-fixed-height-minibuffer t
-      ivy-count-format "(%d/%d) "
-      ivy-virtual-abbreviate 'abbrev
-      ivy-use-selectable-prompt t
-      ivy-wrap t)
+;; minibuffer may grow past the default 25%
+(setq max-mini-window-height 0.5)
 
-;; Golden ratio: ivy lists take 38.2% of the frame height, like the F9 sidebar
-(defun xueliang-ivy-golden-height (caller) (round (* 0.382 (frame-height))))
-(setq ivy-height-alist '((t . xueliang-ivy-golden-height))
-      max-mini-window-height 0.5)       ; minibuffer may grow past the default 25%
+;; Same minibuffer habits as the old ivy-mode-map: C-k deletes to end of
+;; line, C-q turns the candidates into a buffer (Embark's exporter, the
+;; modern `ivy-occur'), C-. opens Embark's actions for the candidate.
+;; RET enters a directory and DEL goes up one level, like counsel-find-file.
+;; C-. is only bound here: in normal state Evil keeps it for `evil-repeat-pop'.
+(define-keymap :keymap vertico-map
+  "RET"   #'vertico-directory-enter
+  "DEL"   #'vertico-directory-delete-char
+  "M-DEL" #'vertico-directory-delete-word
+  "C-k"   #'evil-delete-line
+  "C-q"   #'embark-export
+  "C-."   #'embark-act)
 
-(define-keymap :keymap ivy-mode-map
-  "C-k" #'evil-delete-line              ; delete to end of line
-  "C-q" #'ivy-occur)                    ; turn the candidates into a buffer
+;; `SPC s s' and `SPC /': search the current buffer with live preview.
+;; Consult scans the buffer once (tens of ms even at a megabyte), so the
+;; old 300 KB `counsel-grep-swiper-limit' fallback is not needed any more.
+(defun xueliang-search-buffer (&optional start)
+  "Search the current buffer; prefix START searches from the top."
+  (interactive "P")
+  (consult-line nil start))
 
 ;; ============================================================
 ;; Corfu + Cape - in-buffer completion popup
 ;; ============================================================
-;; Corfu shows the popup, Cape adds sources; both sit on Emacs' own
-;; completion-at-point, the stack Crafted itself uses.
-;; Pop up at once after one character, wrap around at the ends
-(setq corfu-auto t
-      corfu-auto-delay 0
+;; Crafted's completion module turns on corfu (auto popup, cycling, docs
+;; beside it).  Mine: pop up at once after one character instead of two.
+(setq corfu-auto-delay 0
       corfu-auto-prefix 1
-      corfu-cycle t
-      ;; Corfu stays in buffers; the minibuffer ':' uses ivy
+      ;; Corfu stays in buffers; the minibuffer ':' uses vertico
       global-corfu-minibuffer t
-      ;; no popup in shells and REPLs
+      ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
 
-(global-corfu-mode 1)
+;; Crafted adds cape-dabbrev and cape-file with `add-to-list', which changes
+;; the buffer current at load time: *scratch* (lisp-interaction-mode has its
+;; own local value), not the global default.  Add them globally here.
+(add-hook 'completion-at-point-functions #'cape-dabbrev t)
+(add-hook 'completion-at-point-functions #'cape-file t)
 
 ;; TAB moves down the popup via `xueliang-tab-or-corfu-next' (bound in
 ;; evil insert state above).  Without this entry corfu would insert the
@@ -268,10 +282,6 @@ line can be switched off without deleting it."
 ;; TAB would only work once.
 (with-eval-after-load 'corfu
   (add-to-list 'corfu-continue-commands #'xueliang-tab-or-corfu-next))
-
-;; Sources after the mode's own: words from open buffers, then file paths
-(add-hook 'completion-at-point-functions #'cape-dabbrev t)
-(add-hook 'completion-at-point-functions #'cape-file t)
 
 ;; `emacs-lisp-mode' installs its own buffer-local CAPF, so the global
 ;; `cape-dabbrev' above never runs. Merge it in: symbols typed in this
@@ -328,7 +338,7 @@ line can be switched off without deleting it."
     ;; Readline habits: C-a line start, C-k kill, C-r history, C-d quit
     "C-a"        #'eshell-bol
     "C-k"        #'kill-line
-    "C-r"        #'counsel-esh-history
+    "C-r"        #'consult-history
     "TAB"        #'completion-at-point
     "C-d"        #'kill-buffer-and-window
     "<f1>"       #'evil-force-normal-state) ; F1 acts like ESC, just like tmux
@@ -339,7 +349,7 @@ line can be switched off without deleting it."
 (defalias 'eshell/e   #'find-file-other-window)
 (defalias 'eshell/vi  #'eshell/e)
 (defalias 'eshell/vim #'eshell/e)
-(defalias 'eshell/fzf #'counsel-fzf)
+(defalias 'eshell/fzf (if (executable-find "fd") #'consult-fd #'consult-find))
 
 ;; ============================================================
 ;; Org Mode Settings - Enhanced appearance
@@ -495,8 +505,8 @@ line can be switched off without deleting it."
 (defun xueliang-imenu-or-org-today ()
   "In Org jump to today's timestamp, elsewhere imenu." (interactive)
   (if (derived-mode-p 'org-mode)
-      (progn (swiper (format-time-string "<%Y-%m-%d")) (evil-ex-nohighlight))
-    (counsel-imenu)))
+      (consult-line (format-time-string "<%Y-%m-%d"))
+    (consult-imenu)))
 
 (defun xueliang-eshell-popup ()
   "Open eshell below, in the current file's directory, ready for input." (interactive)
@@ -526,12 +536,6 @@ line can be switched off without deleting it."
   (setq-local split-width-threshold 10) ; prefer vsplit
   (xueliang-cd-current-dir) (magit-status))
 
-;; F10: like Telescope's command list in Neovim
-(defun xueliang-telescope ()
-  "M-x narrowed to the search commands of the ivy stack." (interactive)
-  (minibuffer-with-setup-hook (lambda () (insert "counsel-"))
-    (call-interactively #'execute-extended-command)))
-
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
   (let ((default-directory xl-dotfiles-dir)) (call-interactively #'find-file)))
@@ -559,11 +563,11 @@ line can be switched off without deleting it."
   "<f3>"   #'imenu
   "<f4>"   #'evil-window-delete
   "<f5>"   #'xueliang-eshell-popup
-  "<f6>"   #'counsel-yank-pop
+  "<f6>"   #'consult-yank-pop
   "<f7>"   #'xueliang-just-make
   "<f8>"   #'xueliang-imenu-or-org-today
   "<f9>"   #'xueliang-dired-sidebar
-  "<f10>"  #'xueliang-telescope
+  "<f10>"  #'consult-buffer
   "<f11>"  #'xueliang-org-sort-upheading
   "<f12>"  #'xueliang-open-knowledge-links
   "C-<f4>" #'kill-buffer-and-window)

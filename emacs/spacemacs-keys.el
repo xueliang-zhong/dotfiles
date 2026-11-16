@@ -45,7 +45,7 @@
 (evil-define-key '(insert emacs) 'global (kbd "M-m") xl-leader-map)
 
 (xl-sk-bind xl-leader-map
-  "SPC" "switch buffer"  #'ivy-switch-buffer ; Spacemacs default is M-x
+  "SPC" "switch buffer"  #'consult-buffer ; Spacemacs default is M-x
   "TAB" "last buffer"    #'mode-line-other-buffer
   "!"   "shell command"  #'shell-command
   "'"   "eshell"         #'eshell
@@ -62,7 +62,7 @@
   "a o a" "org agenda" #'org-agenda  "a o c" "org capture" #'org-capture
 
   "b" "buffers" nil
-  "b b" "switch buffer" #'ivy-switch-buffer
+  "b b" "switch buffer" #'consult-buffer
   "b h" "home"          #'xl-sk-home-buffer
   "b d" "kill buffer"   #'kill-current-buffer
   "b x" "kill buffer & window" #'kill-buffer-and-window
@@ -84,8 +84,8 @@
   "e l" "list errors" #'flymake-show-buffer-diagnostics
 
   "f" "files" nil
-  "f f" "find file"     #'counsel-find-file
-  "f r" "recent files"  #'counsel-recentf
+  "f f" "find file"     #'find-file
+  "f r" "recent files"  #'consult-recent-file
   "f s" "save"          #'save-buffer
   "f S" "save all"      #'save-some-buffers
   "f R" "rename file"   #'rename-visited-file
@@ -124,19 +124,19 @@
   "p b" "project buffer" #'project-switch-to-buffer  "p d" "project dired" #'project-dired
   "p k" "kill buffers" #'project-kill-buffers  "p c" "compile" #'project-compile
   "p '" "eshell" #'project-eshell
-  "p s" "search" #'counsel-rg
+  "p s" "search" #'consult-ripgrep
 
   "q" "quit" nil
   "q q" "quit" #'save-buffers-kill-terminal  "q Q" "kill emacs" #'kill-emacs
   "q r" "restart" #'restart-emacs  "q z" "close frame" #'delete-frame
 
   "r" "resume/registers" nil
-  "r l" "resume search" #'ivy-resume
-  "r y" "kill ring" #'counsel-yank-pop
+  "r l" "resume list" #'vertico-repeat
+  "r y" "kill ring" #'consult-yank-pop
 
   "s" "search" nil
-  "s s" "this buffer" #'counsel-grep-or-swiper
-  "s p" "project" #'counsel-rg
+  "s s" "this buffer" #'xueliang-search-buffer
+  "s p" "project" #'consult-ripgrep
   "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
 
@@ -272,10 +272,10 @@
 
 ;;; Leader keys that sit on Spacemacs' own positions, with the commands I use
 (xl-sk-bind xl-leader-map
-  "RET" "switch buffer"  #'ivy-switch-buffer
+  "RET" "switch buffer"  #'consult-buffer
   "?"   "all keys"       #'which-key-show-top-level
-  "/"   "search buffer"  #'counsel-grep-or-swiper
-  "x"   "M-x"            #'counsel-M-x
+  "/"   "search buffer"  #'xueliang-search-buffer
+  "x"   "M-x"            #'execute-extended-command
   "b w" "read-only"      #'read-only-mode
   "f T" "imenu"          #'imenu
   "g f" "git files"      #'project-find-file

@@ -52,6 +52,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 加载 `custom.el`（如果存在），它是 Customize 写入的地方。
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
 - 从 `xueliang.el` 读出 `xl-packages`，加入需要安装的包列表，再装上 Spacemacs 习惯需要的几个包。
+- 在装包之前把已经由 vertico 取代的 ivy 系列从 `package-selected-packages` 移除；`custom.el` 里的旧记录会在这里被清掉，旧机器也不会再下载 ivy。
 - 加载 Crafted 的 defaults、evil、org、startup 四个模块。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查。
 - 加载 `spacemacs-keys.el`，然后加载 `xueliang.el`。
@@ -76,7 +77,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 平台、路径、字体、主题；可选的 `~/.emacs-profiles/local.el`（只放机器相关的路径，不进仓库）。
 - 全局设置：备份、recentf、which-key、缩进、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- ivy/counsel：候选窗口占 frame 高度的 38.2%，列表保持原始顺序。
+- vertico/consult：候选列表占 frame 高度的 38.2%，列表保持原始顺序；orderless 负责模糊匹配，marginalia 给候选加注解，embark 在候选列表里提供 `C-.` 动作和 `C-q` 导出。
 - corfu 与 cape（补全弹窗）、dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 
@@ -92,11 +93,11 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 4. Emacs 进入初始化，运行 `before-init-hook`：Crafted 检查包列表是否为空，为空则刷新。
 5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `emacs/init.el`。
 6. `emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
-7. 加载 `crafted-evil-packages` 和 `crafted-org-packages`，读取 `xueliang.el` 的 `xl-packages`，调用 `package-install-selected-packages` 装包。
+7. 加载 `crafted-evil-packages` 和 `crafted-org-packages`，读取 `xueliang.el` 的 `xl-packages`，先把 ivy 系列移出选中列表，再调用 `package-install-selected-packages` 装包。
 8. 加载 `crafted-defaults-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
 10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
-11. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、ivy、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
+11. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
 12. 启动完成，显示 Crafted 首页（`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
@@ -129,7 +130,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 28 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 29 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -140,7 +141,7 @@ just emacs-check   # 上面两条一起跑
 | Org | 变量、TODO 关键字、链接缩写、表头 face；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
-| 其它 | ivy/counsel/corfu 状态、主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
+| 其它 | vertico/consult/corfu 状态、主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
 
 测试不启动图形界面，全部在 `emacs --batch` 里完成。
 
@@ -176,7 +177,7 @@ just emacs-windows-setup
 | dired | Windows 没有 `ls`，Emacs 用内置的 `ls-lisp` 模拟，`-alh` 参数可以用 |
 | 字体与字号 | 依次找 JetBrains Mono、Consolas 等已安装字体，Windows 上字号单独设为 120 |
 | macOS 专属 | macism 输入法切换、`s-x` 等只在 macOS 生效，Windows 上自动跳过 |
-| `SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 需要 `fzf`。可以用 `winget install BurntSushi.ripgrep.MSVC junegunn.fzf` 安装 |
+| `SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 改用 `consult-fd`（有 `fd` 时）或 `consult-find`，没有 `fzf` 也能用。可以用 `winget install BurntSushi.ripgrep.MSVC` 安装 rg |
 | Org 的 shell 代码块 | 用 `cmd.exe` 执行，为 bash 写的代码块可能无法运行 |
 | 机器相关路径 | 链接文件、笔记目录等写进 `~/.emacs-profiles/local.el`，不进仓库 |
 

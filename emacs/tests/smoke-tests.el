@@ -178,22 +178,24 @@ keypress.  Prefix keymaps are walked recursively."
 
 (ert-deftest xl-leader-bindings ()
   "The Spacemacs positions and my personal overrides are both present."
-  (dolist (spec '(("SPC" . ivy-switch-buffer)
-                  ("RET" . ivy-switch-buffer)
-                  ("/" . counsel-grep-or-swiper)
-                  ("x" . counsel-M-x)
-                  ("f f" . counsel-find-file)
-                  ("f r" . counsel-recentf)
+  (dolist (spec '(("SPC" . consult-buffer)
+                  ("RET" . consult-buffer)
+                  ("/" . xueliang-search-buffer)
+                  ("x" . execute-extended-command)
+                  ("f f" . find-file)
+                  ("f r" . consult-recent-file)
                   ("f p" . xueliang-find-file-in-dotfiles)
-                  ("b b" . ivy-switch-buffer)
+                  ("b b" . consult-buffer)
                   ("b h" . xl-sk-home-buffer)
                   ("b s" . xueliang-open-scratch-buffer-window)
                   ("g s" . magit-status)
                   ("g g" . xueliang-magit-status-window)
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
-                  ("p s" . counsel-rg)
-                  ("s s" . counsel-grep-or-swiper)
+                  ("p s" . consult-ripgrep)
+                  ("r l" . vertico-repeat)
+                  ("r y" . consult-yank-pop)
+                  ("s s" . xueliang-search-buffer)
                   ("w v" . xueliang-split-right)
                   ("w s" . xueliang-split-below)
                   ("T n" . xl-sk-cycle-theme)
@@ -206,10 +208,11 @@ keypress.  Prefix keymaps are walked recursively."
   (dolist (spec '(("<f2>" . imenu)
                   ("<f4>" . evil-window-delete)
                   ("<f5>" . xueliang-eshell-popup)
+                  ("<f6>" . consult-yank-pop)
                   ("<f7>" . xueliang-just-make)
                   ("<f8>" . xueliang-imenu-or-org-today)
                   ("<f9>" . xueliang-dired-sidebar)
-                  ("<f10>" . xueliang-telescope)
+                  ("<f10>" . consult-buffer)
                   ("<f11>" . xueliang-org-sort-upheading)
                   ("<f12>" . xueliang-open-knowledge-links)
                   ("C-<f4>" . kill-buffer-and-window)))
@@ -362,7 +365,7 @@ keypress.  Prefix keymaps are walked recursively."
           (dolist (spec '(("RET" . eshell-send-input)
                           ("C-a" . eshell-bol)
                           ("C-k" . kill-line)
-                          ("C-r" . counsel-esh-history)
+                          ("C-r" . consult-history)
                           ("TAB" . completion-at-point)
                           ("C-d" . kill-buffer-and-window)))
             (should (eq (keymap-lookup evil-insert-state-local-map (car spec))
@@ -377,22 +380,46 @@ keypress.  Prefix keymaps are walked recursively."
 ;;; ============================================================
 
 (ert-deftest xl-completion-stack ()
-  "The ivy/counsel/corfu stack is active and configured."
-  (should (featurep 'ivy))
-  (should (featurep 'counsel))
-  (should (featurep 'corfu))
-  (should ivy-mode)
-  (should counsel-mode)
-  (should ivy-rich-mode)
-  (should ivy-rich-project-root-cache-mode)
+  "The Vertico completion stack is active and configured."
+  (should (featurep 'vertico))
+  (should vertico-mode)
+  (should (featurep 'marginalia))
+  (should marginalia-mode)
+  (should (assq 'orderless completion-styles-alist))
+  (should (equal completion-styles '(orderless basic)))
+  (should (equal completion-category-overrides
+                 '((file (styles . (partial-completion))))))
+  ;; Consult commands are autoloaded, the package itself loads on first use.
+  (dolist (cmd '(consult-buffer consult-line consult-ripgrep consult-imenu
+                 consult-recent-file consult-yank-pop consult-history))
+    (should (fboundp cmd)))
+  (should (eq (keymap-lookup vertico-map "RET") #'vertico-directory-enter))
+  (should (eq (keymap-lookup vertico-map "C-k") #'evil-delete-line))
+  (should (eq (keymap-lookup vertico-map "C-q") #'embark-export))
+  (should (eq (keymap-lookup vertico-map "C-.") #'embark-act))
+  ;; Normal state keeps Evil's own C-. (`evil-repeat-pop').
+  (should (eq (keymap-lookup evil-normal-state-map "C-.") #'evil-repeat-pop))
+  (should (memq #'vertico-repeat-save minibuffer-setup-hook))
+  (should (memq #'xueliang-vertico-golden-count minibuffer-setup-hook))
+  (with-temp-buffer
+    (xueliang-vertico-golden-count)
+    (should (integerp vertico-count))
+    (should (>= vertico-count 5)))
   (should global-corfu-mode)
   (should corfu-auto)
   (should (equal corfu-auto-delay 0))
   (should (= corfu-auto-prefix 1))
-  (should (equal ivy-height-alist '((t . xueliang-ivy-golden-height))))
   (with-temp-buffer
     (should (memq 'cape-dabbrev completion-at-point-functions))
     (should (memq 'cape-file completion-at-point-functions))))
+
+(ert-deftest xl-ivy-stack-is-retired ()
+  "The old Ivy stack is gone from the package list, the UI and the selection."
+  (dolist (pkg '(ivy counsel swiper ivy-rich))
+    (should-not (memq pkg xl-packages))
+    (should-not (memq pkg package-selected-packages)))
+  (should-not (featurep 'ivy))
+  (should-not (featurep 'counsel)))
 
 (ert-deftest xl-global-editing-settings ()
   "Indentation, wrapping and process settings shared with Neovim."
@@ -445,7 +472,7 @@ keypress.  Prefix keymaps are walked recursively."
         (should (file-directory-p (file-name-directory file)))))))
 
 (ert-deftest xl-read-in-order-keeps-input-order ()
-  "My link/line pickers opt out of ivy's sorting."
+  "My link/line pickers opt out of the completion UI's sorting."
   (cl-letf (((symbol-function 'completing-read)
              (lambda (_prompt collection &rest _)
                (funcall collection "" nil 'metadata))))
