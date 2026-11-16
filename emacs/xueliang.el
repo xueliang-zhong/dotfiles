@@ -440,17 +440,22 @@
     (ignore-errors (require feature))))
 
 (defun xl-idle-require (package priority)
-  "Load PACKAGE once Emacs has been idle based PRIORITY half-seconds."
-  (run-with-idle-timer
-   (* 0.5 priority) nil
-   (lambda ()
-     ;; Outside the silent `let' inside the helper, so a failure still shows.
-     (unless (xueliang-require-silently package)
-       (message "xl-idle-require: could not load %s" package)))))
+  "Load PACKAGE once Emacs has been idle based PRIORITY half-seconds.
+PRIORITY 0 or below disables the load: no timer is registered, so a
+line can be switched off without deleting it."
+  ;; Deliberately a plain `when': Emacs itself treats a zero or negative
+  ;; idle delay as "ripe now", i.e. the opposite of switching the load off.
+  (when (> priority 0)
+    (run-with-idle-timer
+     (* 0.5 priority) nil
+     (lambda ()
+       ;; Outside the silent `let' inside the helper, so a failure still shows.
+       (unless (xueliang-require-silently package)
+         (message "xl-idle-require: could not load %s" package))))))
 
-;; 0.5s per priority step: 1 = 0.5s, 2 = 1s, 3 = 1.5s
-(xl-idle-require 'org 1)
-(xl-idle-require 'magit 2)
+;; Priority step: 1 = high, 2 = medium, 3 = low
+(xl-idle-require 'org    1)
+(xl-idle-require 'magit  2)
 (xl-idle-require 'eshell 3)
 
 ;; ============================================================

@@ -61,7 +61,7 @@ section, which shrinks to the helper plus three call sites:
   packages do not block each other's deadlines. If one load runs long, the next
   timer fires as soon as it finishes — unavoidable in single-threaded Emacs.
 - **No on/off switch.** No `xl-idle-require-enabled` variable: adding an option
-  nobody toggles is dead weight.
+  nobody toggles is dead weight. (Superseded, see "Revision" below.)
 - **No change to `xl-packages`.** That list is the install set read by
   `init.el`. `xl-idle-require` only decides *when* a feature is loaded, never
   whether a package is installed; a feature absent from the install set simply
@@ -82,3 +82,25 @@ error's own text is not preserved — a second `require` by hand shows it.
   after 1.5 s of not touching the keyboard.
 - Failure path: `(xl-idle-require 'no-such-feature 1)` and confirm the one-line
   message appears in `*Messages*` and the echo area.
+
+## Revision: priority 0 or below disables the load
+
+Decided after the first implementation: `PRIORITY` ≤ 0 registers no timer, so a
+line can be switched off without deleting it. The test is explicit
+(`(when (> priority 0) ...)`), because `run-with-idle-timer` cannot express it:
+a zero or negative delay is ripe immediately, not inactive. Measured in a
+fresh `emacs -Q -nw` under a pty, each timer logging its idle time at fire:
+
+```
+delay -1 fired: idle-at-fire=2.7e-05
+delay 0  fired: idle-at-fire=0.0014
+delay 0.5 fired: idle-at-fire=0.506582
+```
+
+Verified with the guard in place: `(xl-idle-require 'foo 0)` and `... -1` both
+return nil and leave `timer-idle-list` unchanged; `... 2` yields a timer whose
+recorded delay is `(0 1 0 0)`.
+
+Trade-off accepted: a mistaken non-positive priority disables the load with no
+message, so the docstring has to say so — it does.
+
