@@ -392,8 +392,9 @@
     (remove-hook 'magit-status-headers-hook fn))
   (setq magit-status-sections-hook
         (seq-remove (lambda (fn)
-                      (memq fn '(magit-insert-unpushed-to-upstream-or-recent
-                                 magit-insert-unpushed-to-upstream
+                      (memq fn '(
+                                 ;; magit-insert-unpushed-to-upstream-or-recent
+                                 ;; magit-insert-unpushed-to-upstream
                                  magit-insert-unpushed-to-pushremote
                                  magit-insert-unpulled-from-upstream
                                  magit-insert-unpulled-from-pushremote
