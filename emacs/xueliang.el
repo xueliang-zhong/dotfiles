@@ -220,7 +220,7 @@
       corfu-auto-prefix 1
       corfu-cycle t
       ;; Corfu stays in buffers; the minibuffer ':' uses ivy
-      global-corfu-minibuffer nil
+      global-corfu-minibuffer t
       ;; no popup in shells and REPLs
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
 
