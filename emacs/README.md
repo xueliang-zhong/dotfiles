@@ -126,3 +126,53 @@ just emacs-smoke
 ```
 
 它以批处理方式完整加载配置，任何初始化错误都会返回非零状态。
+
+## 在 Windows 上安装
+
+在 Git Bash 里一条命令完成：
+
+```bash
+just emacs-windows-setup
+```
+
+### 准备
+
+1. **下载能运行的 Emacs**：GNU 官方的 Windows 版放在 `https://ftp.gnu.org/gnu/emacs/windows/emacs-31/`。要下载 `emacs-31.1.zip`（或安装程序），不是 `emacs-31-deps-mingw-w64-src.zip`：后者只是依赖库的源码，不能运行。
+2. **解压并加入 PATH**：比如解压到 `C:\Emacs`，再把 `C:\Emacs\bin` 加入用户的 `PATH`。用资源管理器或 7-Zip 解压都可以，要保留文件的修改时间，否则 Emacs 会改为解压加载源码，明显变慢。
+3. **Git Bash 和 just**：两者都要在 `PATH` 里。在 Git Bash 里能运行 `emacs --version` 就说明准备好了。
+
+### `just emacs-windows-setup` 做了什么
+
+1. 检查 `emacs` 存在且版本不低于 30。
+2. 如果 Windows 用户变量 `HOME` 没有设置，把它设为你的用户目录。从开始菜单启动的 Emacs 只看这个变量；没有它，`~` 会指向 `%APPDATA%`，配置和 `~/workspace/...` 的路径都会找不到。
+3. 把已有的 `~/.emacs`、`~/.emacs.el`、`~/.emacs.d` 移到 `~/.emacs-profiles/backup-日期时间/`，不删除。`~/.emacs` 和 `~/.emacs.el` 存在时，Emacs 会优先读它们而忽略 `~/.emacs.d`。
+4. 按 `frameworks.lock` 克隆 Crafted，把两个存根直接写进 `~/.emacs.d`。和 macOS 不同，这里不用符号链接：Git Bash 的 `ln -s` 默认会复制而不是链接。
+5. 以批处理方式加载一遍配置，顺便装好所有包，最后打印 `smoke ok`。
+
+可以重复运行：`~/.emacs.d` 已经是它生成的就保留，只更新存根和缺少的包。
+
+### 平台差异
+
+| 项目 | Windows 上的情况 |
+| --- | --- |
+| 原生编译 | 官方依赖包里没有 libgccjit，所以没有原生编译；配置本来就关闭了 JIT，没有影响 |
+| dired | Windows 没有 `ls`，Emacs 用内置的 `ls-lisp` 模拟，`-alh` 参数可以用 |
+| 字体与字号 | 依次找 JetBrains Mono、Consolas 等已安装字体，Windows 上字号单独设为 120 |
+| macOS 专属 | macism 输入法切换、`s-x` 等只在 macOS 生效，Windows 上自动跳过 |
+| `SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 需要 `fzf`。可以用 `winget install BurntSushi.ripgrep.MSVC junegunn.fzf` 安装 |
+| Org 的 shell 代码块 | 用 `cmd.exe` 执行，为 bash 写的代码块可能无法运行 |
+| 机器相关路径 | 链接文件、笔记目录等写进 `~/.emacs-profiles/local.el`，不进仓库 |
+
+### 换行符
+
+仓库根目录的 `.gitattributes` 让所有文本文件在 Windows 上也保持 LF 换行。Git for Windows 默认会把它们转成 CRLF，这会让 `justfile` 里的 bash 脚本报 `\r: command not found`，也会让读取 `frameworks.lock` 的提交号多出一个 `\r`。
+
+在 `.gitattributes` 加入之前就克隆过的仓库，在工作区没有未提交修改的前提下，运行一次下面的命令，按新规则重新检出：
+
+```bash
+git rm -r -q --cached . && git reset --hard
+```
+
+### 还没在真实 Windows 上验证的
+
+上面的安装流程是在 macOS 上模拟 Windows 跑通的：用临时的 HOME，验证了移走旧配置、生成存根、装包和重复运行。下面几项只有在 Windows 上才能确认：设置 `HOME` 用户变量（`powershell.exe` 和 `setx`）、`cygpath` 路径转换、官方安装包是否自带 gnutls 等 DLL（装包需要 HTTPS）。第一次在 Windows 上运行时请留意这几步的输出。

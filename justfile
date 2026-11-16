@@ -50,20 +50,24 @@ spacemacs-install:
 # The `emacs` on PATH (Emacs 31; on macOS /Applications/Emacs.app).
 # Try another binary with: EMACS=/path/to/emacs just emacs-try
 EMACS := env_var_or_default("EMACS", "emacs")
-PROFILES := env_var("HOME") / ".emacs-profiles"
+# Forward slashes everywhere: on Windows HOME may be C:\Users\me, and a
+# backslash is an escape both in sh command lines and in Elisp strings.
+HOME_DIR := replace(env_var_or_default("HOME", env_var_or_default("USERPROFILE", "")), "\\", "/")
+PROFILES := HOME_DIR / ".emacs-profiles"
+DOTFILES := replace(justfile_directory(), "\\", "/")
 
-# clone Crafted Emacs at the locked commit and generate the profile stubs
-emacs-crafted-install:
-    #!/bin/bash
+# clone Crafted Emacs at the locked commit and generate the profile stubs in DIR
+emacs-crafted-install dir=(PROFILES / "crafted"):
+    #!/usr/bin/env bash
     set -e
     read -r _ url rev < emacs/frameworks.lock
-    # Emacs reads \ in strings as an escape, so Windows paths (C:\Users\...)
-    # are written to the stubs with forward slashes
-    slash() { printf '%s' "$1" | tr '\\' '/'; }
-    dotfiles="$(slash "{{justfile_directory()}}")"
-    src="$(slash "{{PROFILES}}")/src/crafted-emacs"
-    dir="$(slash "{{PROFILES}}")/crafted"
-    mkdir -p "{{PROFILES}}/src" "$dir"
+    # Paths written into the stubs must be ones native Emacs understands:
+    # on Git Bash turn /c/Users/me into C:/Users/me, elsewhere keep as is.
+    winpath() { if command -v cygpath >/dev/null; then cygpath -m "$1"; else printf '%s' "$1" | tr '\\' '/'; fi; }
+    dotfiles="$(winpath "{{DOTFILES}}")"
+    src="$(winpath "{{PROFILES}}")/src/crafted-emacs"
+    dir="$(winpath "{{dir}}")"
+    mkdir -p "$(dirname "$src")" "$dir"
     [ -d "$src/.git" ] || git clone --quiet "$url" "$src"
     git -C "$src" checkout --quiet "$rev"
     {
@@ -82,19 +86,20 @@ emacs-crafted-install:
 
 # start a profile next to the default Emacs, e.g. `just emacs-try crafted`
 emacs-try profile="crafted":
-    {{EMACS}} --init-directory {{PROFILES}}/{{profile}} &
+    '{{EMACS}}' --init-directory '{{PROFILES}}/{{profile}}' &
 
 # load a profile in batch mode; fails on any init error
 emacs-smoke profile="crafted":
-    {{EMACS}} --batch --init-directory {{PROFILES}}/{{profile}} \
-      -l {{PROFILES}}/{{profile}}/early-init.el --eval '(run-hooks (quote before-init-hook))' \
-      -l {{PROFILES}}/{{profile}}/init.el --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
+    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
+      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
+      -l '{{PROFILES}}/{{profile}}/init.el' --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
 
-# Make Crafted the default Emacs: ~/.emacs.d becomes a symlink to the profile.
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
+# macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:
-    #!/bin/bash
+    #!/usr/bin/env bash
     set -e
+    case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) echo "On Windows use: just emacs-windows-setup"; exit 1 ;; esac
     if pgrep -f "Emacs.app/Contents/MacOS|bin/emacs" >/dev/null; then echo "Quit all Emacs first"; exit 1; fi
     if [ -L ~/.emacs.d ]; then echo "~/.emacs.d already points to Crafted"; exit 0; fi
     if [ -e ~/.emacs.d ]; then
@@ -107,13 +112,54 @@ emacs-make-default:
 
 # undo emacs-make-default: put Spacemacs back as ~/.emacs.d
 emacs-restore-spacemacs:
-    #!/bin/bash
+    #!/usr/bin/env bash
     set -e
     [ -L ~/.emacs.d ] || { echo "~/.emacs.d is not a link to Crafted, stop"; exit 1; }
     [ -d "{{PROFILES}}/spacemacs" ] || { echo "no {{PROFILES}}/spacemacs, stop"; exit 1; }
     rm ~/.emacs.d
     mv "{{PROFILES}}/spacemacs" ~/.emacs.d
     echo "Spacemacs restored as ~/.emacs.d"
+
+# Installs Crafted straight into ~/.emacs.d (Git Bash `ln -s` copies instead
+# of linking), sets the HOME user variable so Start-menu Emacs finds it, moves
+# any old ~/.emacs, ~/.emacs.el, ~/.emacs.d aside, then installs packages.
+# Windows (run in Git Bash): fresh clone to working Emacs in one command
+emacs-windows-setup:
+    #!/usr/bin/env bash
+    set -eu
+    case "$(uname -s)" in
+        MINGW*|MSYS*|CYGWIN*) ;;
+        *) [ -n "${XL_FORCE_WINDOWS:-}" ] || { echo "Run this from Git Bash on Windows"; exit 1; } ;;
+    esac
+    winpath() { if command -v cygpath >/dev/null; then cygpath -m "$1"; else printf '%s' "$1" | tr '\\' '/'; fi; }
+    emacs='{{EMACS}}'
+    command -v "$emacs" >/dev/null || { echo "emacs not found: add <emacs>/bin to PATH, or run EMACS=/c/path/to/emacs.exe just emacs-windows-setup"; exit 1; }
+    ver=$("$emacs" --batch --eval '(princ emacs-major-version)' 2>/dev/null)
+    [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
+    echo "Emacs $("$emacs" --batch --eval '(princ emacs-version)')"
+    # Started from the Start menu, Emacs uses %HOME% as ~ and falls back to
+    # %APPDATA% when it is unset; pin it to the profile folder Git Bash uses.
+    if command -v powershell.exe >/dev/null; then
+        userhome=$(powershell.exe -NoProfile -Command "[Environment]::GetEnvironmentVariable('HOME','User')" | tr -d '\r')
+        if [ -z "$userhome" ]; then
+            setx HOME "$(cygpath -w "$HOME")" >/dev/null
+            echo "Set user variable HOME=$(cygpath -w "$HOME") (programs started from now on see it)"
+        fi
+    fi
+    # Emacs prefers ~/.emacs and ~/.emacs.el over ~/.emacs.d; move old setups aside
+    backup="$HOME/.emacs-profiles/backup-$(date +%Y%m%d-%H%M%S)"
+    for f in .emacs .emacs.el .emacs.d; do
+        [ -e "$HOME/$f" ] || continue
+        grep -qs "Generated by just emacs-crafted-install" "$HOME/$f/init.el" && continue
+        mkdir -p "$backup"; mv "$HOME/$f" "$backup/"; echo "Moved ~/$f to $backup"
+    done
+    just --justfile '{{justfile()}}' emacs-crafted-install "$HOME/.emacs.d"
+    echo "Installing packages (first run downloads them, a few minutes)..."
+    d="$(winpath "$HOME/.emacs.d")"
+    "$emacs" --batch --init-directory "$d" -l "$d/early-init.el" \
+        --eval '(run-hooks (quote before-init-hook))' -l "$d/init.el" \
+        --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
+    echo "Done. Start Emacs from the Start menu or run: runemacs"
 
 ###########################
 # Docker Environment
