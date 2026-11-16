@@ -318,6 +318,9 @@
         ;; SVG links open in the system viewer, everything else in Emacs
         org-file-apps '(("\\.svg\\'" . default) (auto-mode . emacs)
                         (directory . emacs) (remote . emacs)))
+  ;; improve org-mode loading performance
+  (setq org-modules nil)
+
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
   ;; better org-mode CMD key behaviour on MacOS
@@ -403,6 +406,23 @@
                                  magit-insert-bisect-rest
                                  magit-insert-bisect-log)))
                     magit-status-sections-hook)))
+
+;; ============================================================
+;; First-use latency - pay one-time costs while idle
+;; ============================================================
+;; Emacs cannot load packages asynchronously in-process.  Idle timers are
+;; the safe compromise: they run only when you are not typing.
+(defun xueliang-warmup-org ()
+  "Initialize Org once while idle."
+  (ignore-errors (require 'org)))
+
+(defun xueliang-warmup-modules ()
+  "Load other important modules once while idle."
+  (ignore-errors (require 'magit))
+  (ignore-errors (require 'eshell)))
+
+(run-with-idle-timer 0.5 nil #'xueliang-warmup-org)
+(run-with-idle-timer 1.0 nil #'xueliang-warmup-modules)
 
 ;; ============================================================
 ;; My own functions
