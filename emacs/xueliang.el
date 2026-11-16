@@ -59,7 +59,7 @@ line can be switched off without deleting it."
 (xl-idle-require 'eshell     2.0)
 
 ;; Other useful things to do when idle
-(run-with-idle-timer 10 t 'garbage-collect)
+(run-with-idle-timer 30 t 'garbage-collect)
 
 ;; ============================================================
 ;; Global Settings - Preserving your existing habits
