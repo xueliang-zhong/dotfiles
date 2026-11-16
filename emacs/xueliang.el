@@ -143,6 +143,7 @@
 ;; IME: back to the English layout when leaving insert state (macOS + macism)
 (defvar xl-macism (or (executable-find "macism")
                       (car (file-expand-wildcards "~/.local/bin/macism"))))
+
 (defun xueliang-ime-english ()
   (call-process xl-macism nil 0 nil "com.apple.keylayout.British"))
 
@@ -218,6 +219,8 @@
       corfu-auto-delay 0
       corfu-auto-prefix 1
       corfu-cycle t
+      ;; Corfu stays in buffers; the minibuffer ':' uses ivy
+      global-corfu-minibuffer nil
       ;; no popup in shells and REPLs
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
 
@@ -230,15 +233,9 @@
 (with-eval-after-load 'corfu
   (add-to-list 'corfu-continue-commands #'xueliang-tab-or-corfu-next))
 
-
 ;; Sources after the mode's own: words from open buffers, then file paths
 (add-hook 'completion-at-point-functions #'cape-dabbrev t)
 (add-hook 'completion-at-point-functions #'cape-file t)
-
-;; justfiles are mostly paths and recipe names: file paths first
-(defun xueliang-just-mode-setup ()
-  (setq-local completion-at-point-functions (list #'cape-file #'cape-dabbrev t)))
-(add-hook 'just-mode-hook #'xueliang-just-mode-setup)
 
 ;; ============================================================
 ;; Dired Settings
@@ -330,8 +327,8 @@
     "s-<return>" #'org-meta-return)
   ;; RET on a link follows it; anywhere else it is a normal RET
   (evil-define-key 'normal org-mode-map
-    (kbd "<return>") #'xueliang-org-open-at-point
-    (kbd "RET")      #'xueliang-org-open-at-point)
+    (kbd "<return>") #'org-open-at-point
+    (kbd "RET")      #'org-open-at-point)
   ;; Face settings: headings same size and weight as body text
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5
                   org-level-6 org-link org-table))
@@ -423,26 +420,6 @@
   "Open eshell below, in the current file's directory, ready for input." (interactive)
   (xueliang-cd-current-dir) (xueliang-split-below) (eshell) (evil-append-line 1))
 
-;; Same behaviour as `org-link-open-from-string', without needing Org loaded:
-;; web links go to the system default browser on any OS, file links open here
-(defun xueliang-open-link (link)
-  "Open LINK: http(s) in the default browser, file: links inside Emacs."
-  (if (string-match-p "\\`https?://" link)
-      ;; Not `browse-url': a buffer may set eww as its browser (the Crafted
-      ;; home buffer does), and web pages belong in the real browser.
-      (browse-url-default-browser link)
-    (let* ((parts (split-string (string-remove-prefix "file:" link) "::"))
-           ;; file:///Users/me/a%20b.org -> /Users/me/a b.org
-           (path (url-unhex-string
-                  (replace-regexp-in-string "\\`//+" "/" (car parts))))
-           (target (cadr parts)))
-      (find-file (expand-file-name path))
-      (when target
-        (goto-char (point-min))
-        (if (string-match-p "\\`[0-9]+\\'" target)
-            (forward-line (1- (string-to-number target)))
-          (search-forward (string-remove-prefix "*" target) nil t))))))
-
 ;; F12: fast search in my pre-compiled URL list
 (defun xueliang-open-knowledge-links ()
   "Pick a line from my links file and open its URL or file link." (interactive)
@@ -451,17 +428,7 @@
                (with-temp-buffer (insert-file-contents xl-links-file)
                                  (split-string (buffer-string) "\n" t)))))
     (when (string-match "\\(\\(?:https?://\\|file:\\)[^ \t]+\\)" line)
-      (xueliang-open-link (match-string 1 line)))))
-
-(defun xueliang-open-mindmap ()
-  "Pick an SVG from my mindmap folder and open it in the system viewer." (interactive)
-  (let ((files (and (file-directory-p xl-mindmap-dir)
-                    (directory-files xl-mindmap-dir nil "\\.svg\\'"))))
-    (if (null files)
-        (message "No SVG files found in %s" xl-mindmap-dir)
-      (let ((file (expand-file-name (completing-read "Open Mindmap: " files nil t)
-                                    xl-mindmap-dir)))
-        (if xl-mac-p (call-process "open" nil 0 nil file) (browse-url-of-file file))))))
+      (require 'org) (org-link-open-from-string (match-string 1 line)))))
 
 (defun xueliang-sum-numbers-in-region (start end)
   (interactive "r")
@@ -507,7 +474,7 @@
 ;; ============================================================
 (define-keymap :keymap global-map
   "<f2>"   #'imenu
-  "<f3>"   #'xueliang-open-mindmap      ; my domain learning hot key
+  "<f3>"   #'imenu
   "<f4>"   #'evil-window-delete
   "<f5>"   #'xueliang-eshell-popup
   "<f6>"   #'counsel-yank-pop
@@ -536,7 +503,5 @@
 ;; ============================================================
 ;; Personal modules outside this repo
 ;; ============================================================
-;; YI.el binds F3 and SPC y ...; a broken YI.el must not stop Emacs starting
 (when (file-exists-p xl-yi-file)
-  (condition-case err (load xl-yi-file nil t)
-    (error (message "YI.el failed to load: %s" (error-message-string err)))))
+  (load xl-yi-file nil t))
