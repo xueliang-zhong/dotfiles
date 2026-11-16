@@ -237,6 +237,18 @@
 (add-hook 'completion-at-point-functions #'cape-dabbrev t)
 (add-hook 'completion-at-point-functions #'cape-file t)
 
+;; `emacs-lisp-mode' installs its own buffer-local CAPF, so the global
+;; `cape-dabbrev' above never runs. Merge it in: symbols typed in this
+;; file (even before they are evaluated) now complete too.
+(defun xueliang-elisp-completion-setup ()
+  "Merge buffer words into Emacs Lisp completion."
+  (setq-local completion-at-point-functions
+              (list (cape-capf-super #'elisp-completion-at-point
+                                     #'cape-dabbrev
+                                     #'cape-file)
+                    t)))
+(add-hook 'emacs-lisp-mode-hook #'xueliang-elisp-completion-setup)
+
 ;; ============================================================
 ;; Dired Settings
 ;; ============================================================
