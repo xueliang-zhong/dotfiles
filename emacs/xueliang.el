@@ -32,6 +32,9 @@
   (set-frame-parameter nil 'fullscreen 'maximized))
 (add-to-list 'default-frame-alist '(fullscreen . maximized)) ; new frames too
 ;; Same look as Spacemacs; fall back to tokyo-night if the theme is missing
+;; `spacemacs-theme` passes :background nil unless this is non-nil, which
+;; Emacs 31 warns about.  Load with highlights on, then clear them below.
+(setq spacemacs-theme-org-highlight t)
 (or (ignore-errors (load-theme 'spacemacs-dark t))
     (ignore-errors (load-theme 'doom-tokyo-night t)))
 ;; make sure M-x works on MacOS
@@ -348,6 +351,10 @@
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5
                   org-level-6 org-link org-table))
     (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
+  ;; `spacemacs-theme-org-highlight' is enabled only to avoid nil face specs;
+  ;; keep headings without the theme's background highlight.
+  (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4))
+    (set-face-attribute face nil :background 'unspecified))
   (advice-add 'org-open-at-point :around #'xueliang-org-open-at-point-split-advice))
 
 (defun xueliang-org-setup ()
@@ -425,14 +432,21 @@
 ;; ============================================================
 ;; Emacs cannot load packages asynchronously in-process.  Idle timers are
 ;; the safe compromise: they run only when you are not typing.
+(defun xueliang-require-silently (feature)
+  "Require FEATURE without echo-area or *Messages* output."
+  ;; `inhibit-message' alone still logs; `message-log-max' nil silences the log.
+  (let ((inhibit-message t)
+        (message-log-max nil))
+    (ignore-errors (require feature))))
+
 (defun xueliang-warmup-org ()
-  "Initialize Org once while idle."
-  (ignore-errors (require 'org)))
+  "Load Org once while idle."
+  (require 'org))
 
 (defun xueliang-warmup-modules ()
-  "Load other important modules once while idle."
-  (ignore-errors (require 'magit))
-  (ignore-errors (require 'eshell)))
+  "Load Eshell and Magit once while idle."
+  (xueliang-require-silently 'eshell)
+  (xueliang-require-silently 'magit))
 
 (run-with-idle-timer 0.5 nil #'xueliang-warmup-org)
 (run-with-idle-timer 1.0 nil #'xueliang-warmup-modules)
