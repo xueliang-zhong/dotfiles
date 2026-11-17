@@ -469,6 +469,36 @@ The normal state keeps M-3 as `digit-argument'."
   ;; Dabbrev must not scan every buffer of the same mode on each keystroke.
   (should (eq cape-dabbrev-buffer-function #'current-buffer)))
 
+(ert-deftest xl-embark-collect-after-consult-3-4 ()
+  "Embark Collect works despite Crafted's stale Consult hook.
+`embark-export' falls back to Collect for types without a dedicated
+exporter (imenu), and Consult 3.4 removed `consult-preview-at-point-mode',
+which Crafted still puts on `embark-collect-mode-hook'."
+  (require 'embark-consult)
+  (require 'consult-imenu)
+  (should-not (memq 'consult-preview-at-point-mode embark-collect-mode-hook))
+  (let ((transformed '(:orig-type imenu :type imenu
+                       :candidates ("alpha" "beta")
+                       :orig-candidates ("alpha" "beta")
+                       :bounds (nil nil))))
+    (cl-letf (((symbol-function 'embark--maybe-transform-candidates)
+               (lambda () transformed)))
+      ;; Run from a displayed buffer: Marginalia needs a window to compute
+      ;; its annotation width, and ERT leaves an undisplayed temp buffer current.
+      (with-current-buffer (get-buffer-create "*scratch*")
+        (embark-export))
+      (let ((buf (seq-find (lambda (b)
+                             (string-prefix-p "*Embark Collect"
+                                              (buffer-name b)))
+                           (buffer-list))))
+        (unwind-protect
+            (progn
+              (should buf)
+              (with-current-buffer buf
+                (should (eq major-mode 'embark-collect-mode))
+                (should (eq embark--type 'imenu))))
+          (when (buffer-live-p buf) (kill-buffer buf)))))))
+
 (ert-deftest xl-ivy-stack-is-retired ()
   "The old Ivy stack is gone from the package list, the UI and the selection."
   (dolist (pkg '(ivy counsel swiper ivy-rich))

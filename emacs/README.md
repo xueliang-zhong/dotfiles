@@ -53,7 +53,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
 - 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el` 和 `xueliang.el` 要用的包），然后一次装好缺少的。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
-- 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查。
+- 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
 - 加载 `spacemacs-keys.el`，然后加载 `xueliang.el`。
 - 最后把 `xl-packages` 补回安装名单，并在每次切换主题后再补一次：加载主题会恢复 `custom.el` 里保存的旧名单，不补回的话 `package-autoremove` 可能误删正在用的包。
 
@@ -132,7 +132,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 32 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 33 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |

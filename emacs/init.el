@@ -55,6 +55,13 @@
   (remove-hook 'text-mode-hook #'flyspell-mode)
   (remove-hook 'prog-mode-hook #'flyspell-prog-mode))
 
+;; Consult 3.4 removed `consult-preview-at-point-mode', but Crafted still
+;; puts it on `embark-collect-mode-hook'.  That hook then breaks every
+;; Embark Collect buffer, including the collect fallback `embark-export'
+;; uses for types without a dedicated exporter (e.g. imenu).  Embark-Consult
+;; already adds the replacement, `consult--default-completion-list-preview-setup'.
+(remove-hook 'embark-collect-mode-hook #'consult-preview-at-point-mode)
+
 ;; ============================================================
 ;; My Layers - Spacemacs keys first, then my own config
 ;; ============================================================
