@@ -76,7 +76,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 平台、路径、字体、主题；可选的 `~/.emacs-profiles/local.el`（只放机器相关的路径，不进仓库）。
 - 全局设置：备份、recentf、which-key、缩进、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出；corfu 输入一个字符就立即弹出，eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`）。
+- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
 - dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 
@@ -178,6 +178,7 @@ just emacs-windows-setup
 | 原生编译 | 官方依赖包里没有 libgccjit，所以没有原生编译；配置本来就关闭了 JIT，没有影响 |
 | dired | Windows 没有 `ls`，Emacs 用内置的 `ls-lisp` 模拟，`-alh` 参数可以用 |
 | 字体与字号 | 依次找 JetBrains Mono、Consolas 等已安装字体，Windows 上字号单独设为 120 |
+| 补全性能 | corfu 在 Windows 上停顿 0.2 秒、输入第二个字符后才查询补全后端；`cape-dabbrev` 只扫描当前 buffer，避免逐字符扫描所有同模式 buffer |
 | macOS 专属 | macism 输入法切换、`s-x` 等只在 macOS 生效，Windows 上自动跳过 |
 | `SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 改用 `consult-fd`（有 `fd` 时）或 `consult-find`，没有 `fzf` 也能用。可以用 `winget install BurntSushi.ripgrep.MSVC` 安装 rg |
 | Org 的 shell 代码块 | 用 `cmd.exe` 执行，为 bash 写的代码块可能无法运行 |

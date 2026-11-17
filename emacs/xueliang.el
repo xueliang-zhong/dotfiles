@@ -4,6 +4,7 @@
 ;; Platform, Paths and Appearance
 ;; ============================================================
 (defconst xl-mac-p (eq system-type 'darwin))
+(defconst xl-win-p (eq system-type 'windows-nt))
 (defvar xl-dotfiles-dir "~/workspace/dotfiles/")
 (defvar xl-links-file "~/workspace/xzhong-links.txt")
 (defvar xl-mindmap-dir "~/workspace/mindmap/")
@@ -249,13 +250,22 @@ line can be switched off without deleting it."
 ;; Corfu + Cape - in-buffer completion popup
 ;; ============================================================
 ;; Crafted's completion module turns on corfu (auto popup, cycling, docs
-;; beside it).  Mine: pop up at once after one character instead of two.
-(setq corfu-auto-delay 0
-      corfu-auto-prefix 1
+;; beside it).  Mine: pop up at once after one character instead of two,
+;; except on Windows, where querying the backends is slower.  There, wait
+;; for a short pause and a second character; fast typing then never runs
+;; completion at all.
+(setq corfu-auto-delay (if xl-win-p 0.2 0)
+      corfu-auto-prefix (if xl-win-p 2 1)
       ;; Corfu stays in buffers; the minibuffer ':' uses vertico
       global-corfu-minibuffer t
       ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
+
+;; `cape-dabbrev' scans every buffer with the same major mode for candidates
+;; by default, on every keystroke.  Cape's own docstring recommends against
+;; that for auto completion; it is a major source of input lag, especially
+;; on Windows.  Complete from the current buffer only.
+(setq cape-dabbrev-buffer-function #'current-buffer)
 
 ;; Crafted adds cape-dabbrev and cape-file with `add-to-list', which changes
 ;; the buffer current at load time: *scratch* (lisp-interaction-mode has its

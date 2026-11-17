@@ -417,11 +417,14 @@ keypress.  Prefix keymaps are walked recursively."
     (should (>= vertico-count 5)))
   (should global-corfu-mode)
   (should corfu-auto)
-  (should (equal corfu-auto-delay 0))
-  (should (= corfu-auto-prefix 1))
+  ;; Windows waits for a pause and a second character to keep typing smooth.
+  (should (equal corfu-auto-delay (if (eq system-type 'windows-nt) 0.2 0)))
+  (should (= corfu-auto-prefix (if (eq system-type 'windows-nt) 2 1)))
   (with-temp-buffer
     (should (memq 'cape-dabbrev completion-at-point-functions))
-    (should (memq 'cape-file completion-at-point-functions))))
+    (should (memq 'cape-file completion-at-point-functions)))
+  ;; Dabbrev must not scan every buffer of the same mode on each keystroke.
+  (should (eq cape-dabbrev-buffer-function #'current-buffer)))
 
 (ert-deftest xl-ivy-stack-is-retired ()
   "The old Ivy stack is gone from the package list, the UI and the selection."
