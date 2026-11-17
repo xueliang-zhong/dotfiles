@@ -263,7 +263,8 @@ line can be switched off without deleting it."
 
 ;; Same minibuffer habits as the old ivy-mode-map: C-k deletes to end of
 ;; line, C-q turns the candidates into a buffer (Embark's exporter, the
-;; modern `ivy-occur'), C-. opens Embark's actions for the candidate.
+;; modern `ivy-occur'), M-w does the same as C-q so the result is visible
+;; instead of only landing in the kill ring, C-. opens Embark's actions.
 ;; RET enters a directory and DEL goes up one level, like counsel-find-file.
 ;; C-. is only bound here: in normal state Evil keeps it for `evil-repeat-pop'.
 (define-keymap :keymap vertico-map
@@ -272,6 +273,7 @@ line can be switched off without deleting it."
   "M-DEL" #'vertico-directory-delete-word
   "C-k"   #'evil-delete-line
   "C-q"   #'embark-export
+  "M-w"   #'embark-export
   "C-."   #'embark-act)
 
 ;; `SPC s s' and `SPC /': search the current buffer with live preview.

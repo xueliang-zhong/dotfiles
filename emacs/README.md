@@ -77,7 +77,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - macOS UK 键盘：Option-3 本应输入 `#`，但 Emacs 把 Option 当作 Meta，收到的是 `M-3`（数字前缀）。现在插入态、替换态、Emacs 态、minibuffer（含 evil 的 `:` 和搜索命令行）和 isearch 里都输入 `#`，普通态保留 `M-3` 的数字前缀。
 - 全局设置：备份、recentf、which-key、缩进、长行不换行、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
+- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出、`M-w` 也导出（和 `C-q` 一样，导出结果在 buffer 里可见）；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
 - dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 

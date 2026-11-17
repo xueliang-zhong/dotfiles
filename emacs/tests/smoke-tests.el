@@ -449,6 +449,7 @@ The normal state keeps M-3 as `digit-argument'."
   (should (eq (keymap-lookup vertico-map "RET") #'vertico-directory-enter))
   (should (eq (keymap-lookup vertico-map "C-k") #'evil-delete-line))
   (should (eq (keymap-lookup vertico-map "C-q") #'embark-export))
+  (should (eq (keymap-lookup vertico-map "M-w") #'embark-export))
   (should (eq (keymap-lookup vertico-map "C-.") #'embark-act))
   ;; Normal state keeps Evil's own C-. (`evil-repeat-pop').
   (should (eq (keymap-lookup evil-normal-state-map "C-.") #'evil-repeat-pop))
