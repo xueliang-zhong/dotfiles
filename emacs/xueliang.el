@@ -123,10 +123,9 @@ line can be switched off without deleting it."
 (global-auto-revert-mode 1)
 (global-hl-line-mode -1)                ; no current-line highlight
 
-;; avoid long line wrap
-(defun xueliang-truncate-lines () (setq truncate-lines t))
-(dolist (hook '(dired-mode-hook org-mode-hook prog-mode-hook))
-  (add-hook hook #'xueliang-truncate-lines))
+;; Long lines stay on one line, like `set nowrap' in my vimrc: no wrapping
+;; by default in any buffer, not only dired, org and prog modes.
+(setq-default truncate-lines t)
 
 ;; Saving a file in a new folder creates the folder, like `mkdir -p'
 (defun xueliang-create-missing-directories-h ()

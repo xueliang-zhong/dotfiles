@@ -445,6 +445,8 @@ keypress.  Prefix keymaps are walked recursively."
   (should-not bidi-display-reordering)
   (should (= recentf-max-saved-items 1000))
   (should (= which-key-idle-delay 0.3))
+  (with-temp-buffer
+    (should truncate-lines))            ; `set nowrap' in every buffer
   (should (equal backup-directory-alist
                  `(("." . ,(expand-file-name "backups" user-emacs-directory))))))
 

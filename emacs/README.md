@@ -74,7 +74,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 我自己的全部设置，按段落组织：
 
 - 平台、路径、字体（所有文字 face 统一使用选中的字体）、主题；可选的 `~/.emacs-profiles/local.el`（只放机器相关的路径，不进仓库）。
-- 全局设置：备份、recentf、which-key、缩进、保存时自动建目录。
+- 全局设置：备份、recentf、which-key、缩进、长行不换行、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
 - 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
 - dired、eshell、Org、magit 的设置和小函数。
