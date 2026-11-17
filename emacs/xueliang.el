@@ -26,8 +26,16 @@
       (set-face-attribute face nil :family font))
     (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
+  ;; Direct Chinese and symbol fallback on MacOS: avoids a slow full
+  ;; system-font scan when drawing at the first time
+  (when xl-mac-p
+    (set-fontset-font t 'han (font-spec :family "PingFang SC"))
+    (set-fontset-font t 'cjk-misc (font-spec :family "PingFang SC"))
+    (set-fontset-font t '(#x4dc0 . #x4dff) (font-spec :family "Apple Symbols")))
   (set-frame-parameter nil 'fullscreen 'maximized))
+
 (add-to-list 'default-frame-alist '(fullscreen . maximized)) ; new frames too
+
 ;; Same look as Spacemacs; fall back to tokyo-night if the theme is missing
 ;; `spacemacs-theme` passes :background nil unless this is non-nil, which
 ;; Emacs 31 warns about.  Load with highlights on, then clear them below.
