@@ -38,6 +38,36 @@
 (when xl-mac-p (keymap-global-set "s-x" #'execute-extended-command))
 
 ;; ============================================================
+;; macOS UK Keyboard - Option-3 types #
+;; ============================================================
+;; On a UK Mac keyboard # is Option-3.  Emacs treats Option as Meta, so the
+;; key arrives as M-3 (`digit-argument') and # cannot be typed.  Insert it
+;; wherever text is entered; normal state keeps M-3 as a numeric prefix.
+(defun xueliang-insert-hash ()
+  "Insert `#', the Option-3 character on a UK Mac keyboard."
+  (interactive)
+  (let ((last-command-event ?#))
+    (self-insert-command 1)))
+
+(defun xueliang-isearch-insert-hash ()
+  "Add `#' to the current isearch string."
+  (interactive)
+  (isearch-printing-char ?#))
+
+(when xl-mac-p
+  (with-eval-after-load 'evil
+    (dolist (map (list evil-insert-state-map
+                       evil-replace-state-map
+                       evil-emacs-state-map
+                       ;; Ex and evil-search command lines do not inherit
+                       ;; from `minibuffer-local-map'.
+                       evil-command-line-map
+                       evil-eval-map))
+      (keymap-set map "M-3" #'xueliang-insert-hash)))
+  (keymap-set minibuffer-local-map "M-3" #'xueliang-insert-hash)
+  (keymap-set isearch-mode-map "M-3" #'xueliang-isearch-insert-hash))
+
+;; ============================================================
 ;; First-use latency - pay one-time costs while idle
 ;; ============================================================
 ;; Emacs cannot load packages asynchronously in-process.

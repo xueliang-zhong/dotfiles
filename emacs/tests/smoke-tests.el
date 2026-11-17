@@ -228,6 +228,32 @@ keypress.  Prefix keymaps are walked recursively."
                   ("C-<f4>" . kill-buffer-and-window)))
     (should (eq (keymap-lookup global-map (car spec)) (cdr spec)))))
 
+(ert-deftest xl-mac-option-3-types-hash ()
+  "On macOS UK layouts Option-3 (M-3) inserts # where text is entered.
+The normal state keeps M-3 as `digit-argument'."
+  (skip-unless xl-mac-p)
+  (dolist (map (list evil-insert-state-map evil-replace-state-map
+                     evil-emacs-state-map minibuffer-local-map
+                     evil-command-line-map evil-ex-completion-map
+                     evil-ex-search-keymap evil-eval-map))
+    (should (eq (keymap-lookup map "M-3") #'xueliang-insert-hash)))
+  (should (eq (keymap-lookup isearch-mode-map "M-3")
+              #'xueliang-isearch-insert-hash))
+  (should (eq (keymap-lookup global-map "M-3") #'digit-argument))
+  ;; Typing in replace state must overwrite, not insert before the character.
+  (with-temp-buffer
+    (insert "ab")
+    (goto-char (point-min))
+    (overwrite-mode 1)
+    (xueliang-insert-hash)
+    (should (equal (buffer-string) "#b")))
+  ;; isearch gets the literal character, not a numeric argument.
+  (let (char)
+    (cl-letf (((symbol-function 'isearch-printing-char)
+               (lambda (c &optional _count) (setq char c))))
+      (xueliang-isearch-insert-hash))
+    (should (equal char ?#))))
+
 (ert-deftest xl-major-mode-leaders ()
   "`,` and SPC m resolve by major mode; unknown modes keep evil's `,'."
   (with-temp-buffer
