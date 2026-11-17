@@ -190,6 +190,7 @@ keypress.  Prefix keymaps are walked recursively."
   "The Spacemacs positions and my personal overrides are both present."
   (dolist (spec '(("SPC" . consult-buffer)
                   ("RET" . consult-buffer)
+                  ("*" . xueliang-search-project-at-point)
                   ("/" . xueliang-search-buffer)
                   ("x" . execute-extended-command)
                   ("f f" . find-file)
@@ -212,6 +213,22 @@ keypress.  Prefix keymaps are walked recursively."
                   ("1" . winum-select-window-1)
                   ("9" . winum-select-window-9)))
     (should (eq (keymap-lookup xl-leader-map (car spec)) (cdr spec)))))
+
+(ert-deftest xl-search-project-at-point ()
+  "SPC * passes the whole symbol at point to `consult-ripgrep'."
+  (with-temp-buffer
+    (set-syntax-table emacs-lisp-mode-syntax-table)
+    (insert "foo-bar baz ")
+    (let (args)
+      (cl-letf (((symbol-function 'consult-ripgrep)
+                 (lambda (&rest a) (setq args a))))
+        (goto-char (point-min))
+        (xueliang-search-project-at-point)
+        (should (equal args '(nil "foo-bar")))
+        ;; No symbol under point still opens the prompt, with no input.
+        (goto-char (point-max))
+        (xueliang-search-project-at-point)
+        (should (equal args '(nil nil)))))))
 
 (ert-deftest xl-function-keys ()
   "F2-F12 keep the vim/Neovim habits from `vimrc'."

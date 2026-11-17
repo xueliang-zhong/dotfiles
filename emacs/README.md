@@ -132,13 +132,13 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 31 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 32 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
 | 文件结构 | `xl-packages` 定义在 `init.el`、`xueliang.el` 里没有；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
 | 启动设置 | 包目录按 Emacs 版本分开；菜单栏、工具栏关闭；evil 系列锁定 MELPA |
-| 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、F2–F12、`SPC t r`、`SPC T n`、macOS UK 键盘 Option-3 输入 `#` |
+| 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、`SPC *`/`SPC /` 搜索、F2–F12、`SPC t r`、`SPC T n`、macOS UK 键盘 Option-3 输入 `#` |
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
@@ -181,7 +181,7 @@ just emacs-windows-setup
 | 字体与字号 | 依次找 JetBrains Mono、Consolas 等已安装字体，`default`、`fixed-pitch`、`fixed-pitch-serif`、`variable-pitch` 统一使用它；Windows 上字号单独设为 120 |
 | 补全性能 | corfu 在 Windows 上停顿 0.2 秒、输入第二个字符后才查询补全后端；`cape-dabbrev` 只扫描当前 buffer，避免逐字符扫描所有同模式 buffer |
 | macOS 专属 | macism 输入法切换、`s-x`、UK 键盘 Option-3 输入 `#` 等只在 macOS 生效，Windows 上自动跳过 |
-| `SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 改用 `consult-fd`（有 `fd` 时）或 `consult-find`，没有 `fzf` 也能用。可以用 `winget install BurntSushi.ripgrep.MSVC` 安装 rg |
+| `SPC *`、`SPC s p`、`SPC p s` | 需要 `rg`（ripgrep）；eshell 的 `fzf` 改用 `consult-fd`（有 `fd` 时）或 `consult-find`，没有 `fzf` 也能用。可以用 `winget install BurntSushi.ripgrep.MSVC` 安装 rg |
 | Org 的 shell 代码块 | 用 `cmd.exe` 执行，为 bash 写的代码块可能无法运行 |
 | 机器相关路径 | 链接文件、笔记目录等写进 `~/.emacs-profiles/local.el`，不进仓库 |
 

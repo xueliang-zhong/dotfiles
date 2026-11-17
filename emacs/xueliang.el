@@ -282,6 +282,13 @@ line can be switched off without deleting it."
   (interactive "P")
   (consult-line nil start))
 
+;; `SPC *': like vim/nvim's <leader>*, search the project for the symbol
+;; under the cursor.  No symbol under point just opens an empty prompt.
+(defun xueliang-search-project-at-point ()
+  "Search the project for the symbol at point."
+  (interactive)
+  (consult-ripgrep nil (thing-at-point 'symbol t)))
+
 ;; ============================================================
 ;; Corfu + Cape - in-buffer completion popup
 ;; ============================================================

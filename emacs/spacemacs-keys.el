@@ -274,6 +274,7 @@
 (xl-sk-bind xl-leader-map
   "RET" "switch buffer"  #'consult-buffer
   "?"   "all keys"       #'which-key-show-top-level
+  "*"   "project symbol" #'xueliang-search-project-at-point
   "/"   "search buffer"  #'xueliang-search-buffer
   "x"   "M-x"            #'execute-extended-command
   "b w" "read-only"      #'read-only-mode
