@@ -222,7 +222,7 @@ keypress.  Prefix keymaps are walked recursively."
                   ("<f7>" . xueliang-just-make)
                   ("<f8>" . xueliang-imenu-or-org-today)
                   ("<f9>" . xueliang-dired-sidebar)
-                  ("<f10>" . consult-buffer)
+                  ("<f10>" . xl-sk-home-buffer)
                   ("<f11>" . xueliang-org-sort-upheading)
                   ("<f12>" . xueliang-open-knowledge-links)
                   ("C-<f4>" . kill-buffer-and-window)))

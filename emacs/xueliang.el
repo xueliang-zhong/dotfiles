@@ -13,11 +13,18 @@
 (let ((local (expand-file-name "~/.emacs-profiles/local.el")))
   (when (file-exists-p local) (load local nil t)))
 
-;; First installed font wins, so the same file works on macOS, Windows, Linux
+;; First installed font wins, so the same file works on macOS, Windows, Linux.
+;; Every text face uses it: `fixed-pitch', `fixed-pitch-serif' and
+;; `variable-pitch' carry families of their own ("Monospace", "Sans Serif"),
+;; so the home buffer, Info and prose would otherwise use other fonts.
+;; Only `default' gets the height; the others inherit it, so text scaling
+;; still applies to them all.
 (when (display-graphic-p)
   (when-let* ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
                               '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
-    (set-face-attribute 'default nil :family font
+    (dolist (face '(default fixed-pitch fixed-pitch-serif variable-pitch))
+      (set-face-attribute face nil :family font))
+    (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
   (set-frame-parameter nil 'fullscreen 'maximized))
 (add-to-list 'default-frame-alist '(fullscreen . maximized)) ; new frames too
