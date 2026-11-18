@@ -23,9 +23,10 @@
   (when-let* ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
                               '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
     (dolist (face '(default fixed-pitch fixed-pitch-serif variable-pitch))
-      (set-face-attribute face nil :family font))
+      (set-face-attribute face nil :family font :weight 'medium))
     (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
+  (setq-default line-spacing 0.12)
   ;; Direct Chinese and symbol fallback on MacOS: avoids a slow full
   ;; system-font scan when drawing at the first time
   (when xl-mac-p
@@ -42,6 +43,8 @@
 (setq spacemacs-theme-org-highlight t)
 (or (ignore-errors (load-theme 'spacemacs-dark t))
     (ignore-errors (load-theme 'doom-tokyo-night t)))
+;; Remove the muddy background strip behind comments in `spacemacs-dark'
+(set-face-attribute 'font-lock-comment-face nil :background 'unspecified)
 ;; make sure M-x works on MacOS
 (when xl-mac-p (keymap-global-set "s-x" #'execute-extended-command))
 
