@@ -23,7 +23,7 @@
   (when-let* ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
                               '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
     (dolist (face '(default fixed-pitch fixed-pitch-serif variable-pitch))
-      (set-face-attribute face nil :family font :weight 'medium))
+      (set-face-attribute face nil :family font :weight 'semi-bold))
     (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
   (setq-default line-spacing 0.06)
@@ -438,7 +438,7 @@ line can be switched off without deleting it."
   ;; Face settings: headings same size and weight as body text
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5
                   org-level-6 org-link org-table))
-    (set-face-attribute face nil :bold nil :height 1.0 :weight 'regular))
+    (set-face-attribute face nil :bold nil :height 1.0 :weight 'semi-bold))
   ;; `spacemacs-theme-org-highlight' is enabled only to avoid nil face specs;
   ;; keep headings without the theme's background highlight.
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4))
