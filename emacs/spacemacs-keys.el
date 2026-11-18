@@ -135,7 +135,7 @@
   "r y" "kill ring" #'consult-yank-pop
 
   "s" "search" nil
-  "s s" "this buffer" #'xueliang-search-buffer
+  "s s" "this buffer" #'consult-line
   "s p" "project" #'consult-ripgrep
   "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
@@ -275,7 +275,7 @@
   "RET" "switch buffer"  #'consult-buffer
   "?"   "all keys"       #'which-key-show-top-level
   "*"   "project symbol" #'xueliang-search-project-at-point
-  "/"   "search buffer"  #'xueliang-search-buffer
+  "/"   "search buffer"  #'consult-line
   "x"   "M-x"            #'execute-extended-command
   "b w" "read-only"      #'read-only-mode
   "f T" "imenu"          #'imenu

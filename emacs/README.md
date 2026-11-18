@@ -148,6 +148,18 @@ just emacs-check   # 上面两条一起跑
 
 测试不启动图形界面，全部在 `emacs --batch` 里完成。
 
+## 在 macOS 上安装
+
+在终端里一条命令完成：
+
+```bash
+just emacs-mac-setup
+```
+
+它依次做四件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；完整加载配置并运行 ERT 测试（第一次会顺便装好所有包）；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
+
+之后用 `just emacs-try` 启动 Emacs，或者直接打开 Dock 里的 Emacs。
+
 ## 在 Windows 上安装
 
 在 Git Bash 里一条命令完成：

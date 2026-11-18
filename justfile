@@ -10,8 +10,6 @@ list:
     just --list
 
 install:
-    @ls -l ~/.config/nvim/init.lua
-    @ls -l ~/.vimrc
     @bash env.sh
     @echo "Scripts Installed"
 
@@ -118,8 +116,12 @@ emacs-make-default:
     #!/usr/bin/env bash
     set -e
     case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) echo "On Windows use: just emacs-windows-setup"; exit 1 ;; esac
+    if [ -L ~/.emacs.d ]; then
+        target=$(readlink ~/.emacs.d)
+        [ "$target" = "{{PROFILES}}/crafted" ] && { echo "~/.emacs.d already points to Crafted"; exit 0; }
+        echo "~/.emacs.d is a link to $target, stop"; exit 1
+    fi
     if pgrep -f "Emacs.app/Contents/MacOS|bin/emacs" >/dev/null; then echo "Quit all Emacs first"; exit 1; fi
-    if [ -L ~/.emacs.d ]; then echo "~/.emacs.d already points to Crafted"; exit 0; fi
     if [ -e ~/.emacs.d ]; then
         [ -e "{{PROFILES}}/spacemacs" ] && { echo "{{PROFILES}}/spacemacs exists, stop"; exit 1; }
         mv ~/.emacs.d "{{PROFILES}}/spacemacs"
@@ -178,6 +180,26 @@ emacs-windows-setup:
         --eval '(run-hooks (quote before-init-hook))' -l "$d/init.el" \
         --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
     echo "Done. Start Emacs from the Start menu or run: runemacs"
+
+###########################
+# macOS: one command does all
+###########################
+
+# fail before install touches anything: macOS, Emacs 30+, no guessing
+[private]
+require-macos:
+    #!/usr/bin/env bash
+    set -e
+    case "$(uname -s)" in
+        Darwin) ;;
+        *) echo "Run this on macOS; on Windows use: just emacs-windows-setup"; exit 1 ;;
+    esac
+    command -v '{{EMACS}}' >/dev/null || { echo "emacs not found: install Emacs 30+ or run EMACS=/path/to/emacs just emacs-mac-setup"; exit 1; }
+    ver=$('{{EMACS}}' --batch --eval '(princ emacs-major-version)' 2>/dev/null)
+    [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
+
+# macOS (Terminal): dotfiles + Crafted Emacs in one command
+emacs-mac-setup: require-macos install emacs-crafted-install emacs-check emacs-make-default
 
 ###########################
 # Docker Environment

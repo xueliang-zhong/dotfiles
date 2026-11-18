@@ -1,5 +1,7 @@
 #!/bin/bash
-# source install.sh
+# Copy vim/nvim/tmux configs and ~/bin scripts into $HOME.
+# Emacs is managed separately by the emacs-* recipes (see `just emacs-mac-setup`).
+set -e
 
 # Define a function for cp to ensure -f flag is always used
 CP_CMD() {
@@ -15,14 +17,6 @@ CP_CMD ./vimrc ~/.vimrc
 mkdir -p ~/.config/nvim/
 rm -f ~/.config/nvim/init.lua
 CP_CMD ./init.lua ~/.config/nvim/init.lua
-
-# emacs (Goal: <= 200 LOC)
-rm -f ~/.spacemacs
-CP_CMD ./spacemacs.el  ~/.spacemacs
-
-# emacs (Goal: <= 200 LOC)
-rm -f ~/.doom.d/config.el
-CP_CMD doom-config-2025.el ~/.doom.d/config.el
 
 # tmux
 rm -f ~/.tmux.conf

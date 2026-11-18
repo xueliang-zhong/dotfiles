@@ -284,14 +284,6 @@ line can be switched off without deleting it."
   "M-w"   #'embark-export
   "C-."   #'embark-act)
 
-;; `SPC s s' and `SPC /': search the current buffer with live preview.
-;; Consult scans the buffer once (tens of ms even at a megabyte), so the
-;; old 300 KB `counsel-grep-swiper-limit' fallback is not needed any more.
-(defun xueliang-search-buffer (&optional start)
-  "Search the current buffer; prefix START searches from the top."
-  (interactive "P")
-  (consult-line nil start))
-
 ;; `SPC *': like vim/nvim's <leader>*, search the project for the symbol
 ;; under the cursor.  No symbol under point just opens an empty prompt.
 (defun xueliang-search-project-at-point ()
