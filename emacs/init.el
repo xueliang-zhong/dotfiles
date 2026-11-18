@@ -3,7 +3,7 @@
 ;; ============================================================
 ;; Show Maximized Screen Early
 ;; ============================================================
-(toggle-frame-maximized)
+(set-frame-parameter nil 'fullscreen 'maximized)
 
 ;; ============================================================
 ;; Emacs Version and Basics
