@@ -26,7 +26,7 @@
       (set-face-attribute face nil :family font :weight 'medium))
     (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
-  (setq-default line-spacing 0.12)
+  (setq-default line-spacing 0.05)
   ;; Direct Chinese and symbol fallback on MacOS: avoids a slow full
   ;; system-font scan when drawing at the first time
   (when xl-mac-p
