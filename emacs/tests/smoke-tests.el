@@ -196,6 +196,8 @@ keypress.  Prefix keymaps are walked recursively."
                   ("f f" . find-file)
                   ("f r" . consult-recent-file)
                   ("f p" . xueliang-find-file-in-dotfiles)
+                  ("i s" . xueliang-insert-snippet)
+                  ("i S" . xueliang-new-snippet)
                   ("b b" . consult-buffer)
                   ("b h" . xl-sk-home-buffer)
                   ("b s" . xueliang-open-scratch-buffer-window)
@@ -301,6 +303,9 @@ The normal state keeps M-3 as `digit-argument'."
   (should-not org-pretty-entities)
   (should-not org-confirm-babel-evaluate)
   (should-not org-modules)
+  ;; `org-modules' stays empty, but org-tempo is required explicitly for
+  ;; the `<s' + TAB structure templates.
+  (should (featurep 'org-tempo))
   (should (alist-get 'shell org-babel-load-languages))
   (should (equal (alist-get "SC" org-link-abbrev-alist nil nil #'equal)
                  "https://stockcharts.com/h-sc/ui?s=%s"))
@@ -308,7 +313,7 @@ The normal state keeps M-3 as `digit-argument'."
                  "https://www.scales-chords.com/chord/piano/%s"))
   (should (member "FOCUS(f)" (cdr (car org-todo-keywords))))
   (should (equal (face-attribute 'org-level-1 :height) 1.0))
-  (should (eq (face-attribute 'org-level-1 :weight) 'regular)))
+  (should (eq (face-attribute 'org-level-1 :weight) 'semi-bold)))
 
 (ert-deftest xl-org-buffer-setup ()
   "Opening an Org file runs local setup and keeps long lines unwrapped."
@@ -331,6 +336,18 @@ The normal state keeps M-3 as `digit-argument'."
                               "RET")
                              #'org-open-at-point)))
           (kill-buffer buf))))))
+
+(ert-deftest xl-org-structure-template-expands ()
+  "`<s' + TAB inserts a source block, also from insert state.
+The other TAB command would insert two spaces, so it delegates to
+`org-tempo' before falling back, like `org-cycle' in normal state."
+  (require 'org)
+  (with-temp-buffer
+    (org-mode)
+    (insert "<s")
+    (xueliang-tab-or-corfu-next)
+    (should (string-match-p "#\\+begin_src" (buffer-string)))
+    (should (string-match-p "#\\+end_src" (buffer-string)))))
 
 ;;; ============================================================
 ;;; Magit
@@ -550,6 +567,22 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (with-temp-buffer
     (xueliang-tab-or-corfu-next)
     (should (equal (buffer-string) "  "))))
+
+(ert-deftest xl-snippets ()
+  "`SPC i s' lists yasnippets for the current mode in Vertico."
+  (should (memq 'yasnippet xl-packages))
+  (should (memq 'yasnippet-snippets xl-packages))
+  (should (package-installed-p 'yasnippet))
+  (should (package-installed-p 'yasnippet-snippets))
+  (should (equal yas-prompt-functions '(yas-completing-prompt)))
+  (should (commandp 'xueliang-insert-snippet))
+  (should (commandp 'xueliang-new-snippet))
+  (require 'yasnippet)
+  (let (inserted)
+    (cl-letf (((symbol-function 'yas-insert-snippet)
+               (lambda () (interactive) (setq inserted t))))
+      (xueliang-insert-snippet))
+    (should inserted)))
 
 (ert-deftest xl-create-missing-directories-before-save ()
   "Saving into a new folder creates the parents, like `mkdir -p'."

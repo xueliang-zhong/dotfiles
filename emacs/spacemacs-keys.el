@@ -110,6 +110,10 @@
   "h d b" "bindings" #'describe-bindings  "h d p" "package" #'describe-package
   "h d a" "apropos" #'apropos-command
 
+  "i" "insert" nil
+  "i s" "snippet" #'xueliang-insert-snippet
+  "i S" "new snippet" #'xueliang-new-snippet
+
   "j" "jump" nil
   "j j" "to chars" #'avy-goto-char-timer  "j l" "to line" #'avy-goto-line
   "j w" "to word" #'avy-goto-word-1  "j i" "imenu" #'imenu

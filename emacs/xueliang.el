@@ -206,11 +206,18 @@ line can be switched off without deleting it."
 ;; emulation keymap) shadows `corfu-map', so TAB cannot be bound there.
 ;; The corfu section below adds this command to `corfu-continue-commands',
 ;; so the popup stays open instead of accepting the candidate after TAB.
+;; In Org it also expands structure templates: `<s' + TAB is a src block,
+;; which `org-cycle' does in normal state but this command would hide.
 (defun xueliang-tab-or-corfu-next ()
   (interactive)
-  (if (and (bound-and-true-p corfu-mode) (bound-and-true-p corfu--candidates))
-      (corfu-next)
-    (insert "  ")))
+  (cond
+   ((and (bound-and-true-p corfu-mode) (bound-and-true-p corfu--candidates))
+    (corfu-next))
+   ((and (derived-mode-p 'org-mode)
+         (fboundp 'org-tempo-complete-tag)
+         (org-tempo-complete-tag))
+    nil)
+   (t (insert "  "))))
 
 ;; IME: back to the English layout when leaving insert state (macOS + macism)
 (defvar xl-macism (or (executable-find "macism")
@@ -303,7 +310,7 @@ line can be switched off without deleting it."
 ;; for a short pause and a second character; fast typing then never runs
 ;; completion at all.
 (setq corfu-auto-delay (if xl-win-p 0.2 0)
-      corfu-auto-prefix (if xl-win-p 2 1)
+      corfu-auto-prefix 2 ;; 2 works better for org-tempo '<s'
       ;; Corfu stays in buffers; the minibuffer ':' uses vertico
       global-corfu-minibuffer t
       ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
@@ -339,6 +346,27 @@ line can be switched off without deleting it."
                                      #'cape-file)
                     t)))
 (add-hook 'emacs-lisp-mode-hook #'xueliang-elisp-completion-setup)
+
+;; ============================================================
+;; Snippets - SPC i s, like the Spacemacs auto-completion layer
+;; ============================================================
+;; yasnippet loads on first use, so it costs nothing at startup.  Turning
+;; on `yas-minor-mode' loads the snippets for the current mode; the
+;; completing prompt displays them in Vertico.
+(setq yas-prompt-functions '(yas-completing-prompt))
+
+(defun xueliang-insert-snippet ()
+  "Insert a yasnippet for the current mode (Spacemacs SPC i s)."
+  (interactive)
+  (require 'yasnippet)
+  (yas-minor-mode 1)
+  (yas-insert-snippet))
+
+(defun xueliang-new-snippet ()
+  "Create a new yasnippet for the current mode."
+  (interactive)
+  (require 'yasnippet)
+  (yas-new-snippet))
 
 ;; ============================================================
 ;; Dired Settings
@@ -421,8 +449,10 @@ line can be switched off without deleting it."
         ;; SVG links open in the system viewer, everything else in Emacs
         org-file-apps '(("\\.svg\\'" . default) (auto-mode . emacs)
                         (directory . emacs) (remote . emacs)))
-  ;; improve org-mode loading performance
+  ;; keep Org's load light, but bring back its structure templates:
+  ;; `org-tempo' makes `<s' + TAB expand to a src block, as before.
   (setq org-modules nil)
+  (require 'org-tempo)
 
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))

@@ -62,6 +62,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 复刻 Spacemacs 的键位习惯，Crafted 本身没有这些：
 
 - SPC 键树（`b f g j p q r s t w` 等分组）和 `M-m`。
+- `SPC i s` 列出当前模式的 snippet，`SPC i S` 新建 snippet，位置和 Spacemacs 的 auto-completion 层一致。
 - `,` 与 `SPC m` 主模式 leader，目前对 Org 和 Emacs Lisp 生效。
 - `fd` 退出插入态，evil-surround，窗口编号 `SPC 1`–`9`。
 - 首页（`SPC b h`），列出最近文件，按数字打开。
@@ -78,6 +79,8 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 全局设置：备份、recentf、which-key、缩进、长行不换行、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
 - 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出、`M-w` 也导出（和 `C-q` 一样，导出结果在 buffer 里可见）；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
+- Snippet：`SPC i s` 用 yasnippet 列出当前模式的 snippet（`SPC i S` 新建），首次使用时才加载 yasnippet。
+- Org：`org-modules` 保持为空，但显式 require `org-tempo`，所以插入态里 `<s` + TAB 也会展开成 `#+begin_src` 代码块。
 - dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 
@@ -138,9 +141,9 @@ just emacs-check   # 上面两条一起跑
 | --- | --- |
 | 文件结构 | `xl-packages` 定义在 `init.el`、`xueliang.el` 里没有；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
 | 启动设置 | 包目录按 Emacs 版本分开；菜单栏、工具栏关闭；evil 系列锁定 MELPA |
-| 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、`SPC *`/`SPC /` 搜索、F2–F12、`SPC t r`、`SPC T n`、macOS UK 键盘 Option-3 输入 `#` |
+| 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、`SPC i s`/`SPC i S`、`SPC *`/`SPC /` 搜索、F2–F12、`SPC t r`、`SPC T n`、macOS UK 键盘 Option-3 输入 `#` |
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
-| Org | 变量、TODO 关键字、链接缩写、表头 face；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
+| Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
