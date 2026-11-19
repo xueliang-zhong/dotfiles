@@ -135,7 +135,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 33 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 35 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
