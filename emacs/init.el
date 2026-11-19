@@ -36,8 +36,13 @@
 
 (dolist (pkg xl-packages) (add-to-list 'package-selected-packages pkg))
 
-;; Download missing packages on the list; a no-op once all are installed
-(package-install-selected-packages :noconfirm)
+;; Activate installed packages: load-path only, no archive reads
+(package-activate-all)
+
+;; Read archives and install only when something on the list is missing
+(require 'seq)
+(unless (seq-every-p #'package-installed-p package-selected-packages)
+  (package-install-selected-packages :noconfirm))
 
 ;; ============================================================
 ;; Crafted Modules - the parts of Crafted I use

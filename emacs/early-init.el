@@ -34,6 +34,12 @@
 ;; refresh by hand instead (M-x package-refresh-contents).
 (setq crafted-package-perform-stale-archive-check nil)
 
+;; Defer package archive reads: `package-initialize' reads every archive
+;; cache from disk on each start.  With this nil, Crafted skips it, and
+;; init.el activates installed packages with `package-activate-all' and
+;; reads the archives only when a selected package is missing.
+(setq package-enable-at-startup nil)
+
 ;; Emacs 31 warns about every third-party file without a lexical-binding
 ;; cookie (e.g. spacemacs-theme); not actionable here.
 (setq warning-suppress-log-types '((files missing-lexbind-cookie)))
