@@ -102,7 +102,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
 11. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
 12. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
-13. 启动完成，显示 Crafted 首页（`SPC b h` 随时可以回到首页）。
+13. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
 
@@ -147,6 +147,7 @@ just emacs-check   # 上面两条一起跑
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
+| 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |
 | 其它 | 主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
 
 测试不启动图形界面，全部在 `emacs --batch` 里完成。

@@ -611,9 +611,13 @@ which Crafted still puts on `embark-collect-mode-hook'."
     (should-not display-line-numbers)))
 
 (ert-deftest xl-home-buffer ()
-  "The home buffer exists and lists at most nine recent files."
+  "The home buffer lists at most nine recent files and ends with startup time."
   (xl-sk-home-buffer)
   (should (get-buffer "*Crafted Emacs*"))
+  (with-current-buffer "*Crafted Emacs*"
+    (should (string-match-p
+             "Open Dotfiles\n\n\n\nEmacs loaded in [0-9]+\\.[0-9][0-9] seconds[ \t\n]*\\'"
+             (buffer-string))))
   (should (<= (length xl-sk--home-files) 9))
   (should (listp xl-sk--home-files)))
 

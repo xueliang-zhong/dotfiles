@@ -226,7 +226,14 @@
   "h h" "describe symbol" #'describe-symbol)
 (push (cons 'emacs-lisp-mode xl-elisp-leader-map) xl-major-leader-maps)
 
-;;; Home buffer: SPC b h, recent files numbered 1-9 like Spacemacs startup lists
+;;; Home buffer: SPC b h, recent files 1-9, startup time at the bottom
+(defun xl-sk-home-init-time ()
+  "Insert Emacs' startup time, to two decimals, three blank lines below the links."
+  (fancy-splash-insert
+   :face '(variable-pitch font-lock-comment-face italic)
+   (format "\n\n\nEmacs loaded in %.2f seconds\n"
+           (float-time (time-subtract after-init-time before-init-time)))))
+
 (defvar-local xl-sk--home-files nil "Recent files listed on the home buffer.")
 (defun xl-sk-home-recentf ()
   "Insert up to 9 recent files, each with the number that opens it."
@@ -246,7 +253,7 @@
 (setq crafted-startup-module-list '(xl-sk-home-recentf))
 
 (defun xl-sk-home-tail (&optional _concise)
-  "Bottom of the home buffer: quick links only, no how-to-disable text."
+  "Bottom of the home buffer: quick links, then the startup time."
   (fancy-splash-insert
    :face 'variable-pitch
    "\nTo start...     "
@@ -255,7 +262,8 @@
    :link `("Open Home Directory" ,(lambda (_button) (dired "~")))
    "     "
    :link `("Open Dotfiles" ,(lambda (_button) (dired xl-dotfiles)))
-   "\n"))
+   "\n")
+  (xl-sk-home-init-time))
 (advice-add 'crafted-startup-tail :override #'xl-sk-home-tail)
 
 (defun xl-sk--home-keys (&rest _)
