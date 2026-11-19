@@ -478,9 +478,9 @@ The other TAB command would insert two spaces, so it delegates to
     (should (>= vertico-count 5)))
   (should global-corfu-mode)
   (should corfu-auto)
-  ;; Windows waits for a pause and a second character to keep typing smooth.
+  ;; Windows waits for a pause; both platforms wait for a second character.
   (should (equal corfu-auto-delay (if (eq system-type 'windows-nt) 0.2 0)))
-  (should (= corfu-auto-prefix (if (eq system-type 'windows-nt) 2 1)))
+  (should (= corfu-auto-prefix 2))
   (with-temp-buffer
     (should (memq 'cape-dabbrev completion-at-point-functions))
     (should (memq 'cape-file completion-at-point-functions)))

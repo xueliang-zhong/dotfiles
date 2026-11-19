@@ -308,9 +308,9 @@ line can be switched off without deleting it."
 ;; Corfu + Cape - in-buffer completion popup
 ;; ============================================================
 ;; Crafted's completion module turns on corfu (auto popup, cycling, docs
-;; beside it).  Mine: pop up at once after one character instead of two,
-;; except on Windows, where querying the backends is slower.  There, wait
-;; for a short pause and a second character; fast typing then never runs
+;; beside it).  Mine: pop up after two characters, which also keeps
+;; org-tempo's `<s' + TAB working.  On Windows querying the backends is
+;; slower, so wait for a short pause too; fast typing then never runs
 ;; completion at all.
 (setq corfu-auto-delay (if xl-win-p 0.2 0)
       corfu-auto-prefix 2 ;; 2 works better for org-tempo '<s'
