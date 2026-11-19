@@ -313,7 +313,7 @@ The normal state keeps M-3 as `digit-argument'."
                  "https://www.scales-chords.com/chord/piano/%s"))
   (should (member "FOCUS(f)" (cdr (car org-todo-keywords))))
   (should (equal (face-attribute 'org-level-1 :height) 1.0))
-  (should (eq (face-attribute 'org-level-1 :weight) 'semi-bold)))
+  (should (eq (face-attribute 'org-level-1 :weight) xl-font-weight)))
 
 (ert-deftest xl-org-buffer-setup ()
   "Opening an Org file runs local setup and keeps long lines unwrapped."
