@@ -601,6 +601,22 @@ line can be switched off without deleting it."
                     magit-status-sections-hook)))
 
 ;; ============================================================
+;; Git gutter - changed lines in the margin (diff-hl, as in Prelude)
+;; ============================================================
+;; Added, changed and deleted lines show in the left margin, updated on save
+;; and after magit operations.  Loaded when idle, so it never slows startup;
+;; the margin appears a moment after the first file opens.
+(xl-idle-require 'diff-hl 1.0)
+(with-eval-after-load 'diff-hl
+  (global-diff-hl-mode 1)
+  (add-hook 'dired-mode-hook #'diff-hl-dired-mode)                 ; changed files
+  (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)) ; refresh after magit
+;; SPC g n / p jump between hunks, SPC g h shows the hunk at point
+(keymap-set xl-leader-map "g n" '("next hunk" . diff-hl-next-hunk))
+(keymap-set xl-leader-map "g p" '("previous hunk" . diff-hl-previous-hunk))
+(keymap-set xl-leader-map "g h" '("show hunk" . diff-hl-show-hunk))
+
+;; ============================================================
 ;; My own functions
 ;; ============================================================
 (defun xueliang-cd-current-dir ()

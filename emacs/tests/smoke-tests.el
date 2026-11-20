@@ -669,5 +669,13 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should imenu-auto-rescan)
   (should (eq compilation-scroll-output 'first-error)))
 
+(ert-deftest xl-git-gutter-is-wired ()
+  "diff-hl is selected, its keys sit under SPC g, and its hooks are set."
+  (should (memq 'diff-hl xl-packages))
+  (should (package-installed-p 'diff-hl))
+  (should (eq (keymap-lookup xl-leader-map "g n") 'diff-hl-next-hunk))
+  (should (eq (keymap-lookup xl-leader-map "g p") 'diff-hl-previous-hunk))
+  (should (eq (keymap-lookup xl-leader-map "g h") 'diff-hl-show-hunk)))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here
