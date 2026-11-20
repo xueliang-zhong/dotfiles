@@ -677,5 +677,172 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (eq (keymap-lookup xl-leader-map "g p") 'diff-hl-previous-hunk))
   (should (eq (keymap-lookup xl-leader-map "g h") 'diff-hl-show-hunk)))
 
+;;; ============================================================
+;;; Coverage: functions in xueliang.el and spacemacs-keys.el
+;;; ============================================================
+
+(defun xl-test--capture-message (thunk)
+  "Run THUNK and return the last message it printed, or nil."
+  (let (last)
+    (cl-letf (((symbol-function 'message)
+               (lambda (fmt &rest args) (setq last (apply #'format fmt args)))))
+      (funcall thunk))
+    last))
+
+(ert-deftest xl-sum-numbers-in-region ()
+  "`xueliang-sum-numbers-in-region' adds whitespace-separated numbers."
+  (with-temp-buffer
+    (insert "1 2 3\n")
+    (should (equal (xl-test--capture-message
+                    (lambda () (xueliang-sum-numbers-in-region (point-min) (point-max))))
+                   "Sum: 6"))))
+
+(ert-deftest xl-replace-tab-trailing-spaces ()
+  "Tabs become spaces and trailing blanks are removed from the whole buffer."
+  (with-temp-buffer
+    (insert "a\tb   \nc\t\n")
+    (let ((tab-width 2))
+      (xueliang-replace-tab-trailing-spaces))
+    (should-not (string-match-p "\t" (buffer-string)))
+    (should-not (string-match-p "[ \t]+$" (buffer-string)))
+    (should (string-match-p "\\`a b\nc" (buffer-string)))))
+
+(ert-deftest xl-complete-line-replaces-with-picked-line ()
+  "`xueliang-complete-line' swaps the current line for the one picked."
+  (with-temp-buffer
+    (insert "alpha\nbeta\n")
+    (goto-char (point-min))
+    (cl-letf (((symbol-function 'xueliang-read-in-order)
+               (lambda (_prompt candidates &rest _) (nth 1 candidates))))
+      (xueliang-complete-line))
+    (should (equal (buffer-string) "beta\nbeta\n"))))
+
+(ert-deftest xl-cd-current-dir-follows-the-file ()
+  "`xueliang-cd-current-dir' makes the file's folder the default directory."
+  (xl-test-with-temp-dir dir
+    (with-temp-buffer
+      (setq buffer-file-name (expand-file-name "note.txt" dir))
+      (let ((default-directory "/"))
+        (xueliang-cd-current-dir)
+        (should (file-equal-p default-directory dir))))))
+
+(ert-deftest xl-cycle-theme-moves-to-next-and-wraps ()
+  "`SPC T n' loads the next theme in `xl-sk-themes', wrapping at the end."
+  (let (loaded)
+    (cl-letf (((symbol-function 'load-theme)
+               (lambda (theme &rest _) (setq loaded theme)))
+              ((symbol-function 'disable-theme) #'ignore))
+      (let ((custom-enabled-themes '(spacemacs-dark)))
+        (xl-sk-cycle-theme)
+        (should (eq loaded 'doom-tokyo-night)))
+      (let ((custom-enabled-themes (last xl-sk-themes)))
+        (xl-sk-cycle-theme)
+        (should (eq loaded (car xl-sk-themes)))))))
+
+(ert-deftest xl-copy-whole-buffer-and-file-path ()
+  "`SPC y' style copies: whole buffer text, and the file path."
+  (with-temp-buffer
+    (insert "hello buffer")
+    (xl-sk-copy-whole-buffer)
+    (should (equal (current-kill 0) "hello buffer")))
+  (xl-test-with-temp-dir dir
+    (with-temp-buffer
+      (setq buffer-file-name (expand-file-name "path.txt" dir))
+      (xl-sk-copy-file-path)
+      (should (equal (current-kill 0) (expand-file-name "path.txt" dir))))))
+
+(ert-deftest xl-home-recentf-lists-nine-unique-files ()
+  "The home buffer shows at most nine distinct recent files."
+  (let* ((files (append (mapcar (lambda (i) (format "/tmp/xl-test-%02d.txt" i))
+                                (number-sequence 1 11))
+                        '("/tmp/xl-test-01.txt")))
+         (recentf-list files))
+    (with-temp-buffer
+      (xl-sk-home-recentf)
+      (should (= (length xl-sk--home-files) 9))
+      (should (= (length (delete-dups (copy-sequence xl-sk--home-files)))
+                 (length xl-sk--home-files))))))
+
+(ert-deftest xl-split-windows-open-the-new-window ()
+  "`SPC w v' and `SPC w s' split the window and move into the new one."
+  (save-window-excursion
+    (let ((before (length (window-list))))
+      (xueliang-split-right)
+      (should (= (length (window-list)) (1+ before)))
+      (delete-other-windows)
+      (xueliang-split-below)
+      (should (= (length (window-list)) (1+ before))))))
+
+(ert-deftest xl-flash-yank-is-advised ()
+  "Yanking in evil flashes the region (interactive yanks only)."
+  (should (advice-member-p #'xueliang-flash-yanked-text 'evil-yank))
+  ;; Non-interactive calls (from code) must not pulse.
+  (should-not (xueliang-flash-yanked-text (point-min) (point-min))))
+
+(ert-deftest xl-org-open-at-point-is-advised ()
+  "Org links open in a split through the RET advice."
+  (should (advice-member-p #'xueliang-org-open-at-point-split-advice 'org-open-at-point)))
+
+;;; ============================================================
+;;; Coverage: hooks and modes the config relies on
+;;; ============================================================
+
+(ert-deftest xl-global-modes-are-on ()
+  "Persistence and housekeeping modes from `xueliang.el' and `spacemacs-keys.el'."
+  (should (bound-and-true-p savehist-mode))
+  (should (bound-and-true-p recentf-mode))
+  (should (bound-and-true-p save-place-mode))
+  (should (bound-and-true-p global-auto-revert-mode))
+  (should (bound-and-true-p winum-mode))
+  (should (bound-and-true-p evil-escape-mode))
+  (should (bound-and-true-p global-evil-surround-mode))
+  (should-not (bound-and-true-p global-hl-line-mode)))
+
+(ert-deftest xl-evil-habit-settings ()
+  "Vim-like evil options that differ from the defaults."
+  (should (equal evil-escape-key-sequence "fd"))
+  (should evil-want-fine-undo)
+  (should evil-want-Y-yank-to-eol))
+
+(ert-deftest xl-save-hooks-create-folders ()
+  "The folder-creating save hook is installed globally, not only in some modes."
+  (should (memq #'xueliang-create-missing-directories-h
+                (default-value 'before-save-hook))))
+
+(ert-deftest xl-mode-hooks-are-installed ()
+  "Major-mode setup hooks point at my setup functions."
+  (should (memq #'xueliang-org-setup (default-value 'org-mode-hook)))
+  (should (memq #'xueliang-eshell-setup (default-value 'eshell-mode-hook)))
+  (should (memq #'xueliang-elisp-completion-setup
+                (default-value 'emacs-lisp-mode-hook))))
+
+(ert-deftest xl-diff-hl-hooks-after-load ()
+  "Loading diff-hl turns the global gutter on and hooks dired and magit."
+  (require 'diff-hl)
+  (should (bound-and-true-p global-diff-hl-mode))
+  (should (memq #'diff-hl-dired-mode (default-value 'dired-mode-hook)))
+  (should (memq #'diff-hl-magit-post-refresh (default-value 'magit-post-refresh-hook))))
+
+(ert-deftest xl-magit-display-settings ()
+  "Magit splits in the current window's direction and refines the current hunk."
+  (require 'magit)
+  (should (eq magit-display-buffer-function #'display-buffer))
+  (should magit-diff-refine-hunk))
+
+;;; ============================================================
+;;; Coverage: the SPC tree and its prefix groups
+;;; ============================================================
+
+(ert-deftest xl-leader-prefix-groups-exist ()
+  "Each Spacemacs group under SPC is a keymap, so which-key can show it."
+  (dolist (group '("b" "c" "f" "g" "h" "i" "j" "p" "q" "r" "s" "t" "T" "w"))
+    (should (keymapp (keymap-lookup xl-leader-map group)))))
+
+(ert-deftest xl-leader-window-and-golden-ratio-keys ()
+  "Window keys and the golden ratio toggle sit where Spacemacs puts them."
+  (should (eq (keymap-lookup xl-leader-map "w g") 'golden-ratio))
+  (should (eq (keymap-lookup xl-leader-map "w v") 'xueliang-split-right))
+  (should (eq (keymap-lookup xl-leader-map "w s") 'xueliang-split-below)))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here
