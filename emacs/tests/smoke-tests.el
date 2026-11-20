@@ -487,6 +487,28 @@ The other TAB command would insert two spaces, so it delegates to
   ;; Dabbrev must not scan every buffer of the same mode on each keystroke.
   (should (eq cape-dabbrev-buffer-function #'current-buffer)))
 
+(ert-deftest xl-corfu-popup-follows-the-theme ()
+  "Corfu's stock near-black popup is repainted with the active theme.
+Batch mode has no display, so feed the function concrete theme colors and
+check where each one lands."
+  (should (memq #'xueliang-corfu-theme-faces enable-theme-functions))
+  (cl-letf (((symbol-function 'face-attribute)
+             (lambda (face attribute &optional _frame _inherit)
+               (or (alist-get (cons face attribute)
+                              '(((default . :background) . "#292b2e")
+                                ((default . :foreground) . "#b2b2b2")
+                                ((highlight . :background) . "#444155")
+                                ((vertical-border . :foreground) . "#5d4d7a")
+                                ((shadow . :foreground) . "#686868"))
+                              nil nil #'equal)
+                   (error "Unexpected face lookup: %S %S" face attribute)))))
+    (xueliang-corfu-theme-faces))
+  (should (equal (face-attribute 'corfu-default :background) "#292b2e"))
+  (should (equal (face-attribute 'corfu-default :foreground) "#b2b2b2"))
+  (should (equal (face-attribute 'corfu-current :background) "#444155"))
+  (should (equal (face-attribute 'corfu-border :background) "#5d4d7a"))
+  (should (equal (face-attribute 'corfu-bar :background) "#686868")))
+
 (ert-deftest xl-embark-collect-after-consult-3-4 ()
   "Embark Collect works despite Crafted's stale Consult hook.
 `embark-export' falls back to Collect for types without a dedicated

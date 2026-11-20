@@ -338,6 +338,27 @@ line can be switched off without deleting it."
 (with-eval-after-load 'corfu
   (add-to-list 'corfu-continue-commands #'xueliang-tab-or-corfu-next))
 
+;; Corfu ships theme-neutral colors: a near-black popup (#191a1b) with a
+;; teal selection.  Paint it with the active theme instead, so the popup
+;; looks like a small floating window: the buffer background, the region
+;; color for the current candidate, and the window-divider purple as its
+;; border.  Recompute after a theme switch (SPC T n).
+(defun xueliang-corfu-theme-faces (&rest _)
+  "Match the Corfu popup to the colors of the active theme."
+  (when (facep 'corfu-default)          ; a theme may load before Corfu
+    (set-face-attribute 'corfu-default nil
+                        :background (face-attribute 'default :background nil 'default)
+                        :foreground (face-attribute 'default :foreground nil 'default))
+    (set-face-attribute 'corfu-current nil
+                        :background (face-attribute 'highlight :background nil 'default)
+                        :foreground (face-attribute 'default :foreground nil 'default))
+    (set-face-attribute 'corfu-border nil
+                        :background (face-attribute 'vertical-border :foreground nil 'default))
+    (set-face-attribute 'corfu-bar nil
+                        :background (face-attribute 'shadow :foreground nil 'default))))
+(add-hook 'enable-theme-functions #'xueliang-corfu-theme-faces)
+(with-eval-after-load 'corfu (xueliang-corfu-theme-faces))
+
 ;; `emacs-lisp-mode' installs its own buffer-local CAPF, so the global
 ;; `cape-dabbrev' above never runs. Merge it in: symbols typed in this
 ;; file (even before they are evaluated) now complete too.

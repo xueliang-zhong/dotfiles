@@ -78,7 +78,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - macOS UK 键盘：Option-3 本应输入 `#`，但 Emacs 把 Option 当作 Meta，收到的是 `M-3`（数字前缀）。现在插入态、替换态、Emacs 态、minibuffer（含 evil 的 `:` 和搜索命令行）和 isearch 里都输入 `#`，普通态保留 `M-3` 的数字前缀。
 - 全局设置：备份、recentf、which-key、缩进、长行不换行、保存时自动建目录。
 - evil 习惯：`vs`/`sp`、`C-u` 向上翻页、`*` 按整个符号搜索、IME 切换。
-- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出、`M-w` 也导出（和 `C-q` 一样，导出结果在 buffer 里可见）；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
+- 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出、`M-w` 也导出（和 `C-q` 一样，导出结果在 buffer 里可见）；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出，弹窗背景、当前候选项和边框跟随主题（切换主题时自动更新）；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
 - Snippet：`SPC i s` 用 yasnippet 列出当前模式的 snippet（`SPC i S` 新建），首次使用时才加载 yasnippet。
 - Org：`org-modules` 保持为空，但显式 require `org-tempo`，所以插入态里 `<s` + TAB 也会展开成 `#+begin_src` 代码块。
 - dired、eshell、Org、magit 的设置和小函数。
@@ -135,7 +135,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 35 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 36 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -146,7 +146,7 @@ just emacs-check   # 上面两条一起跑
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | 状态页删掉的分区和保留的分区；`h/j/k/l`；在临时 git 仓库里真的打开一次 status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
-| 补全 | vertico/consult/corfu 状态；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
+| 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |
 | 其它 | 主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
 
