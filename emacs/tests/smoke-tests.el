@@ -844,5 +844,212 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (eq (keymap-lookup xl-leader-map "w v") 'xueliang-split-right))
   (should (eq (keymap-lookup xl-leader-map "w s") 'xueliang-split-below)))
 
+;;; ============================================================
+;;; Coverage: commands that shell out, open files or split windows
+;;; ============================================================
+
+(defun xl-test--capture-ex (thunk)
+  "Run THUNK with `evil-ex-execute' stubbed; return the commands it received."
+  (let (commands)
+    (cl-letf (((symbol-function 'evil-ex-execute)
+               (lambda (cmd &rest _) (push cmd commands))))
+      (funcall thunk))
+    (nreverse commands)))
+
+(ert-deftest xl-git-helpers-run-the-right-command ()
+  "`Gwrite' stages the file and `Gcommit' commits it with a fixed message."
+  (should (equal (xl-test--capture-ex #'Gwrite) '("!git add %")))
+  (xl-test-with-temp-dir dir
+    (with-temp-buffer
+      (setq buffer-file-name (expand-file-name "note.txt" dir))
+      (let ((default-directory "/"))
+        (should (equal (xl-test--capture-ex #'Gcommit)
+                       '("!git commit -m \"Update note.txt\"")))
+        ;; Gcommit cds to the file's folder before committing.
+        (should (file-equal-p default-directory dir))))))
+
+(ert-deftest xl-just-commands-run-in-the-background ()
+  "`SPC c c' and the daily job send `just' to the shell with `&'."
+  (should (equal (xl-test--capture-ex #'xueliang-just-make) '("!just all &")))
+  (should (equal (xl-test--capture-ex #'xueliang-daily-websites)
+                 '("!just daily-websites &"))))
+
+(ert-deftest xl-ime-switches-to-english-layout ()
+  "Leaving insert state calls macism with the British layout."
+  (let ((xl-macism "macism") args)
+    (cl-letf (((symbol-function 'call-process)
+               (lambda (&rest a) (setq args a) 0)))
+      (xueliang-ime-english))
+    (should (equal (car args) "macism"))
+    (should (member "com.apple.keylayout.British" args))))
+
+(ert-deftest xl-knowledge-links-open-the-picked-url ()
+  "`F12' opens the first URL in the picked line of the links file."
+  (require 'org)
+  (xl-test-with-temp-dir dir
+    (let* ((links (expand-file-name "links.txt" dir))
+           (xl-links-file links)
+           opened)
+      (with-temp-file links
+        (insert "plain note\nhttps://example.com/a\n"))
+      (cl-letf (((symbol-function 'xueliang-read-in-order)
+                 (lambda (_prompt candidates &rest _) (nth 1 candidates)))
+                ((symbol-function 'org-link-open-from-string)
+                 (lambda (s &rest _) (setq opened s))))
+        (xueliang-open-knowledge-links))
+      (should (equal opened "https://example.com/a")))))
+
+(ert-deftest xl-eshell-popup-splits-then-opens-eshell ()
+  "`F5' cds to the file's folder, splits below and starts eshell there."
+  (let (steps)
+    (cl-letf (((symbol-function 'xueliang-cd-current-dir)
+               (lambda () (push 'cd steps)))
+              ((symbol-function 'xueliang-split-below)
+               (lambda () (push 'split steps)))
+              ((symbol-function 'eshell)
+               (lambda (&rest _) (push 'eshell steps)))
+              ((symbol-function 'evil-append-line)
+               (lambda (&rest _) (push 'append steps))))
+      (xueliang-eshell-popup))
+    (should (equal (nreverse steps) '(cd split eshell append)))))
+
+(ert-deftest xl-dired-jump-calls-dired-jump ()
+  "`xueliang-dired-jump' jumps to the file's folder and shows the details."
+  (let (jumped)
+    (cl-letf (((symbol-function 'dired-jump)
+               (lambda (&rest _) (setq jumped t)))
+              ((symbol-function 'dired-hide-details-mode) #'ignore))
+      (xueliang-dired-jump))
+    (should jumped)))
+
+(ert-deftest xl-dired-sidebar-toggle-closes-existing-sidebar ()
+  "Calling the sidebar command again removes the dired window on the left."
+  (xl-test-with-temp-dir dir
+    (save-window-excursion
+      (delete-other-windows)
+      (let ((left (selected-window)))
+        (set-window-buffer left (dired-noselect dir))
+        (let ((right (split-window-right)))
+          (set-window-buffer right (get-buffer-create "xl-test-other"))
+          (select-window right)
+          (let ((before (length (window-list))))
+            (xueliang-dired-sidebar)
+            (should (= (length (window-list)) (1- before)))))))
+    (kill-buffer (get-buffer-create "xl-test-other"))))
+
+(ert-deftest xl-dired-open-uses-the-other-window ()
+  "`l' and RET in dired open the file in the other window."
+  (let (called)
+    (cl-letf (((symbol-function 'dired-find-file-other-window)
+               (lambda (&rest _) (setq called t))))
+      (with-temp-buffer
+        (xueliang-dired-open)))
+    (should called)))
+
+(ert-deftest xl-scratch-window-opens-right-split ()
+  "`SPC b s' shows the scratch buffer in a new window on the right."
+  (save-window-excursion
+    (delete-other-windows)
+    (let ((before (length (window-list))))
+      (xueliang-open-scratch-buffer-window)
+      (should (= (length (window-list)) (1+ before)))
+      (should (equal (buffer-name) "*scratch*")))))
+
+(ert-deftest xl-magit-status-window-prefers-vertical-split ()
+  "`SPC g g' sets a low split threshold locally, then opens magit status."
+  (let (opened)
+    (cl-letf (((symbol-function 'magit-status) (lambda (&rest _) (setq opened t))))
+      (with-temp-buffer
+        (xueliang-magit-status-window)
+        (should (= split-width-threshold 10))))
+    (should opened)))
+
+(ert-deftest xl-delete-this-file-needs-confirmation ()
+  "`SPC f D' deletes the file only after a yes; a no keeps it."
+  (xl-test-with-temp-dir dir
+    (let ((file (expand-file-name "gone.txt" dir)))
+      (with-temp-file file (insert "x"))
+      (with-current-buffer (find-file-noselect file)
+        (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) nil)))
+          (xl-sk-delete-this-file))
+        (should (file-exists-p file))
+        (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) t)))
+          (xl-sk-delete-this-file))
+        (should-not (file-exists-p file))))))
+
+(ert-deftest xl-open-dotfile-opens-the-personal-config ()
+  "`SPC f e d' opens emacs/xueliang.el."
+  (let (opened)
+    (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
+      (xl-sk-open-dotfile))
+    (should (string-suffix-p "emacs/xueliang.el" opened))))
+
+(ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
+  "`SPC f p' searches from the dotfiles folder."
+  (let (seen)
+    (cl-letf (((symbol-function 'find-file)
+               (lambda (&rest _) (interactive) (setq seen default-directory))))
+      (xueliang-find-file-in-dotfiles))
+    (should (file-equal-p seen xl-dotfiles-dir))))
+
+(ert-deftest xl-org-enter-falls-back-to-evil-ret ()
+  "RET on plain Org text is evil's RET, not an Org link open."
+  (let (ret)
+    (cl-letf (((symbol-function 'evil-ret) (lambda (&rest _) (setq ret t))))
+      (with-temp-buffer
+        (org-mode)
+        (insert "plain text")
+        (goto-char (point-min))
+        (xueliang-org-open-at-point)))
+    (should ret)))
+
+(ert-deftest xl-tab-completes-when-corfu-popup-is-open ()
+  "TAB moves down the Corfu list instead of inserting spaces."
+  (require 'corfu)
+  (let (moved)
+    (cl-letf (((symbol-function 'corfu-next) (lambda (&rest _) (setq moved t))))
+      (let ((corfu-mode t) (corfu--candidates '("one" "two")))
+        (with-temp-buffer
+          (xueliang-tab-or-corfu-next)
+          (should moved)
+          (should (equal (buffer-string) "")))))))
+
+;;; ============================================================
+;;; Coverage: small helpers, macros and aliases
+;;; ============================================================
+
+(ert-deftest xl-insert-hash-types-a-hash ()
+  "The Option-3 helper inserts `#' in any platform's buffer."
+  (with-temp-buffer
+    (xueliang-insert-hash)
+    (should (equal (buffer-string) "#"))))
+
+(ert-deftest xl-require-silently-reports-missing-features ()
+  "`xueliang-require-silently' is quiet and returns nil for a missing feature."
+  (should (xueliang-require-silently 'seq))
+  (should-not (xueliang-require-silently 'xl-no-such-feature-for-tests)))
+
+(ert-deftest xl-sk-bind-binds-keys-and-skips-prefix-only ()
+  "`xl-sk-bind' binds KEY LABEL DEF triples and ignores a nil DEF."
+  (let ((map (make-sparse-keymap)))
+    (xl-sk-bind map "a b" "label" #'ignore "c" "prefix" nil)
+    (should (eq (keymap-lookup map "a b") #'ignore))
+    ;; The prefix-only "c" may get a which-key label, but never a command.
+    (should-not (eq (keymap-lookup map "c") #'ignore))
+    (should-not (functionp (keymap-lookup map "c")))))
+
+(ert-deftest xl-elisp-completion-merges-sources ()
+  "Emacs Lisp buffers get one merged completion function, not the bare list."
+  (with-temp-buffer
+    (xueliang-elisp-completion-setup)
+    (should (functionp (car completion-at-point-functions)))
+    (should (eq (cadr completion-at-point-functions) t))))
+
+(ert-deftest xl-command-aliases-point-at-the-right-commands ()
+  "The personal one-word aliases resolve to their Emacs commands."
+  (should (eq (indirect-function 'xueliang-what-face) (indirect-function 'describe-face)))
+  (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
+  (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here
