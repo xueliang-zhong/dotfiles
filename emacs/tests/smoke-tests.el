@@ -643,5 +643,31 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (<= (length xl-sk--home-files) 9))
   (should (listp xl-sk--home-files)))
 
+;;; ============================================================
+;;; Kill ring, redisplay, ffap and the small Crafted defaults
+;;; ============================================================
+
+(ert-deftest xl-kill-ring-is-saved-by-savehist ()
+  "The kill ring is in savehist's list and saved without text properties."
+  (require 'savehist)
+  (should (memq 'kill-ring savehist-additional-variables))
+  (should kill-do-not-save-duplicates)
+  (let ((kill-ring (list (propertize "kept" 'face 'bold) "plain" 42)))
+    (run-hooks 'savehist-save-hook)
+    (should (equal kill-ring '("kept" "plain")))
+    (should-not (get-text-property 0 'face (car kill-ring)))))
+
+(ert-deftest xl-redisplay-and-ffap-settings ()
+  "Typing skips fontification under input; ffap does no host lookups."
+  (should redisplay-skip-fontification-on-input)
+  (should (eq ffap-machine-p-known 'reject)))
+
+(ert-deftest xl-crafted-small-defaults ()
+  "Mode line column, compact mode line, imenu rescan and compile scrolling."
+  (should column-number-mode)
+  (should (eq mode-line-compact 'long))
+  (should imenu-auto-rescan)
+  (should (eq compilation-scroll-output 'first-error)))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

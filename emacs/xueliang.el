@@ -141,11 +141,28 @@ line can be switched off without deleting it."
 ;; Performance: read more from subprocesses (git, rg, LSP) per chunk
 (setq read-process-output-max (* 1024 1024))
 
+;; Performance: while keys are waiting, skip font-lock so typing stays
+;; responsive in big or complex buffers (Prelude does the same)
+(setq redisplay-skip-fontification-on-input t)
+
+;; ffap must not ping a host name under point to check it exists: that
+;; causes network lookups and freezes.  `reject' keeps only known files/URLs.
+(setq ffap-machine-p-known 'reject)
+
 ;; Better help and discoverability: which-key pops up fast, keys in order
 (setq which-key-idle-delay 0.3
       which-key-sort-order 'which-key-key-order
       which-key-sort-uppercase-first nil
       which-key-add-column-padding 1)
+
+;; Small defaults from Crafted's newcomers settings, kept here so they are
+;; visible and easy to revert.  Column number in the mode line; the compact
+;; mode line hides the less useful parts; imenu rescans on every call;
+;; compile output scrolls to the first error.
+(column-number-mode 1)
+(setq mode-line-compact 'long
+      imenu-auto-rescan t
+      compilation-scroll-output 'first-error)
 
 ;; Performance: Disable bidirectional text for speed
 (setq-default bidi-display-reordering nil
@@ -162,6 +179,18 @@ line can be switched off without deleting it."
 
 ;; keep editing state persistent and predictable
 (save-place-mode 1)
+
+;; Kill ring survives restarts, like savehist keeps search history.  Text
+;; properties are stripped before saving: propertized strings bloat the
+;; history file and can fail to load.  Duplicate kills are not stored twice.
+(require 'savehist)
+(add-to-list 'savehist-additional-variables 'kill-ring)
+(add-hook 'savehist-save-hook
+          (lambda ()
+            (setq kill-ring
+                  (mapcar #'substring-no-properties
+                          (seq-filter #'stringp kill-ring)))))
+(setq kill-do-not-save-duplicates t)
 (savehist-mode 1)
 (recentf-mode 1)
 (global-auto-revert-mode 1)
