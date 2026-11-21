@@ -1,11 +1,6 @@
 ;;; init.el --- Crafted Emacs profile -*- lexical-binding: t; -*-
 
 ;; ============================================================
-;; Show Maximized Screen Early
-;; ============================================================
-(set-frame-parameter nil 'fullscreen 'maximized)
-
-;; ============================================================
 ;; Emacs Version and Basics
 ;; ============================================================
 ;; Target Emacs 31; 30 is the floor (built-in which-key, `restart-emacs').

@@ -17,6 +17,10 @@
 (push '(tool-bar-lines . 0) default-frame-alist)
 (push '(vertical-scroll-bars) default-frame-alist)
 
+;; Start maximized: the first frame is created with this size, so it never
+;; shows as a normal window first.  (Setting it in init.el came too late.)
+(push '(fullscreen . maximized) default-frame-alist)
+
 ;; No JIT native compilation: it compiles packages in the background on
 ;; first use and slows the whole machine. Packages run as byte code.
 ;; Emacs 31 has no job-count or threshold setting to limit it, so it stays off.

@@ -142,6 +142,18 @@ names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are allowed."
   (should (equal (cdr (assq 'menu-bar-lines default-frame-alist)) 0))
   (should (equal (cdr (assq 'tool-bar-lines default-frame-alist)) 0)))
 
+(ert-deftest xl-frame-starts-maximized-from-early-init ()
+  "The maximized size is a frame parameter from `early-init.el', so the first
+frame is created maximized; `init.el' must not set it after the frame exists."
+  (should (eq (cdr (assq 'fullscreen default-frame-alist)) 'maximized))
+  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/init.el" xl-dotfiles)))
+    (should-not (string-match-p "set-frame-parameter.*fullscreen" (cdr entry))))
+  (should (cl-some (lambda (entry)
+                     (string-match-p "push '(fullscreen . maximized) default-frame-alist"
+                                     (cdr entry)))
+                   (xl-test--code-lines
+                    (expand-file-name "emacs/early-init.el" xl-dotfiles)))))
+
 ;;; ============================================================
 ;;; Leader keys and function keys
 ;;; ============================================================
