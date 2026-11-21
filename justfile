@@ -46,6 +46,8 @@ spacemacs-install:
 # How the recipes fit together:
 #   emacs-mac-setup      = require-macos + install + emacs-crafted-install
 #                          + emacs-trampolines-cache-setup + emacs-make-default
+#   emacs-linux-setup    = require-linux + install + emacs-crafted-install
+#                          + emacs-trampolines-cache-setup + emacs-make-default
 #   emacs-windows-setup  = require-emacs + emacs-crafted-install ~/.emacs.d
 #                          + emacs-smoke (PROFILE_DIR=~/.emacs.d)
 #   emacs-check          = emacs-smoke + emacs-test   (after a config change)
@@ -221,6 +223,26 @@ require-macos: require-emacs
 # (and installs the packages on a first run).
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
 emacs-mac-setup: require-macos install emacs-crafted-install emacs-trampolines-cache-setup emacs-make-default
+
+###########################
+# Linux: one command does all
+###########################
+
+# fail before install touches anything: Linux, Emacs 30+, no guessing
+[private]
+require-linux: require-emacs
+    #!/usr/bin/env bash
+    case "$(uname -s)" in
+        Linux) ;;
+        Darwin) echo "Run this on Linux; on macOS use: just emacs-mac-setup"; exit 1 ;;
+        MINGW*|MSYS*|CYGWIN*) echo "Run this on Linux; on Windows use: just emacs-windows-setup"; exit 1 ;;
+        *) echo "Run this on Linux (found: $(uname -s)), no setup recipe for this platform"; exit 1 ;;
+    esac
+
+# emacs-make-default works on Linux too: ~/.emacs.d becomes a link to the
+# profile, and an existing ~/.emacs.d is moved to ~/.emacs-profiles/spacemacs.
+# Linux: dotfiles + Crafted Emacs in one command
+emacs-linux-setup: require-linux install emacs-crafted-install emacs-trampolines-cache-setup emacs-make-default
 
 ###########################
 # Docker Environment
