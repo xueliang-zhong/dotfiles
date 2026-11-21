@@ -110,6 +110,15 @@ emacs-test profile="crafted":
 # everything a config change must pass: smoke + ERT suite
 emacs-check: emacs-smoke emacs-test
 
+# native-compile the installed packages and Crafted modules in batch mode, so
+# no running Emacs is slowed down.  Loads only early-init.el (no config side
+# effects); the .eln files go to the profile's eln-cache, which Emacs reads on
+# its next start.  Run it when Emacs is closed or idle: it takes minutes.
+emacs-jit-compile profile="crafted":
+    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
+      -l '{{PROFILES}}/{{profile}}/early-init.el' \
+      --eval '(progn (require (quote comp)) (let* ((files (append (directory-files-recursively package-user-dir "^[^.].*[.]el$") (directory-files-recursively (expand-file-name "modules" xl-crafted-home) "^[^.].*[.]el$"))) (ok 0) (skip 0)) (dolist (f files) (condition-case err (progn (native-compile f) (setq ok (1+ ok))) (error (setq skip (1+ skip)) (message "skip %s: %S" f err)))) (message "native-compiled %d files, skipped %d" ok skip)))'
+
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:
