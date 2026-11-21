@@ -162,7 +162,7 @@ just emacs-check   # 上面两条一起跑
 just emacs-mac-setup
 ```
 
-它依次做五件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；完整加载一遍配置（第一次会顺便装好所有包）；在 batch 里预先编译 trampoline 缓存，第一次 GUI 启动就不会白屏；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
+它依次做四件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；在 batch 里完整加载一遍配置（`emacs-trampolines-cache-setup`：第一次会顺便装好所有包，有初始化错误会直接失败，并预先编译 trampoline 缓存，第一次 GUI 启动就不会白屏）；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
 
 之后用 `just emacs-try` 启动 Emacs，或者直接打开 Dock 里的 Emacs。
 

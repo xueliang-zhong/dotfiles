@@ -42,20 +42,44 @@ spacemacs-install:
 # Emacs profiles: try before buy
 # Each profile is its own init directory under ~/.emacs-profiles and is
 # started with --init-directory, so it never touches ~/.emacs.d (Spacemacs).
-# Try another Emacs binary with: EMACS=/path/to/emacs just emacs-try
+#
+# How the recipes fit together:
+#   emacs-mac-setup      = require-macos + install + emacs-crafted-install
+#                          + emacs-trampolines-cache-setup + emacs-make-default
+#   emacs-windows-setup  = require-emacs + emacs-crafted-install ~/.emacs.d
+#                          + emacs-smoke (PROFILE_DIR=~/.emacs.d)
+#   emacs-check          = emacs-smoke + emacs-test   (after a config change)
+# emacs-smoke, emacs-test and emacs-trampolines-cache-setup all start with
+# EMACS_BATCH (load the profile in batch), so any init error fails them.
+#
+# Overrides: EMACS=/path/to/emacs just emacs-try
+#            just PROFILE=other emacs-check   (or PROFILE_DIR=/some/dir)
 ###########################
 
 # The `emacs` on PATH (Emacs 31; on macOS /Applications/Emacs.app).
-# Try another binary with: EMACS=/path/to/emacs just emacs-try
 EMACS := env_var_or_default("EMACS", "emacs")
 # Forward slashes everywhere: on Windows HOME may be C:\Users\me, and a
 # backslash is an escape both in sh command lines and in Elisp strings.
 HOME_DIR := replace(env_var_or_default("HOME", env_var_or_default("USERPROFILE", "")), "\\", "/")
 PROFILES := HOME_DIR / ".emacs-profiles"
 DOTFILES := replace(justfile_directory(), "\\", "/")
+PROFILE := "crafted"
+PROFILE_DIR := PROFILES / PROFILE
+# Load the profile in batch exactly as a GUI start does: early-init, Crafted's
+# before-init-hook, then init.el.  Recipes append what to do afterwards.
+EMACS_BATCH := "'" + EMACS + "' --batch --init-directory '" + PROFILE_DIR + "' -l '" + PROFILE_DIR + "/early-init.el' --eval '(run-hooks (quote before-init-hook))' -l '" + PROFILE_DIR + "/init.el'"
+
+# fail early with a clear message: Emacs on PATH (or EMACS=) and 30 or newer
+[private]
+require-emacs:
+    #!/usr/bin/env bash
+    set -e
+    command -v '{{EMACS}}' >/dev/null || { echo "emacs not found: put Emacs 30+ on PATH, or set EMACS=/path/to/emacs"; exit 1; }
+    ver=$('{{EMACS}}' --batch --eval '(princ emacs-major-version)' 2>/dev/null)
+    [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
 
 # clone Crafted Emacs at the locked commit and generate the profile stubs in DIR
-emacs-crafted-install dir=(PROFILES / "crafted"):
+emacs-crafted-install dir=PROFILE_DIR:
     #!/usr/bin/env bash
     set -e
     # tr: a CRLF checkout (Git for Windows' default) leaves "\r" on the commit id
@@ -89,39 +113,31 @@ emacs-crafted-install dir=(PROFILES / "crafted"):
     } > "$dir/init.el"
     echo "Crafted profile ready: $dir"
 
-# start a profile next to the default Emacs, e.g. `just emacs-try crafted`
-emacs-try profile="crafted":
-    '{{EMACS}}' --init-directory '{{PROFILES}}/{{profile}}' &
+# start the profile next to the default Emacs
+emacs-try:
+    '{{EMACS}}' --init-directory '{{PROFILE_DIR}}' &
 
-# load a profile in batch mode; fails on any init error
-emacs-smoke profile="crafted":
-    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
-      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
-      -l '{{PROFILES}}/{{profile}}/init.el' --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
+# The first run also installs the packages.
+# load the profile in batch mode; fails on any init error
+emacs-smoke:
+    {{EMACS_BATCH}} --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
 
-# run the ERT suite against a loaded profile: keys, hooks, files, behaviour
-emacs-test profile="crafted":
-    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
-      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
-      -l '{{PROFILES}}/{{profile}}/init.el' \
-      -l '{{DOTFILES}}/emacs/tests/smoke-tests.el' \
-      -f ert-run-tests-batch-and-exit
+# run the ERT suite against the loaded profile: keys, hooks, files, behaviour
+emacs-test:
+    {{EMACS_BATCH}} -l '{{DOTFILES}}/emacs/tests/smoke-tests.el' -f ert-run-tests-batch-and-exit
 
 # everything a config change must pass: smoke + ERT suite
 emacs-check: emacs-smoke emacs-test
 
-# build the subr trampolines in batch, before a GUI start needs them.  When
-# config advises a C primitive (evil: select-window, read-key-sequence, ...),
-# a native-built Emacs compiles a trampoline for it on the main thread, about
-# 1 s each, if none is cached: a cold cache gave a white frame for 12 s.  This
-# loads the profile, then runs the idle-timer loads (org, magit, eshell,
-# diff-hl, ...) so their advice gets a trampoline too.  Run it after setup, an
-# Emacs upgrade or a new package; it is quick when the cache is already warm.
-emacs-trampolines-cache-setup profile="crafted":
-    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
-      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
-      -l '{{PROFILES}}/{{profile}}/init.el' \
-      --eval '(if (not (native-comp-available-p)) (message "emacs-trampolines-cache-setup: this Emacs has no native compilation; nothing to build.") (dolist (timer (copy-sequence timer-idle-list)) (ignore-errors (timer-event-handler timer))) (message "subr trampolines cached: %d" (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))'
+# When config advises a C primitive (evil: select-window, read-key-sequence,
+# ...), a native-built Emacs compiles a trampoline for it on the main thread,
+# about 1 s each, if none is cached: a cold cache gave a white frame for 12 s.
+# This loads the profile (so it is a smoke test too), then runs the idle-timer
+# loads (org, magit, eshell, diff-hl, ...) so their advice gets a trampoline.
+# Run it after setup, an Emacs upgrade or a new package; ~1 s when warm.
+# build the subr trampolines in batch, so a GUI start never compiles them
+emacs-trampolines-cache-setup:
+    {{EMACS_BATCH}} --eval '(if (not (native-comp-available-p)) (message "profile ok; this Emacs has no native compilation, so no trampolines to build") (dolist (timer (copy-sequence timer-idle-list)) (ignore-errors (timer-event-handler timer))) (message "profile ok; subr trampolines cached: %d" (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))'
 
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
@@ -131,7 +147,7 @@ emacs-make-default:
     case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) echo "On Windows use: just emacs-windows-setup"; exit 1 ;; esac
     if [ -L ~/.emacs.d ]; then
         target=$(readlink ~/.emacs.d)
-        [ "$target" = "{{PROFILES}}/crafted" ] && { echo "~/.emacs.d already points to Crafted"; exit 0; }
+        [ "$target" = "{{PROFILE_DIR}}" ] && { echo "~/.emacs.d already points to Crafted"; exit 0; }
         echo "~/.emacs.d is a link to $target, stop"; exit 1
     fi
     if pgrep -f "Emacs.app/Contents/MacOS|bin/emacs" >/dev/null; then echo "Quit all Emacs first"; exit 1; fi
@@ -140,8 +156,8 @@ emacs-make-default:
         mv ~/.emacs.d "{{PROFILES}}/spacemacs"
         echo "Moved ~/.emacs.d to {{PROFILES}}/spacemacs"
     fi
-    ln -s "{{PROFILES}}/crafted" ~/.emacs.d
-    echo "Default Emacs now starts Crafted (~/.emacs.d -> {{PROFILES}}/crafted)"
+    ln -s "{{PROFILE_DIR}}" ~/.emacs.d
+    echo "Default Emacs now starts Crafted (~/.emacs.d -> {{PROFILE_DIR}})"
 
 # undo emacs-make-default: put Spacemacs back as ~/.emacs.d
 emacs-restore-spacemacs:
@@ -157,7 +173,7 @@ emacs-restore-spacemacs:
 # of linking), sets the HOME user variable so Start-menu Emacs finds it, moves
 # any old ~/.emacs, ~/.emacs.el, ~/.emacs.d aside, then installs packages.
 # Windows (run in Git Bash): fresh clone to working Emacs in one command
-emacs-windows-setup:
+emacs-windows-setup: require-emacs
     #!/usr/bin/env bash
     set -eu
     case "$(uname -s)" in
@@ -165,11 +181,7 @@ emacs-windows-setup:
         *) [ -n "${XL_FORCE_WINDOWS:-}" ] || { echo "Run this from Git Bash on Windows"; exit 1; } ;;
     esac
     winpath() { if command -v cygpath >/dev/null; then cygpath -m "$1"; else printf '%s' "$1" | tr '\\' '/'; fi; }
-    emacs='{{EMACS}}'
-    command -v "$emacs" >/dev/null || { echo "emacs not found: add <emacs>/bin to PATH, or run EMACS=/c/path/to/emacs.exe just emacs-windows-setup"; exit 1; }
-    ver=$("$emacs" --batch --eval '(princ emacs-major-version)' 2>/dev/null)
-    [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
-    echo "Emacs $("$emacs" --batch --eval '(princ emacs-version)')"
+    echo "Emacs $('{{EMACS}}' --batch --eval '(princ emacs-version)')"
     # Started from the Start menu, Emacs uses %HOME% as ~ and falls back to
     # %APPDATA% when it is unset; pin it to the profile folder Git Bash uses.
     if command -v powershell.exe >/dev/null; then
@@ -186,12 +198,10 @@ emacs-windows-setup:
         grep -qs "Generated by just emacs-crafted-install" "$HOME/$f/init.el" && continue
         mkdir -p "$backup"; mv "$HOME/$f" "$backup/"; echo "Moved ~/$f to $backup"
     done
-    just --justfile '{{justfile()}}' emacs-crafted-install "$HOME/.emacs.d"
-    echo "Installing packages (first run downloads them, a few minutes)..."
     d="$(winpath "$HOME/.emacs.d")"
-    "$emacs" --batch --init-directory "$d" -l "$d/early-init.el" \
-        --eval '(run-hooks (quote before-init-hook))' -l "$d/init.el" \
-        --eval '(message "smoke ok: Emacs %s, %s" emacs-version user-emacs-directory)'
+    just --justfile '{{justfile()}}' emacs-crafted-install "$d"
+    echo "Installing packages (first run downloads them, a few minutes)..."
+    just --justfile '{{justfile()}}' PROFILE_DIR="$d" emacs-smoke
     echo "Done. Start Emacs from the Start menu or run: runemacs"
 
 ###########################
@@ -200,19 +210,17 @@ emacs-windows-setup:
 
 # fail before install touches anything: macOS, Emacs 30+, no guessing
 [private]
-require-macos:
+require-macos: require-emacs
     #!/usr/bin/env bash
-    set -e
     case "$(uname -s)" in
         Darwin) ;;
         *) echo "Run this on macOS; on Windows use: just emacs-windows-setup"; exit 1 ;;
     esac
-    command -v '{{EMACS}}' >/dev/null || { echo "emacs not found: install Emacs 30+ or run EMACS=/path/to/emacs just emacs-mac-setup"; exit 1; }
-    ver=$('{{EMACS}}' --batch --eval '(princ emacs-major-version)' 2>/dev/null)
-    [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
 
+# The trampoline step loads the whole profile, so it is also the smoke test
+# (and installs the packages on a first run).
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
-emacs-mac-setup: require-macos install emacs-crafted-install emacs-smoke emacs-trampolines-cache-setup emacs-make-default
+emacs-mac-setup: require-macos install emacs-crafted-install emacs-trampolines-cache-setup emacs-make-default
 
 ###########################
 # Docker Environment
