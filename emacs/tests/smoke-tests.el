@@ -146,7 +146,6 @@ names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are allowed."
   "Packages run as byte code: no JIT, and no native compile when installed."
   (when (boundp 'native-comp-jit-compilation)
     (should-not native-comp-jit-compilation))
-  (should inhibit-automatic-native-compilation)
   (should-not package-native-compile))
 
 (ert-deftest xl-packages-load-as-byte-code ()

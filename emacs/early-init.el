@@ -55,7 +55,6 @@
 ;; needs a "trampoline", compiled once on the main thread and cached in
 ;; eln-cache; `just emacs-check' builds them in batch, before a GUI start.
 (setq native-comp-jit-compilation nil
-      inhibit-automatic-native-compilation t
       package-native-compile nil
       native-comp-async-report-warnings-errors 'silent)
 
