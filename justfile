@@ -110,6 +110,19 @@ emacs-test profile="crafted":
 # everything a config change must pass: smoke + ERT suite
 emacs-check: emacs-smoke emacs-test
 
+# build the subr trampolines in batch, before a GUI start needs them.  When
+# config advises a C primitive (evil: select-window, read-key-sequence, ...),
+# a native-built Emacs compiles a trampoline for it on the main thread, about
+# 1 s each, if none is cached: a cold cache gave a white frame for 12 s.  This
+# loads the profile, then runs the idle-timer loads (org, magit, eshell,
+# diff-hl, ...) so their advice gets a trampoline too.  Run it after setup, an
+# Emacs upgrade or a new package; it is quick when the cache is already warm.
+emacs-trampolines-cache-setup profile="crafted":
+    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
+      -l '{{PROFILES}}/{{profile}}/early-init.el' --eval '(run-hooks (quote before-init-hook))' \
+      -l '{{PROFILES}}/{{profile}}/init.el' \
+      --eval '(if (not (native-comp-available-p)) (message "emacs-trampolines-cache-setup: this Emacs has no native compilation; nothing to build.") (dolist (timer (copy-sequence timer-idle-list)) (ignore-errors (timer-event-handler timer))) (message "subr trampolines cached: %d" (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))'
+
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:
@@ -199,7 +212,7 @@ require-macos:
     [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
 
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
-emacs-mac-setup: require-macos install emacs-crafted-install emacs-smoke emacs-make-default
+emacs-mac-setup: require-macos install emacs-crafted-install emacs-smoke emacs-trampolines-cache-setup emacs-make-default
 
 ###########################
 # Docker Environment

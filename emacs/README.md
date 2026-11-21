@@ -37,7 +37,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 - 启动时关掉 GC，启动完成后恢复到 128 MB。
 - 关掉菜单栏、工具栏、滚动条。
-- 包只用 bytecode：关闭 JIT 原生编译、自动原生编译和装包时的原生编译。Emacs 自带的核心 Lisp 仍是 native 的；advice C 原语需要的 trampoline 会在缓存为空时同步编译一次（第一次启动可能多几秒白屏），`just emacs-check` 会在 batch 里顺带把它们建好。
+- 包只用 bytecode：关闭 JIT 原生编译和装包时的原生编译。Emacs 自带的核心 Lisp 仍是 native 的；advice C 原语需要的 trampoline 会在缓存为空时在主线程同步编译一次（第一次启动可能多几秒白屏）。`just emacs-trampolines-cache-setup` 在 batch 里预先把它们建好，`just emacs-mac-setup` 会自动执行它。
 - 每次 GUI 启动把各阶段耗时写进 `~/.emacs-profiles/crafted/startup.log`（上一次的保留为 `startup.log.1`），白屏时看最后一行就知道卡在哪；启动期间按 C-g 会弹出 Backtrace。
 - 包目录按 Emacs 版本分开（`elpa-31.1`），编译产物不会跨版本混用。
 - 关闭 Crafted 每天启动时的包列表刷新检查，改为手动刷新。
@@ -124,6 +124,7 @@ Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第
 | 改 Spacemacs 风格的默认键位 | `spacemacs-keys.el` |
 | 增加或去掉一个 Crafted 模块 | `init.el` 里的 `require` |
 | 升级 Crafted | 改 `frameworks.lock` 的提交号，再执行 `just emacs-crafted-install` |
+| 升级 Emacs、重建 profile 或新增包之后 | 执行 `just emacs-trampolines-cache-setup`，避免第一次启动白屏 |
 | 改启动期设置（GC、JIT、包目录） | `early-init.el` |
 
 修改后用下面这几条命令检查：
@@ -161,7 +162,7 @@ just emacs-check   # 上面两条一起跑
 just emacs-mac-setup
 ```
 
-它依次做四件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；完整加载配置并运行 ERT 测试（第一次会顺便装好所有包）；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
+它依次做五件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；完整加载一遍配置（第一次会顺便装好所有包）；在 batch 里预先编译 trampoline 缓存，第一次 GUI 启动就不会白屏；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
 
 之后用 `just emacs-try` 启动 Emacs，或者直接打开 Dock 里的 Emacs。
 
