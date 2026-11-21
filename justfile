@@ -199,7 +199,7 @@ require-macos:
     [ "${ver:-0}" -ge 30 ] || { echo "Need Emacs 30 or newer, found: ${ver:-none}"; exit 1; }
 
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
-emacs-mac-setup: require-macos install emacs-crafted-install emacs-check emacs-make-default
+emacs-mac-setup: require-macos install emacs-crafted-install emacs-smoke emacs-make-default
 
 ###########################
 # Docker Environment
