@@ -114,10 +114,14 @@ emacs-check: emacs-smoke emacs-test
 # no running Emacs is slowed down.  Loads only early-init.el (no config side
 # effects); the .eln files go to the profile's eln-cache, which Emacs reads on
 # its next start.  Run it when Emacs is closed or idle: it takes minutes.
+# The compile runs at the lowest CPU priority (nice 19), and on macOS in the
+# background QoS class (taskpolicy), so the UI of a running Emacs stays smooth.
+# Each wrapper is used only if the tool exists (Git Bash on Windows has no
+# taskpolicy; nice may be missing too).
 emacs-jit-compile profile="crafted":
-    '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
+    run=""; command -v nice >/dev/null 2>&1 && run="nice -n 19"; command -v taskpolicy >/dev/null 2>&1 && run="taskpolicy -c background $run"; $run '{{EMACS}}' --batch --init-directory '{{PROFILES}}/{{profile}}' \
       -l '{{PROFILES}}/{{profile}}/early-init.el' \
-      --eval '(progn (require (quote comp)) (let* ((files (append (directory-files-recursively package-user-dir "^[^.].*[.]el$") (directory-files-recursively (expand-file-name "modules" xl-crafted-home) "^[^.].*[.]el$"))) (ok 0) (skip 0)) (dolist (f files) (condition-case err (progn (native-compile f) (setq ok (1+ ok))) (error (setq skip (1+ skip)) (message "skip %s: %S" f err)))) (message "native-compiled %d files, skipped %d" ok skip)))'
+      --eval '(if (not (native-comp-available-p)) (message "emacs-jit-compile: this Emacs has no native compilation (libgccjit missing, e.g. the official Windows build); nothing to do.") (progn (require (quote comp)) (package-activate-all) (dolist (d (directory-files package-user-dir nil "^[^.]")) (when (string-match "\\`\\(.+\\)-[0-9][0-9.]*\\'"'"'" d) (require (intern (match-string 1 d)) nil t))) (let* ((files (seq-remove (lambda (f) (or (string-search "/doc/" f) (string-suffix-p "-tests.el" f))) (append (directory-files-recursively package-user-dir "^[^.].*[.]el$") (directory-files-recursively (expand-file-name "modules" xl-crafted-home) "^[^.].*[.]el$")))) (ok 0) (skip 0)) (dolist (f files) (condition-case err (progn (native-compile f) (setq ok (1+ ok))) (error (setq skip (1+ skip)) (message "skip %s: %S" f err)))) (message "native-compiled %d files, skipped %d" ok skip))))'
 
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
