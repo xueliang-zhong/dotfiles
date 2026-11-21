@@ -142,6 +142,12 @@ names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are allowed."
   (should (equal (cdr (assq 'menu-bar-lines default-frame-alist)) 0))
   (should (equal (cdr (assq 'tool-bar-lines default-frame-alist)) 0)))
 
+(ert-deftest xl-native-comp-jit-is-off ()
+  "JIT native compilation stays off: packages run as byte code at startup."
+  (when (boundp 'native-comp-jit-compilation)
+    (should-not native-comp-jit-compilation))
+  (should inhibit-automatic-native-compilation))
+
 (ert-deftest xl-frame-starts-maximized-from-early-init ()
   "The maximized size is a frame parameter from `early-init.el', so the first
 frame is created maximized; `init.el' must not set it after the frame exists."
