@@ -709,6 +709,15 @@ line can be switched off without deleting it."
 (defalias 'xueliang-org-sort   #'org-sort)
 
 ;; ============================================================
+;; Help keys - symbol lookup with live completion
+;; ============================================================
+;; The stock C-h a (`apropos-command') reads a pattern first, then builds the
+;; buffer.  `describe-symbol' offers functions, variables and faces as Vertico
+;; candidates, so Orderless filters while typing; C-q exports the matches to
+;; an *Apropos* buffer.  This is the modern replacement for `consult-apropos'.
+(keymap-set help-map "a" #'describe-symbol)
+
+;; ============================================================
 ;; Function keys - match with vim/nvim
 ;; ============================================================
 (define-keymap :keymap global-map

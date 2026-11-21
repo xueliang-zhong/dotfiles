@@ -272,6 +272,11 @@ keypress.  Prefix keymaps are walked recursively."
                   ("C-<f4>" . kill-buffer-and-window)))
     (should (eq (keymap-lookup global-map (car spec)) (cdr spec)))))
 
+(ert-deftest xl-help-key-uses-describe-symbol ()
+  "C-h a completes symbols instead of asking for an apropos pattern."
+  (should (eq (keymap-lookup help-map "a") #'describe-symbol))
+  (should (eq (keymap-lookup global-map "C-h a") #'describe-symbol)))
+
 (ert-deftest xl-mac-option-3-types-hash ()
   "On macOS UK layouts Option-3 (M-3) inserts # where text is entered.
 The normal state keeps M-3 as `digit-argument'."
