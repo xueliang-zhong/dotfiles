@@ -32,12 +32,18 @@
 (dolist (pkg xl-packages) (add-to-list 'package-selected-packages pkg))
 
 ;; Activate installed packages: load-path only, no archive reads
+(xl-startup-mark "init: activating packages")
 (package-activate-all)
 
-;; Read archives and install only when something on the list is missing
+;; Read archives and install only when something on the list is missing.
+;; This downloads over the network and checks signatures with gpg, all before
+;; the first frame is painted: the trace names the packages, so a white screen
+;; caused by a slow or stuck install shows up in startup.log.
 (require 'seq)
-(unless (seq-every-p #'package-installed-p package-selected-packages)
-  (package-install-selected-packages :noconfirm))
+(when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
+  (xl-startup-mark (format "init: installing missing packages %S" missing))
+  (package-install-selected-packages :noconfirm)
+  (xl-startup-mark "init: packages installed"))
 
 ;; ============================================================
 ;; Crafted Modules - the parts of Crafted I use
@@ -46,6 +52,7 @@
 ;; so both leaders work everywhere.  Must be set before the evil module.
 (setq evil-collection-key-blacklist '("SPC" ","))
 
+(xl-startup-mark "init: Crafted modules")
 (require 'crafted-defaults-config)   ; sane built-in defaults
 (require 'crafted-completion-config) ; vertico, consult, corfu, cape
 (require 'crafted-evil-config)       ; evil + evil-collection
@@ -72,8 +79,11 @@
 ;; ============================================================
 ;; spacemacs-keys.el: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
+(xl-startup-mark "init: spacemacs-keys.el")
 (load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
+(xl-startup-mark "init: xueliang.el")
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
+(xl-startup-mark "init: xueliang.el loaded")
 
 ;; ============================================================
 ;; Keep the Package List Complete
@@ -90,3 +100,4 @@
 
 (xl-refresh-selected-packages)
 (add-hook 'enable-theme-functions #'xl-refresh-selected-packages)
+(xl-startup-mark "init: done")

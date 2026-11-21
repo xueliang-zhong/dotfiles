@@ -16,6 +16,13 @@
 (let ((local (expand-file-name "~/.emacs-profiles/local.el")))
   (when (file-exists-p local) (load local nil t)))
 
+;; Startup trace (see early-init.el): the font and theme steps below run
+;; while the frame is still white, so mark them too.  A no-op without it.
+(defun xueliang-startup-mark (phase)
+  "Record PHASE in the startup trace when the profile provides one."
+  (when (fboundp 'xl-startup-mark) (xl-startup-mark phase)))
+
+(xueliang-startup-mark "xueliang.el: fonts")
 ;; First installed font wins, so the same file works on macOS, Windows, Linux.
 ;; Every text face uses it: `fixed-pitch', `fixed-pitch-serif' and
 ;; `variable-pitch' carry families of their own ("Monospace", "Sans Serif"),
@@ -44,8 +51,10 @@
 ;; `spacemacs-theme` passes :background nil unless this is non-nil, which
 ;; Emacs 31 warns about.  Load with highlights on, then clear them below.
 (setq spacemacs-theme-org-highlight t)
+(xueliang-startup-mark "xueliang.el: theme")
 (or (ignore-errors (load-theme 'spacemacs-dark t))
     (ignore-errors (load-theme 'doom-tokyo-night t)))
+(xueliang-startup-mark "xueliang.el: theme loaded")
 ;; Remove the muddy background strip behind comments in `spacemacs-dark'
 (set-face-attribute 'font-lock-comment-face nil :background 'unspecified)
 ;; make sure M-x works on MacOS
@@ -734,4 +743,5 @@ line can be switched off without deleting it."
 ;; Personal modules outside this repo
 ;; ============================================================
 (when (file-exists-p xl-yi-file)
+  (xueliang-startup-mark "xueliang.el: YI.el")
   (load xl-yi-file nil t))

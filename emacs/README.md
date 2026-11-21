@@ -37,7 +37,8 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 - 启动时关掉 GC，启动完成后恢复到 128 MB。
 - 关掉菜单栏、工具栏、滚动条。
-- 关闭 JIT 原生编译和自动原生编译。
+- 包只用 bytecode：关闭 JIT 原生编译、自动原生编译和装包时的原生编译。Emacs 自带的核心 Lisp 仍是 native 的；advice C 原语需要的 trampoline 会在缓存为空时同步编译一次（第一次启动可能多几秒白屏），`just emacs-check` 会在 batch 里顺带把它们建好。
+- 每次 GUI 启动把各阶段耗时写进 `~/.emacs-profiles/crafted/startup.log`（上一次的保留为 `startup.log.1`），白屏时看最后一行就知道卡在哪；启动期间按 C-g 会弹出 Backtrace。
 - 包目录按 Emacs 版本分开（`elpa-31.1`），编译产物不会跨版本混用。
 - 关闭 Crafted 每天启动时的包列表刷新检查，改为手动刷新。
 - 抑制 Emacs 31 对没有 `lexical-binding` 声明的第三方文件的警告。
