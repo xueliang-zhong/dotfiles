@@ -259,7 +259,7 @@ bash emacs/install/emacs-setup.sh check
 
 ## 不装 just 也能用
 
-`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 会在终端里显示彩色进度条（当前步骤、百分比和耗时），输出重定向时退化成 `#`/`-` 的纯文本条；`NO_COLOR=1` 关闭颜色。步骤内部的输出默认隐藏，失败时才打印完整日志；最长的 profile/trampoline 步骤会逐条显示 `package i/N` 和 `trampolines i/N`，不再是黑盒。`XL_VERBOSE=1` 可以看到全部输出。所以没有 `just` 的机器照样能装：
+`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 按步骤打印 `[1/5] ...` 这样的标题；`Install Emacs packages` 逐条显示 `package i/N`，`Prebuild advice trampolines` 逐条显示 `trampolines i/N`，结束时显示总耗时。`NO_COLOR=1` 关闭颜色；步骤内部的其它输出默认隐藏，失败时才打印完整日志；`XL_VERBOSE=1` 可以看到全部输出。所以没有 `just` 的机器照样能装：
 
 ```bash
 bash emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows
@@ -291,7 +291,7 @@ just emacs-mac-setup                          # 装了 just
 bash emacs/install/emacs-setup.sh setup-macos    # 没装 just
 ```
 
-它依次做四件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；在 batch 里完整加载一遍配置（`emacs-trampolines-cache-setup`：第一次会顺便装好所有包，有初始化错误会直接失败，并预先编译 trampoline 缓存，第一次 GUI 启动就不会白屏）；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
+它依次做五件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；在 batch 里完整加载一遍配置，顺便装好所有包（有初始化错误会直接失败）；再加载一遍并预先编译 advice trampoline 缓存，第一次 GUI 启动就不会白屏；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
 
 之后用 `just emacs-try`（或 `bash emacs/install/emacs-setup.sh try`）启动 Emacs，或者直接打开 Dock 里的 Emacs。
 

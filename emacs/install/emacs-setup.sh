@@ -31,34 +31,21 @@ die() {
     exit 1
 }
 
-# Progress bar for the multi-step setup commands.  A bar is printed after
-# each step:
-#   emacs-setup [██████░░░░░░░░░░░░░░░░░░]  25%  1/4  Install dotfiles
-# Redirected output (logs, CI) gets the same bar with "#" and "-" and no
-# escape codes.  NO_COLOR turns the colours off; a non-UTF-8 locale falls
-# back to "#"/"-" glyphs as well.
+# Step headings for the multi-step setup commands.  Noisy commands run
+# under `run_quiet'; the long profile/trampoline step prints its own
+# package/trampoline progress lines.  NO_COLOR turns the colours off.
 progress_total=0
 progress_done=0
 progress_started=${SECONDS:-0}
-progress_full='#'
-progress_empty='-'
 progress_colors=0
 
 progress_init() {
     progress_total=$1
     progress_done=0
     progress_started=${SECONDS:-0}
-    progress_full='#'
-    progress_empty='-'
     progress_colors=0
     if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ]; then
         progress_colors=1
-        case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
-            *[Uu][Tt][Ff]-8* | *[Uu][Tt][Ff]8*)
-                progress_full='█'
-                progress_empty='░'
-                ;;
-        esac
     fi
 }
 
@@ -66,44 +53,11 @@ progress_color() {
     [ "$progress_colors" = 1 ] && [ -z "${NO_COLOR+x}" ]
 }
 
-progress_bar() {
-    local filled i fill empty
-    filled=$(( progress_total > 0 ? progress_done * 24 / progress_total : 0 ))
-    fill=
-    empty=
-    for ((i = 0; i < 24; i++)); do
-        if ((i < filled)); then
-            fill=$fill$progress_full
-        else
-            empty=$empty$progress_empty
-        fi
-    done
-    if progress_color; then
-        printf '\033[32m%s\033[2m%s\033[0m' "$fill" "$empty"
-    else
-        printf '%s%s' "$fill" "$empty"
-    fi
-}
-
-progress_draw() {
-    local label=${1:-} pct
-    pct=$(( progress_total > 0 ? progress_done * 100 / progress_total : 0 ))
-    printf 'emacs-setup ['
-    progress_bar
-    printf '] %3d%%  %d/%d' "$pct" "$progress_done" "$progress_total"
-    if [ -n "$label" ]; then printf '  %s' "$label"; fi
-    printf '\n'
-}
-
 progress_fail() {
-    local label=${1:-}
+    local title=${1:-}
     if progress_color; then printf '\033[31m'; fi
-    printf 'emacs-setup ['
-    progress_bar
-    printf '] FAILED'
-    if [ -n "$label" ]; then printf '  %s' "$label"; fi
+    printf '[%d/%d] FAILED  %s\n' "$progress_done" "$progress_total" "$title"
     if progress_color; then printf '\033[0m'; fi
-    printf '\n'
 }
 
 progress_step() {
@@ -117,10 +71,7 @@ progress_step() {
         printf '[%d/%d] %s\n' "$progress_done" "$progress_total" "$title"
     fi
     if "$@"; then
-        # The final 100% bar is drawn by `progress_finish', labelled "done".
-        if [ "$progress_done" -lt "$progress_total" ]; then
-            progress_draw "$title"
-        fi
+        return 0
     else
         progress_fail "$title"
         return 1
@@ -129,8 +80,6 @@ progress_step() {
 
 progress_finish() {
     local message=${1:-Done} elapsed
-    progress_done=$progress_total
-    progress_draw "done"
     elapsed=$(( ${SECONDS:-0} - progress_started ))
     if progress_color; then
         printf '\033[1;32m%s\033[0m (%ss)\n' "$message" "$elapsed"
@@ -351,15 +300,16 @@ cmd_restore_spacemacs() {
     say "Spacemacs restored as ~/.emacs.d"
 }
 
-# The trampoline step loads the whole profile, so it is also the smoke test
-# (and installs the packages on a first run).
+# Loading the profile installs missing packages and is the smoke test; the
+# trampoline step is a separate load so each phase has its own title.
 cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
-    progress_init 4
+    progress_init 5
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
-    progress_step "Profile smoke test and trampolines" run_progress cmd_trampolines
+    progress_step "Install Emacs packages" run_progress cmd_smoke
+    progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "macOS setup complete"
 }
@@ -371,10 +321,11 @@ cmd_setup_linux() {
         MINGW* | MSYS* | CYGWIN*) die "run this in Linux; on Windows use setup-windows" ;;
         *) die "no setup for $(uname -s)" ;;
     esac
-    progress_init 4
+    progress_init 5
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
-    progress_step "Profile smoke test and trampolines" run_progress cmd_trampolines
+    progress_step "Install Emacs packages" run_progress cmd_smoke
+    progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "Linux setup complete"
 }
@@ -426,7 +377,7 @@ cmd_setup_windows() {
     progress_step "Move old configurations aside" cmd_windows_move_old_configs
     d=$(winpath "$HOME/.emacs.d")
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$d"
-    PROFILE_DIR="$d" progress_step "Install packages and smoke test" run_progress cmd_smoke
+    PROFILE_DIR="$d" progress_step "Install Emacs packages" run_progress cmd_smoke
     progress_finish "Done. Start Emacs from the Start menu or run: runemacs"
 }
 
