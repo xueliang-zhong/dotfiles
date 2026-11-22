@@ -91,7 +91,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 检查 Emacs 版本，低于 30 直接报错停止。
 - 加载 `custom.el`（如果存在），它是 Customize 写入的地方。
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
-- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包），然后一次装好缺少的。
+- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包）。缺包时先 `package-refresh-contents` 再装：这个配置关掉了启动时的自动刷新，而 `package-install-selected-packages` 只在缓存为空时才刷新；旧缓存会让新依赖（例如 2026 年的 transient 要求 compat 31.1）被误报为 unavailable。刷新只发生在确实缺包的那次启动，装完就恢复零网络。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
 - 加载 `spacemacs-keys.el`，然后用 `require` 从 `lisp/` 载入 `xl-git-status.el`、`xl-git-commands.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为用户单独安装这两个包时走的是同一条路。
@@ -235,12 +235,13 @@ bash emacs/install/emacs-setup.sh check
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 105 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 107 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
 | 文件结构 | `xl-packages` 定义在 `init.el`、`xueliang.el` 里没有；`spacemacs-keys.el` 先于个人配置加载；个人文件不出现 `crafted-`、`spacemacs/` 等框架符号 |
 | 启动设置 | 包目录按 Emacs 版本分开；菜单栏、工具栏关闭；evil 系列锁定 MELPA |
+| 装包 | 缺包时先刷新归档再安装（旧缓存会让 compat 31.1 之类的新依赖被误报 unavailable）；刷新后仍缺包会带着包名报错 |
 | 键位 | `SPC`/`M-m` 树、`SPC f f`、`SPC g g`、`SPC b s`、`SPC i s`/`SPC i S`、`SPC *`/`SPC /` 搜索、F2–F12、`SPC t r`、`SPC T n`、macOS UK 键盘 Option-3 输入 `#` |
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
@@ -277,6 +278,8 @@ bash emacs/install/emacs-setup.sh try             # 启动，参数原样传给 
 | --- | --- |
 | `XL_SKIP_DOTFILES=1` | `setup-*` 时跳过 `bash env.sh`（只装 Emacs 部分） |
 | `XL_FORCE_WINDOWS=1` | 在非 Windows 上测试 `setup-windows` 的流程 |
+
+如果第一次运行报 `Package ‘compat’ (version 31.1) is unavailable`，说明那份 profile 的归档缓存比依赖还旧：脚本现在会在缺包时自动刷新，重跑一次 `setup-*` 即可；在 Emacs 里也可以先 `M-x package-refresh-contents` 再启动。
 
 `just emacs-mac-setup` 与 `bash emacs/install/emacs-setup.sh setup-macos` 等价，前者只是把 `EMACS`、`PROFILE*`、`DOTFILES` 放进环境再调用脚本。
 

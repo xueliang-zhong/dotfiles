@@ -187,6 +187,31 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should (package-installed-p pkg))
       (should-not (memq pkg removable)))))
 
+(ert-deftest xl-package-install-refreshes-a-stale-cache ()
+  "The install path refreshes the archives before installing.
+`package-install-selected-packages' only refreshes an empty cache; an old
+one made transient's dependency compat 31.1 look unavailable."
+  (let ((package-selected-packages '(xl-test-pkg))
+        (installed nil)
+        events)
+    (cl-letf (((symbol-function 'package-installed-p)
+               (lambda (pkg) (and (eq pkg 'xl-test-pkg) installed)))
+              ((symbol-function 'package-refresh-contents)
+               (lambda (&rest _) (push 'refresh events)))
+              ((symbol-function 'package-install-selected-packages)
+               (lambda (&rest _) (push 'install events) (setq installed t))))
+      (xl-install-missing-packages))
+    ;; Pushed newest first: the refresh ran before the install.
+    (should (equal '(install refresh) events))))
+
+(ert-deftest xl-package-install-reports-what-is-still-missing ()
+  "A package that stays unavailable stops startup with its name."
+  (let ((package-selected-packages '(xl-test-missing)))
+    (cl-letf (((symbol-function 'package-installed-p) #'ignore)
+              ((symbol-function 'package-refresh-contents) #'ignore)
+              ((symbol-function 'package-install-selected-packages) #'ignore))
+      (should-error (xl-install-missing-packages) :type 'error))))
+
 ;;; ============================================================
 ;;; Package Menu loader
 ;;; ============================================================

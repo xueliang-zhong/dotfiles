@@ -40,10 +40,25 @@
 ;; the first frame is painted: the trace names the packages, so a white screen
 ;; caused by a slow or stuck install shows up in startup.log.
 (require 'seq)
-(when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
-  (xl-startup-mark (format "init: installing missing packages %S" missing))
-  (package-install-selected-packages :noconfirm)
-  (xl-startup-mark "init: packages installed"))
+
+(defun xl-install-missing-packages ()
+  "Refresh the archives, then install what `package-selected-packages' lists.
+`package-install-selected-packages' only refreshes when the archive cache is
+empty.  An old cache makes package.el report a dependency as unavailable
+even though the archive offers it: transient asked for compat 31.1 on a
+machine whose cached index predated it.  So refresh whenever this path runs;
+that is only when a package is actually missing."
+  (when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
+    (xl-startup-mark (format "init: installing missing packages %S" missing))
+    (package-refresh-contents)
+    (xl-startup-mark "init: package archives refreshed")
+    (package-install-selected-packages :noconfirm)
+    (xl-startup-mark "init: packages installed")
+    (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
+      (error "Still missing after refreshing the archives: %S (try `M-x package-refresh-contents')"
+             still))))
+
+(xl-install-missing-packages)
 
 ;; ============================================================
 ;; Crafted Modules - the parts of Crafted I use

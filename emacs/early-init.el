@@ -63,8 +63,10 @@
       (expand-file-name (format "elpa-%d.%d" emacs-major-version emacs-minor-version)
                         user-emacs-directory))
 
-;; Crafted refreshes package archives at startup when older than a day;
-;; refresh by hand instead (M-x package-refresh-contents).
+;; Crafted would refresh package archives at startup when older than a day.
+;; This config skips that: init.el refreshes only on the path that installs a
+;; missing package, where a stale cache makes a dependency look unavailable;
+;; otherwise refresh by hand with M-x package-refresh-contents.
 (setq crafted-package-perform-stale-archive-check nil)
 
 ;; Defer package archive reads: `package-initialize' reads every archive
