@@ -353,7 +353,7 @@ line can be switched off without deleting it."
 (setq corfu-auto-delay (if xl-win-p 0.2 0)
       corfu-auto-prefix 2 ;; 2 works better for org-tempo '<s'
       ;; Corfu stays in buffers; the minibuffer ':' uses vertico
-      global-corfu-minibuffer t
+      global-corfu-minibuffer nil
       ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
 
