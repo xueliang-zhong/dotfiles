@@ -1690,11 +1690,21 @@ which Crafted still puts on `embark-collect-mode-hook'."
         (should (file-equal-p cwd dir))
         (should (equal default-directory "/"))))))
 
-(ert-deftest xl-just-commands-run-in-the-background ()
-  "`SPC c c' and the daily job send `just' to the shell with `&'."
-  (should (equal (xl-test--capture-ex #'xueliang-just-make) '("!just all &")))
-  (should (equal (xl-test--capture-ex #'xueliang-daily-websites)
-                 '("!just daily-websites &"))))
+(ert-deftest xl-just-commands-go-through-compile ()
+  "`SPC c c' and the daily job run `just' asynchronously in a compile buffer.
+`&' in an evil ex command hid the output; `compile' streams it and keeps
+the exit status."
+  (let (calls)
+    (cl-letf (((symbol-function 'compile)
+               (lambda (command &optional _comint)
+                 (push (cons command default-directory) calls))))
+      (xueliang-just-make)
+      (xueliang-daily-websites))
+    (setq calls (nreverse calls))
+    (should (equal (mapcar #'car calls)
+                   '("just all" "just daily-websites")))
+    (dolist (call calls)
+      (should (file-equal-p (cdr call) (expand-file-name xl-dotfiles-dir))))))
 
 (ert-deftest xl-ime-switches-to-english-layout ()
   "Leaving insert state calls macism with the British layout."

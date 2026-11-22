@@ -670,8 +670,24 @@ line can be switched off without deleting it."
   (untabify (point-min) (point-max)) (delete-trailing-whitespace))
 (defun xueliang-dired-jump () (interactive)
   (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
-(defun xueliang-just-make () (interactive) (evil-ex-execute "!just all &"))
-(defun xueliang-daily-websites () (interactive) (evil-ex-execute "!just daily-websites &"))
+(defun xueliang-just-run (&rest args)
+  "Run `just' with ARGS in the dotfiles, asynchronously.
+ARGS are the recipe and its arguments.  Output streams into
+`*compilation*', so `next-error' jumps to the failing file:line, the
+buffer keeps the log, and a failed recipe stays visible instead of
+disappearing with the shell command's temporary buffer."
+  (let ((default-directory (expand-file-name xl-dotfiles-dir)))
+    (compile (mapconcat #'identity (cons "just" args) " "))))
+
+(defun xueliang-just-make ()
+  "Run `just all' in the dotfiles, asynchronously."
+  (interactive)
+  (xueliang-just-run "all"))
+
+(defun xueliang-daily-websites ()
+  "Run the `daily-websites' recipe, asynchronously."
+  (interactive)
+  (xueliang-just-run "daily-websites"))
 
 ;; Some useful alias
 (defalias 'xueliang-what-face  #'describe-face)

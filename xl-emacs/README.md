@@ -149,6 +149,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 - Org：`org-modules` 保持为空，但显式 require `org-tempo`，所以插入态里 `<s` + TAB 也会展开成 `#+begin_src` 代码块。
 - dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
+- F7（`just all`）和 `SPC c c` 通过 `compile` 异步跑 `just`：输出流进 `*compilation*` 并保留，失败时 `next-error` 能跳到出错的 `文件:行`；之前的 `!just all &` 把输出丢在临时 buffer 里，失败也看不见。
 
 这个文件不应该出现 `spacemacs/`、`doom`、`crafted-` 开头的符号，这样换掉框架时它不用改。
 
