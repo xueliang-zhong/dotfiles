@@ -81,6 +81,8 @@
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
 (xl-startup-mark "init: spacemacs-keys.el")
 (load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
+(xl-startup-mark "init: git-status.el")
+(load (expand-file-name "emacs/git-status.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el")
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el loaded")

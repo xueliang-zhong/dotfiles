@@ -685,9 +685,11 @@ line can be switched off without deleting it."
   (xueliang-split-right) (switch-to-buffer (get-scratch-buffer-create)))
 
 (defun xueliang-magit-status-window ()
-  "Open magit status, preferring a right split." (interactive)
+  "Open my Git status, preferring a right split." (interactive)
   (setq-local split-width-threshold 10) ; prefer vsplit
-  (xueliang-cd-current-dir) (magit-status))
+  (xueliang-cd-current-dir)
+  ;; (magit-status)
+  (xueliang-git-status))
 
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
@@ -746,7 +748,7 @@ line can be switched off without deleting it."
 (xl-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "c c" "just all"       #'xueliang-just-make
            "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
-           "g g" "magit status"   #'xueliang-magit-status-window)
+           "g g" "git status"   #'xueliang-magit-status-window)
 
 ;; ============================================================
 ;; Personal modules outside this repo

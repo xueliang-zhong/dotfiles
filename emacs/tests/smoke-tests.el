@@ -60,6 +60,21 @@
         (insert "new\n")))
     dir))
 
+(defun xl-test--git-output (dir &rest args)
+  "Run git ARGS in DIR and return its trimmed output."
+  (with-temp-buffer
+    (let ((code (apply #'call-process "git" nil t nil "-C" dir args)))
+      (should (zerop code))
+      (string-trim (buffer-string)))))
+
+(defun xl-test--wait-for-git-status (buffer)
+  "Wait until the Git status BUFFER has finished rendering."
+  (with-current-buffer buffer
+    (let ((end (+ (float-time) 10)))
+      (while (and (not buffer-read-only) (< (float-time) end))
+        (accept-process-output nil 0.05)))
+    (should buffer-read-only)))
+
 ;;; ============================================================
 ;;; Profile and file structure
 ;;; ============================================================
@@ -102,31 +117,37 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should-not (memq pkg removable)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
-  "`xueliang.el' uses plain Emacs APIs, not Spacemacs/Doom/Crafted internals.
-Comments are ignored (the file explains the rule in its header).  Theme
-names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are allowed."
-  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
-    (let ((line (cdr entry)))
-      (should-not (string-match-p "crafted-" line))
-      (should-not (string-match-p "spacemacs/" line))
-      (let ((start 0))
-        (while (string-match "\\_<doom-[[:alnum:]-]+" line start)
-          (should (member (match-string 0 line)
-                          '("doom-themes" "doom-tokyo-night")))
-          (setq start (match-end 0)))))))
+  "`xueliang.el' and `git-status.el' use plain Emacs APIs.
+Comments are ignored (the files explain the rule in their headers).
+Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
+allowed."
+  (dolist (file '("emacs/xueliang.el" "emacs/git-status.el"))
+    (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
+      (let ((line (cdr entry)))
+        (should-not (string-match-p "crafted-" line))
+        (should-not (string-match-p "spacemacs/" line))
+        (let ((start 0))
+          (while (string-match "\\_<doom-[[:alnum:]-]+" line start)
+            (should (member (match-string 0 line)
+                            '("doom-themes" "doom-tokyo-night")))
+            (setq start (match-end 0))))))))
 
 (ert-deftest xl-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `xueliang.el' has to load last."
   (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
-        keys-line personal-line)
+        keys-line status-line personal-line)
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
         (setq keys-line (car entry)))
+      (when (string-match-p "git-status\\.el" (cdr entry))
+        (setq status-line (car entry)))
       (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
+    (should status-line)
     (should personal-line)
-    (should (< keys-line personal-line))))
+    (should (< keys-line status-line))
+    (should (< status-line personal-line))))
 
 (ert-deftest xl-early-init-settings ()
   "Startup-time settings from `early-init.el' are in effect."
@@ -221,6 +242,7 @@ keypress.  Prefix keymaps are walked recursively."
                   ("f f" . find-file)
                   ("f r" . consult-recent-file)
                   ("f p" . xueliang-find-file-in-dotfiles)
+                  ("h d a" . describe-symbol)
                   ("i s" . xueliang-insert-snippet)
                   ("i S" . xueliang-new-snippet)
                   ("b b" . consult-buffer)
@@ -430,6 +452,183 @@ The other TAB command would insert two spaces, so it delegates to
                                 (search-forward "Stashes" nil t))))
               (kill-buffer buf))))
       (delete-directory repo t))))
+
+(ert-deftest xl-git-status-lists-files-and-log ()
+  "The status buffer shows the head, changed files and recent commits."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (let ((default-directory (file-name-as-directory
+                                  (expand-file-name "sub/" repo))))
+          (make-directory default-directory t)
+          ;; Keep one change staged so all three sections are present.
+          (should (zerop (call-process "git" nil nil nil
+                                       "-C" repo "add" "file-0.txt")))
+          ;; A remote ref and origin/HEAD exercise the decoration filtering.
+          (dolist (ref '("refs/remotes/origin/master" "refs/remotes/origin/HEAD"))
+            (should (zerop (call-process "git" nil nil nil
+                                         "-C" repo "update-ref" ref "HEAD"))))
+          (cl-letf (((symbol-function 'display-buffer)
+                     (lambda (b &rest _) (setq buffer b) b)))
+            (xueliang-git-status)
+            (should (buffer-live-p buffer))
+            (with-current-buffer buffer
+              ;; The renderer turns the buffer read-only when both commands exit.
+              (let ((end (+ (float-time) 10)))
+                (while (and (not buffer-read-only) (< (float-time) end))
+                  (accept-process-output nil 0.05)))
+              (should (derived-mode-p 'special-mode))
+              (should buffer-read-only)
+              (should (equal default-directory
+                             (file-name-as-directory repo)))
+              (should (save-excursion
+                        (goto-char (point-min))
+                        (looking-at "Head: +[^ \n]+ initial")))
+              ;; Same section order as `magit-status': untracked, unstaged,
+              ;; staged, then the recent commits.  Match headings at line
+              ;; starts so "Staged changes" cannot match inside "Unstaged".
+              (let ((positions
+                     (mapcar (lambda (heading)
+                               (save-excursion
+                                 (goto-char (point-min))
+                                 (let ((case-fold-search nil))
+                                   (re-search-forward
+                                    (concat "^" (regexp-quote heading)) nil t))))
+                             '("Untracked files" "Unstaged changes"
+                               "Staged changes" "Recent commits"))))
+                (should (cl-every #'identity positions))
+                (should (apply #'< positions)))
+              ;; Faces: Head label, section heading, status label, file path,
+              ;; hash and ref.
+              (should (eq (get-text-property (point-min) 'face) 'bold))
+              (save-excursion
+                (goto-char (point-min))
+                (should (search-forward "Unstaged changes" nil t))
+                (should (eq (get-text-property (1- (point)) 'face)
+                            'xueliang-git-status-heading)))
+              (save-excursion
+                (goto-char (point-min))
+                (should (search-forward "modified" nil t))
+                (should (eq (get-text-property (1- (point)) 'face)
+                            'xueliang-git-status-status))
+                (should (search-forward "file-1.txt" nil t))
+                (should (eq (get-text-property (1- (point)) 'face)
+                            'xueliang-git-status-file)))
+              (save-excursion
+                (goto-char (point-min))
+                (should (search-forward "Recent commits" nil t))
+                (should (re-search-forward
+                         "^\\([0-9a-f]+\\) origin/master initial$" nil t))
+                (let ((hash-start (match-beginning 1)))
+                  (should (eq (get-text-property hash-start 'face)
+                              'xueliang-git-status-hash))
+                  (goto-char hash-start)
+                  (should (search-forward "origin/master" nil t))
+                  (should (eq (get-text-property (1- (point)) 'face)
+                              'xueliang-git-status-ref))))
+              ;; The newest commit appears again below the log heading.
+              (should (= 2 (how-many "initial" (point-min) (point-max))))
+              (should (= (point) (point-min)))
+              (let ((window (get-buffer-window buffer t)))
+                (when window
+                  (should (= (window-point window) (point-min))))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-keys ()
+  "s, u and RET are bound in the status mode and in Evil normal state."
+  (dolist (spec '(("s" . xueliang-git-status-stage)
+                  ("u" . xueliang-git-status-unstage)
+                  ("RET" . xueliang-git-status-visit)))
+    (should (eq (keymap-lookup xueliang-git-status-mode-map (car spec))
+                (cdr spec))))
+  (require 'evil)
+  (let ((normal (evil-get-auxiliary-keymap
+                 xueliang-git-status-mode-map 'normal t)))
+    (dolist (spec '(("s" . xueliang-git-status-stage)
+                    ("u" . xueliang-git-status-unstage)
+                    ("RET" . xueliang-git-status-visit)))
+      (should (eq (keymap-lookup normal (car spec)) (cdr spec))))))
+
+(ert-deftest xl-git-status-stages-and-unstages ()
+  "`s' stages the file at point and `u' puts it back in the index."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              ;; file-0.txt is unstaged: stage it.
+              (goto-char (point-min))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (xueliang-git-status-stage)
+              (xl-test--wait-for-git-status buffer)
+              (should (equal "file-0.txt"
+                             (xl-test--git-output repo "diff" "--cached"
+                                                  "--name-only")))
+              ;; It is under Staged changes now: unstage it again.
+              (goto-char (point-min))
+              (should (search-forward "Staged changes" nil t))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (xueliang-git-status-unstage)
+              (xl-test--wait-for-git-status buffer)
+              (should (equal "" (xl-test--git-output repo "diff" "--cached"
+                                                      "--name-only"))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-visits-files-and-commits ()
+  "`RET' opens the file at point and shows the commit at point."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil)
+        (opened nil)
+        (commit nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b))
+                  ((symbol-function 'find-file)
+                   (lambda (file) (setq opened file)))
+                  ((symbol-function 'xueliang-git-status--show-commit)
+                   (lambda (hash) (setq commit hash))))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (xueliang-git-status-visit)
+              (should (equal opened (expand-file-name "file-0.txt" repo)))
+              (goto-char (point-min))
+              (should (search-forward "Recent commits" nil t))
+              (should (re-search-forward "^[0-9a-f]+ " nil t))
+              (xueliang-git-status-visit)
+              (should (string-match-p "\\`[0-9a-f]+\\'" commit)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-expands-an-abbreviated-root ()
+  "A dired-style ~/... root is expanded before `git -C' sees it."
+  (cl-letf (((symbol-function 'locate-dominating-file)
+             (lambda (&rest _) "~/workspace/dotfiles/")))
+    (let ((default-directory temporary-file-directory))
+      (should (equal (xueliang-git-status--root)
+                     (file-name-as-directory
+                      (expand-file-name "~/workspace/dotfiles/")))))))
+
+(ert-deftest xl-git-status-rejects-a-non-repo ()
+  "Calling the status outside a Git repository is a clear user error."
+  (xl-test-with-temp-dir dir
+    (let ((default-directory (file-name-as-directory dir)))
+      (should-error (xueliang-git-status) :type 'user-error))))
 
 ;;; ============================================================
 ;;; Dired and Eshell
@@ -986,9 +1185,10 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (should (equal (buffer-name) "*scratch*")))))
 
 (ert-deftest xl-magit-status-window-prefers-vertical-split ()
-  "`SPC g g' sets a low split threshold locally, then opens magit status."
+  "`SPC g g' sets a low split threshold locally, then opens Git status."
   (let (opened)
-    (cl-letf (((symbol-function 'magit-status) (lambda (&rest _) (setq opened t))))
+    (cl-letf (((symbol-function 'xueliang-git-status)
+               (lambda () (setq opened t))))
       (with-temp-buffer
         (xueliang-magit-status-window)
         (should (= split-width-threshold 10))))
@@ -1104,7 +1304,8 @@ which Crafted still puts on `embark-collect-mode-hook'."
   "init.el marks each slow phase, including the network package install."
   (let ((init (xl-test--read-file (expand-file-name "emacs/init.el" xl-dotfiles))))
     (dolist (phase '("activating packages" "installing missing packages"
-                     "Crafted modules" "spacemacs-keys.el" "xueliang.el" "init: done"))
+                     "Crafted modules" "spacemacs-keys.el" "git-status.el"
+                     "xueliang.el" "init: done"))
       (should (string-search phase init))))
   (should (fboundp 'xueliang-startup-mark))
   ;; Outside a real start, C-g stays a plain quit.

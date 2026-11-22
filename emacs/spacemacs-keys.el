@@ -108,7 +108,7 @@
   "h d f" "function" #'describe-function  "h d v" "variable" #'describe-variable
   "h d k" "key" #'describe-key  "h d m" "mode" #'describe-mode
   "h d b" "bindings" #'describe-bindings  "h d p" "package" #'describe-package
-  "h d a" "apropos" #'apropos-command
+  "h d a" "symbol" #'describe-symbol
 
   "i" "insert" nil
   "i s" "snippet" #'xueliang-insert-snippet
