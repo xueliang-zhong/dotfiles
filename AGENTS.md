@@ -29,8 +29,8 @@ just doom-emacs-install
 just spacemacs-install
 
 # XL Emacs setup/checks without `just` (the emacs-* recipes wrap this script)
-bash emacs/install/xl-emacs.sh setup-macos
-bash emacs/install/xl-emacs.sh check
+bash emacs/install/emacs-setup.sh setup-macos
+bash emacs/install/emacs-setup.sh check
 ```
 
 Manual commands:

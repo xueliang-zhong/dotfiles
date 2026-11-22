@@ -25,7 +25,7 @@ emacs/
 ├── early-init.el          启动期设置（GC、界面、包源）
 ├── init.el                选 Crafted 模块、装包、按顺序加载
 ├── spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
-├── install/xl-emacs.sh    不依赖 just 的安装、检查和启动脚本
+├── install/emacs-setup.sh 不依赖 just 的安装、检查和启动脚本
 ├── lisp/                  可以单独安装的包
 │   ├── xl-spinner.el          一个 loader，三处复用
 │   ├── xl-git-status.el       异步 Git status 摘要
@@ -228,9 +228,9 @@ just emacs-test    # ERT 测试：键位、钩子、变量、文件结构、真�
 just emacs-check   # 上面两条一起跑
 
 # 没装 just 的机器上，这三条等价：
-bash emacs/install/xl-emacs.sh smoke
-bash emacs/install/xl-emacs.sh test
-bash emacs/install/xl-emacs.sh check
+bash emacs/install/emacs-setup.sh smoke
+bash emacs/install/emacs-setup.sh test
+bash emacs/install/emacs-setup.sh check
 ```
 
 ### `just emacs-test`
@@ -259,16 +259,16 @@ bash emacs/install/xl-emacs.sh check
 
 ## 不装 just 也能用
 
-`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/xl-emacs.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。所以没有 `just` 的机器照样能装：
+`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。所以没有 `just` 的机器照样能装：
 
 ```bash
-bash emacs/install/xl-emacs.sh setup-macos     # 或 setup-linux / setup-windows
-bash emacs/install/xl-emacs.sh crafted-install # 只重建 profile 存根
-bash emacs/install/xl-emacs.sh check           # smoke + ERT
-bash emacs/install/xl-emacs.sh trampolines     # 预编译 advice trampoline
-bash emacs/install/xl-emacs.sh make-default    # ~/.emacs.d -> profile
-bash emacs/install/xl-emacs.sh restore-spacemacs
-bash emacs/install/xl-emacs.sh try             # 启动，参数原样传给 Emacs
+bash emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows
+bash emacs/install/emacs-setup.sh crafted-install # 只重建 profile 存根
+bash emacs/install/emacs-setup.sh check           # smoke + ERT
+bash emacs/install/emacs-setup.sh trampolines     # 预编译 advice trampoline
+bash emacs/install/emacs-setup.sh make-default    # ~/.emacs.d -> profile
+bash emacs/install/emacs-setup.sh restore-spacemacs
+bash emacs/install/emacs-setup.sh try             # 启动，参数原样传给 Emacs
 ```
 
 环境变量和 `just` 版含义一致：`EMACS`、`PROFILE`、`PROFILES`、`PROFILE_DIR`、`DOTFILES`。另外两个：
@@ -278,7 +278,7 @@ bash emacs/install/xl-emacs.sh try             # 启动，参数原样传给 Ema
 | `XL_SKIP_DOTFILES=1` | `setup-*` 时跳过 `bash env.sh`（只装 Emacs 部分） |
 | `XL_FORCE_WINDOWS=1` | 在非 Windows 上测试 `setup-windows` 的流程 |
 
-`just emacs-mac-setup` 与 `bash emacs/install/xl-emacs.sh setup-macos` 等价，前者只是把 `EMACS`、`PROFILE*`、`DOTFILES` 放进环境再调用脚本。
+`just emacs-mac-setup` 与 `bash emacs/install/emacs-setup.sh setup-macos` 等价，前者只是把 `EMACS`、`PROFILE*`、`DOTFILES` 放进环境再调用脚本。
 
 ## 在 macOS 上安装
 
@@ -286,12 +286,12 @@ bash emacs/install/xl-emacs.sh try             # 启动，参数原样传给 Ema
 
 ```bash
 just emacs-mac-setup                          # 装了 just
-bash emacs/install/xl-emacs.sh setup-macos    # 没装 just
+bash emacs/install/emacs-setup.sh setup-macos    # 没装 just
 ```
 
 它依次做四件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；在 batch 里完整加载一遍配置（`emacs-trampolines-cache-setup`：第一次会顺便装好所有包，有初始化错误会直接失败，并预先编译 trampoline 缓存，第一次 GUI 启动就不会白屏）；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
 
-之后用 `just emacs-try`（或 `bash emacs/install/xl-emacs.sh try`）启动 Emacs，或者直接打开 Dock 里的 Emacs。
+之后用 `just emacs-try`（或 `bash emacs/install/emacs-setup.sh try`）启动 Emacs，或者直接打开 Dock 里的 Emacs。
 
 ## 在 Windows 上安装
 
@@ -299,7 +299,7 @@ bash emacs/install/xl-emacs.sh setup-macos    # 没装 just
 
 ```bash
 just emacs-windows-setup                       # 装了 just
-bash emacs/install/xl-emacs.sh setup-windows   # 没装 just
+bash emacs/install/emacs-setup.sh setup-windows   # 没装 just
 ```
 
 ### 准备
