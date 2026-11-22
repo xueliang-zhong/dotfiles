@@ -666,10 +666,6 @@ line can be switched off without deleting it."
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
   (let ((default-directory xl-dotfiles-dir)) (call-interactively #'find-file)))
-(defun Gwrite () (interactive) (evil-ex-execute "!git add %")) ; like vim-fugitive
-(defun Gcommit () "Like vim-fugitive :Gcommit." (interactive)
-  (xueliang-cd-current-dir)
-  (evil-ex-execute (format "!git commit -m \"Update %s\"" (file-name-nondirectory buffer-file-name))))
 (defun xueliang-replace-tab-trailing-spaces () (interactive)
   (untabify (point-min) (point-max)) (delete-trailing-whitespace))
 (defun xueliang-dired-jump () (interactive)
@@ -720,6 +716,7 @@ line can be switched off without deleting it."
 (xl-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "c c" "just all"       #'xueliang-just-make
            "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
+           "g b" "blame"          #'xueliang-gblame
            "g g" "git status"     #'xueliang-git-status-window)
 
 ;; ============================================================

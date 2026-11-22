@@ -76,6 +76,8 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
 
+它同时提供 GBlame：`SPC g b`（或 `:Gblame`）在当前文件左侧打开一栏，每个源码行对应一行 commit、作者和日期，跟随源码窗口滚动并高亮光标所在行；`RET` 查看该行 commit，`g` 刷新，`q` 关闭。还有 vim-fugitive 风格的 `Gwrite`（暂存当前文件）、`Gcommit`（用 `Update <文件名>` 提交当前文件），也可以直接作为 `:Gwrite`、`:Gcommit` 使用。
+
 ### `xueliang.el`（个人层）
 
 我自己的全部设置，按段落组织：
@@ -106,7 +108,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 8. 加载 `crafted-defaults-config`、`crafted-completion-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
 10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
-11. 加载 `emacs/git-status.el`，定义不依赖 Magit 的异步 status 命令。
+11. 加载 `emacs/git-status.el`，定义不依赖 Magit 的 status、commit、blame 命令。
 12. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
 13. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
 14. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
@@ -143,7 +145,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 96 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 97 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -153,6 +155,7 @@ just emacs-check   # 上面两条一起跑
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
+| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

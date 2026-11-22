@@ -273,7 +273,8 @@ keypress.  Prefix keymaps are walked recursively."
                   ("b h" . xl-sk-home-buffer)
                   ("b s" . xueliang-open-scratch-buffer-window)
                   ("g s" . magit-status)
-                  ("g g" . xueliang-magit-status-window)
+                  ("g g" . xueliang-git-status-window)
+                  ("g b" . xueliang-gblame)
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
                   ("p s" . consult-ripgrep)
@@ -560,9 +561,9 @@ The other TAB command would insert two spaces, so it delegates to
                     ("s" . xueliang-git-status-stage)
                     ("u" . xueliang-git-status-unstage)
                     ("X" . xueliang-git-status-discard)
+                    ("x" . xueliang-git-status-discard)
                     ("S" . xueliang-git-status-stage-all)
                     ("U" . xueliang-git-status-unstage-all)
-                    ("g" . revert-buffer)
                     ("RET" . xueliang-git-status-visit)))
       (should (eq (keymap-lookup normal (car spec)) (cdr spec))))))
 
@@ -936,6 +937,90 @@ The other TAB command would insert two spaces, so it delegates to
                                                     "--name-only")))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
+
+;;; ============================================================
+;;; GBlame
+;;; ============================================================
+
+(ert-deftest xl-gblame-shows-and-syncs ()
+  "GBlame lists one blame line per source line and follows the window."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo-hunks))
+         (file (expand-file-name "file.txt" repo))
+         (buf (find-file-noselect file)))
+    (unwind-protect
+        (progn
+          (switch-to-buffer buf)
+          (xueliang-gblame)
+          (should (buffer-live-p xueliang-gblame--buffer))
+          (should (get-buffer-window xueliang-gblame--buffer))
+          (with-current-buffer xueliang-gblame--buffer
+            (should (derived-mode-p 'xueliang-gblame-mode))
+            (should buffer-read-only)
+            ;; One line of blame for each of the 20 source lines.
+            (should (= 20 (how-many "\n" (point-min) (point-max))))
+            (should (eq (get-text-property (point-min) 'face)
+                        'xueliang-git-status-hash))
+            (should (string-match-p
+                     "\\`[0-9a-f]\\{8\\}"
+                     (buffer-substring (point-min) (+ (point-min) 8))))
+            (goto-char (point-min))
+            (should (search-forward "Test" (line-end-position) t))
+            ;; The working-tree change on line 2 has no commit yet.
+            (goto-char (point-min))
+            (forward-line 1)
+            (should (string-match-p
+                     "\\`0+\\'" (get-text-property (point) 'xueliang-gblame-hash)))
+            (should (eq (get-text-property (point) 'face)
+                        'xueliang-git-status-comment))
+            (should-error (xueliang-gblame-show-commit) :type 'user-error))
+          ;; Moving point moves the highlight; scrolling moves the window.
+          (goto-char (point-min))
+          (forward-line 9)
+          (xueliang-gblame--sync (get-buffer-window buf t))
+          (with-current-buffer xueliang-gblame--buffer
+            (should (= 10 (line-number-at-pos
+                           (overlay-start xueliang-gblame--highlight)))))
+          (with-current-buffer buf
+            (set-window-start
+             (get-buffer-window buf t)
+             (save-excursion (goto-char (point-min)) (forward-line 14) (point)))
+            (xueliang-gblame--sync (get-buffer-window buf t)))
+          (with-current-buffer xueliang-gblame--buffer
+            (let ((window (get-buffer-window xueliang-gblame--buffer t)))
+              (should (= 15 (line-number-at-pos (window-start window))))
+              ;; The blame window's point stays inside the visible lines,
+              ;; so redisplay does not scroll it back to point-min.
+              (should (<= 15 (line-number-at-pos (window-point window))))
+              (should (< (line-number-at-pos (window-point window))
+                         (+ 15 (window-body-height window))))))
+          ;; RET shows the commit of a committed line.
+          (let (shown)
+            (cl-letf (((symbol-function 'xueliang-git-status--show-commit)
+                       (lambda (hash) (setq shown hash))))
+              (with-current-buffer xueliang-gblame--buffer
+                (goto-char (point-min))
+                (xueliang-gblame-show-commit))
+              (should (string-match-p "\\`[0-9a-f]\\{40\\}\\'" shown))))
+          ;; :Gblame is the vim-fugitive command name.
+          (should (eq (cdr (assoc "Gblame" evil-ex-commands)) 'xueliang-gblame))
+          ;; The G* family lives in the Git module, not in xueliang.el.
+          (dolist (cmd '(Gwrite Gcommit xueliang-gblame))
+            (should (equal "git-status"
+                           (file-name-sans-extension
+                            (file-name-nondirectory (symbol-file cmd 'defun))))))
+          (should (eq (cdr (assoc "Gwrite" evil-ex-commands)) 'Gwrite))
+          (should (eq (cdr (assoc "Gcommit" evil-ex-commands)) 'Gcommit))
+          ;; Toggling closes the window and removes the source hooks.
+          (xueliang-gblame)
+          (should-not (buffer-live-p xueliang-gblame--buffer))
+          (should-not (memq #'xueliang-gblame--sync post-command-hook))
+          (should-not (memq #'xueliang-gblame--refresh after-save-hook)))
+      (let ((blame (get-buffer "*GBlame: file.txt*")))
+        (when (buffer-live-p blame) (kill-buffer blame)))
+      (when (buffer-live-p buf) (kill-buffer buf))
+      (delete-directory repo t))))
+
 
 ;;; ============================================================
 ;;; Dired and Eshell
@@ -1398,11 +1483,16 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (xl-test-with-temp-dir dir
     (with-temp-buffer
       (setq buffer-file-name (expand-file-name "note.txt" dir))
-      (let ((default-directory "/"))
-        (should (equal (xl-test--capture-ex #'Gcommit)
-                       '("!git commit -m \"Update note.txt\"")))
-        ;; Gcommit cds to the file's folder before committing.
-        (should (file-equal-p default-directory dir))))))
+      (let ((default-directory "/")
+            command cwd)
+        (cl-letf (((symbol-function 'evil-ex-execute)
+                   (lambda (cmd &rest _)
+                     (setq command cmd cwd default-directory))))
+          (Gcommit))
+        (should (equal command "!git commit -m \"Update note.txt\""))
+        ;; Gcommit runs git in the file's folder without cd'ing the buffer.
+        (should (file-equal-p cwd dir))
+        (should (equal default-directory "/"))))))
 
 (ert-deftest xl-just-commands-run-in-the-background ()
   "`SPC c c' and the daily job send `just' to the shell with `&'."
@@ -1491,13 +1581,15 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (should (= (length (window-list)) (1+ before)))
       (should (equal (buffer-name) "*scratch*")))))
 
-(ert-deftest xl-magit-status-window-prefers-vertical-split ()
+(ert-deftest xl-git-status-window-prefers-vertical-split ()
   "`SPC g g' sets a low split threshold locally, then opens Git status."
   (let (opened)
     (cl-letf (((symbol-function 'xueliang-git-status)
-               (lambda () (setq opened t))))
+               (lambda () (setq opened t)))
+              ((symbol-function 'turn-on-diff-hl-mode)
+               (lambda () nil)))
       (with-temp-buffer
-        (xueliang-magit-status-window)
+        (xueliang-git-status-window)
         (should (= split-width-threshold 10))))
     (should opened)))
 
