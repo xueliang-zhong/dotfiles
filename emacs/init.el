@@ -40,19 +40,85 @@
 ;; the first frame is painted, but it only runs when a package is missing.
 (require 'seq)
 
+(defvar xl-progress (equal (getenv "XL_PROGRESS") "1")
+  "Non-nil when emacs-setup.sh asked for step-by-step progress output.")
+
+(defun xl-report (format-string &rest args)
+  "Print a progress line to stdout when `xl-progress' is set."
+  (when xl-progress
+    (princ (apply #'format format-string args))
+    (princ "\n")))
+
+(defun xl-refresh-package-keyring ()
+  "Rebuild package.el's GPG home from the keyring shipped with Emacs.
+A stale or corrupt `package-gnupghome-dir' makes GNU ELPA fail signature
+verification, which hides GNU packages (denote, for example) from
+`package-archive-contents' even after a refresh."
+  (when (and package-gnupghome-dir (file-directory-p package-gnupghome-dir))
+    (ignore-errors (delete-directory package-gnupghome-dir t)))
+  (let ((keyring (expand-file-name "package-keyring.gpg" data-directory)))
+    (when (and (package-check-signature) (file-exists-p keyring))
+      (ignore-errors (package-import-keyring keyring)))))
+
+(defun xl-install-packages (packages)
+  "Install PACKAGES one at a time, reporting each when `xl-progress' is set."
+  (let ((total (length packages))
+        (index 0))
+    (xl-report "installing %d package(s)" total)
+    (dolist (pkg packages)
+      (setq index (1+ index))
+      (xl-report "package %d/%d: %s" index total pkg)
+      (condition-case err
+          (unless (package-installed-p pkg)
+            (package-install pkg))
+        (error
+         (xl-report "package %d/%d failed: %s (%s)"
+                    index total pkg (error-message-string err)))))))
+
 (defun xl-install-missing-packages ()
   "Refresh the archives, then install what `package-selected-packages' lists.
 `package-install-selected-packages' only refreshes when the archive cache is
 empty.  An old cache makes package.el report a dependency as unavailable
 even though the archive offers it: transient asked for compat 31.1 on a
 machine whose cached index predated it.  So refresh whenever this path runs;
-that is only when a package is actually missing."
+that is only when a package is actually missing.
+
+When a refresh leaves packages missing, rebuild package.el's keyring and
+try once more: a stale keyring makes the GNU ELPA signature check fail, so
+GNU packages such as denote never enter `package-archive-contents'.  If
+gpg is unusable even then, retry once without signature checks for this
+session."
   (when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
+    (xl-report "refreshing package archives")
     (package-refresh-contents)
-    (package-install-selected-packages :noconfirm)
+    (xl-install-packages (seq-remove #'package-installed-p package-selected-packages))
     (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
-      (error "Still missing after refreshing the archives: %S (try `M-x package-refresh-contents')"
-             still))))
+      (message "Package install incomplete (%S); rebuilding the ELPA keyring"
+               still)
+      (xl-report "rebuilding the ELPA keyring")
+      (xl-refresh-package-keyring)
+      (xl-report "refreshing package archives again")
+      (package-refresh-contents)
+      (xl-install-packages (seq-remove #'package-installed-p package-selected-packages))
+      (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
+        ;; Last resort for machines without a usable gpg: download over
+        ;; HTTPS without checking the archive signatures for this session.
+        (message "Still missing %S; retrying without ELPA signature verification"
+                 still)
+        (xl-report "retrying without signature verification")
+        (let ((package-check-signature nil))
+          (package-refresh-contents)
+          (xl-install-packages
+           (seq-remove #'package-installed-p package-selected-packages)))
+        (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
+          (let ((unavailable (seq-remove
+                              (lambda (pkg) (assoc pkg package-archive-contents))
+                              still)))
+            (error "Still missing after refreshing (and rebuilding the ELPA keyring): %S%s.  Check `package-archives' and gpg (`package-check-signature'); a broken GNU ELPA keyring hides its packages."
+                   still
+                   (if unavailable
+                       (format " (not offered by any archive: %S)" unavailable)
+                     ""))))))))
 
 (xl-install-missing-packages)
 

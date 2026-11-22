@@ -170,6 +170,12 @@
   (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
+(ert-deftest xl-org-packages-come-from-crafted ()
+  "Crafted's Org packages, including Denote, stay selected and installed."
+  (dolist (pkg '(denote org-appear))
+    (should (memq pkg package-selected-packages))
+    (should (package-installed-p pkg))))
+
 (ert-deftest xl-packages-are-selected-and-installed ()
   "Everything in `xl-packages' is requested by `init.el' and present on disk."
   (dolist (pkg xl-packages)
@@ -198,19 +204,35 @@ one made transient's dependency compat 31.1 look unavailable."
                (lambda (pkg) (and (eq pkg 'xl-test-pkg) installed)))
               ((symbol-function 'package-refresh-contents)
                (lambda (&rest _) (push 'refresh events)))
-              ((symbol-function 'package-install-selected-packages)
-               (lambda (&rest _) (push 'install events) (setq installed t))))
+              ((symbol-function 'package-install)
+               (lambda (pkg &rest _)
+                 (push (list 'install pkg) events)
+                 (setq installed t))))
       (xl-install-missing-packages))
     ;; Pushed newest first: the refresh ran before the install.
-    (should (equal '(install refresh) events))))
+    (should (equal '((install xl-test-pkg) refresh) events))))
 
 (ert-deftest xl-package-install-reports-what-is-still-missing ()
   "A package that stays unavailable stops startup with its name."
   (let ((package-selected-packages '(xl-test-missing)))
     (cl-letf (((symbol-function 'package-installed-p) #'ignore)
               ((symbol-function 'package-refresh-contents) #'ignore)
-              ((symbol-function 'package-install-selected-packages) #'ignore))
+              ((symbol-function 'package-install) #'ignore)
+              ((symbol-function 'xl-refresh-package-keyring) #'ignore))
       (should-error (xl-install-missing-packages) :type 'error))))
+
+(ert-deftest xl-package-keyring-is-rebuilt ()
+  "A stale package.el GPG home is deleted and the bundled keyring imported."
+  (xl-test-with-temp-dir dir
+    (let ((package-gnupghome-dir (expand-file-name "gnupg" dir))
+          (package-check-signature t)
+          imported)
+      (make-directory package-gnupghome-dir t)
+      (cl-letf (((symbol-function 'package-import-keyring)
+                 (lambda (file) (setq imported file))))
+        (xl-refresh-package-keyring))
+      (should-not (file-directory-p package-gnupghome-dir))
+      (should (string-suffix-p "package-keyring.gpg" imported)))))
 
 ;;; ============================================================
 ;;; Package Menu loader

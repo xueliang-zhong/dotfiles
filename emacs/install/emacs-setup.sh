@@ -14,7 +14,8 @@
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
 # Overrides: EMACS=/path/to/emacs, PROFILE=other, PROFILE_DIR=/some/dir,
-#            DOTFILES=/path/to/dotfiles, XL_SKIP_DOTFILES=1 (skip env.sh).
+#            DOTFILES=/path/to/dotfiles, XL_SKIP_DOTFILES=1 (skip env.sh),
+#            XL_VERBOSE=1 (stream each setup step's output).
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
@@ -138,6 +139,42 @@ progress_finish() {
     fi
 }
 
+# Run a step with only its own progress lines visible: init.el prints
+# package/trampoline counts when XL_PROGRESS is set, and emacs_batch hides
+# the usual "Loading ..." / "Contacting host" messages.  XL_VERBOSE=1
+# streams the full output instead.
+run_progress() {
+    if [ "${XL_VERBOSE:-0}" = 1 ]; then
+        "$@"
+    else
+        XL_PROGRESS=1 "$@"
+    fi
+}
+
+# Run a command with its output hidden; print the captured log only when it
+# fails.  Setup uses this for the noisy steps (copying dotfiles, cloning,
+# loading the profile and downloading packages).  XL_VERBOSE=1 streams it.
+# The command runs in a subshell so a `die' inside it fails only this step:
+# its message stays in the log and is printed below.
+run_quiet() {
+    local log status
+    if [ "${XL_VERBOSE:-0}" = 1 ]; then
+        "$@"
+        return
+    fi
+    log=$(mktemp "${TMPDIR:-/tmp}/xl-setup.XXXXXX" 2>/dev/null ||
+        printf '%s' "${TMPDIR:-/tmp}/xl-setup.$$.log")
+    if ( "$@" ) >"$log" 2>&1; then
+        rm -f "$log"
+    else
+        status=$?
+        printf '\n--- output of the failed step ---\n' >&2
+        cat "$log" >&2
+        rm -f "$log"
+        return "$status"
+    fi
+}
+
 # Paths written into the stubs and passed to git must be ones native Emacs
 # and Git for Windows understand: on Git Bash turn /c/Users/me into C:/Users/me,
 # elsewhere keep the path as it is.
@@ -166,10 +203,19 @@ require_profile() {
 # Load the profile in batch exactly as a GUI start does: early-init, Crafted's
 # before-init-hook, then init.el.  Any init error fails the command.
 emacs_batch() {
-    "$EMACS" --batch --init-directory "$PROFILE_DIR" \
-        -l "$PROFILE_DIR/early-init.el" \
-        --eval '(run-hooks (quote before-init-hook))' \
-        -l "$PROFILE_DIR/init.el" "$@"
+    if [ "${XL_PROGRESS:-0}" = 1 ]; then
+        # Setup asks init.el for compact progress lines; hide Emacs messages.
+        "$EMACS" --batch --init-directory "$PROFILE_DIR" \
+            --eval '(setq inhibit-message t)' \
+            -l "$PROFILE_DIR/early-init.el" \
+            --eval '(run-hooks (quote before-init-hook))' \
+            -l "$PROFILE_DIR/init.el" "$@"
+    else
+        "$EMACS" --batch --init-directory "$PROFILE_DIR" \
+            -l "$PROFILE_DIR/early-init.el" \
+            --eval '(run-hooks (quote before-init-hook))' \
+            -l "$PROFILE_DIR/init.el" "$@"
+    fi
 }
 
 install_dotfiles() {
@@ -253,7 +299,24 @@ cmd_check() {
 cmd_trampolines() {
     require_emacs
     require_profile
-    emacs_batch --eval '(if (not (native-comp-available-p)) (message "profile ok; this Emacs has no native compilation, so no trampolines to build") (dolist (timer (copy-sequence timer-idle-list)) (ignore-errors (timer-event-handler timer))) (message "profile ok; subr trampolines cached: %d" (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))'
+    emacs_batch --eval '
+(if (not (native-comp-available-p))
+    (if (equal (getenv "XL_PROGRESS") "1")
+        (princ "trampolines: native compilation not available\n")
+      (message "profile ok; this Emacs has no native compilation, so no trampolines to build"))
+  (let ((timers (copy-sequence timer-idle-list))
+        (total (length timer-idle-list))
+        (index 0))
+    (dolist (timer timers)
+      (setq index (1+ index))
+      (when (equal (getenv "XL_PROGRESS") "1")
+        (princ (format "trampolines %d/%d\n" index total)))
+      (ignore-errors (timer-event-handler timer)))
+    (let ((count (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))
+      (if (equal (getenv "XL_PROGRESS") "1")
+          (princ (format "trampolines cached: %d\n" count))
+        (message "profile ok; subr trampolines cached: %d" count)))))
+'
 }
 
 # Spacemacs' ~/.emacs.d moves to ~/.emacs-profiles/spacemacs (nothing deleted).
@@ -294,9 +357,9 @@ cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
     progress_init 4
-    progress_step "Install dotfiles" install_dotfiles
-    progress_step "Crafted profile" cmd_crafted_install "$PROFILE_DIR"
-    progress_step "Profile smoke test and trampolines" cmd_trampolines
+    progress_step "Install dotfiles" run_quiet install_dotfiles
+    progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
+    progress_step "Profile smoke test and trampolines" run_progress cmd_trampolines
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "macOS setup complete"
 }
@@ -309,9 +372,9 @@ cmd_setup_linux() {
         *) die "no setup for $(uname -s)" ;;
     esac
     progress_init 4
-    progress_step "Install dotfiles" install_dotfiles
-    progress_step "Crafted profile" cmd_crafted_install "$PROFILE_DIR"
-    progress_step "Profile smoke test and trampolines" cmd_trampolines
+    progress_step "Install dotfiles" run_quiet install_dotfiles
+    progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
+    progress_step "Profile smoke test and trampolines" run_progress cmd_trampolines
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "Linux setup complete"
 }
@@ -362,8 +425,8 @@ cmd_setup_windows() {
     progress_step "Pin HOME for Start-menu Emacs" cmd_windows_pin_home
     progress_step "Move old configurations aside" cmd_windows_move_old_configs
     d=$(winpath "$HOME/.emacs.d")
-    progress_step "Crafted profile" cmd_crafted_install "$d"
-    PROFILE_DIR="$d" progress_step "Install packages and smoke test" cmd_smoke
+    progress_step "Crafted profile" run_quiet cmd_crafted_install "$d"
+    PROFILE_DIR="$d" progress_step "Install packages and smoke test" run_progress cmd_smoke
     progress_finish "Done. Start Emacs from the Start menu or run: runemacs"
 }
 
@@ -395,7 +458,8 @@ profile:
   restore-spacemacs      undo make-default
 
 environment: EMACS, PROFILE, PROFILES, PROFILE_DIR, DOTFILES,
-             XL_SKIP_DOTFILES=1 (skip env.sh), XL_FORCE_WINDOWS=1
+             XL_SKIP_DOTFILES=1 (skip env.sh), XL_FORCE_WINDOWS=1,
+             XL_VERBOSE=1 (show each step's output; setup hides it by default)
 EOF
 }
 

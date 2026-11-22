@@ -89,7 +89,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 检查 Emacs 版本，低于 30 直接报错停止。
 - 加载 `custom.el`（如果存在），它是 Customize 写入的地方。
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
-- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包）。缺包时先 `package-refresh-contents` 再装：这个配置关掉了启动时的自动刷新，而 `package-install-selected-packages` 只在缓存为空时才刷新；旧缓存会让新依赖（例如 2026 年的 transient 要求 compat 31.1）被误报为 unavailable。刷新只发生在确实缺包的那次启动，装完就恢复零网络。
+- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包）。缺包时先 `package-refresh-contents` 再装：这个配置关掉了启动时的自动刷新，而 `package-install-selected-packages` 只在缓存为空时才刷新；旧缓存会让新依赖（例如 2026 年的 transient 要求 compat 31.1）被误报为 unavailable。刷新只发生在确实缺包的那次启动，装完就恢复零网络。如果刷新后还缺包（典型是 GNU ELPA 的签名校验因 `package.el` 的 gnupg home 过期而失败，Denote 就属于 GNU ELPA），会重建 keyring 再刷新一次；仍失败才报错并列出哪些包根本不在任何归档里；gpg 完全不可用时，最后会临时关闭签名校验再试一次（只影响那次启动）。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
 - 加载 `spacemacs-keys.el`，然后用 `require` 从 `lisp/` 载入 `xl-git-status.el`、`xl-git-commands.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为用户单独安装这两个包时走的是同一条路。
@@ -234,7 +234,7 @@ bash emacs/install/emacs-setup.sh check
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 107 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 109 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -259,7 +259,7 @@ bash emacs/install/emacs-setup.sh check
 
 ## 不装 just 也能用
 
-`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 会在终端里显示彩色进度条（当前步骤、百分比和耗时），输出重定向时退化成 `#`/`-` 的纯文本条；`NO_COLOR=1` 关闭颜色。所以没有 `just` 的机器照样能装：
+`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 会在终端里显示彩色进度条（当前步骤、百分比和耗时），输出重定向时退化成 `#`/`-` 的纯文本条；`NO_COLOR=1` 关闭颜色。步骤内部的输出默认隐藏，失败时才打印完整日志；最长的 profile/trampoline 步骤会逐条显示 `package i/N` 和 `trampolines i/N`，不再是黑盒。`XL_VERBOSE=1` 可以看到全部输出。所以没有 `just` 的机器照样能装：
 
 ```bash
 bash emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows
