@@ -661,8 +661,7 @@ line can be switched off without deleting it."
   "Open my Git status, preferring a right split." (interactive)
   (setq-local split-width-threshold 10) ; prefer vsplit
   (xueliang-cd-current-dir)
-  (turn-on-diff-hl-mode)
-  (xueliang-git-status))
+  (turn-on-diff-hl-mode) (xueliang-git-status))
 
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
