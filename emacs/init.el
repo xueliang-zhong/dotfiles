@@ -80,10 +80,10 @@
 ;; spacemacs-keys.el: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
 (xl-startup-mark "init: spacemacs-keys.el")
-(load (expand-file-name "xl-emacs/spacemacs-keys.el" xl-dotfiles))
+(load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
 ;; lisp/: the packages that also work without this config, so `require'
 ;; them the way a user installing them from an archive would.
-(add-to-list 'load-path (expand-file-name "xl-emacs/lisp" xl-dotfiles))
+(add-to-list 'load-path (expand-file-name "emacs/lisp" xl-dotfiles))
 (xl-startup-mark "init: xl-git-status.el")
 (require 'xl-git-status)
 (xl-startup-mark "init: xl-git-commands.el")
@@ -91,7 +91,7 @@
 (xl-startup-mark "init: xl-package-menu.el")
 (require 'xl-package-menu)
 (xl-startup-mark "init: xueliang.el")
-(load (expand-file-name "xl-emacs/xueliang.el" xl-dotfiles))
+(load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el loaded")
 
 ;; ============================================================

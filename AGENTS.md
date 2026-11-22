@@ -132,7 +132,7 @@ CP_CMD() {
 ├── vimrc              # Vim config (fallback for nvim)
 ├── spacemacs.el       # Spacemacs config
 ├── doom-config-2025.el # Doom Emacs config
-├── xl-emacs/          # XL Emacs: thin layer over Crafted + async git packages
+├── emacs/             # XL Emacs: thin layer over Crafted + async git packages
 ├── tmux.conf          # Tmux config
 ├── env.sh             # Installation script
 ├── justfile           # Task runner

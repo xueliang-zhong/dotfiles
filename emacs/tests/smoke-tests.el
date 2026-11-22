@@ -4,7 +4,7 @@
 ;;   just emacs-test
 ;; The profile is loaded by the recipe before this file; every test here
 ;; inspects the state it leaves behind: keymaps, hooks, variables and the
-;; files in xl-emacs/.  Nothing here starts a GUI.
+;; files in emacs/.  Nothing here starts a GUI.
 
 (require 'ert)
 (require 'seq)
@@ -166,8 +166,8 @@
   ;; The completion stack comes from Crafted, not from `xl-packages'.
   (should-not (memq 'corfu xl-packages))
   (should (equal (symbol-file 'xl-packages 'defvar)
-                 (expand-file-name "xl-emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/xueliang.el" xl-dotfiles)))
+                 (expand-file-name "emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-packages-are-selected-and-installed ()
@@ -258,8 +258,8 @@ installed after the theme load, so `package-autoremove' keeps it."
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("xl-emacs/xueliang.el" "xl-emacs/lisp/xl-git-status.el"
-                  "xl-emacs/lisp/xl-git-commands.el"))
+  (dolist (file '("emacs/xueliang.el" "emacs/lisp/xl-git-status.el"
+                  "emacs/lisp/xl-git-commands.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))
@@ -272,7 +272,7 @@ allowed."
 
 (ert-deftest xl-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `xueliang.el' has to load last."
-  (let ((init (expand-file-name "xl-emacs/init.el" xl-dotfiles))
+  (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
         keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
@@ -281,7 +281,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "git-commands\\.el" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "xl-emacs/xueliang\\.el" (cdr entry))
+      (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -322,13 +322,13 @@ allowed."
   "The maximized size is a frame parameter from `early-init.el', so the first
 frame is created maximized; `init.el' must not set it after the frame exists."
   (should (eq (cdr (assq 'fullscreen default-frame-alist)) 'maximized))
-  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/init.el" xl-dotfiles)))
     (should-not (string-match-p "set-frame-parameter.*fullscreen" (cdr entry))))
   (should (cl-some (lambda (entry)
                      (string-match-p "push '(fullscreen . maximized) default-frame-alist"
                                      (cdr entry)))
                    (xl-test--code-lines
-                    (expand-file-name "xl-emacs/early-init.el" xl-dotfiles)))))
+                    (expand-file-name "emacs/early-init.el" xl-dotfiles)))))
 
 ;;; ============================================================
 ;;; Leader keys and function keys
@@ -1905,11 +1905,11 @@ the exit status."
         (should-not (file-exists-p file))))))
 
 (ert-deftest xl-open-dotfile-opens-the-personal-config ()
-  "`SPC f e d' opens xl-emacs/xueliang.el."
+  "`SPC f e d' opens emacs/xueliang.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
       (xl-sk-open-dotfile))
-    (should (string-suffix-p "xl-emacs/xueliang.el" opened))))
+    (should (string-suffix-p "emacs/xueliang.el" opened))))
 
 (ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
@@ -1999,7 +1999,7 @@ the exit status."
 
 (ert-deftest xl-startup-trace-marks-every-phase-in-init ()
   "init.el marks each slow phase, including the network package install."
-  (let ((init (xl-test--read-file (expand-file-name "xl-emacs/init.el" xl-dotfiles))))
+  (let ((init (xl-test--read-file (expand-file-name "emacs/init.el" xl-dotfiles))))
     (dolist (phase '("activating packages" "installing missing packages"
                      "Crafted modules" "spacemacs-keys.el" "xl-git-status.el"
                      "xl-git-commands.el" "xueliang.el" "init: done"))

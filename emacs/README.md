@@ -1,8 +1,8 @@
-# XL Emacs（`xl-emacs`）
+# XL Emacs（`emacs/`）
 
 **A thin Emacs layer whose heavy work runs async. 重活异步，界面不等。**
 
-一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-emacs`、`xl-git-status`），同时是作者 Xueliang 的缩写。
+一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-git-status`、`xl-spinner`），同时是作者 Xueliang 的缩写；配置本身放在 dotfiles 的 `emacs/` 目录里。
 
 ## 三条可验证的承诺
 
@@ -21,7 +21,7 @@
 ## 目录
 
 ```
-xl-emacs/
+emacs/
 ├── early-init.el          启动期设置（GC、界面、包源）
 ├── init.el                选 Crafted 模块、装包、按顺序加载
 ├── spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
@@ -43,14 +43,14 @@ Emacs 31.1 启动时，先读 `~/.emacs-profiles/crafted` 里的两个存根，�
 just emacs-try
   └─ emacs --init-directory ~/.emacs-profiles/crafted   (Emacs 31.1)
        ├─ ~/.emacs-profiles/crafted/early-init.el   存根：设 xl-dotfiles、xl-crafted-home
-       │    └─ xl-emacs/early-init.el               启动期设置，加载 Crafted 包源配置
+       │    └─ emacs/early-init.el               启动期设置，加载 Crafted 包源配置
        └─ ~/.emacs-profiles/crafted/init.el         存根
-            └─ xl-emacs/init.el                     选 Crafted 模块、装包、按顺序加载
+            └─ emacs/init.el                     选 Crafted 模块、装包、按顺序加载
                  ├─ Crafted 模块（~/.emacs-profiles/src/crafted-emacs，锁定提交）
-                 ├─ xl-emacs/spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
-                 ├─ xl-emacs/lisp/xl-git-status.el  异步 Git status 摘要
-                 ├─ xl-emacs/lisp/xl-git-commands.el Gstatus/Gblame/Gwrite/Gcommit
-                 └─ xl-emacs/xueliang.el       我自己的设置、键位、命令
+                 ├─ emacs/spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
+                 ├─ emacs/lisp/xl-git-status.el  异步 Git status 摘要
+                 ├─ emacs/lisp/xl-git-commands.el Gstatus/Gblame/Gwrite/Gcommit
+                 └─ emacs/xueliang.el       我自己的设置、键位、命令
 ```
 
 四层的分工：
@@ -180,20 +180,20 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 启动时按这个顺序执行（括号里是对应的文件）：
 
 1. Emacs 31.1 按 `--init-directory` 读 `~/.emacs-profiles/crafted/early-init.el`（存根）。
-2. 存根设置 `xl-dotfiles` 和 `xl-crafted-home`，加载 `xl-emacs/early-init.el`。
-3. `xl-emacs/early-init.el` 设置 GC、界面、JIT、包目录，最后加载 `crafted-early-init-config`。
+2. 存根设置 `xl-dotfiles` 和 `xl-crafted-home`，加载 `emacs/early-init.el`。
+3. `emacs/early-init.el` 设置 GC、界面、JIT、包目录，最后加载 `crafted-early-init-config`。
 4. Emacs 进入初始化，运行 `before-init-hook`：Crafted 检查包列表是否为空，为空则刷新。
-5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `xl-emacs/init.el`。
-6. `xl-emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
+5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `emacs/init.el`。
+6. `emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
 7. 加载 `crafted-completion-packages`、`crafted-evil-packages`、`crafted-org-packages`，加入 `xl-packages`，再调用 `package-install-selected-packages` 装包。
 8. 加载 `crafted-defaults-config`、`crafted-completion-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
-10. 加载 `xl-emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
-11. 加载 `xl-emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
-12. 加载 `xl-emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
-13. 加载 `xl-emacs/lisp/xl-package-menu.el`，给 Package Menu 装上刷新用的动画 loader。
-14. 加载 `xl-emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
-15. `xl-emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
+10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
+11. 加载 `emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
+12. 加载 `emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
+13. 加载 `emacs/lisp/xl-package-menu.el`，给 Package Menu 装上刷新用的动画 loader。
+14. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
+15. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
 16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
@@ -229,7 +229,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 105 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 105 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
