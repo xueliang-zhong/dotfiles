@@ -4,7 +4,7 @@
 ;;   just emacs-test
 ;; The profile is loaded by the recipe before this file; every test here
 ;; inspects the state it leaves behind: keymaps, hooks, variables and the
-;; files in emacs/.  Nothing here starts a GUI.
+;; files in xl-emacs/.  Nothing here starts a GUI.
 
 (require 'ert)
 (require 'seq)
@@ -143,8 +143,8 @@
   ;; The completion stack comes from Crafted, not from `xl-packages'.
   (should-not (memq 'corfu xl-packages))
   (should (equal (symbol-file 'xl-packages 'defvar)
-                 (expand-file-name "emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
+                 (expand-file-name "xl-emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/user/xueliang.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-packages-are-selected-and-installed ()
@@ -165,12 +165,12 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should-not (memq pkg removable)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
-  "`xueliang.el', `git-status.el' and `git-commands.el' use plain Emacs APIs.
+  "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("emacs/xueliang.el" "emacs/git-status.el"
-                  "emacs/git-commands.el"))
+  (dolist (file '("xl-emacs/user/xueliang.el" "xl-emacs/lisp/xl-git-status.el"
+                  "xl-emacs/lisp/xl-git-commands.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))
@@ -183,7 +183,7 @@ allowed."
 
 (ert-deftest xl-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `xueliang.el' has to load last."
-  (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
+  (let ((init (expand-file-name "xl-emacs/init.el" xl-dotfiles))
         keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
@@ -192,7 +192,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "git-commands\\.el" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
+      (when (string-match-p "xl-emacs/user/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -233,13 +233,13 @@ allowed."
   "The maximized size is a frame parameter from `early-init.el', so the first
 frame is created maximized; `init.el' must not set it after the frame exists."
   (should (eq (cdr (assq 'fullscreen default-frame-alist)) 'maximized))
-  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/init.el" xl-dotfiles)))
     (should-not (string-match-p "set-frame-parameter.*fullscreen" (cdr entry))))
   (should (cl-some (lambda (entry)
                      (string-match-p "push '(fullscreen . maximized) default-frame-alist"
                                      (cdr entry)))
                    (xl-test--code-lines
-                    (expand-file-name "emacs/early-init.el" xl-dotfiles)))))
+                    (expand-file-name "xl-emacs/early-init.el" xl-dotfiles)))))
 
 ;;; ============================================================
 ;;; Leader keys and function keys
@@ -302,8 +302,8 @@ keypress.  Prefix keymaps are walked recursively."
                   ("b h" . xl-sk-home-buffer)
                   ("b s" . xueliang-open-scratch-buffer-window)
                   ("g s" . magit-status)
-                  ("g g" . xueliang-git-status-window)
-                  ("g b" . xueliang-gblame)
+                  ("g g" . xl-git-status-window)
+                  ("g b" . xl-gblame)
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
                   ("p s" . consult-ripgrep)
@@ -505,7 +505,7 @@ The other TAB command would insert two spaces, so it delegates to
                                          "-C" repo "update-ref" ref "HEAD"))))
           (cl-letf (((symbol-function 'display-buffer)
                      (lambda (b &rest _) (setq buffer b) b)))
-            (xueliang-git-status)
+            (xl-git-status)
             (should (buffer-live-p buffer))
             (with-current-buffer buffer
               ;; The renderer turns the buffer read-only when both commands exit.
@@ -540,15 +540,15 @@ The other TAB command would insert two spaces, so it delegates to
                 (goto-char (point-min))
                 (should (search-forward "Unstaged changes" nil t))
                 (should (eq (get-text-property (1- (point)) 'face)
-                            'xueliang-git-status-heading)))
+                            'xl-git-status-heading)))
               (save-excursion
                 (goto-char (point-min))
                 (should (search-forward "modified" nil t))
                 (should (eq (get-text-property (1- (point)) 'face)
-                            'xueliang-git-status-status))
+                            'xl-git-status-status))
                 (should (search-forward "file-1.txt" nil t))
                 (should (eq (get-text-property (1- (point)) 'face)
-                            'xueliang-git-status-file)))
+                            'xl-git-status-file)))
               (save-excursion
                 (goto-char (point-min))
                 (should (search-forward "Recent commits" nil t))
@@ -556,11 +556,11 @@ The other TAB command would insert two spaces, so it delegates to
                          "^\\([0-9a-f]+\\) origin/master initial$" nil t))
                 (let ((hash-start (match-beginning 1)))
                   (should (eq (get-text-property hash-start 'face)
-                              'xueliang-git-status-hash))
+                              'xl-git-status-hash))
                   (goto-char hash-start)
                   (should (search-forward "origin/master" nil t))
                   (should (eq (get-text-property (1- (point)) 'face)
-                              'xueliang-git-status-ref))))
+                              'xl-git-status-ref))))
               ;; The newest commit appears again below the log heading.
               (should (= 2 (how-many "initial" (point-min) (point-max))))
               (should (= (point) (point-min)))
@@ -579,52 +579,52 @@ The other TAB command would insert two spaces, so it delegates to
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (with-current-buffer buffer
               (should (string-match-p "Git status" (buffer-string)))
               (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should (timerp xueliang-git-status--spinner-timer))
-              (should (overlayp xueliang-git-status--spinner-overlay))
-              (should (equal (car xueliang-git-status-spinner-frames)
-                             (overlay-get xueliang-git-status--spinner-overlay
+              (should (timerp xl-git-status--spinner-timer))
+              (should (overlayp xl-git-status--spinner-overlay))
+              (should (equal (car xl-git-status-spinner-frames)
+                             (overlay-get xl-git-status--spinner-overlay
                                           'display)))
               ;; The timer advances the frames.
-              (xueliang-git-status--spin buffer)
-              (should (equal (cadr xueliang-git-status-spinner-frames)
-                             (overlay-get xueliang-git-status--spinner-overlay
+              (xl-git-status--spin buffer)
+              (should (equal (cadr xl-git-status-spinner-frames)
+                             (overlay-get xl-git-status--spinner-overlay
                                           'display))))
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (should-not (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should-not (timerp xueliang-git-status--spinner-timer))
-              (should-not (overlayp xueliang-git-status--spinner-overlay)))))
+              (should-not (timerp xl-git-status--spinner-timer))
+              (should-not (overlayp xl-git-status--spinner-overlay)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
 (ert-deftest xl-git-status-keys ()
   "Folding, operations and RET are bound in the status mode and Evil."
-  (dolist (spec '(("TAB" . xueliang-git-status-toggle)
-                  ("<backtab>" . xueliang-git-status-toggle-files)
-                  ("s" . xueliang-git-status-stage)
-                  ("u" . xueliang-git-status-unstage)
-                  ("X" . xueliang-git-status-discard)
-                  ("S" . xueliang-git-status-stage-all)
-                  ("U" . xueliang-git-status-unstage-all)
-                  ("RET" . xueliang-git-status-visit)))
-    (should (eq (keymap-lookup xueliang-git-status-mode-map (car spec))
+  (dolist (spec '(("TAB" . xl-git-status-toggle)
+                  ("<backtab>" . xl-git-status-toggle-files)
+                  ("s" . xl-git-status-stage)
+                  ("u" . xl-git-status-unstage)
+                  ("X" . xl-git-status-discard)
+                  ("S" . xl-git-status-stage-all)
+                  ("U" . xl-git-status-unstage-all)
+                  ("RET" . xl-git-status-visit)))
+    (should (eq (keymap-lookup xl-git-status-mode-map (car spec))
                 (cdr spec))))
   (require 'evil)
   (let ((normal (evil-get-auxiliary-keymap
-                 xueliang-git-status-mode-map 'normal t)))
-    (dolist (spec '(("TAB" . xueliang-git-status-toggle)
-                    ("<backtab>" . xueliang-git-status-toggle-files)
-                    ("s" . xueliang-git-status-stage)
-                    ("u" . xueliang-git-status-unstage)
-                    ("X" . xueliang-git-status-discard)
-                    ("x" . xueliang-git-status-discard)
-                    ("S" . xueliang-git-status-stage-all)
-                    ("U" . xueliang-git-status-unstage-all)
-                    ("RET" . xueliang-git-status-visit)))
+                 xl-git-status-mode-map 'normal t)))
+    (dolist (spec '(("TAB" . xl-git-status-toggle)
+                    ("<backtab>" . xl-git-status-toggle-files)
+                    ("s" . xl-git-status-stage)
+                    ("u" . xl-git-status-unstage)
+                    ("X" . xl-git-status-discard)
+                    ("x" . xl-git-status-discard)
+                    ("S" . xl-git-status-stage-all)
+                    ("U" . xl-git-status-unstage-all)
+                    ("RET" . xl-git-status-visit)))
       (should (eq (keymap-lookup normal (car spec)) (cdr spec))))))
 
 (ert-deftest xl-git-status-stages-and-unstages ()
@@ -636,14 +636,14 @@ The other TAB command would insert two spaces, so it delegates to
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               ;; file-0.txt is unstaged: stage it.
               (goto-char (point-min))
               (should (search-forward "modified   file-0.txt" nil t))
               (beginning-of-line)
-              (xueliang-git-status-stage)
+              (xl-git-status-stage)
               (xl-test--wait-for-git-status buffer)
               (should (equal "file-0.txt"
                              (xl-test--git-output repo "diff" "--cached"
@@ -653,7 +653,7 @@ The other TAB command would insert two spaces, so it delegates to
               (should (search-forward "Staged changes" nil t))
               (should (search-forward "modified   file-0.txt" nil t))
               (beginning-of-line)
-              (xueliang-git-status-unstage)
+              (xl-git-status-unstage)
               (xl-test--wait-for-git-status buffer)
               (should (equal "" (xl-test--git-output repo "diff" "--cached"
                                                       "--name-only"))))))
@@ -672,21 +672,21 @@ The other TAB command would insert two spaces, so it delegates to
                    (lambda (b &rest _) (setq buffer b) b))
                   ((symbol-function 'find-file)
                    (lambda (file) (setq opened file)))
-                  ((symbol-function 'xueliang-git-status--show-commit)
+                  ((symbol-function 'xl-git-status--show-commit)
                    (lambda (hash) (setq commit hash))))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (goto-char (point-min))
               (should (search-forward "modified   file-0.txt" nil t))
               (beginning-of-line)
-              (xueliang-git-status-visit)
+              (xl-git-status-visit)
               (should (equal opened (expand-file-name "file-0.txt" repo)))
               (goto-char (point-min))
               (should (search-forward "Recent commits" nil t))
               (should (re-search-forward "^[0-9a-f]+ " nil t))
-              (xueliang-git-status-visit)
+              (xl-git-status-visit)
               (should (string-match-p "\\`[0-9a-f]+\\'" commit)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
@@ -703,20 +703,20 @@ The other TAB command would insert two spaces, so it delegates to
           ;; which itself goes through `display-buffer'.
           (cl-letf (((symbol-function 'display-buffer)
                      (lambda (b &rest _) (setq buffer b) b)))
-            (xueliang-git-status))
+            (xl-git-status))
           (xl-test--wait-for-git-status buffer)
           (with-current-buffer buffer
             (goto-char (point-min))
             (search-forward "modified   file.txt")
             (beginning-of-line)
-            (xueliang-git-status-toggle))
+            (xl-git-status-toggle))
           (let ((visit-line
                  (lambda (regexp nth)
                    (with-current-buffer buffer
                      (goto-char (point-min))
                      (dotimes (_ nth) (re-search-forward regexp))
                      (beginning-of-line)
-                     (xueliang-git-status-visit))
+                     (xl-git-status-visit))
                    (with-current-buffer (get-file-buffer path)
                      (line-number-at-pos)))))
             ;; A hunk heading opens at the first line of the hunk.
@@ -747,12 +747,12 @@ The other TAB command would insert two spaces, so it delegates to
                                        "-c" "user.name=Test"
                                        "commit" "-qam" "change file")))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status--show-commit "HEAD")
+            (xl-git-status--show-commit "HEAD")
             (setq buffer (get-buffer "*git-show: HEAD*"))
             (should (buffer-live-p buffer))
             (with-current-buffer buffer
               (should (derived-mode-p 'special-mode))
-              (should (derived-mode-p 'xueliang-git-show-mode))
+              (should (derived-mode-p 'xl-git-show-mode))
               (should buffer-read-only)
               (let ((face-at
                      (lambda (regexp)
@@ -760,18 +760,18 @@ The other TAB command would insert two spaces, so it delegates to
                        (should (re-search-forward regexp nil t))
                        (get-text-property (match-beginning 0) 'face))))
                 ;; Commit header.
-                (should (eq (funcall face-at "^commit ") 'xueliang-git-status-heading))
+                (should (eq (funcall face-at "^commit ") 'xl-git-status-heading))
                 (goto-char (point-min))
                 (should (re-search-forward "^commit \\([0-9a-f]+\\)" nil t))
                 (should (eq (get-text-property (match-beginning 1) 'face)
-                            'xueliang-git-status-hash))
+                            'xl-git-status-hash))
                 (should (eq (funcall face-at "^Author: ")
-                            'xueliang-git-status-heading))
+                            'xl-git-status-heading))
                 ;; Diff header, hunk and body: the same faces as the status.
                 (should (eq (funcall face-at "^diff --git ") 'diff-header))
                 (should (eq (funcall face-at "^--- ") 'diff-header))
                 (should (eq (funcall face-at "^@@ ")
-                            'xueliang-git-status-hunk-heading))
+                            'xl-git-status-hunk-heading))
                 (should (eq (funcall face-at "^ line 0") 'diff-context))
                 (should (eq (funcall face-at "^-line 1") 'diff-removed))
                 (should (eq (funcall face-at "^\\+changed 1") 'diff-added))))))
@@ -784,7 +784,7 @@ The other TAB command would insert two spaces, so it delegates to
   (cl-letf (((symbol-function 'locate-dominating-file)
              (lambda (&rest _) "~/workspace/dotfiles/")))
     (let ((default-directory temporary-file-directory))
-      (should (equal (xueliang-git-status--root)
+      (should (equal (xl-git-status--root)
                      (file-name-as-directory
                       (expand-file-name "~/workspace/dotfiles/")))))))
 
@@ -792,7 +792,7 @@ The other TAB command would insert two spaces, so it delegates to
   "Calling the status outside a Git repository is a clear user error."
   (xl-test-with-temp-dir dir
     (let ((default-directory (file-name-as-directory dir)))
-      (should-error (xueliang-git-status) :type 'user-error))))
+      (should-error (xl-git-status) :type 'user-error))))
 
 (ert-deftest xl-git-status-folds-sections ()
   "File diffs start folded, TAB toggles hunks, and refreshes keep the state."
@@ -803,7 +803,7 @@ The other TAB command would insert two spaces, so it delegates to
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (let* ((hunk-heading
@@ -826,9 +826,9 @@ The other TAB command would insert two spaces, so it delegates to
                 ;; The whole file diff starts folded, hunk heading included.
                 (should (invisible-p (funcall hunk-heading)))
                 (should (eq (get-text-property (funcall hunk-heading) 'face)
-                            'xueliang-git-status-hunk-heading))
+                            'xl-git-status-hunk-heading))
                 (funcall goto-file)
-                (xueliang-git-status-toggle)
+                (xl-git-status-toggle)
                 (should-not (invisible-p (funcall hunk-heading)))
                 (should-not (invisible-p (funcall hunk-body)))
                 ;; Added and removed lines use the diff faces.
@@ -842,18 +842,18 @@ The other TAB command would insert two spaces, so it delegates to
                               'diff-added)))
                 ;; TAB on the hunk heading folds only that hunk.
                 (goto-char (funcall hunk-heading))
-                (xueliang-git-status-toggle)
+                (xl-git-status-toggle)
                 (should-not (invisible-p (funcall hunk-heading)))
                 (should (invisible-p (funcall hunk-body)))
                 ;; A refresh keeps the file open and the hunk folded.
-                (xueliang-git-status)
+                (xl-git-status)
                 (xl-test--wait-for-git-status buffer)
                 (should-not (invisible-p (funcall hunk-heading)))
                 (should (invisible-p (funcall hunk-body)))
                 ;; S-TAB folds every file diff, then unfolds it again.
-                (xueliang-git-status-toggle-files)
+                (xl-git-status-toggle-files)
                 (should (invisible-p (funcall hunk-heading)))
-                (xueliang-git-status-toggle-files)
+                (xl-git-status-toggle-files)
                 (should-not (invisible-p (funcall hunk-heading)))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
@@ -867,17 +867,17 @@ The other TAB command would insert two spaces, so it delegates to
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (goto-char (point-min))
               (search-forward "modified   file.txt")
               (beginning-of-line)
-              (xueliang-git-status-toggle)
+              (xl-git-status-toggle)
               (goto-char (point-min))
               (re-search-forward "^@@")
               (beginning-of-line)
-              (xueliang-git-status-stage))
+              (xl-git-status-stage))
             (xl-test--wait-for-git-status buffer)
             (let ((cached (xl-test--git-output repo "diff" "--cached"
                                                "--unified=0"))
@@ -905,18 +905,18 @@ The other TAB command would insert two spaces, so it delegates to
           (cl-letf (((symbol-function 'display-buffer)
                      (lambda (b &rest _) (setq buffer b) b)))
             (let ((default-directory (file-name-as-directory repo)))
-              (xueliang-git-status)
+              (xl-git-status)
               (xl-test--wait-for-git-status buffer)
               (with-current-buffer buffer
                 (goto-char (point-min))
                 (search-forward "Staged changes")
                 (search-forward "modified   file.txt")
                 (beginning-of-line)
-                (xueliang-git-status-toggle)
+                (xl-git-status-toggle)
                 (goto-char (point-min))
                 (re-search-forward "^@@")
                 (beginning-of-line)
-                (xueliang-git-status-unstage))
+                (xl-git-status-unstage))
               (xl-test--wait-for-git-status buffer)
               (let ((cached (xl-test--git-output repo "diff" "--cached"
                                                  "--unified=0"))
@@ -939,19 +939,19 @@ The other TAB command would insert two spaces, so it delegates to
                   ((symbol-function 'yes-or-no-p)
                    (lambda (&rest _) t)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (goto-char (point-min))
               (search-forward "modified   file.txt")
               (beginning-of-line)
-              (xueliang-git-status-toggle)
+              (xl-git-status-toggle)
               ;; The second hunk reverts line 18 and nothing else.
               (goto-char (point-min))
               (re-search-forward "^@@")
               (re-search-forward "^@@")
               (beginning-of-line)
-              (xueliang-git-status-discard))
+              (xl-git-status-discard))
             (xl-test--wait-for-git-status buffer)
             (let ((worktree (xl-test--read-file (expand-file-name "file.txt" repo))))
               (should (string-match-p "changed 1\\b" worktree))
@@ -973,25 +973,25 @@ The other TAB command would insert two spaces, so it delegates to
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b)))
           (let ((default-directory (file-name-as-directory repo)))
-            (xueliang-git-status)
+            (xl-git-status)
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (goto-char (point-min))
               (search-forward "Unstaged changes")
               (beginning-of-line)
-              (xueliang-git-status-stage))
+              (xl-git-status-stage))
             (xl-test--wait-for-git-status buffer)
             (should (equal "file-0.txt\nfile-1.txt\nfile-2.txt"
                            (xl-test--git-output repo "diff" "--cached"
                                                 "--name-only")))
             (with-current-buffer buffer
-              (xueliang-git-status-stage-all))
+              (xl-git-status-stage-all))
             (xl-test--wait-for-git-status buffer)
             (should (string-match-p "untracked\\.txt"
                                     (xl-test--git-output repo "diff" "--cached"
                                                          "--name-only")))
             (with-current-buffer buffer
-              (xueliang-git-status-unstage-all))
+              (xl-git-status-unstage-all))
             (xl-test--wait-for-git-status buffer)
             (should (equal "" (xl-test--git-output repo "diff" "--cached"
                                                     "--name-only")))))
@@ -1012,17 +1012,17 @@ The other TAB command would insert two spaces, so it delegates to
         (progn
           (switch-to-buffer buf)
           (delete-other-windows)
-          (xueliang-gblame)
-          (should (buffer-live-p xueliang-gblame--buffer))
-          (should (get-buffer-window xueliang-gblame--buffer))
-          (with-current-buffer xueliang-gblame--buffer
-            (should (derived-mode-p 'xueliang-gblame-mode))
+          (xl-gblame)
+          (should (buffer-live-p xl-gblame--buffer))
+          (should (get-buffer-window xl-gblame--buffer))
+          (with-current-buffer xl-gblame--buffer
+            (should (derived-mode-p 'xl-gblame-mode))
             (should buffer-read-only)
             ;; One line of blame for each of the 20 source lines.
             (should (= 20 (how-many "\n" (point-min) (point-max))))
             ;; The first commit gets the first palette face.
             (should (eq (get-text-property (point-min) 'face)
-                        (car xueliang-gblame-hash-faces)))
+                        (car xl-gblame-hash-faces)))
             (should (string-match-p
                      "\\`[0-9a-f]\\{8\\}"
                      (buffer-substring (point-min) (+ (point-min) 8))))
@@ -1032,24 +1032,24 @@ The other TAB command would insert two spaces, so it delegates to
             (goto-char (point-min))
             (forward-line 1)
             (should (string-match-p
-                     "\\`0+\\'" (get-text-property (point) 'xueliang-gblame-hash)))
+                     "\\`0+\\'" (get-text-property (point) 'xl-gblame-hash)))
             (should (eq (get-text-property (point) 'face)
-                        'xueliang-git-status-comment))
-            (should-error (xueliang-gblame-show-commit) :type 'user-error))
+                        'xl-git-status-comment))
+            (should-error (xl-gblame-show-commit) :type 'user-error))
           ;; Moving point moves the highlight; scrolling moves the window.
           (goto-char (point-min))
           (forward-line 9)
-          (xueliang-gblame--sync (get-buffer-window buf t))
-          (with-current-buffer xueliang-gblame--buffer
+          (xl-gblame--sync (get-buffer-window buf t))
+          (with-current-buffer xl-gblame--buffer
             (should (= 10 (line-number-at-pos
-                           (overlay-start xueliang-gblame--highlight)))))
+                           (overlay-start xl-gblame--highlight)))))
           (with-current-buffer buf
             (set-window-start
              (get-buffer-window buf t)
              (save-excursion (goto-char (point-min)) (forward-line 14) (point)))
-            (xueliang-gblame--sync (get-buffer-window buf t)))
-          (with-current-buffer xueliang-gblame--buffer
-            (let ((window (get-buffer-window xueliang-gblame--buffer t)))
+            (xl-gblame--sync (get-buffer-window buf t)))
+          (with-current-buffer xl-gblame--buffer
+            (let ((window (get-buffer-window xl-gblame--buffer t)))
               (should (= 15 (line-number-at-pos (window-start window))))
               ;; The blame window's point stays inside the visible lines,
               ;; so redisplay does not scroll it back to point-min.
@@ -1058,17 +1058,17 @@ The other TAB command would insert two spaces, so it delegates to
                          (+ 15 (window-body-height window))))))
           ;; RET shows the commit of a committed line.
           (let (shown)
-            (cl-letf (((symbol-function 'xueliang-git-status--show-commit)
+            (cl-letf (((symbol-function 'xl-git-status--show-commit)
                        (lambda (hash) (setq shown hash))))
-              (with-current-buffer xueliang-gblame--buffer
+              (with-current-buffer xl-gblame--buffer
                 (goto-char (point-min))
-                (xueliang-gblame-show-commit))
+                (xl-gblame-show-commit))
               (should (string-match-p "\\`[0-9a-f]\\{40\\}\\'" shown))))
           ;; :Gblame is the vim-fugitive command name.
-          (should (eq (cdr (assoc "Gblame" evil-ex-commands)) 'xueliang-gblame))
-          ;; The G* family lives in git-commands.el, not in xueliang.el.
-          (dolist (cmd '(Gstatus Gwrite Gcommit xueliang-gblame))
-            (should (equal "git-commands"
+          (should (eq (cdr (assoc "Gblame" evil-ex-commands)) 'xl-gblame))
+          ;; The G* family lives in xl-git-commands.el, not in xueliang.el.
+          (dolist (cmd '(Gstatus Gwrite Gcommit xl-gblame))
+            (should (equal "xl-git-commands"
                            (file-name-sans-extension
                             (file-name-nondirectory (symbol-file cmd 'defun))))))
           (should (eq (cdr (assoc "Gstatus" evil-ex-commands)) 'Gstatus))
@@ -1076,21 +1076,21 @@ The other TAB command would insert two spaces, so it delegates to
           (should (eq (cdr (assoc "Gcommit" evil-ex-commands)) 'Gcommit))
           ;; The blame window is an ordinary split, not an Emacs side window,
           ;; and it is not hidden from `other-window' (C-w C-w).
-          (let ((window (get-buffer-window xueliang-gblame--buffer t)))
+          (let ((window (get-buffer-window xl-gblame--buffer t)))
             (should-not (window-parameter window 'window-side))
             (should-not (window-parameter window 'no-other-window))
             (should (memq window (window-list))))
           ;; :only (delete-other-windows) closes it; SPC g b opens it again.
           (select-window (get-buffer-window buf t))
           (delete-other-windows)
-          (should-not (get-buffer-window xueliang-gblame--buffer t))
-          (xueliang-gblame)
-          (should (get-buffer-window xueliang-gblame--buffer t))
+          (should-not (get-buffer-window xl-gblame--buffer t))
+          (xl-gblame)
+          (should (get-buffer-window xl-gblame--buffer t))
           ;; Toggling closes the window and removes the source hooks.
-          (xueliang-gblame)
-          (should-not (buffer-live-p xueliang-gblame--buffer))
-          (should-not (memq #'xueliang-gblame--sync post-command-hook))
-          (should-not (memq #'xueliang-gblame--refresh after-save-hook)))
+          (xl-gblame)
+          (should-not (buffer-live-p xl-gblame--buffer))
+          (should-not (memq #'xl-gblame--sync post-command-hook))
+          (should-not (memq #'xl-gblame--refresh after-save-hook)))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
         (when (buffer-live-p blame) (kill-buffer blame)))
       (when (buffer-live-p buf) (kill-buffer buf))
@@ -1105,8 +1105,8 @@ The other TAB command would insert two spaces, so it delegates to
     (unwind-protect
         (progn
           (switch-to-buffer buf)
-          (xueliang-gblame)
-          (with-current-buffer xueliang-gblame--buffer
+          (xl-gblame)
+          (with-current-buffer xl-gblame--buffer
             (let (faces)
               (goto-char (point-min))
               (dotimes (_ 4)
@@ -1115,9 +1115,9 @@ The other TAB command would insert two spaces, so it delegates to
               (setq faces (nreverse faces))
               ;; Line 1 is uncommitted, line 2 is the initial commit,
               ;; lines 3 and 4 belong to the second commit.
-              (should (eq (nth 0 faces) 'xueliang-git-status-comment))
-              (should (memq (nth 1 faces) xueliang-gblame-hash-faces))
-              (should (memq (nth 2 faces) xueliang-gblame-hash-faces))
+              (should (eq (nth 0 faces) 'xl-git-status-comment))
+              (should (memq (nth 1 faces) xl-gblame-hash-faces))
+              (should (memq (nth 2 faces) xl-gblame-hash-faces))
               ;; Different adjacent commits use different colours...
               (should-not (eq (nth 1 faces) (nth 2 faces)))
               ;; ...while one commit keeps one colour.
@@ -1690,12 +1690,12 @@ which Crafted still puts on `embark-collect-mode-hook'."
 (ert-deftest xl-git-status-window-prefers-vertical-split ()
   "`SPC g g' sets a low split threshold locally, then opens Git status."
   (let (opened)
-    (cl-letf (((symbol-function 'xueliang-git-status)
+    (cl-letf (((symbol-function 'xl-git-status)
                (lambda () (setq opened t)))
               ((symbol-function 'turn-on-diff-hl-mode)
                (lambda () nil)))
       (with-temp-buffer
-        (xueliang-git-status-window)
+        (xl-git-status-window)
         (should (= split-width-threshold 10))))
     (should opened)))
 
@@ -1713,11 +1713,11 @@ which Crafted still puts on `embark-collect-mode-hook'."
         (should-not (file-exists-p file))))))
 
 (ert-deftest xl-open-dotfile-opens-the-personal-config ()
-  "`SPC f e d' opens emacs/xueliang.el."
+  "`SPC f e d' opens xl-emacs/user/xueliang.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
       (xl-sk-open-dotfile))
-    (should (string-suffix-p "emacs/xueliang.el" opened))))
+    (should (string-suffix-p "xl-emacs/user/xueliang.el" opened))))
 
 (ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
@@ -1807,10 +1807,10 @@ which Crafted still puts on `embark-collect-mode-hook'."
 
 (ert-deftest xl-startup-trace-marks-every-phase-in-init ()
   "init.el marks each slow phase, including the network package install."
-  (let ((init (xl-test--read-file (expand-file-name "emacs/init.el" xl-dotfiles))))
+  (let ((init (xl-test--read-file (expand-file-name "xl-emacs/init.el" xl-dotfiles))))
     (dolist (phase '("activating packages" "installing missing packages"
-                     "Crafted modules" "spacemacs-keys.el" "git-status.el"
-                     "git-commands.el" "xueliang.el" "init: done"))
+                     "Crafted modules" "spacemacs-keys.el" "xl-git-status.el"
+                     "xl-git-commands.el" "xueliang.el" "init: done"))
       (should (string-search phase init))))
   (should (fboundp 'xueliang-startup-mark))
   ;; Outside a real start, C-g stays a plain quit.

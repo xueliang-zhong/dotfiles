@@ -1,47 +1,52 @@
-;;; git-commands.el --- Vim-fugitive style Git commands -*- lexical-binding: t; -*-
+;;; xl-git-commands.el --- Async Vim-fugitive style Git commands  -*- lexical-binding: t; -*-
+
+;; Author: Xueliang Zhong
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "30.1") (xl-git-status "0.1.0"))
+;; Keywords: tools, vc, convenience
 
 ;;; Commentary:
 ;; The G* commands, in the spirit of vim-fugitive:
-;;   Gstatus  show the status buffer from git-status.el
+;;   Gstatus  show the status buffer from xl-git-status.el
 ;;   Gblame   toggle the blame window on the left of the current file
 ;;   Gwrite   stage the current file
 ;;   Gcommit  commit the current file with an "Update <file>" message
 ;; All of them are also available as Ex commands (`:Gstatus', `:Gblame',
-;; `:Gwrite', `:Gcommit').  The status buffer itself lives in git-status.el.
+;; `:Gwrite', `:Gcommit').  The status buffer itself lives in xl-git-status.el.
 
 ;;; Code:
 
 (require 'subr-x)     ; truncate-string-to-width
-(require 'git-status) ; status buffer, its faces and `--show-commit'
+(require 'xl-git-status) ; status buffer, its faces and `--show-commit'
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
 ;; ============================================================
-;; `xueliang-gblame' (SPC g b, or :Gblame) shows one line of blame for
+;; `xl-gblame' (SPC g b, or :Gblame) shows one line of blame for
 ;; every line of the current file in a narrow window on the left:
 ;; abbreviated commit, author and date, aligned with the file.  Different
 ;; commits get different hash colours, so the boundaries between commits
 ;; stand out; uncommitted lines stay dim.  The window follows the source
 ;; window while scrolling, highlights the line at point, refreshes after
 ;; saving, and closes with `q'.  RET on a blame line shows that commit.
-(defface xueliang-gblame-current-line
+(defface xl-gblame-current-line
   '((t :inherit highlight))
   "Face for the line at point in the GBlame window."
   :group 'faces)
 
-(defvar-local xueliang-gblame--buffer nil
+(defvar-local xl-gblame--buffer nil
   "GBlame buffer of this source buffer, when GBlame is open.")
-(defvar-local xueliang-gblame--root nil
+(defvar-local xl-gblame--root nil
   "Repository root of the source buffer's file.")
-(defvar-local xueliang-gblame--file nil
+(defvar-local xl-gblame--file nil
   "Absolute name of the file being blamed.")
 
-(defvar-local xueliang-gblame--source nil
+(defvar-local xl-gblame--source nil
   "Source buffer of this GBlame buffer.")
-(defvar-local xueliang-gblame--highlight nil
+(defvar-local xl-gblame--highlight nil
   "Overlay marking the source line in this GBlame buffer.")
 
-(defun xueliang-gblame--git (&rest args)
+(defun xl-gblame--git (&rest args)
   "Run git ARGS in `default-directory' and return its output."
   (with-temp-buffer
     (let ((code (apply #'call-process "git" nil t nil
@@ -52,7 +57,7 @@
                     (car args) (string-trim (buffer-string))))
       (buffer-string))))
 
-(defun xueliang-gblame--parse (output)
+(defun xl-gblame--parse (output)
   "Return blame records (LINE HASH AUTHOR TIME) parsed from OUTPUT.
 OUTPUT is the text of `git blame --line-porcelain'."
   (let (records
@@ -74,11 +79,11 @@ OUTPUT is the text of `git blame --line-porcelain'."
         (setq hash nil))))
     records))
 
-(defun xueliang-gblame--pad (text width)
+(defun xl-gblame--pad (text width)
   "Return TEXT padded with spaces to WIDTH display columns."
   (concat text (make-string (max 0 (- width (string-width text))) ?\s)))
 
-(defvar xueliang-gblame-hash-faces
+(defvar xl-gblame-hash-faces
   '(font-lock-keyword-face        ; blue
     font-lock-warning-face        ; orange
     font-lock-string-face         ; green
@@ -90,9 +95,9 @@ OUTPUT is the text of `git blame --line-porcelain'."
 A commit gets the next face the first time it appears in the file, so
 commits next to each other are easy to tell apart.  The faces inherit
 from the active theme; set this to nil to colour every hash with
-`xueliang-git-status-hash'.")
+`xl-git-status-hash'.")
 
-(defun xueliang-gblame--format (record face)
+(defun xl-gblame--format (record face)
   "Return the display line for one blame RECORD.
 Its hash is coloured with FACE."
   (pcase-let ((`(,_ ,hash ,author ,time) record))
@@ -101,16 +106,16 @@ Its hash is coloured with FACE."
           (date (if time (format-time-string "%Y-%m-%d" time) "")))
       (concat (propertize short 'face face)
               " "
-              (xueliang-gblame--pad author 18)
+              (xl-gblame--pad author 18)
               " "
-              (propertize date 'face 'xueliang-git-status-comment)))))
+              (propertize date 'face 'xl-git-status-comment)))))
 
-(defun xueliang-gblame--insert (records)
+(defun xl-gblame--insert (records)
   "Insert one line per source line for blame RECORDS.
 Different commits get different hash colours, so the boundaries between
 commits are easy to see."
   (let ((table (make-hash-table :test #'eql))
-        (faces (vconcat xueliang-gblame-hash-faces))
+        (faces (vconcat xl-gblame-hash-faces))
         (face-of (make-hash-table :test #'equal))
         (next 0)
         (lines 0))
@@ -124,42 +129,42 @@ commits are easy to see."
                     ((null record) nil)
                     ;; An uncommitted line gets no colour of its own.
                     ((string-match-p "\\`0+\\'" hash)
-                     'xueliang-git-status-comment)
+                     'xl-git-status-comment)
                     ((gethash hash face-of))
                     ((zerop (length faces))
-                     'xueliang-git-status-hash)
+                     'xl-git-status-hash)
                     (t
                      (let ((face (aref faces (mod next (length faces)))))
                        (setq next (1+ next))
                        (puthash hash face face-of)
                        face))))
              (start (point)))
-        (insert (if record (xueliang-gblame--format record face) "") "\n")
+        (insert (if record (xl-gblame--format record face) "") "\n")
         (when record
           (add-text-properties start (1- (point))
-                               (list 'xueliang-gblame-hash hash)))))))
+                               (list 'xl-gblame-hash hash)))))))
 
-(defun xueliang-gblame--fill (buffer root file)
+(defun xl-gblame--fill (buffer root file)
   "Fill BUFFER with the blame of FILE in ROOT."
   (let* ((default-directory root)
-         (output (xueliang-gblame--git "blame" "--line-porcelain" "--"
+         (output (xl-gblame--git "blame" "--line-porcelain" "--"
                                        (file-relative-name file root))))
     (with-current-buffer buffer
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (xueliang-gblame--insert (xueliang-gblame--parse output))
+        (xl-gblame--insert (xl-gblame--parse output))
         (goto-char (point-min))
-        (setq xueliang-gblame--highlight (make-overlay (point) (point)))
-        (overlay-put xueliang-gblame--highlight
-                     'face 'xueliang-gblame-current-line)))))
+        (setq xl-gblame--highlight (make-overlay (point) (point)))
+        (overlay-put xl-gblame--highlight
+                     'face 'xl-gblame-current-line)))))
 
-(defun xueliang-gblame--sync (&optional window _new-start)
+(defun xl-gblame--sync (&optional window _new-start)
   "Align the GBlame window with WINDOW and follow its point.
 WINDOW defaults to the selected window; `window-scroll-functions' also
 passes the new window start."
   (let* ((source-window (or window (selected-window)))
          (source (window-buffer source-window))
-         (blame (buffer-local-value 'xueliang-gblame--buffer source))
+         (blame (buffer-local-value 'xl-gblame--buffer source))
          (blame-window (and (buffer-live-p blame)
                             (get-buffer-window blame t))))
     (when (and blame-window (window-live-p source-window)
@@ -178,10 +183,10 @@ passes the new window start."
                  (target (if (and (>= line top) (< line (+ top height)))
                              line
                            top)))
-            (when xueliang-gblame--highlight
+            (when xl-gblame--highlight
               (goto-char (point-min))
               (forward-line (1- line))
-              (move-overlay xueliang-gblame--highlight
+              (move-overlay xl-gblame--highlight
                             (line-beginning-position)
                             (line-end-position)))
             (goto-char (point-min))
@@ -191,71 +196,71 @@ passes the new window start."
             (forward-line (1- target))
             (set-window-point blame-window (point))))))))
 
-(defun xueliang-gblame--refresh ()
+(defun xl-gblame--refresh ()
   "Redraw this source buffer's GBlame window, if it is open."
-  (when (and (buffer-live-p xueliang-gblame--buffer)
-             xueliang-gblame--root
-             xueliang-gblame--file)
-    (xueliang-gblame--fill xueliang-gblame--buffer
-                           xueliang-gblame--root xueliang-gblame--file)
+  (when (and (buffer-live-p xl-gblame--buffer)
+             xl-gblame--root
+             xl-gblame--file)
+    (xl-gblame--fill xl-gblame--buffer
+                           xl-gblame--root xl-gblame--file)
     (when-let* ((window (get-buffer-window (current-buffer) t)))
-      (xueliang-gblame--sync window))))
+      (xl-gblame--sync window))))
 
-(defun xueliang-gblame--cleanup ()
+(defun xl-gblame--cleanup ()
   "Forget this GBlame buffer in its source buffer."
-  (when (buffer-live-p xueliang-gblame--source)
-    (with-current-buffer xueliang-gblame--source
-      (setq xueliang-gblame--buffer nil)
-      (remove-hook 'post-command-hook #'xueliang-gblame--sync t)
-      (remove-hook 'window-scroll-functions #'xueliang-gblame--sync t)
-      (remove-hook 'after-save-hook #'xueliang-gblame--refresh t)
-      (remove-hook 'kill-buffer-hook #'xueliang-gblame--close t))))
+  (when (buffer-live-p xl-gblame--source)
+    (with-current-buffer xl-gblame--source
+      (setq xl-gblame--buffer nil)
+      (remove-hook 'post-command-hook #'xl-gblame--sync t)
+      (remove-hook 'window-scroll-functions #'xl-gblame--sync t)
+      (remove-hook 'after-save-hook #'xl-gblame--refresh t)
+      (remove-hook 'kill-buffer-hook #'xl-gblame--close t))))
 
-(defun xueliang-gblame--close ()
+(defun xl-gblame--close ()
   "Close this source buffer's GBlame window.
 Return non-nil when a GBlame buffer was open."
-  (when (buffer-live-p xueliang-gblame--buffer)
-    (let ((window (get-buffer-window xueliang-gblame--buffer t)))
+  (when (buffer-live-p xl-gblame--buffer)
+    (let ((window (get-buffer-window xl-gblame--buffer t)))
       (when (window-live-p window)
         (delete-window window)))
-    (kill-buffer xueliang-gblame--buffer)
+    (kill-buffer xl-gblame--buffer)
     t))
 
-(defun xueliang-gblame-quit ()
+(defun xl-gblame-quit ()
   "Close the GBlame window."
   (interactive)
-  (let ((source xueliang-gblame--source))
+  (let ((source xl-gblame--source))
     (if (buffer-live-p source)
         (with-current-buffer source
-          (xueliang-gblame--close))
+          (xl-gblame--close))
       (when-let* ((window (get-buffer-window (current-buffer) t)))
         (delete-window window))
       (kill-buffer (current-buffer)))))
 
-(defun xueliang-gblame-refresh ()
+(defun xl-gblame-refresh ()
   "Re-run git blame for the current GBlame window."
   (interactive)
-  (let ((source xueliang-gblame--source))
+  (let ((source xl-gblame--source))
     (unless (buffer-live-p source)
       (user-error "The source buffer is gone"))
     (with-current-buffer source
-      (xueliang-gblame--refresh))))
+      (xl-gblame--refresh))))
 
-(defun xueliang-gblame-show-commit ()
+(defun xl-gblame-show-commit ()
   "Show the commit that last touched the line at point."
   (interactive)
   (let ((hash (get-text-property (line-beginning-position)
-                                 'xueliang-gblame-hash)))
+                                 'xl-gblame-hash)))
     (cond
      ((null hash) (user-error "No blame information on this line"))
      ((string-match-p "\\`0+\\'" hash)
       (user-error "This line is not committed yet"))
-     ((fboundp 'xueliang-git-status--show-commit)
-      (let ((default-directory (or xueliang-gblame--root default-directory)))
-        (xueliang-git-status--show-commit hash)))
+     ((fboundp 'xl-git-status--show-commit)
+      (let ((default-directory (or xl-gblame--root default-directory)))
+        (xl-git-status--show-commit hash)))
      (t (message "Commit %s" hash)))))
 
-(defun xueliang-gblame ()
+(defun xl-gblame ()
   "Toggle a git blame window on the left of the current file.
 Each line shows the abbreviated commit, author and date, aligned with
 the file; the window follows the file's scrolling and point.  It is an
@@ -264,14 +269,14 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
   (interactive)
   (unless buffer-file-name
     (user-error "This buffer is not visiting a file"))
-  (if (and (buffer-live-p xueliang-gblame--buffer)
-           (get-buffer-window xueliang-gblame--buffer t))
+  (if (and (buffer-live-p xl-gblame--buffer)
+           (get-buffer-window xl-gblame--buffer t))
       (progn
-        (xueliang-gblame--close)
+        (xl-gblame--close)
         (message "GBlame closed"))
     ;; The buffer may survive a window closed with :only, C-w c or :q.
     ;; Drop it before opening a fresh one.
-    (xueliang-gblame--close)
+    (xl-gblame--close)
     (let* ((source (current-buffer))
            (file (file-truename buffer-file-name))
            (root (locate-dominating-file file ".git")))
@@ -281,48 +286,48 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
       (let ((blame (get-buffer-create
                     (format "*GBlame: %s*" (file-name-nondirectory file)))))
         (with-current-buffer blame
-          (xueliang-gblame-mode)
-          (setq xueliang-gblame--source source
-                xueliang-gblame--root root
-                xueliang-gblame--file file)
-          (add-hook 'kill-buffer-hook #'xueliang-gblame--cleanup nil t))
-        (xueliang-gblame--fill blame root file)
+          (xl-gblame-mode)
+          (setq xl-gblame--source source
+                xl-gblame--root root
+                xl-gblame--file file)
+          (add-hook 'kill-buffer-hook #'xl-gblame--cleanup nil t))
+        (xl-gblame--fill blame root file)
         (with-current-buffer source
-          (setq xueliang-gblame--root root
-                xueliang-gblame--file file
-                xueliang-gblame--buffer blame)
-          (add-hook 'post-command-hook #'xueliang-gblame--sync nil t)
-          (add-hook 'window-scroll-functions #'xueliang-gblame--sync nil t)
-          (add-hook 'after-save-hook #'xueliang-gblame--refresh nil t)
-          (add-hook 'kill-buffer-hook #'xueliang-gblame--close nil t))
+          (setq xl-gblame--root root
+                xl-gblame--file file
+                xl-gblame--buffer blame)
+          (add-hook 'post-command-hook #'xl-gblame--sync nil t)
+          (add-hook 'window-scroll-functions #'xl-gblame--sync nil t)
+          (add-hook 'after-save-hook #'xl-gblame--refresh nil t)
+          (add-hook 'kill-buffer-hook #'xl-gblame--close nil t))
         (display-buffer blame
                         '((display-buffer-in-direction)
                           (direction . left)
                           (window-width . 44)))
         (with-current-buffer source
-          (xueliang-gblame--sync (get-buffer-window source t)))))))
+          (xl-gblame--sync (get-buffer-window source t)))))))
 
-(defvar-keymap xueliang-gblame-mode-map
-  :doc "Keymap for `xueliang-gblame-mode'."
+(defvar-keymap xl-gblame-mode-map
+  :doc "Keymap for `xl-gblame-mode'."
   :parent special-mode-map
-  "RET" #'xueliang-gblame-show-commit
-  "<return>" #'xueliang-gblame-show-commit
-  "g" #'xueliang-gblame-refresh
-  "q" #'xueliang-gblame-quit)
+  "RET" #'xl-gblame-show-commit
+  "<return>" #'xl-gblame-show-commit
+  "g" #'xl-gblame-refresh
+  "q" #'xl-gblame-quit)
 
-(define-derived-mode xueliang-gblame-mode special-mode "GBlame"
-  "Major mode for `xueliang-gblame' buffers."
+(define-derived-mode xl-gblame-mode special-mode "GBlame"
+  "Major mode for `xl-gblame' buffers."
   (setq-local truncate-lines t))
 
 ;; Evil's normal state would otherwise take RET, g and q first.
 (with-eval-after-load 'evil
-  (evil-define-key 'normal xueliang-gblame-mode-map
-    (kbd "RET") #'xueliang-gblame-show-commit
-    (kbd "<return>") #'xueliang-gblame-show-commit
-    "g" #'xueliang-gblame-refresh
-    "q" #'xueliang-gblame-quit)
+  (evil-define-key 'normal xl-gblame-mode-map
+    (kbd "RET") #'xl-gblame-show-commit
+    (kbd "<return>") #'xl-gblame-show-commit
+    "g" #'xl-gblame-refresh
+    "q" #'xl-gblame-quit)
   ;; Same command as vim-fugitive's :Gblame
-  (evil-ex-define-cmd "Gblame" #'xueliang-gblame))
+  (evil-ex-define-cmd "Gblame" #'xl-gblame))
 
 ;; ============================================================
 ;; Vim-fugitive style commands
@@ -330,7 +335,7 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
 ;; The G* names match vim-fugitive's :Gwrite and :Gcommit, which are also
 ;; available as Ex commands.  Both act on the current file's directory, so
 ;; they work from any buffer that visits a tracked file.
-(defun xueliang-git-commands--file-directory ()
+(defun xl-git-commands--file-directory ()
   "Return the current file's directory, or `default-directory'."
   (if buffer-file-name
       (file-name-directory (expand-file-name buffer-file-name))
@@ -341,7 +346,7 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
   (interactive)
   (unless (fboundp 'evil-ex-execute)
     (user-error "Gwrite needs Evil"))
-  (let ((default-directory (xueliang-git-commands--file-directory)))
+  (let ((default-directory (xl-git-commands--file-directory)))
     (evil-ex-execute "!git add %")))
 
 (defun Gcommit ()
@@ -349,16 +354,16 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
   (interactive)
   (unless (fboundp 'evil-ex-execute)
     (user-error "Gcommit needs Evil"))
-  (let ((default-directory (xueliang-git-commands--file-directory)))
+  (let ((default-directory (xl-git-commands--file-directory)))
     (evil-ex-execute (format "!git commit -m \"Update %s\""
                              (file-name-nondirectory buffer-file-name)))))
 
-(defalias 'Gstatus 'xueliang-git-status)
+(defalias 'Gstatus 'xl-git-status)
 
 (with-eval-after-load 'evil
   (evil-ex-define-cmd "Gstatus" #'Gstatus)
   (evil-ex-define-cmd "Gwrite" #'Gwrite)
   (evil-ex-define-cmd "Gcommit" #'Gcommit))
 
-(provide 'git-commands)
-;;; git-commands.el ends here
+(provide 'xl-git-commands)
+;;; xl-git-commands.el ends here
