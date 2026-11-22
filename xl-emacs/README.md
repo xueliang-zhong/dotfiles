@@ -2,7 +2,7 @@
 
 **A thin Emacs layer whose heavy work runs async. 重活异步，界面不等。**
 
-一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。读 Git 的重活——status、diff、log——用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-emacs`、`xl-git-status`），同时是作者 Xueliang 的缩写。
+一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。读 Git 的重活——status、diff、log、blame——用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-emacs`、`xl-git-status`），同时是作者 Xueliang 的缩写。
 
 ## 三条可验证的承诺
 
@@ -10,9 +10,9 @@
 | --- | --- |
 | 个人层是薄的 | `init.el`、`early-init.el`、`spacemacs-keys.el`、`user/xueliang.el` 合计约 1200 行 |
 | 启动耗时有数 | 每次 GUI 启动把各阶段耗时写进 `startup.log`（见下文“启动耗时”） |
-| 读 Git 不阻塞 UI | `xl-git-status` 的 status/diff/log 全部走 `make-process`；测试在命令返回的瞬间断言 spinner 已在、内容未到 |
+| 读 Git 不阻塞 UI | status/diff/log 和 `git blame` 全部走 `make-process`；测试在命令返回的瞬间断言 spinner/占位行已在、内容未到 |
 
-还没异步化的部分，如实写在这里，不假装已经完成：暂存、取消暂存、丢弃、提交（都很短），以及 `Gblame` 的 `git blame`（大文件上仍然会卡一下）。这是下一轮的待办，也是将来最值得做成包的部分。
+还没异步化的部分，如实写在这里，不假装已经完成：暂存、取消暂存、丢弃、提交仍然同步，好在它们都很短。这是下一轮的待办。
 
 不写形容词：不叫自己 “lite”，也不叫自己 “fast”。数字和测试能证明的东西，才写进 README。
 
@@ -114,7 +114,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 vim-fugitive 风格的命令，都定义在这个文件里：
 
 - `Gstatus`（`:Gstatus`）：打开 `lisp/xl-git-status.el` 的 status buffer。
-- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
+- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），header line 上转 spinner，数据到了就替换；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
 - `Gwrite`（`:Gwrite`）：暂存当前文件。
 - `Gcommit`（`:Gcommit`）：用 `Update <文件名>` 提交当前文件。
 
@@ -188,7 +188,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 99 个 ERT 测试在配置完整加载后运行，覆盖：
+`xl-emacs/tests/smoke-tests.el` 里的 100 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -198,7 +198,7 @@ just emacs-check   # 上面两条一起跑
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
-| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
+| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 header 上的 spinner；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

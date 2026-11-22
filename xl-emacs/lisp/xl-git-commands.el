@@ -29,6 +29,12 @@
 ;; stand out; uncommitted lines stay dim.  The window follows the source
 ;; window while scrolling, highlights the line at point, refreshes after
 ;; saving, and closes with `q'.  RET on a blame line shows that commit.
+;;
+;; `git blame' runs asynchronously: the window is filled at once with one
+;; placeholder line per source line, so scrolling and point still line up,
+;; and an animated spinner in the header line says the data is on its way.
+;; A refresh keeps the old lines visible until the new ones arrive, so
+;; saving never makes the blame window flicker.
 (defface xl-gblame-current-line
   '((t :inherit highlight))
   "Face for the line at point in the GBlame window."
@@ -46,16 +52,105 @@
 (defvar-local xl-gblame--highlight nil
   "Overlay marking the source line in this GBlame buffer.")
 
-(defun xl-gblame--git (&rest args)
-  "Run git ARGS in `default-directory' and return its output."
-  (with-temp-buffer
-    (let ((code (apply #'call-process "git" nil t nil
-                       "-C" default-directory "--no-pager"
-                       "-c" "core.quotepath=false" args)))
-      (unless (zerop code)
-        (user-error "git %s failed: %s"
-                    (car args) (string-trim (buffer-string))))
-      (buffer-string))))
+(defvar-local xl-gblame--process nil
+  "The `git blame' process filling this GBlame buffer, if any.")
+(defvar-local xl-gblame--request 0
+  "Number of the latest blame request; older results are thrown away.")
+(defvar-local xl-gblame--spinner-timer nil
+  "Timer advancing the loader in this GBlame buffer's header line.")
+(defvar-local xl-gblame--spinner-frame 0
+  "Index of the current loader frame in this GBlame buffer.")
+
+(defun xl-gblame--start-spinner ()
+  "Show an animated loader in this GBlame buffer's header line."
+  (xl-gblame--stop-spinner)
+  (setq xl-gblame--spinner-frame 0)
+  (setq-local header-line-format
+              (concat " " (nth 0 xl-git-status-spinner-frames)
+                      "  git blame"))
+  (force-mode-line-update)
+  (let ((buffer (current-buffer)))
+    (setq xl-gblame--spinner-timer
+          (run-with-timer xl-git-status-spinner-interval
+                          xl-git-status-spinner-interval
+                          #'xl-gblame--spin buffer))))
+
+(defun xl-gblame--spin (buffer)
+  "Advance the loader of BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (timerp xl-gblame--spinner-timer)
+        (setq xl-gblame--spinner-frame
+              (mod (1+ xl-gblame--spinner-frame)
+                   (length xl-git-status-spinner-frames)))
+        (setq-local header-line-format
+                    (concat " " (nth xl-gblame--spinner-frame
+                                     xl-git-status-spinner-frames)
+                            "  git blame"))
+        (force-mode-line-update)))))
+
+(defun xl-gblame--stop-spinner ()
+  "Remove the loader from this GBlame buffer's header line."
+  (when (timerp xl-gblame--spinner-timer)
+    (cancel-timer xl-gblame--spinner-timer))
+  (setq xl-gblame--spinner-timer nil
+        xl-gblame--spinner-frame 0)
+  (setq-local header-line-format nil)
+  (force-mode-line-update))
+
+(defun xl-gblame--placeholders (lines)
+  "Fill this GBlame buffer with LINES empty lines.
+One line per source line keeps scrolling and point aligned while the
+blame is still loading.  A later render replaces them."
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (dotimes (_ lines) (insert "\n"))
+    (when (overlayp xl-gblame--highlight)
+      (delete-overlay xl-gblame--highlight))
+    (setq xl-gblame--highlight (make-overlay (point-min) (point-min)))
+    (overlay-put xl-gblame--highlight 'face 'xl-gblame-current-line)))
+
+(defun xl-gblame--render (records)
+  "Replace this GBlame buffer with blame RECORDS.
+Keep point on the same line, so a refresh does not jump."
+  (let ((inhibit-read-only t)
+        (line (line-number-at-pos)))
+    (erase-buffer)
+    (xl-gblame--insert records)
+    (goto-char (point-min))
+    (when (overlayp xl-gblame--highlight)
+      (delete-overlay xl-gblame--highlight))
+    (setq xl-gblame--highlight (make-overlay (point) (point)))
+    (overlay-put xl-gblame--highlight 'face 'xl-gblame-current-line)
+    (goto-char (point-min))
+    (forward-line (1- (max 1 line)))))
+
+(defun xl-gblame--resync ()
+  "Align the GBlame window with its source window after a render."
+  (when (and (buffer-live-p xl-gblame--source)
+             (get-buffer-window (current-buffer) t))
+    (with-current-buffer xl-gblame--source
+      (xl-gblame--sync (get-buffer-window xl-gblame--source t)))))
+
+(defun xl-gblame--fail (output)
+  "Report a failed `git blame' in this GBlame buffer, showing OUTPUT.
+The header line keeps the error, so the message stays visible while the
+placeholders remain for alignment."
+  (let* ((text (string-trim output))
+         (reason (if (string-empty-p text)
+                     "unknown error"
+                   (car (split-string text "\n")))))
+    (setq-local header-line-format
+                (propertize (format " git blame failed: %s" reason)
+                            'face 'error))
+    (force-mode-line-update)))
+
+(defun xl-gblame--teardown ()
+  "Stop the loader and the process of this GBlame buffer."
+  (xl-gblame--stop-spinner)
+  (when (process-live-p xl-gblame--process)
+    (delete-process xl-gblame--process))
+  (setq xl-gblame--process nil))
 
 (defun xl-gblame--parse (output)
   "Return blame records (LINE HASH AUTHOR TIME) parsed from OUTPUT.
@@ -145,18 +240,54 @@ commits are easy to see."
                                (list 'xl-gblame-hash hash)))))))
 
 (defun xl-gblame--fill (buffer root file)
-  "Fill BUFFER with the blame of FILE in ROOT."
-  (let* ((default-directory root)
-         (output (xl-gblame--git "blame" "--line-porcelain" "--"
-                                       (file-relative-name file root))))
-    (with-current-buffer buffer
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (xl-gblame--insert (xl-gblame--parse output))
-        (goto-char (point-min))
-        (setq xl-gblame--highlight (make-overlay (point) (point)))
-        (overlay-put xl-gblame--highlight
-                     'face 'xl-gblame-current-line)))))
+  "Start filling BUFFER with the blame of FILE in ROOT.
+The git process runs asynchronously: the buffer shows one placeholder
+line per source line and a loader until the output arrives."
+  (with-current-buffer buffer
+    (setq xl-gblame--request (1+ xl-gblame--request))
+    (let ((id xl-gblame--request)
+          (out (generate-new-buffer " *git blame*")))
+      (xl-gblame--teardown)
+      (unless (> (buffer-size) 0)
+        (xl-gblame--placeholders
+         (if (buffer-live-p xl-gblame--source)
+             (with-current-buffer xl-gblame--source
+               (count-lines (point-min) (point-max)))
+           0)))
+      (xl-gblame--start-spinner)
+      (setq xl-gblame--process
+            (let ((default-directory root))
+              (make-process
+               :name "xl-gblame"
+               :buffer out
+               :command (append '("git" "--no-pager"
+                                  "-c" "core.quotepath=false"
+                                  "blame" "--line-porcelain" "--")
+                                (list (file-relative-name file root)))
+               :connection-type 'pipe
+               :noquery t
+               :sentinel
+               (lambda (proc _event)
+                 (unless (process-live-p proc)
+                   (let* ((out (process-buffer proc))
+                          (output (if (buffer-live-p out)
+                                      (with-current-buffer out (buffer-string))
+                                    ""))
+                          (code (process-exit-status proc)))
+                     (when (buffer-live-p out) (kill-buffer out))
+                     (when (buffer-live-p buffer)
+                       (with-current-buffer buffer
+                         ;; A newer request (or a closed window) wins.
+                         (when (and (eq proc xl-gblame--process)
+                                    (= id xl-gblame--request))
+                           (setq xl-gblame--process nil)
+                           (xl-gblame--stop-spinner)
+                           (if (zerop code)
+                               (progn
+                                 (xl-gblame--render
+                                  (xl-gblame--parse output))
+                                 (xl-gblame--resync))
+                             (xl-gblame--fail output))))))))))))))
 
 (defun xl-gblame--sync (&optional window _new-start)
   "Align the GBlame window with WINDOW and follow its point.
@@ -265,6 +396,8 @@ Return non-nil when a GBlame buffer was open."
 Each line shows the abbreviated commit, author and date, aligned with
 the file; the window follows the file's scrolling and point.  It is an
 ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
+`git blame' runs in the background: the window opens at once with a
+loader in its header line, and saving refreshes it without blocking.
 `RET' shows the commit at point, `g' refreshes, `q' closes the window."
   (interactive)
   (unless buffer-file-name
@@ -290,7 +423,8 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
           (setq xl-gblame--source source
                 xl-gblame--root root
                 xl-gblame--file file)
-          (add-hook 'kill-buffer-hook #'xl-gblame--cleanup nil t))
+          (add-hook 'kill-buffer-hook #'xl-gblame--cleanup nil t)
+          (add-hook 'kill-buffer-hook #'xl-gblame--teardown nil t))
         (xl-gblame--fill blame root file)
         (with-current-buffer source
           (setq xl-gblame--root root

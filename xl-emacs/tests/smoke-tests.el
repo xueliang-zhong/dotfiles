@@ -123,6 +123,15 @@
         (accept-process-output nil 0.05)))
     (should buffer-read-only)))
 
+(defun xl-test--wait-for-gblame (buffer)
+  "Wait until the GBlame BUFFER has finished loading."
+  (with-current-buffer buffer
+    (let ((end (+ (float-time) 10)))
+      (while (and (buffer-local-value 'xl-gblame--process buffer)
+                  (< (float-time) end))
+        (accept-process-output nil 0.05)))
+    (should-not (buffer-local-value 'xl-gblame--process buffer))))
+
 ;;; ============================================================
 ;;; Profile and file structure
 ;;; ============================================================
@@ -1015,6 +1024,7 @@ The other TAB command would insert two spaces, so it delegates to
           (xl-gblame)
           (should (buffer-live-p xl-gblame--buffer))
           (should (get-buffer-window xl-gblame--buffer))
+          (xl-test--wait-for-gblame xl-gblame--buffer)
           (with-current-buffer xl-gblame--buffer
             (should (derived-mode-p 'xl-gblame-mode))
             (should buffer-read-only)
@@ -1096,6 +1106,37 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buf) (kill-buffer buf))
       (delete-directory repo t))))
 
+(ert-deftest xl-gblame-loads-asynchronously ()
+  "GBlame returns at once: placeholders and a loader, then the blame."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo-blame))
+         (file (expand-file-name "file.txt" repo))
+         (buf (find-file-noselect file)))
+    (unwind-protect
+        (progn
+          (switch-to-buffer buf)
+          (delete-other-windows)
+          (xl-gblame)
+          (with-current-buffer xl-gblame--buffer
+            ;; The command returned before git did: the UI was not blocked,
+            ;; and the placeholders already line up with the source file.
+            (should header-line-format)
+            (should (timerp xl-gblame--spinner-timer))
+            (should (= (count-lines (point-min) (point-max))
+                       (with-current-buffer buf
+                         (count-lines (point-min) (point-max)))))
+            (should-not (get-text-property (point-min) 'xl-gblame-hash)))
+          (xl-test--wait-for-gblame xl-gblame--buffer)
+          (with-current-buffer xl-gblame--buffer
+            ;; Done: the loader is gone and the blame is in place.
+            (should-not header-line-format)
+            (should-not (timerp xl-gblame--spinner-timer))
+            (should (get-text-property (point-min) 'xl-gblame-hash))))
+      (let ((blame (get-buffer "*GBlame: file.txt*")))
+        (when (buffer-live-p blame) (kill-buffer blame)))
+      (when (buffer-live-p buf) (kill-buffer buf))
+      (delete-directory repo t))))
+
 (ert-deftest xl-gblame-colours-different-commits ()
   "Neighbouring commits get different hash faces; one commit keeps one."
   (skip-unless (executable-find "git"))
@@ -1106,6 +1147,7 @@ The other TAB command would insert two spaces, so it delegates to
         (progn
           (switch-to-buffer buf)
           (xl-gblame)
+          (xl-test--wait-for-gblame xl-gblame--buffer)
           (with-current-buffer xl-gblame--buffer
             (let (faces)
               (goto-char (point-min))
