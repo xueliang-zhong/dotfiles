@@ -692,6 +692,52 @@ The other TAB command would insert two spaces, so it delegates to
       (delete-directory repo t))))
 
 
+(ert-deftest xl-git-show-uses-the-status-faces ()
+  "The commit buffer reuses the status buffer's faces for headers and diffs."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (progn
+          ;; Commit the two working-tree changes so `git show' has a diff.
+          (should (zerop (call-process "git" nil nil nil
+                                       "-C" repo
+                                       "-c" "user.email=test@example.com"
+                                       "-c" "user.name=Test"
+                                       "commit" "-qam" "change file")))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status--show-commit "HEAD")
+            (setq buffer (get-buffer "*git-show: HEAD*"))
+            (should (buffer-live-p buffer))
+            (with-current-buffer buffer
+              (should (derived-mode-p 'special-mode))
+              (should (derived-mode-p 'xueliang-git-show-mode))
+              (should buffer-read-only)
+              (let ((face-at
+                     (lambda (regexp)
+                       (goto-char (point-min))
+                       (should (re-search-forward regexp nil t))
+                       (get-text-property (match-beginning 0) 'face))))
+                ;; Commit header.
+                (should (eq (funcall face-at "^commit ") 'xueliang-git-status-heading))
+                (goto-char (point-min))
+                (should (re-search-forward "^commit \\([0-9a-f]+\\)" nil t))
+                (should (eq (get-text-property (match-beginning 1) 'face)
+                            'xueliang-git-status-hash))
+                (should (eq (funcall face-at "^Author: ")
+                            'xueliang-git-status-heading))
+                ;; Diff header, hunk and body: the same faces as the status.
+                (should (eq (funcall face-at "^diff --git ") 'diff-header))
+                (should (eq (funcall face-at "^--- ") 'diff-header))
+                (should (eq (funcall face-at "^@@ ")
+                            'xueliang-git-status-hunk-heading))
+                (should (eq (funcall face-at "^ line 0") 'diff-context))
+                (should (eq (funcall face-at "^-line 1") 'diff-removed))
+                (should (eq (funcall face-at "^\\+changed 1") 'diff-added))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+
 (ert-deftest xl-git-status-expands-an-abbreviated-root ()
   "A dired-style ~/... root is expanded before `git -C' sees it."
   (cl-letf (((symbol-function 'locate-dominating-file)

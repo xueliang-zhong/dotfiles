@@ -8,7 +8,8 @@
 ;; Magit's (TAB toggles the file or hunk at point, S-TAB toggles every
 ;; file diff).  On a hunk, file or section line `s' stages and `u'
 ;; unstages it, `X' discards it after confirmation, and `RET' visits the
-;; file at the hunk line or shows the commit at point.
+;; file at the hunk line or shows the commit at point in a buffer that
+;; uses the same faces.
 
 ;;; Code:
 
@@ -565,8 +566,49 @@ BUFFER owns the process; NAME names it."
    (xueliang-git-status--unstage-files '("."))
    "Unstaged all changes"))
 
+(defun xueliang-git-status--show-line-face (line)
+  "Return the face for one LINE of `git show' diff output."
+  (cond
+   ((string-prefix-p "@@" line) 'xueliang-git-status-hunk-heading)
+   ((string-prefix-p "+++" line) 'diff-header)
+   ((string-prefix-p "---" line) 'diff-header)
+   ((string-prefix-p "+" line) 'diff-added)
+   ((string-prefix-p "-" line) 'diff-removed)
+   ((string-match-p
+     "\\`\\(?:diff --\\(?:git\\|cc\\|combined\\) \\|index \\|new file mode \\|deleted file mode \\|old mode \\|new mode \\|similarity index \\|dissimilarity index \\|rename \\|copy \\|Binary files \\)"
+     line)
+    'diff-header)
+   (t 'diff-context)))
+
+(defun xueliang-git-status--insert-show-header-line (line)
+  "Insert one LINE of a `git show' commit header with faces."
+  (cond
+   ((string-match "\\`commit \\([0-9a-f]+\\)\\'" line)
+    (insert (propertize "commit " 'face 'xueliang-git-status-heading)
+            (propertize (match-string 1 line) 'face 'xueliang-git-status-hash)
+            "\n"))
+   ((string-match "\\`\\(Author\\|Date\\|Merge\\|Committer\\): *\\(.*\\)\\'" line)
+    (insert (propertize (concat (match-string 1 line) ":")
+                        'face 'xueliang-git-status-heading)
+            " " (match-string 2 line) "\n"))
+   (t (insert line "\n"))))
+
+(defun xueliang-git-status--insert-show (text)
+  "Insert `git show' output TEXT, styled like the status buffer.
+The commit header gets the status faces and every diff line the same
+added, removed, context and hunk-heading faces as the status hunks."
+  (let ((header t))
+    (dolist (line (split-string (string-trim-right text) "\n"))
+      (when (and header
+                 (string-match-p "\\`diff --\\(?:git\\|cc\\|combined\\) " line))
+        (setq header nil))
+      (if header
+          (xueliang-git-status--insert-show-header-line line)
+        (insert (propertize (concat line "\n")
+                            'face (xueliang-git-status--show-line-face line)))))))
+
 (defun xueliang-git-status--show-commit (hash)
-  "Show commit HASH in a read-only buffer."
+  "Show commit HASH in a read-only buffer, with the status buffer's faces."
   (let ((out (generate-new-buffer " *git-show*")))
     (unwind-protect
         (let ((code (call-process "git" nil out nil
@@ -580,8 +622,9 @@ BUFFER owns the process; NAME names it."
             (with-current-buffer buffer
               (let ((inhibit-read-only t))
                 (erase-buffer)
-                (insert-buffer-substring out))
-              (special-mode)
+                (xueliang-git-status--insert-show
+                 (with-current-buffer out (buffer-string))))
+              (xueliang-git-show-mode)
               (goto-char (point-min))
               (dolist (window (get-buffer-window-list buffer nil t))
                 (set-window-point window (point-min))))
@@ -760,6 +803,9 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
   (setq-local revert-buffer-function
               (lambda (_ignore-auto _noconfirm)
                 (xueliang-git-status))))
+
+(define-derived-mode xueliang-git-show-mode special-mode "Git-Show"
+  "Major mode for `xueliang-git-status--show-commit' buffers.")
 
 (defun xueliang-git-status--root ()
   "Return the expanded Git root for `default-directory', or nil.
