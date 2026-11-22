@@ -88,6 +88,8 @@
 (require 'xl-git-status)
 (xl-startup-mark "init: xl-git-commands.el")
 (require 'xl-git-commands)
+(xl-startup-mark "init: xl-package-menu.el")
+(require 'xl-package-menu)
 (xl-startup-mark "init: xueliang.el")
 (load (expand-file-name "xl-emacs/user/xueliang.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el loaded")

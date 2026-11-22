@@ -173,6 +173,54 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should (package-installed-p pkg))
       (should-not (memq pkg removable)))))
 
+;;; ============================================================
+;;; Package Menu loader
+;;; ============================================================
+
+(ert-deftest xl-package-menu-has-a-loader ()
+  "The Package Menu mode line animates while the archives refresh."
+  (require 'package)
+  (should (memq #'xl-package-menu--on-refresh package-refresh-contents-hook))
+  (should (memq #'xl-package-menu--on-done
+                package--post-download-archives-hook))
+  (with-temp-buffer
+    (package-menu-mode)
+    ;; The loader takes the slot `package-menu-mode' gives to ":Loading".
+    (should (equal "" (car mode-line-process)))
+    (should-not xl-package-menu--refreshing)
+    (xl-package-menu--start)
+    (should xl-package-menu--refreshing)
+    (should (timerp xl-package-menu--timer))
+    (should (string-match-p "\\` \\[[|/-]\\] Loading\\'"
+                            xl-package-menu--indicator))
+    ;; The mode line string itself moves with the frames.
+    (should (equal (car mode-line-process) xl-package-menu--indicator))
+    (let ((frame xl-package-menu--indicator))
+      (xl-package-menu--tick (current-buffer))
+      (should-not (equal frame xl-package-menu--indicator))
+      (should (equal (car mode-line-process) xl-package-menu--indicator)))
+    (xl-package-menu--stop)
+    (should-not xl-package-menu--refreshing)
+    (should-not (timerp xl-package-menu--timer))
+    (should (equal "" xl-package-menu--indicator))
+    (should (equal "" (car mode-line-process)))))
+
+(ert-deftest xl-package-menu-loader-follows-a-refresh ()
+  "A refresh starts the loader and its completion hook stops it."
+  (require 'package)
+  (let ((buffer (get-buffer-create "*Packages*")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (package-menu-mode)
+          (xl-package-menu--on-refresh t)
+          (should xl-package-menu--refreshing)
+          (should (timerp xl-package-menu--timer))
+          (xl-package-menu--on-done)
+          (should-not xl-package-menu--refreshing)
+          (should-not (timerp xl-package-menu--timer)))
+      (with-current-buffer buffer (xl-package-menu--stop))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).

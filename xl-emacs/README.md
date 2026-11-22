@@ -12,6 +12,8 @@
 | 启动耗时有数 | 每次 GUI 启动把各阶段耗时写进 `startup.log`（见下文“启动耗时”） |
 | 读 Git 不阻塞 UI | status/diff/log 和 `git blame` 全部走 `make-process`；测试在命令返回的瞬间断言 spinner/占位行已在、内容未到 |
 
+还有一处异步不是我们做的：`list-packages` 的归档下载在 Emacs 31 里本来就是异步的（`package-menu-async` 默认为 t）。我们只把它 mode line 里静态的 `:Loading` 换成动画，见 `lisp/xl-package-menu.el`。重写它只会比上游更差。
+
 还没异步化的部分，如实写在这里，不假装已经完成：暂存、取消暂存、丢弃、提交仍然同步，好在它们都很短。这是下一轮的待办。
 
 不写形容词：不叫自己 “lite”，也不叫自己 “fast”。数字和测试能证明的东西，才写进 README。
@@ -25,7 +27,8 @@ xl-emacs/
 ├── spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
 ├── lisp/                  可以单独安装的包
 │   ├── xl-git-status.el       异步 Git status 摘要
-│   └── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
+│   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
+│   └── xl-package-menu.el     Package Menu 刷新时的 loader
 ├── user/xueliang.el       私有口味，不发布
 ├── tests/smoke-tests.el   ERT 测试
 └── frameworks.lock        Crafted 的仓库地址与提交号
@@ -56,7 +59,7 @@ just emacs-try
 | 运行时 | Emacs 31.1、elpa 包目录 | 系统与包管理 |
 | 框架 | Crafted 模块 | 上游项目，版本由 `frameworks.lock` 锁定 |
 | 适配 | `early-init.el`、`init.el`、`spacemacs-keys.el` | 把 Crafted 接到我的习惯上 |
-| 包 | `lisp/xl-git-status.el`、`lisp/xl-git-commands.el` | 异步 Git，可脱离本配置单独安装 |
+| 包 | `lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git 与 Package Menu loader，可脱离本配置单独安装 |
 | 个人 | `user/xueliang.el` | 我的全部口味，只用原生 Emacs 和包的接口，不发布 |
 
 ## 文件说明
@@ -120,6 +123,19 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 它依赖 `lisp/xl-git-status.el` 提供的 status buffer、faces 和 commit 窗口，所以在其后加载。
 
+### `lisp/xl-package-menu.el`（Package Menu loader）
+
+`list-packages` 在 Emacs 31 里本来就是异步的：`package-menu-async` 默认开着，`package-refresh-contents` 把下载记进 `package--downloads-in-progress`，菜单先显示缓存，下载完再由 `package--post-download-archives-hook` 刷新。所以这里没有"重写"任何东西——重写只会比上游更差。
+
+它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成动画。
+
+- `package-menu-mode-hook` 把 `mode-line-process` 的第一格换成一个字符串槽位
+- `package-refresh-contents-hook` 在刷新开始时启动 0.2 秒的 timer，逐帧改这个字符串
+- `package--post-download-archives-hook` 在最后一个下载完成时停掉 timer
+- 一分钟还没收到完成信号就自行放弃，坏掉的 archive 不会让 loader 永远转
+
+异步是 Emacs 的，loader 是我们的。
+
 ### `user/xueliang.el`（个人层，不发布）
 
 我自己的全部设置，按段落组织：
@@ -152,9 +168,10 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 10. 加载 `xl-emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
 11. 加载 `xl-emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
 12. 加载 `xl-emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
-13. 加载 `xl-emacs/user/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
-14. `xl-emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
-15. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
+13. 加载 `xl-emacs/lisp/xl-package-menu.el`，给 Package Menu 装上刷新用的动画 loader。
+14. 加载 `xl-emacs/user/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
+15. `xl-emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
+16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
 
@@ -177,6 +194,7 @@ Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第
 | 升级 Crafted | 改 `frameworks.lock` 的提交号，再执行 `just emacs-crafted-install` |
 | 升级 Emacs、重建 profile 或新增包之后 | 执行 `just emacs-trampolines-cache-setup`，避免第一次启动白屏 |
 | 改启动期设置（GC、JIT、包目录） | `early-init.el` |
+| 改 Package Menu 的 loader | `lisp/xl-package-menu.el` |
 
 修改后用下面这几条命令检查：
 
@@ -188,7 +206,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 100 个 ERT 测试在配置完整加载后运行，覆盖：
+`xl-emacs/tests/smoke-tests.el` 里的 102 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -199,6 +217,7 @@ just emacs-check   # 上面两条一起跑
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
 | GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 header 上的 spinner；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
+| Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |
