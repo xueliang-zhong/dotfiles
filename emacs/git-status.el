@@ -1208,7 +1208,10 @@ ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
     (evil-ex-execute (format "!git commit -m \"Update %s\""
                              (file-name-nondirectory buffer-file-name)))))
 
+(defalias 'Gstatus 'xueliang-git-status)
+
 (with-eval-after-load 'evil
+  (evil-ex-define-cmd "Gstatus" #'Gstatus)
   (evil-ex-define-cmd "Gwrite" #'Gwrite)
   (evil-ex-define-cmd "Gcommit" #'Gcommit))
 
