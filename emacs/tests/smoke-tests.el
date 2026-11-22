@@ -67,6 +67,30 @@
       (should (zerop code))
       (string-trim (buffer-string)))))
 
+(defun xl-test--git-repo-hunks ()
+  "Create a repository whose file.txt has two separate unstaged hunks."
+  (let ((dir (make-temp-file "xl-test-git-hunks-" t))
+        (git (executable-find "git")))
+    (unless git
+      (error "git is not installed"))
+    (cl-flet ((run (&rest args)
+                (apply #'call-process git nil nil nil
+                       "-C" dir "-c" "user.email=test@example.com"
+                       "-c" "user.name=Test" args)))
+      (run "init" "-q")
+      (with-temp-file (expand-file-name "file.txt" dir)
+        (dotimes (i 20)
+          (insert (format "line %d\n" i))))
+      (run "add" "file.txt")
+      (run "commit" "-qm" "initial")
+      ;; Lines 1 and 18 are far enough apart to stay in separate hunks.
+      (with-temp-file (expand-file-name "file.txt" dir)
+        (dotimes (i 20)
+          (insert (if (memq i '(1 18))
+                      (format "changed %d\n" i)
+                    (format "line %d\n" i))))))
+    dir))
+
 (defun xl-test--wait-for-git-status (buffer)
   "Wait until the Git status BUFFER has finished rendering."
   (with-current-buffer buffer
@@ -537,17 +561,28 @@ The other TAB command would insert two spaces, so it delegates to
       (delete-directory repo t))))
 
 (ert-deftest xl-git-status-keys ()
-  "s, u and RET are bound in the status mode and in Evil normal state."
-  (dolist (spec '(("s" . xueliang-git-status-stage)
+  "Folding, operations and RET are bound in the status mode and Evil."
+  (dolist (spec '(("TAB" . xueliang-git-status-toggle)
+                  ("<backtab>" . xueliang-git-status-toggle-files)
+                  ("s" . xueliang-git-status-stage)
                   ("u" . xueliang-git-status-unstage)
+                  ("X" . xueliang-git-status-discard)
+                  ("S" . xueliang-git-status-stage-all)
+                  ("U" . xueliang-git-status-unstage-all)
                   ("RET" . xueliang-git-status-visit)))
     (should (eq (keymap-lookup xueliang-git-status-mode-map (car spec))
                 (cdr spec))))
   (require 'evil)
   (let ((normal (evil-get-auxiliary-keymap
                  xueliang-git-status-mode-map 'normal t)))
-    (dolist (spec '(("s" . xueliang-git-status-stage)
+    (dolist (spec '(("TAB" . xueliang-git-status-toggle)
+                    ("<backtab>" . xueliang-git-status-toggle-files)
+                    ("s" . xueliang-git-status-stage)
                     ("u" . xueliang-git-status-unstage)
+                    ("X" . xueliang-git-status-discard)
+                    ("S" . xueliang-git-status-stage-all)
+                    ("U" . xueliang-git-status-unstage-all)
+                    ("g" . revert-buffer)
                     ("RET" . xueliang-git-status-visit)))
       (should (eq (keymap-lookup normal (car spec)) (cdr spec))))))
 
@@ -615,6 +650,48 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
+(ert-deftest xl-git-status-visits-a-hunk-line ()
+  "`RET' on a hunk opens its file at the line the hunk line maps to."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo-hunks))
+         (buffer nil)
+         (path (expand-file-name "file.txt" repo)))
+    (unwind-protect
+        (let ((default-directory (file-name-as-directory repo)))
+          ;; Stub only the status window: the visits below use `find-file',
+          ;; which itself goes through `display-buffer'.
+          (cl-letf (((symbol-function 'display-buffer)
+                     (lambda (b &rest _) (setq buffer b) b)))
+            (xueliang-git-status))
+          (xl-test--wait-for-git-status buffer)
+          (with-current-buffer buffer
+            (goto-char (point-min))
+            (search-forward "modified   file.txt")
+            (beginning-of-line)
+            (xueliang-git-status-toggle))
+          (let ((visit-line
+                 (lambda (regexp nth)
+                   (with-current-buffer buffer
+                     (goto-char (point-min))
+                     (dotimes (_ nth) (re-search-forward regexp))
+                     (beginning-of-line)
+                     (xueliang-git-status-visit))
+                   (with-current-buffer (get-file-buffer path)
+                     (line-number-at-pos)))))
+            ;; A hunk heading opens at the first line of the hunk.
+            (should (= 1 (funcall visit-line "^@@" 1)))
+            ;; An added line opens at the line it becomes in the file.
+            (should (= 2 (funcall visit-line "^\\+changed 1" 1)))
+            ;; The second hunk starts at file line 16.
+            (should (= 16 (funcall visit-line "^@@" 2)))
+            (should (= 19 (funcall visit-line "^\\+changed 18" 1)))
+            ;; A removed line maps to where the replacement now sits.
+            (should (= 19 (funcall visit-line "^-line 18" 1)))))
+      (when (get-file-buffer path) (kill-buffer (get-file-buffer path)))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+
 (ert-deftest xl-git-status-expands-an-abbreviated-root ()
   "A dired-style ~/... root is expanded before `git -C' sees it."
   (cl-letf (((symbol-function 'locate-dominating-file)
@@ -629,6 +706,210 @@ The other TAB command would insert two spaces, so it delegates to
   (xl-test-with-temp-dir dir
     (let ((default-directory (file-name-as-directory dir)))
       (should-error (xueliang-git-status) :type 'user-error))))
+
+(ert-deftest xl-git-status-folds-sections ()
+  "File diffs start folded, TAB toggles hunks, and refreshes keep the state."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (let* ((hunk-heading
+                      (lambda ()
+                        (save-excursion
+                          (goto-char (point-min))
+                          (re-search-forward "^@@")
+                          (match-beginning 0))))
+                     (hunk-body
+                      (lambda ()
+                        (save-excursion
+                          (goto-char (funcall hunk-heading))
+                          (forward-line 1)
+                          (point))))
+                     (goto-file
+                      (lambda ()
+                        (goto-char (point-min))
+                        (search-forward "modified   file.txt")
+                        (beginning-of-line))))
+                ;; The whole file diff starts folded, hunk heading included.
+                (should (invisible-p (funcall hunk-heading)))
+                (should (eq (get-text-property (funcall hunk-heading) 'face)
+                            'xueliang-git-status-hunk-heading))
+                (funcall goto-file)
+                (xueliang-git-status-toggle)
+                (should-not (invisible-p (funcall hunk-heading)))
+                (should-not (invisible-p (funcall hunk-body)))
+                ;; Added and removed lines use the diff faces.
+                (save-excursion
+                  (goto-char (point-min))
+                  (should (re-search-forward "^-line 1\\b" nil t))
+                  (should (eq (get-text-property (match-beginning 0) 'face)
+                              'diff-removed))
+                  (should (re-search-forward "^\\+changed 1\\b" nil t))
+                  (should (eq (get-text-property (match-beginning 0) 'face)
+                              'diff-added)))
+                ;; TAB on the hunk heading folds only that hunk.
+                (goto-char (funcall hunk-heading))
+                (xueliang-git-status-toggle)
+                (should-not (invisible-p (funcall hunk-heading)))
+                (should (invisible-p (funcall hunk-body)))
+                ;; A refresh keeps the file open and the hunk folded.
+                (xueliang-git-status)
+                (xl-test--wait-for-git-status buffer)
+                (should-not (invisible-p (funcall hunk-heading)))
+                (should (invisible-p (funcall hunk-body)))
+                ;; S-TAB folds every file diff, then unfolds it again.
+                (xueliang-git-status-toggle-files)
+                (should (invisible-p (funcall hunk-heading)))
+                (xueliang-git-status-toggle-files)
+                (should-not (invisible-p (funcall hunk-heading)))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-stages-one-hunk ()
+  "`s' on a hunk stages that hunk and leaves the other one unstaged."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (search-forward "modified   file.txt")
+              (beginning-of-line)
+              (xueliang-git-status-toggle)
+              (goto-char (point-min))
+              (re-search-forward "^@@")
+              (beginning-of-line)
+              (xueliang-git-status-stage))
+            (xl-test--wait-for-git-status buffer)
+            (let ((cached (xl-test--git-output repo "diff" "--cached"
+                                               "--unified=0"))
+                  (unstaged (xl-test--git-output repo "diff" "--unified=0"))
+                  (worktree (xl-test--read-file (expand-file-name "file.txt" repo))))
+              (should (string-match-p "changed 1\\b" cached))
+              (should-not (string-match-p "changed 18" cached))
+              (should (string-match-p "changed 18" unstaged))
+              (should-not (string-match-p "changed 1\\b" unstaged))
+              ;; Staging a hunk touches the index, not the working tree.
+              (should (string-match-p "changed 1\\b" worktree))
+              (should (string-match-p "changed 18" worktree)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-unstages-one-hunk ()
+  "`u' on a staged hunk takes just that hunk out of the index."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (progn
+          (should (zerop (call-process "git" nil nil nil
+                                       "-C" repo "add" "file.txt")))
+          (cl-letf (((symbol-function 'display-buffer)
+                     (lambda (b &rest _) (setq buffer b) b)))
+            (let ((default-directory (file-name-as-directory repo)))
+              (xueliang-git-status)
+              (xl-test--wait-for-git-status buffer)
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                (search-forward "Staged changes")
+                (search-forward "modified   file.txt")
+                (beginning-of-line)
+                (xueliang-git-status-toggle)
+                (goto-char (point-min))
+                (re-search-forward "^@@")
+                (beginning-of-line)
+                (xueliang-git-status-unstage))
+              (xl-test--wait-for-git-status buffer)
+              (let ((cached (xl-test--git-output repo "diff" "--cached"
+                                                 "--unified=0"))
+                    (unstaged (xl-test--git-output repo "diff" "--unified=0")))
+                (should-not (string-match-p "changed 1\\b" cached))
+                (should (string-match-p "changed 18" cached))
+                (should (string-match-p "changed 1\\b" unstaged))
+                (should-not (string-match-p "changed 18" unstaged))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-discards-a-hunk ()
+  "`X' reverts one hunk in the working tree after confirmation."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b))
+                  ((symbol-function 'yes-or-no-p)
+                   (lambda (&rest _) t)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (search-forward "modified   file.txt")
+              (beginning-of-line)
+              (xueliang-git-status-toggle)
+              ;; The second hunk reverts line 18 and nothing else.
+              (goto-char (point-min))
+              (re-search-forward "^@@")
+              (re-search-forward "^@@")
+              (beginning-of-line)
+              (xueliang-git-status-discard))
+            (xl-test--wait-for-git-status buffer)
+            (let ((worktree (xl-test--read-file (expand-file-name "file.txt" repo))))
+              (should (string-match-p "changed 1\\b" worktree))
+              (should-not (string-match-p "changed 18" worktree))
+              (should (equal "" (xl-test--git-output repo "diff" "--cached"
+                                                     "--name-only")))
+              (let ((unstaged (xl-test--git-output repo "diff" "--unified=0")))
+                (should (string-match-p "changed 1\\b" unstaged))
+                (should-not (string-match-p "changed 18" unstaged))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-stages-and-unstages-a-section ()
+  "`s' on a section heading stages all its files; S and U act globally."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (search-forward "Unstaged changes")
+              (beginning-of-line)
+              (xueliang-git-status-stage))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal "file-0.txt\nfile-1.txt\nfile-2.txt"
+                           (xl-test--git-output repo "diff" "--cached"
+                                                "--name-only")))
+            (with-current-buffer buffer
+              (xueliang-git-status-stage-all))
+            (xl-test--wait-for-git-status buffer)
+            (should (string-match-p "untracked\\.txt"
+                                    (xl-test--git-output repo "diff" "--cached"
+                                                         "--name-only")))
+            (with-current-buffer buffer
+              (xueliang-git-status-unstage-all))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal "" (xl-test--git-output repo "diff" "--cached"
+                                                    "--name-only")))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
 
 ;;; ============================================================
 ;;; Dired and Eshell

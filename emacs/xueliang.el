@@ -688,7 +688,6 @@ line can be switched off without deleting it."
   "Open my Git status, preferring a right split." (interactive)
   (setq-local split-width-threshold 10) ; prefer vsplit
   (xueliang-cd-current-dir)
-  ;; (magit-status)
   (xueliang-git-status))
 
 ;; My one liner commands
