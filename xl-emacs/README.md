@@ -10,7 +10,7 @@
 | --- | --- |
 | 个人层是薄的 | `init.el`、`early-init.el`、`spacemacs-keys.el`、`xueliang.el` 合计约 1200 行 |
 | 启动耗时有数 | 每次 GUI 启动把各阶段耗时写进 `startup.log`（见下文“启动耗时”） |
-| 读 Git 不阻塞 UI | status/diff/log 和 `git blame` 全部走 `make-process`；测试在命令返回的瞬间断言 spinner/占位行已在、内容未到 |
+| 读 Git 不阻塞 UI | status/diff/log、`git blame` 和 commit 视图全部走 `make-process`；测试在命令返回的瞬间断言 spinner/占位行已在、内容未到 |
 
 还有一处异步不是我们做的：`list-packages` 的归档下载在 Emacs 31 里本来就是异步的（`package-menu-async` 默认为 t）。我们只把它 mode line 里静态的 `:Loading` 换成动画，见 `lisp/xl-package-menu.el`。重写它只会比上游更差。
 
@@ -111,7 +111,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 ### `lisp/xl-git-status.el`（异步 Git 页面）
 
-一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
+一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。commit 视图也是异步的：buffer 立刻打开，显示 hash 和 spinner，`git show` 返回后填入 diff；重复请求同一个 buffer 时，旧结果会被丢弃。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
 
 ### `lisp/xl-git-commands.el`（异步 G 命令）
 
@@ -227,7 +227,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 103 个 ERT 测试在配置完整加载后运行，覆盖：
+`xl-emacs/tests/smoke-tests.el` 里的 104 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -240,6 +240,7 @@ just emacs-check   # 上面两条一起跑
 | GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 header 上的 spinner；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
 | Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
 | Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |
+| Commit 视图 | 打开时已有 spinner 和「Loading...」、还没有 diff；`git show` 返回后 spinner 消失、diff 就位 |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

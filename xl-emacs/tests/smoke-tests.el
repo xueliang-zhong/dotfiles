@@ -132,6 +132,15 @@
         (accept-process-output nil 0.05)))
     (should-not (buffer-local-value 'xl-gblame--process buffer))))
 
+(defun xl-test--wait-for-git-show (buffer)
+  "Wait until the commit BUFFER has finished loading."
+  (with-current-buffer buffer
+    (let ((end (+ (float-time) 10)))
+      (while (and (buffer-local-value 'xl-git-status--show-process buffer)
+                  (< (float-time) end))
+        (accept-process-output nil 0.05)))
+    (should-not (buffer-local-value 'xl-git-status--show-process buffer))))
+
 ;;; ============================================================
 ;;; Profile and file structure
 ;;; ============================================================
@@ -825,6 +834,7 @@ The other TAB command would insert two spaces, so it delegates to
             (xl-git-status--show-commit "HEAD")
             (setq buffer (get-buffer "*git-show: HEAD*"))
             (should (buffer-live-p buffer))
+            (xl-test--wait-for-git-show buffer)
             (with-current-buffer buffer
               (should (derived-mode-p 'special-mode))
               (should (derived-mode-p 'xl-git-show-mode))
@@ -853,6 +863,34 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
+(ert-deftest xl-git-show-opens-before-git-answers ()
+  "The commit buffer appears with a loader, then the diff replaces it."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (progn
+          (should (zerop (call-process "git" nil nil nil
+                                       "-C" repo
+                                       "-c" "user.email=test@example.com"
+                                       "-c" "user.name=Test"
+                                       "commit" "-qam" "change file")))
+          (let ((default-directory (file-name-as-directory repo)))
+            (setq buffer (xl-git-status--show-commit "HEAD"))
+            (with-current-buffer buffer
+              ;; The buffer is there before git answers: loader on, no diff.
+              (should (xl-spinner-running-p))
+              (should (overlayp xl-git-status--show-spinner))
+              (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
+              (should-not (string-match-p "^diff --git" (buffer-string))))
+            (xl-test--wait-for-git-show buffer)
+            (with-current-buffer buffer
+              (should-not (xl-spinner-running-p))
+              (should-not (overlayp xl-git-status--show-spinner))
+              (should (string-prefix-p "commit " (buffer-string)))
+              (should (string-match-p "^diff --git" (buffer-string))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
 
 (ert-deftest xl-git-status-expands-an-abbreviated-root ()
   "A dired-style ~/... root is expanded before `git -C' sees it."

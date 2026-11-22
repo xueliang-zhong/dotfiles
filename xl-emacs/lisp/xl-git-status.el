@@ -655,29 +655,105 @@ added, removed, context and hunk-heading faces as the status hunks."
         (insert (propertize (concat line "\n")
                             'face (xl-git-status--show-line-face line)))))))
 
+;; ============================================================
+;; Commit view
+;; ============================================================
+;; `git show' runs in the background: the buffer opens at once with the
+;; commit hash and a loader, and is filled when the diff arrives.  A new
+;; request for the same buffer (another commit, or the same hash again)
+;; discards the older answer.
+(defvar-local xl-git-status--show-process nil
+  "The `git show' process filling this commit buffer, if any.")
+(defvar-local xl-git-status--show-request 0
+  "Number of the latest request for this commit buffer.")
+(defvar-local xl-git-status--show-spinner nil
+  "Overlay drawing the loader in this commit buffer.")
+
+(defun xl-git-status--show-draw (text)
+  "Show TEXT in this commit buffer's loader; nil removes it."
+  (if (and text (overlayp xl-git-status--show-spinner))
+      (overlay-put xl-git-status--show-spinner 'display text)
+    (when (overlayp xl-git-status--show-spinner)
+      (delete-overlay xl-git-status--show-spinner)
+      (setq xl-git-status--show-spinner nil))))
+
+(defun xl-git-status--show-teardown ()
+  "Stop this commit buffer's loader and process."
+  (xl-spinner-stop)
+  (when (process-live-p xl-git-status--show-process)
+    (delete-process xl-git-status--show-process))
+  (setq xl-git-status--show-process nil))
+
+(defun xl-git-status--show-fetch (hash request root)
+  "Fill this commit buffer with `git show' HASH, run in ROOT.
+REQUEST identifies this fetch; a later one makes its answer irrelevant."
+  (let ((buffer (current-buffer))
+        (out (generate-new-buffer " *git-show*"))
+        (default-directory root))
+    (setq xl-git-status--show-process
+          (make-process
+           :name "xl-git-show"
+           :buffer out
+           :command (list "git" "--no-pager" "show" "--no-color" hash)
+           :connection-type 'pipe
+           :noquery t
+           :sentinel
+           (lambda (proc _event)
+             (unless (process-live-p proc)
+               (let* ((out (process-buffer proc))
+                      (text (if (buffer-live-p out)
+                                (with-current-buffer out (buffer-string))
+                              ""))
+                      (code (process-exit-status proc)))
+                 (when (buffer-live-p out) (kill-buffer out))
+                 (when (buffer-live-p buffer)
+                   (with-current-buffer buffer
+                     (when (and (eq proc xl-git-status--show-process)
+                                (= request xl-git-status--show-request))
+                       (setq xl-git-status--show-process nil)
+                       (xl-spinner-stop)
+                       (let ((inhibit-read-only t))
+                         (erase-buffer)
+                         (if (zerop code)
+                             (xl-git-status--insert-show text)
+                           (insert (propertize "git show failed: " 'face 'error)
+                                   (string-trim text) "\n")))
+                       (goto-char (point-min))
+                       (dolist (window (get-buffer-window-list buffer nil t))
+                         (set-window-point window (point-min)))))))))))))
+
 (defun xl-git-status--show-commit (hash)
-  "Show commit HASH in a read-only buffer, with the status buffer's faces."
-  (let ((out (generate-new-buffer " *git-show*")))
-    (unwind-protect
-        (let ((code (call-process "git" nil out nil
-                                  "-C" default-directory "--no-pager"
-                                  "show" "--no-color" hash)))
-          (unless (zerop code)
-            (user-error "git show %s failed: %s" hash
-                        (string-trim (with-current-buffer out
-                                       (buffer-string)))))
-          (let ((buffer (get-buffer-create (format "*git-show: %s*" hash))))
-            (with-current-buffer buffer
-              (let ((inhibit-read-only t))
-                (erase-buffer)
-                (xl-git-status--insert-show
-                 (with-current-buffer out (buffer-string))))
-              (xl-git-show-mode)
-              (goto-char (point-min))
-              (dolist (window (get-buffer-window-list buffer nil t))
-                (set-window-point window (point-min))))
-            (pop-to-buffer buffer)))
-      (kill-buffer out))))
+  "Show commit HASH in a read-only buffer, with the status buffer's faces.
+The buffer opens at once and fills when `git show' answers."
+  (let* ((root default-directory)
+         (buffer (get-buffer-create (format "*git-show: %s*" hash)))
+         request)
+    (with-current-buffer buffer
+      (when (process-live-p xl-git-status--show-process)
+        (delete-process xl-git-status--show-process))
+      ;; `xl-git-show-mode' kills buffer-local variables, so it must run
+      ;; before the request counter and the process are set.
+      (xl-git-show-mode)
+      (setq xl-git-status--show-process nil
+            request (setq xl-git-status--show-request
+                          (1+ xl-git-status--show-request)))
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert (propertize "commit " 'face 'xl-git-status-heading)
+                (propertize hash 'face 'xl-git-status-hash) "\n")
+        (let ((start (point)))
+          (insert "   ")
+          (setq xl-git-status--show-spinner (make-overlay start (point)))
+          (overlay-put xl-git-status--show-spinner
+                       'face 'xl-git-status-branch))
+        (insert "  " (propertize "Loading..." 'face 'xl-git-status-comment)
+                "\n"))
+      (xl-spinner-start #'xl-git-status--show-draw :limit 1200)
+      (add-hook 'kill-buffer-hook #'xl-git-status--show-teardown nil t)
+      (xl-git-status--show-fetch hash request root)
+      (goto-char (point-min)))
+    (pop-to-buffer buffer)
+    buffer))
 
 (defun xl-git-status--hunk-line (section)
   "Return the file line that the hunk line at point corresponds to.
