@@ -83,6 +83,8 @@
 (load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
 (xl-startup-mark "init: git-status.el")
 (load (expand-file-name "emacs/git-status.el" xl-dotfiles))
+(xl-startup-mark "init: git-commands.el")
+(load (expand-file-name "emacs/git-commands.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el")
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
 (xl-startup-mark "init: xueliang.el loaded")

@@ -14,6 +14,7 @@ just emacs-try
                  ├─ Crafted 模块（~/.emacs-profiles/src/crafted-emacs，锁定提交）
                  ├─ emacs/spacemacs-keys.el         Spacemacs 键位习惯（SPC 树等）
                  ├─ emacs/git-status.el             异步 Git status 摘要
+                 ├─ emacs/git-commands.el         Gstatus/Gblame/Gwrite/Gcommit
                  └─ emacs/xueliang.el               我自己的设置、键位、命令
 ```
 
@@ -24,7 +25,7 @@ just emacs-try
 | 运行时 | Emacs 31.1、elpa 包目录 | 系统与包管理 |
 | 框架 | Crafted 模块 | 上游项目，版本由 `frameworks.lock` 锁定 |
 | 适配 | `early-init.el`、`init.el`、`spacemacs-keys.el` | 把 Crafted 接到我的习惯上 |
-| 个人 | `xueliang.el`、`git-status.el` | 我的全部习惯，只用原生 Emacs 和包的接口 |
+| 个人 | `xueliang.el`、`git-status.el`、`git-commands.el` | 我的全部习惯，只用原生 Emacs 和包的接口 |
 
 ## 文件说明
 
@@ -53,10 +54,10 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 检查 Emacs 版本，低于 30 直接报错停止。
 - 加载 `custom.el`（如果存在），它是 Customize 写入的地方。
 - 加载 `crafted-init-config`，把 Crafted 模块目录加入加载路径。
-- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`git-status.el` 和 `xueliang.el` 要用的包），然后一次装好缺少的。
+- 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `spacemacs-keys.el`、`git-status.el`、`git-commands.el` 和 `xueliang.el` 要用的包），然后一次装好缺少的。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
-- 加载 `spacemacs-keys.el`，然后加载 `git-status.el`，最后加载 `xueliang.el`。
+- 加载 `spacemacs-keys.el`，然后依次加载 `git-status.el`、`git-commands.el`，最后加载 `xueliang.el`。
 - 最后把 `xl-packages` 补回安装名单，并在每次切换主题后再补一次：加载主题会恢复 `custom.el` 里保存的旧名单，不补回的话 `package-autoremove` 可能误删正在用的包。
 
 ### `spacemacs-keys.el`（适配层）
@@ -76,7 +77,16 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
 
-它同时提供 GBlame：`SPC g b`（或 `:Gblame`）在当前文件左侧打开一栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。还有 vim-fugitive 风格的 `Gwrite`（暂存当前文件）、`Gcommit`（用 `Update <文件名>` 提交当前文件），也可以直接作为 `:Gwrite`、`:Gcommit` 使用。
+### `git-commands.el`（G 命令）
+
+vim-fugitive 风格的命令，都定义在这个文件里：
+
+- `Gstatus`（`:Gstatus`）：打开 `git-status.el` 的 status buffer。
+- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
+- `Gwrite`（`:Gwrite`）：暂存当前文件。
+- `Gcommit`（`:Gcommit`）：用 `Update <文件名>` 提交当前文件。
+
+它依赖 `git-status.el` 提供 status buffer、faces 和 commit 窗口，所以在 `git-status.el` 之后加载。
 
 ### `xueliang.el`（个人层）
 
@@ -108,10 +118,11 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 8. 加载 `crafted-defaults-config`、`crafted-completion-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
 10. 加载 `emacs/spacemacs-keys.el`，建立 `xl-leader-map` 和 SPC 键树。
-11. 加载 `emacs/git-status.el`，定义不依赖 Magit 的 status、commit、blame 命令。
-12. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
-13. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
-14. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
+11. 加载 `emacs/git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
+12. 加载 `emacs/git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
+13. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
+14. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
+15. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
 

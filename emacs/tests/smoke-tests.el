@@ -165,11 +165,12 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should-not (memq pkg removable)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
-  "`xueliang.el' and `git-status.el' use plain Emacs APIs.
+  "`xueliang.el', `git-status.el' and `git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("emacs/xueliang.el" "emacs/git-status.el"))
+  (dolist (file '("emacs/xueliang.el" "emacs/git-status.el"
+                  "emacs/git-commands.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))
@@ -183,19 +184,23 @@ allowed."
 (ert-deftest xl-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `xueliang.el' has to load last."
   (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
-        keys-line status-line personal-line)
+        keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
         (setq keys-line (car entry)))
       (when (string-match-p "git-status\\.el" (cdr entry))
         (setq status-line (car entry)))
+      (when (string-match-p "git-commands\\.el" (cdr entry))
+        (setq commands-line (car entry)))
       (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
+    (should commands-line)
     (should personal-line)
     (should (< keys-line status-line))
-    (should (< status-line personal-line))))
+    (should (< status-line commands-line))
+    (should (< commands-line personal-line))))
 
 (ert-deftest xl-early-init-settings ()
   "Startup-time settings from `early-init.el' are in effect."
@@ -1030,11 +1035,12 @@ The other TAB command would insert two spaces, so it delegates to
               (should (string-match-p "\\`[0-9a-f]\\{40\\}\\'" shown))))
           ;; :Gblame is the vim-fugitive command name.
           (should (eq (cdr (assoc "Gblame" evil-ex-commands)) 'xueliang-gblame))
-          ;; The G* family lives in the Git module, not in xueliang.el.
-          (dolist (cmd '(Gwrite Gcommit xueliang-gblame))
-            (should (equal "git-status"
+          ;; The G* family lives in git-commands.el, not in xueliang.el.
+          (dolist (cmd '(Gstatus Gwrite Gcommit xueliang-gblame))
+            (should (equal "git-commands"
                            (file-name-sans-extension
                             (file-name-nondirectory (symbol-file cmd 'defun))))))
+          (should (eq (cdr (assoc "Gstatus" evil-ex-commands)) 'Gstatus))
           (should (eq (cdr (assoc "Gwrite" evil-ex-commands)) 'Gwrite))
           (should (eq (cdr (assoc "Gcommit" evil-ex-commands)) 'Gcommit))
           ;; The blame window is an ordinary split, not an Emacs side window,
@@ -1773,7 +1779,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (let ((init (xl-test--read-file (expand-file-name "emacs/init.el" xl-dotfiles))))
     (dolist (phase '("activating packages" "installing missing packages"
                      "Crafted modules" "spacemacs-keys.el" "git-status.el"
-                     "xueliang.el" "init: done"))
+                     "git-commands.el" "xueliang.el" "init: done"))
       (should (string-search phase init))))
   (should (fboundp 'xueliang-startup-mark))
   ;; Outside a real start, C-g stays a plain quit.
