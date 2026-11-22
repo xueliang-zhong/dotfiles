@@ -3,10 +3,11 @@
 ;;; Commentary:
 ;; `xueliang-git-status' shows a Magit-like status without loading Magit:
 ;; the head, untracked/unstaged/staged files with their diff hunks, and
-;; recent commits.  The git commands run asynchronously; the buffer is
-;; read-only, `g' refreshes it and `q' quits it.  Sections fold like
-;; Magit's (TAB toggles the file or hunk at point, S-TAB toggles every
-;; file diff).  On a hunk, file or section line `s' stages and `u'
+;; recent commits.  The git commands run asynchronously; while they run an
+;; animated ASCII spinner fills the buffer, then it is replaced by the
+;; status.  The buffer is read-only, `g' refreshes it and `q' quits it.
+;; Sections fold like Magit's (TAB toggles the file or hunk at point,
+;; S-TAB toggles every file diff).  On a hunk, file or section line `s' stages and `u'
 ;; unstages it, `X' discards it after confirmation, and `RET' visits the
 ;; file at the hunk line or shows the commit at point in a buffer that
 ;; uses the same faces.
@@ -89,6 +90,76 @@ hunks start unfolded, file diffs start folded.")
 
 (defvar-local xueliang-git-status--restore-key nil
   "Section key to return to after the next render.")
+
+;; ============================================================
+;; Loading indicator
+;; ============================================================
+;; Git runs asynchronously, so the buffer is briefly empty.  Show a small
+;; ASCII spinner instead, replaced by the status as soon as it is ready.
+(defvar xueliang-git-status-spinner-frames
+  '("[|]" "[/]" "[-]" "[\\]")
+  "ASCII frames of the loading indicator in the Git status buffer.")
+
+(defvar xueliang-git-status-spinner-interval 0.2
+  "Seconds between frames of the Git status loading indicator.")
+
+(defvar-local xueliang-git-status--spinner-overlay nil
+  "Overlay drawing the loading indicator in this status buffer.")
+
+(defvar-local xueliang-git-status--spinner-timer nil
+  "Timer advancing the loading indicator in this status buffer.")
+
+(defvar-local xueliang-git-status--spinner-frame 0
+  "Index of the current loading indicator frame.")
+
+(defun xueliang-git-status--spin (buffer)
+  "Advance the loading indicator of BUFFER."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (when (overlayp xueliang-git-status--spinner-overlay)
+        (setq xueliang-git-status--spinner-frame
+              (mod (1+ xueliang-git-status--spinner-frame)
+                   (length xueliang-git-status-spinner-frames)))
+        (overlay-put xueliang-git-status--spinner-overlay 'display
+                     (nth xueliang-git-status--spinner-frame
+                          xueliang-git-status-spinner-frames))))))
+
+(defun xueliang-git-status--stop-spinner ()
+  "Remove the loading indicator of this status buffer."
+  (when (timerp xueliang-git-status--spinner-timer)
+    (cancel-timer xueliang-git-status--spinner-timer))
+  (setq xueliang-git-status--spinner-timer nil
+        xueliang-git-status--spinner-frame 0)
+  (when (overlayp xueliang-git-status--spinner-overlay)
+    (delete-overlay xueliang-git-status--spinner-overlay))
+  (setq xueliang-git-status--spinner-overlay nil))
+
+(defun xueliang-git-status--start-spinner ()
+  "Show an animated loading line until the next render."
+  (xueliang-git-status--stop-spinner)
+  (let ((inhibit-read-only t))
+    (insert (propertize "Git status" 'face 'xueliang-git-status-heading)
+            "  ")
+    (let ((start (point)))
+      ;; The overlay's display string replaces these three spaces.
+      (insert "   ")
+      (setq xueliang-git-status--spinner-overlay (make-overlay start (point)))
+      (overlay-put xueliang-git-status--spinner-overlay
+                   'face 'xueliang-git-status-branch)
+      (overlay-put xueliang-git-status--spinner-overlay 'display
+                   (nth 0 xueliang-git-status-spinner-frames)))
+    (insert "  " (propertize "Loading..." 'face 'xueliang-git-status-comment)
+            "\n\n"))
+  (let ((buffer (current-buffer))
+        timer)
+    (setq timer (run-with-timer xueliang-git-status-spinner-interval
+                                xueliang-git-status-spinner-interval
+                                (lambda (buf)
+                                  (if (buffer-live-p buf)
+                                      (xueliang-git-status--spin buf)
+                                    (cancel-timer timer)))
+                                buffer))
+    (setq xueliang-git-status--spinner-timer timer)))
 
 ;; ============================================================
 ;; Parsing
@@ -694,6 +765,7 @@ On a hunk, open its file at the line the hunk line belongs to."
 LOG-CODE and STATUS-CODE are the exit codes of the git commands."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
+      (xueliang-git-status--stop-spinner)
       (let ((inhibit-read-only t)
             (entries (xueliang-git-status--entries status))
             (branch (xueliang-git-status--branch status))
@@ -820,8 +892,9 @@ Dired and some other buffers use an abbreviated directory such as
 (defun xueliang-git-status ()
   "Show the Git status and recent log of the current repository.
 The buffer lists the head, untracked, unstaged and staged files
-with their diff hunks, and the ten most recent commits.  `g'
-refreshes the buffer and `q' quits it.  TAB folds or unfolds the
+with their diff hunks, and the ten most recent commits.  An animated
+ASCII spinner is shown while the git commands run.  `g' refreshes the
+buffer and `q' quits it.  TAB folds or unfolds the
 file or hunk at point, S-TAB toggles every file diff.  `s' stages
 the hunk, file or section at point, `u' unstages it, `X' discards
 it after confirmation, and `S'/`U' stage or unstage everything.
@@ -850,7 +923,8 @@ it after confirmation, and `S'/`U' stage or unstage everything.
       (setq xueliang-git-status--sections nil
             xueliang-git-status--overlays nil
             buffer-read-only nil
-            default-directory root))
+            default-directory root)
+      (xueliang-git-status--start-spinner))
     (display-buffer buffer)
     (xueliang-git-status--load buffer root)))
 

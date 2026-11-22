@@ -570,6 +570,37 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
+(ert-deftest xl-git-status-loading-spinner ()
+  "An ASCII spinner runs until the status has been rendered."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xueliang-git-status)
+            (with-current-buffer buffer
+              (should (string-match-p "Git status" (buffer-string)))
+              (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
+              (should (timerp xueliang-git-status--spinner-timer))
+              (should (overlayp xueliang-git-status--spinner-overlay))
+              (should (equal (car xueliang-git-status-spinner-frames)
+                             (overlay-get xueliang-git-status--spinner-overlay
+                                          'display)))
+              ;; The timer advances the frames.
+              (xueliang-git-status--spin buffer)
+              (should (equal (cadr xueliang-git-status-spinner-frames)
+                             (overlay-get xueliang-git-status--spinner-overlay
+                                          'display))))
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (should-not (string-match-p "Loading\\.\\.\\." (buffer-string)))
+              (should-not (timerp xueliang-git-status--spinner-timer))
+              (should-not (overlayp xueliang-git-status--spinner-overlay)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
 (ert-deftest xl-git-status-keys ()
   "Folding, operations and RET are bound in the status mode and Evil."
   (dolist (spec '(("TAB" . xueliang-git-status-toggle)
