@@ -657,10 +657,11 @@ line can be switched off without deleting it."
   "Open the scratch buffer in a right split." (interactive)
   (xueliang-split-right) (switch-to-buffer (get-scratch-buffer-create)))
 
-(defun xueliang-magit-status-window ()
+(defun xueliang-git-status-window ()
   "Open my Git status, preferring a right split." (interactive)
   (setq-local split-width-threshold 10) ; prefer vsplit
   (xueliang-cd-current-dir)
+  (turn-on-diff-hl-mode)
   (xueliang-git-status))
 
 ;; My one liner commands
@@ -720,7 +721,7 @@ line can be switched off without deleting it."
 (xl-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "c c" "just all"       #'xueliang-just-make
            "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
-           "g g" "git status"   #'xueliang-magit-status-window)
+           "g g" "git status"     #'xueliang-git-status-window)
 
 ;; ============================================================
 ;; Personal modules outside this repo
