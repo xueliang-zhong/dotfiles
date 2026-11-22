@@ -259,7 +259,7 @@ bash emacs/install/emacs-setup.sh check
 
 ## 不装 just 也能用
 
-`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。所以没有 `just` 的机器照样能装：
+`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 会在终端里显示彩色进度条（当前步骤、百分比和耗时），输出重定向时退化成 `#`/`-` 的纯文本条；`NO_COLOR=1` 关闭颜色。所以没有 `just` 的机器照样能装：
 
 ```bash
 bash emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows

@@ -25,7 +25,118 @@ PROFILES=${PROFILES:-${HOME:-$USERPROFILE}/.emacs-profiles}
 PROFILE_DIR=${PROFILE_DIR:-$PROFILES/$PROFILE}
 
 say() { printf '%s\n' "$*"; }
-die() { printf 'emacs-setup: %s\n' "$*" >&2; exit 1; }
+die() {
+    printf 'emacs-setup: %s\n' "$*" >&2
+    exit 1
+}
+
+# Progress bar for the multi-step setup commands.  A bar is printed after
+# each step:
+#   emacs-setup [██████░░░░░░░░░░░░░░░░░░]  25%  1/4  Install dotfiles
+# Redirected output (logs, CI) gets the same bar with "#" and "-" and no
+# escape codes.  NO_COLOR turns the colours off; a non-UTF-8 locale falls
+# back to "#"/"-" glyphs as well.
+progress_total=0
+progress_done=0
+progress_started=${SECONDS:-0}
+progress_full='#'
+progress_empty='-'
+progress_colors=0
+
+progress_init() {
+    progress_total=$1
+    progress_done=0
+    progress_started=${SECONDS:-0}
+    progress_full='#'
+    progress_empty='-'
+    progress_colors=0
+    if [ -t 1 ] && [ "${TERM:-dumb}" != dumb ]; then
+        progress_colors=1
+        case "${LC_ALL:-${LC_CTYPE:-${LANG:-}}}" in
+            *[Uu][Tt][Ff]-8* | *[Uu][Tt][Ff]8*)
+                progress_full='█'
+                progress_empty='░'
+                ;;
+        esac
+    fi
+}
+
+progress_color() {
+    [ "$progress_colors" = 1 ] && [ -z "${NO_COLOR+x}" ]
+}
+
+progress_bar() {
+    local filled i fill empty
+    filled=$(( progress_total > 0 ? progress_done * 24 / progress_total : 0 ))
+    fill=
+    empty=
+    for ((i = 0; i < 24; i++)); do
+        if ((i < filled)); then
+            fill=$fill$progress_full
+        else
+            empty=$empty$progress_empty
+        fi
+    done
+    if progress_color; then
+        printf '\033[32m%s\033[2m%s\033[0m' "$fill" "$empty"
+    else
+        printf '%s%s' "$fill" "$empty"
+    fi
+}
+
+progress_draw() {
+    local label=${1:-} pct
+    pct=$(( progress_total > 0 ? progress_done * 100 / progress_total : 0 ))
+    printf 'emacs-setup ['
+    progress_bar
+    printf '] %3d%%  %d/%d' "$pct" "$progress_done" "$progress_total"
+    if [ -n "$label" ]; then printf '  %s' "$label"; fi
+    printf '\n'
+}
+
+progress_fail() {
+    local label=${1:-}
+    if progress_color; then printf '\033[31m'; fi
+    printf 'emacs-setup ['
+    progress_bar
+    printf '] FAILED'
+    if [ -n "$label" ]; then printf '  %s' "$label"; fi
+    if progress_color; then printf '\033[0m'; fi
+    printf '\n'
+}
+
+progress_step() {
+    local title=$1
+    shift
+    progress_done=$((progress_done + 1))
+    if progress_color; then
+        printf '\033[1m[%d/%d]\033[0m %s\n' \
+            "$progress_done" "$progress_total" "$title"
+    else
+        printf '[%d/%d] %s\n' "$progress_done" "$progress_total" "$title"
+    fi
+    if "$@"; then
+        # The final 100% bar is drawn by `progress_finish', labelled "done".
+        if [ "$progress_done" -lt "$progress_total" ]; then
+            progress_draw "$title"
+        fi
+    else
+        progress_fail "$title"
+        return 1
+    fi
+}
+
+progress_finish() {
+    local message=${1:-Done} elapsed
+    progress_done=$progress_total
+    progress_draw "done"
+    elapsed=$(( ${SECONDS:-0} - progress_started ))
+    if progress_color; then
+        printf '\033[1;32m%s\033[0m (%ss)\n' "$message" "$elapsed"
+    else
+        printf '%s (%ss)\n' "$message" "$elapsed"
+    fi
+}
 
 # Paths written into the stubs and passed to git must be ones native Emacs
 # and Git for Windows understand: on Git Bash turn /c/Users/me into C:/Users/me,
@@ -182,10 +293,12 @@ cmd_restore_spacemacs() {
 cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
-    install_dotfiles
-    cmd_crafted_install "$PROFILE_DIR"
-    cmd_trampolines
-    cmd_make_default
+    progress_init 4
+    progress_step "Install dotfiles" install_dotfiles
+    progress_step "Crafted profile" cmd_crafted_install "$PROFILE_DIR"
+    progress_step "Profile smoke test and trampolines" cmd_trampolines
+    progress_step "Make Crafted the default Emacs" cmd_make_default
+    progress_finish "macOS setup complete"
 }
 
 cmd_setup_linux() {
@@ -195,10 +308,44 @@ cmd_setup_linux() {
         MINGW* | MSYS* | CYGWIN*) die "run this in Linux; on Windows use setup-windows" ;;
         *) die "no setup for $(uname -s)" ;;
     esac
-    install_dotfiles
-    cmd_crafted_install "$PROFILE_DIR"
-    cmd_trampolines
-    cmd_make_default
+    progress_init 4
+    progress_step "Install dotfiles" install_dotfiles
+    progress_step "Crafted profile" cmd_crafted_install "$PROFILE_DIR"
+    progress_step "Profile smoke test and trampolines" cmd_trampolines
+    progress_step "Make Crafted the default Emacs" cmd_make_default
+    progress_finish "Linux setup complete"
+}
+
+cmd_windows_check() {
+    require_emacs
+    say "Emacs $("$EMACS" --batch --eval '(princ emacs-version)')"
+}
+
+# Started from the Start menu, Emacs uses %HOME% as ~ and falls back to
+# %APPDATA% when it is unset; pin it to the profile folder Git Bash uses.
+cmd_windows_pin_home() {
+    if command -v powershell.exe >/dev/null 2>&1; then
+        local userhome
+        userhome=$(powershell.exe -NoProfile -Command "[Environment]::GetEnvironmentVariable('HOME','User')" | tr -d '\r')
+        if [ -z "$userhome" ]; then
+            setx HOME "$(cygpath -w "$HOME")" >/dev/null
+            say "Set user variable HOME=$(cygpath -w "$HOME") (programs started from now on see it)"
+        fi
+    fi
+}
+
+# Emacs prefers ~/.emacs and ~/.emacs.el over ~/.emacs.d; move old setups aside
+cmd_windows_move_old_configs() {
+    local backup f
+    backup="$PROFILES/backup-$(date +%Y%m%d-%H%M%S)"
+    for f in .emacs .emacs.el .emacs.d; do
+        [ -e "$HOME/$f" ] || continue
+        grep -qsE "Generated by (just emacs-crafted-install|emacs/install/(xl-emacs|emacs-setup)\.sh)" \
+            "$HOME/$f/init.el" && continue
+        mkdir -p "$backup"
+        mv "$HOME/$f" "$backup/"
+        say "Moved ~/$f to $backup"
+    done
 }
 
 # Installs Crafted straight into ~/.emacs.d (Git Bash `ln -s` copies instead
@@ -209,34 +356,15 @@ cmd_setup_windows() {
         MINGW* | MSYS* | CYGWIN*) ;;
         *) [ -n "${XL_FORCE_WINDOWS:-}" ] || die "run this from Git Bash on Windows" ;;
     esac
-    require_emacs
-    say "Emacs $("$EMACS" --batch --eval '(princ emacs-version)')"
-    # Started from the Start menu, Emacs uses %HOME% as ~ and falls back to
-    # %APPDATA% when it is unset; pin it to the profile folder Git Bash uses.
-    if command -v powershell.exe >/dev/null 2>&1; then
-        local userhome
-        userhome=$(powershell.exe -NoProfile -Command "[Environment]::GetEnvironmentVariable('HOME','User')" | tr -d '\r')
-        if [ -z "$userhome" ]; then
-            setx HOME "$(cygpath -w "$HOME")" >/dev/null
-            say "Set user variable HOME=$(cygpath -w "$HOME") (programs started from now on see it)"
-        fi
-    fi
-    # Emacs prefers ~/.emacs and ~/.emacs.el over ~/.emacs.d; move old setups aside
-    local backup f d
-    backup="$PROFILES/backup-$(date +%Y%m%d-%H%M%S)"
-    for f in .emacs .emacs.el .emacs.d; do
-        [ -e "$HOME/$f" ] || continue
-        grep -qsE "Generated by (just emacs-crafted-install|emacs/install/(xl-emacs|emacs-setup)\.sh)" \
-            "$HOME/$f/init.el" && continue
-        mkdir -p "$backup"
-        mv "$HOME/$f" "$backup/"
-        say "Moved ~/$f to $backup"
-    done
+    local d
+    progress_init 5
+    progress_step "Check Emacs" cmd_windows_check
+    progress_step "Pin HOME for Start-menu Emacs" cmd_windows_pin_home
+    progress_step "Move old configurations aside" cmd_windows_move_old_configs
     d=$(winpath "$HOME/.emacs.d")
-    cmd_crafted_install "$d"
-    say "Installing packages (first run downloads them, a few minutes)..."
-    PROFILE_DIR="$d" cmd_smoke
-    say "Done. Start Emacs from the Start menu or run: runemacs"
+    progress_step "Crafted profile" cmd_crafted_install "$d"
+    PROFILE_DIR="$d" progress_step "Install packages and smoke test" cmd_smoke
+    progress_finish "Done. Start Emacs from the Start menu or run: runemacs"
 }
 
 cmd_try() {
