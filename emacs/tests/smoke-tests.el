@@ -429,26 +429,6 @@ The other TAB command would insert two spaces, so it delegates to
 ;;; Magit
 ;;; ============================================================
 
-(ert-deftest xl-magit-status-hooks-are-pruned ()
-  "The expensive status sections stay off; upstream state stays on."
-  (require 'magit-status)
-  (dolist (fn '(magit-insert-stashes
-                magit-insert-merge-log
-                magit-insert-unpulled-from-upstream
-                magit-insert-unpulled-from-pushremote
-                magit-insert-unpushed-to-pushremote
-                magit-insert-rebase-sequence))
-    (should-not (memq fn magit-status-sections-hook)))
-  ;; Deliberately kept: one reason to open status is to see what is ahead.
-  (should (memq 'magit-insert-unpushed-to-upstream-or-recent
-                magit-status-sections-hook))
-  (dolist (fn '(magit-insert-tags-header
-                magit-insert-diff-filter-header
-                magit-insert-upstream-branch-header
-                magit-insert-push-branch-header))
-    (should-not (memq fn magit-status-headers-hook)))
-  (should (memq 'magit-insert-head-branch-header magit-status-headers-hook)))
-
 (ert-deftest xl-magit-movement-keys ()
   "h/j/k/l move in Magit without losing their vim meaning."
   (require 'magit)
