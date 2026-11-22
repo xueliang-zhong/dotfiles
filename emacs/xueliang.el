@@ -644,9 +644,31 @@ line can be switched off without deleting it."
   (message "Sum: %s" (apply #'+ (mapcar #'string-to-number
                                         (split-string (buffer-substring start end))))))
 
+;; ============================================================
+;; Persistent scratch - like Doom's scratch notes
+;; ============================================================
+;; `persistent-scratch' restores *scratch* at startup and saves it when
+;; Emacs is idle and on exit, so notes survive restarts.  C-x C-s in
+;; scratch saves it immediately instead of asking for a file name.
+(require 'persistent-scratch)
+(setq persistent-scratch-save-file
+      (expand-file-name "persistent-scratch.eld" user-emacs-directory)
+      persistent-scratch-autosave-interval '(idle . 30))
+;; Only interactive sessions read/write the save file: `just emacs-test'
+;; and other batch runs must not overwrite the real scratch notes.
+(unless noninteractive
+  (persistent-scratch-setup-default)
+  (with-current-buffer (get-scratch-buffer-create)
+    (persistent-scratch-mode 1)))
+
 (defun xueliang-open-scratch-buffer-window ()
-  "Open the scratch buffer in a right split." (interactive)
-  (xueliang-split-right) (switch-to-buffer (get-scratch-buffer-create)))
+  "Show the persistent scratch buffer on the right, or jump to it."
+  (interactive)
+  (let ((buffer (get-scratch-buffer-create)))
+    (if-let* ((window (get-buffer-window buffer t)))
+        (select-window window)
+      (xueliang-split-right)
+      (switch-to-buffer buffer))))
 
 (defun xl-git-status-window ()
   "Open my Git status, preferring a right split." (interactive)

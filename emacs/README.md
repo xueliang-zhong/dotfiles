@@ -168,6 +168,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 - 补全：vertico、corfu 等由 Crafted 打开，这里只放我的改动。候选列表占 frame 高度的 38.2%，`SPC r l` 重复上一次列表，候选列表里 `C-.` 调出 embark 动作、`C-q` 导出、`M-w` 也导出（和 `C-q` 一样，导出结果在 buffer 里可见）；corfu 输入一个字符就立即弹出（Windows 上改为停顿 0.2 秒、输入第二个字符后才查询，避免打字卡顿），eshell 等不自动弹出，弹窗背景、当前候选项和边框跟随主题（切换主题时自动更新）；cape 的补全来源加到全局（Crafted 只加到了 `*scratch*`），dabbrev 只扫描当前 buffer。
 - Snippet：`SPC i s` 用 yasnippet 列出当前模式的 snippet（`SPC i S` 新建），首次使用时才加载 yasnippet。
 - Org：`org-modules` 保持为空，但显式 require `org-tempo`，所以插入态里 `<s` + TAB 也会展开成 `#+begin_src` 代码块。
+- 持久 scratch：`SPC b s` 打开 `*scratch*`，persistent-scratch 在启动时恢复内容、空闲 30 秒和退出时保存到 `~/.emacs-profiles/crafted/persistent-scratch.eld`，`C-x C-s` 立即保存；再按一次 `SPC b s` 跳到已有的 scratch 窗口，不重复分屏。batch（测试、安装脚本）不会读写这份笔记。
 - dired、eshell、Org、magit 的设置和小函数。
 - 功能键 F2–F12，和 `SPC` 下我自己的几条命令。
 - F7（`just all`）和 `SPC c c` 通过 `compile` 异步跑 `just`：输出流进 `*compilation*` 并保留，失败时 `next-error` 能跳到出错的 `文件:行`；之前的 `!just all &` 把输出丢在临时 buffer 里，失败也看不见。
@@ -233,7 +234,7 @@ bash emacs/install/emacs-setup.sh check
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 106 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 107 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |

@@ -1927,13 +1927,36 @@ the exit status."
     (should called)))
 
 (ert-deftest xl-scratch-window-opens-right-split ()
-  "`SPC b s' shows the scratch buffer in a new window on the right."
-  (save-window-excursion
-    (delete-other-windows)
-    (let ((before (length (window-list))))
-      (xueliang-open-scratch-buffer-window)
-      (should (= (length (window-list)) (1+ before)))
-      (should (equal (buffer-name) "*scratch*")))))
+  "`SPC b s' shows the scratch buffer on the right and reuses its window."
+  (let ((source (get-buffer-create "*xl-scratch-source*")))
+    (unwind-protect
+        (save-window-excursion
+          (delete-other-windows)
+          (switch-to-buffer source)
+          (let ((before (length (window-list))))
+            (xueliang-open-scratch-buffer-window)
+            (should (= (length (window-list)) (1+ before)))
+            (should (equal (buffer-name) "*scratch*"))
+            (let ((scratch-window (selected-window)))
+              ;; From the source buffer, a second call jumps to the existing
+              ;; scratch window instead of splitting again.
+              (select-window (get-buffer-window source t))
+              (xueliang-open-scratch-buffer-window)
+              (should (= (length (window-list)) (1+ before)))
+              (should (eq (selected-window) scratch-window)))))
+      (kill-buffer source))))
+
+(ert-deftest xl-persistent-scratch-is-configured ()
+  "Scratch notes persist in interactive sessions, never in batch runs."
+  (should (featurep 'persistent-scratch))
+  (should (equal persistent-scratch-save-file
+                 (expand-file-name "persistent-scratch.eld"
+                                   user-emacs-directory)))
+  (should (equal persistent-scratch-autosave-interval '(idle . 30)))
+  ;; The tests and setup scripts run in batch and must not touch the notes.
+  (should-not persistent-scratch-autosave-mode)
+  (with-current-buffer (get-scratch-buffer-create)
+    (should-not persistent-scratch-mode)))
 
 (ert-deftest xl-git-status-window-prefers-vertical-split ()
   "`SPC g g' sets a low split threshold locally, then opens Git status."
