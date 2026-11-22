@@ -656,7 +656,7 @@ The git work runs in the background; the status refreshes when it is done."
       ('hunk
        (unless (eq status 'unstaged)
          (user-error "Unstage that hunk first"))
-       (when (yes-or-no-p "Discard this hunk? ")
+       (when (y-or-n-p "Discard this hunk? ")
          (xl-git-status--enqueue
           (list :root default-directory
                 :attempts '(("apply" "-R"))
@@ -666,7 +666,7 @@ The git work runs in the background; the status refreshes when it is done."
        (let ((files (xl-git-status--section-files section)))
          (pcase status
            ('unstaged
-            (when (yes-or-no-p (format "Discard changes in %s? "
+            (when (y-or-n-p (format "Discard changes in %s? "
                                        (xl-git-status--describe-files files)))
               (xl-git-status--enqueue
                (list :root default-directory
@@ -674,7 +674,7 @@ The git work runs in the background; the status refreshes when it is done."
                      :action (format "Discarded %s"
                                      (xl-git-status--describe-files files))))))
            ('untracked
-            (when (yes-or-no-p (format "Delete %s? "
+            (when (y-or-n-p (format "Delete %s? "
                                        (xl-git-status--describe-files files)))
               (dolist (file files)
                 (xl-git-status--delete-untracked file))

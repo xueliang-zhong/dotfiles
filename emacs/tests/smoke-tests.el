@@ -1116,7 +1116,7 @@ The loader is visible while the queue runs."
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
                    (lambda (b &rest _) (setq buffer b) b))
-                  ((symbol-function 'yes-or-no-p)
+                  ((symbol-function 'y-or-n-p)
                    (lambda (&rest _) t)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
@@ -1141,6 +1141,37 @@ The loader is visible while the queue runs."
               (let ((unstaged (xl-test--git-output repo "diff" "--unified=0")))
                 (should (string-match-p "changed 1\\b" unstaged))
                 (should-not (string-match-p "changed 18" unstaged))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-deletes-untracked-with-y-or-n ()
+  "Deleting an untracked file asks with `y-or-n-p', not `yes-or-no-p'."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo))
+         (file (expand-file-name "untracked.txt" repo))
+         (buffer nil)
+         asked)
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b))
+                  ((symbol-function 'y-or-n-p)
+                   (lambda (prompt) (setq asked prompt) t))
+                  ((symbol-function 'yes-or-no-p)
+                   (lambda (&rest _)
+                     (error "git-status delete must use y-or-n-p"))))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (search-forward "untracked  untracked.txt")
+              (beginning-of-line)
+              (xl-git-status-discard))
+            (should (string-match-p "Delete" asked))
+            (should-not (file-exists-p file))
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (should-not (string-match-p "untracked.txt" (buffer-string))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
