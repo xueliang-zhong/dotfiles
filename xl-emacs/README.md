@@ -26,6 +26,7 @@ xl-emacs/
 ├── init.el                选 Crafted 模块、装包、按顺序加载
 ├── spacemacs-keys.el      Spacemacs 键位习惯（SPC 树等）
 ├── lisp/                  可以单独安装的包
+│   ├── xl-spinner.el          一个 loader，三处复用
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
 │   └── xl-package-menu.el     Package Menu 刷新时的 loader
@@ -59,7 +60,7 @@ just emacs-try
 | 运行时 | Emacs 31.1、elpa 包目录 | 系统与包管理 |
 | 框架 | Crafted 模块 | 上游项目，版本由 `frameworks.lock` 锁定 |
 | 适配 | `early-init.el`、`init.el`、`spacemacs-keys.el` | 把 Crafted 接到我的习惯上 |
-| 包 | `lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git 与 Package Menu loader，可脱离本配置单独安装 |
+| 包 | `lisp/xl-spinner.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git、共用 loader 与 Package Menu 动画，可脱离本配置单独安装 |
 | 个人 | `xueliang.el` | 我的全部口味，只用原生 Emacs 和包的接口，不发布 |
 
 ## 文件说明
@@ -130,11 +131,30 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成动画。
 
 - `package-menu-mode-hook` 把 `mode-line-process` 的第一格换成一个字符串槽位
-- `package-refresh-contents-hook` 在刷新开始时启动 0.05 秒（20 fps）的 timer，逐帧改这个字符串
+- `package-refresh-contents-hook` 在刷新开始时启动 `xl-spinner`（见下）
 - `package--post-download-archives-hook` 在最后一个下载完成时停掉 timer
 - 一分钟还没收到完成信号就自行放弃，坏掉的 archive 不会让 loader 永远转
 
 异步是 Emacs 的，loader 是我们的。
+
+### `lisp/xl-spinner.el`（共用 loader）
+
+三处 loader 原本各写一份 timer 和帧计数，只有"画在哪里"不同：status 换 overlay、GBlame 换 header line、Package Menu 换 mode line 的一格。所以这里只保留时钟和帧序号，落点交给调用方：
+
+```elisp
+(xl-spinner-start
+ (lambda (text)                       ; text 为 nil 时表示停止，负责擦掉
+   (setq-local header-line-format (and text (concat " " text "  working"))))
+ :limit 1200)                         ; 可选：最多走多少帧
+```
+
+- 第一帧在函数返回前就画好，所以调用方不用自己渲染初始状态
+- `:frames`、`:interval` 默认取 `xl-spinner-frames`（`[|] [/] [-] [\]`）和 `xl-spinner-interval`（0.05 秒，20 fps）
+- `:limit` 是保险：Package Menu 和 GBlame 都设 1200 帧（一分钟），挂住的下载或 blame 不会永远转
+- 缓冲区被杀而没人停 loader 时，timer 会自己取消
+- `xl-spinner-running-p` 给测试和调用方判断状态，`xl-spinner-tick` 让测试不必等真实时钟
+
+测试里 `xl-spinner-frames-ticks-and-stops` 覆盖了首帧、推进、上限和清除。
 
 ### `xueliang.el`（个人层，不发布）
 
@@ -207,7 +227,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 102 个 ERT 测试在配置完整加载后运行，覆盖：
+`xl-emacs/tests/smoke-tests.el` 里的 103 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -219,6 +239,7 @@ just emacs-check   # 上面两条一起跑
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
 | GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 header 上的 spinner；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
 | Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
+| Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

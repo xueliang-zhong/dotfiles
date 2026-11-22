@@ -25,6 +25,7 @@
 (require 'subr-x)    ; string-trim-right
 (require 'seq)       ; seq-find, seq-remove
 (require 'diff-mode) ; diff-added, diff-removed, diff-context, diff-hunk-header
+(require 'xl-spinner) ; the shared loading indicator
 
 (defgroup xl-git-status nil
   "Faces for `xl-git-status'."
@@ -101,45 +102,22 @@ hunks start unfolded, file diffs start folded.")
 ;; ============================================================
 ;; Git runs asynchronously, so the buffer is briefly empty.  Show a small
 ;; ASCII spinner instead, replaced by the status as soon as it is ready.
-(defvar xl-git-status-spinner-frames
-  '("[|]" "[/]" "[-]" "[\\]")
-  "ASCII frames of the loading indicator in the Git status buffer.")
-
-(defvar xl-git-status-spinner-interval 0.05
-  "Seconds between frames of the Git status loading indicator.
-20 frames per second: fast enough to read as motion, not so fast that the
-ASCII frames blur together.")
-
+;; The clock and the frames come from `xl-spinner'; the overlay below is
+;; only the place the frames are drawn.
 (defvar-local xl-git-status--spinner-overlay nil
   "Overlay drawing the loading indicator in this status buffer.")
 
-(defvar-local xl-git-status--spinner-timer nil
-  "Timer advancing the loading indicator in this status buffer.")
-
-(defvar-local xl-git-status--spinner-frame 0
-  "Index of the current loading indicator frame.")
-
-(defun xl-git-status--spin (buffer)
-  "Advance the loading indicator of BUFFER."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (when (overlayp xl-git-status--spinner-overlay)
-        (setq xl-git-status--spinner-frame
-              (mod (1+ xl-git-status--spinner-frame)
-                   (length xl-git-status-spinner-frames)))
-        (overlay-put xl-git-status--spinner-overlay 'display
-                     (nth xl-git-status--spinner-frame
-                          xl-git-status-spinner-frames))))))
+(defun xl-git-status--draw-spinner (text)
+  "Show TEXT in this status buffer's loader; nil removes it."
+  (if (and text (overlayp xl-git-status--spinner-overlay))
+      (overlay-put xl-git-status--spinner-overlay 'display text)
+    (when (overlayp xl-git-status--spinner-overlay)
+      (delete-overlay xl-git-status--spinner-overlay)
+      (setq xl-git-status--spinner-overlay nil))))
 
 (defun xl-git-status--stop-spinner ()
   "Remove the loading indicator of this status buffer."
-  (when (timerp xl-git-status--spinner-timer)
-    (cancel-timer xl-git-status--spinner-timer))
-  (setq xl-git-status--spinner-timer nil
-        xl-git-status--spinner-frame 0)
-  (when (overlayp xl-git-status--spinner-overlay)
-    (delete-overlay xl-git-status--spinner-overlay))
-  (setq xl-git-status--spinner-overlay nil))
+  (xl-spinner-stop))
 
 (defun xl-git-status--start-spinner ()
   "Show an animated loading line until the next render."
@@ -152,21 +130,10 @@ ASCII frames blur together.")
       (insert "   ")
       (setq xl-git-status--spinner-overlay (make-overlay start (point)))
       (overlay-put xl-git-status--spinner-overlay
-                   'face 'xl-git-status-branch)
-      (overlay-put xl-git-status--spinner-overlay 'display
-                   (nth 0 xl-git-status-spinner-frames)))
+                   'face 'xl-git-status-branch))
     (insert "  " (propertize "Loading..." 'face 'xl-git-status-comment)
             "\n\n"))
-  (let ((buffer (current-buffer))
-        timer)
-    (setq timer (run-with-timer xl-git-status-spinner-interval
-                                xl-git-status-spinner-interval
-                                (lambda (buf)
-                                  (if (buffer-live-p buf)
-                                      (xl-git-status--spin buf)
-                                    (cancel-timer timer)))
-                                buffer))
-    (setq xl-git-status--spinner-timer timer)))
+  (xl-spinner-start #'xl-git-status--draw-spinner))
 
 ;; ============================================================
 ;; Parsing

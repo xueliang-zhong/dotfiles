@@ -19,84 +19,30 @@
 ;;; Code:
 
 (require 'package)
-
-(defvar xl-package-menu-spinner-frames
-  '("[|]" "[/]" "[-]" "[\\]")
-  "ASCII frames of the loader in the Package Menu mode line.")
-
-(defvar xl-package-menu-spinner-interval 0.05
-  "Seconds between frames of the Package Menu loader.
-The same 20 frames per second as the Git status and GBlame loaders.")
-
-(defvar-local xl-package-menu--refreshing nil
-  "Non-nil while this Package Menu waits for the archives.")
+(require 'xl-spinner)
 
 (defvar-local xl-package-menu--indicator ""
   "Mode line string of this Package Menu's loader.")
 
-(defvar-local xl-package-menu--timer nil
-  "Timer advancing this Package Menu's loader.")
-
-(defvar-local xl-package-menu--frame 0
-  "Index of the current loader frame in this Package Menu.")
-
-(defvar-local xl-package-menu--ticks 0
-  "Ticks since this Package Menu's loader started.")
-
-(defun xl-package-menu--set-indicator (text)
-  "Show TEXT in this Package Menu's mode line.
+(defun xl-package-menu--draw-loader (text)
+  "Show TEXT in this Package Menu's mode line; nil removes it.
 The string is the first element of `mode-line-process', which
-`package-menu-mode' does not otherwise use."
-  (setq xl-package-menu--indicator text)
+`package-menu-mode' gives to its static \":Loading\"."
+  (setq xl-package-menu--indicator (if text (concat " " text " Loading") ""))
   (when (and (consp mode-line-process)
              (stringp (car mode-line-process)))
-    (setcar mode-line-process text))
+    (setcar mode-line-process xl-package-menu--indicator))
   (force-mode-line-update))
 
 (defun xl-package-menu--start ()
-  "Start the loader in this Package Menu buffer."
-  (setq xl-package-menu--refreshing t
-        xl-package-menu--ticks 0
-        xl-package-menu--frame 0)
-  (xl-package-menu--set-indicator
-   (concat " " (nth 0 xl-package-menu-spinner-frames) " Loading"))
-  (unless (timerp xl-package-menu--timer)
-    (let ((buffer (current-buffer)))
-      (setq xl-package-menu--timer
-            (run-with-timer xl-package-menu-spinner-interval
-                            xl-package-menu-spinner-interval
-                            #'xl-package-menu--tick buffer)))))
+  "Start the loader in this Package Menu buffer.
+A refresh that never reports completion gives up after a minute of
+frames, so a broken archive cannot leave the loader spinning forever."
+  (xl-spinner-start #'xl-package-menu--draw-loader :limit 1200))
 
 (defun xl-package-menu--stop ()
   "Stop the loader in this Package Menu buffer."
-  (when (timerp xl-package-menu--timer)
-    (cancel-timer xl-package-menu--timer))
-  (setq xl-package-menu--refreshing nil
-        xl-package-menu--timer nil
-        xl-package-menu--ticks 0
-        xl-package-menu--frame 0)
-  (xl-package-menu--set-indicator ""))
-
-(defun xl-package-menu--tick (buffer)
-  "Advance the loader of BUFFER, stopping it when the refresh is over.
-A refresh that never reports completion gives up after a minute, so a
-broken archive cannot leave the loader spinning forever."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (setq xl-package-menu--ticks (1+ xl-package-menu--ticks))
-      (cond
-       ((not xl-package-menu--refreshing)
-        (xl-package-menu--stop))
-       ((> xl-package-menu--ticks 300)
-        (xl-package-menu--stop))
-       (t
-        (setq xl-package-menu--frame
-              (mod (1+ xl-package-menu--frame)
-                   (length xl-package-menu-spinner-frames)))
-        (xl-package-menu--set-indicator
-         (concat " " (nth xl-package-menu--frame
-                          xl-package-menu-spinner-frames)
-                 " Loading")))))))
+  (xl-spinner-stop))
 
 (defun xl-package-menu--on-refresh (&optional _async)
   "Show the loader in the Package Menu while the archives download.

@@ -18,6 +18,7 @@
 
 (require 'subr-x)     ; truncate-string-to-width
 (require 'xl-git-status) ; status buffer, its faces and `--show-commit'
+(require 'xl-spinner)    ; the loader in the header line
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
@@ -56,47 +57,20 @@
   "The `git blame' process filling this GBlame buffer, if any.")
 (defvar-local xl-gblame--request 0
   "Number of the latest blame request; older results are thrown away.")
-(defvar-local xl-gblame--spinner-timer nil
-  "Timer advancing the loader in this GBlame buffer's header line.")
-(defvar-local xl-gblame--spinner-frame 0
-  "Index of the current loader frame in this GBlame buffer.")
+
+(defun xl-gblame--draw-loader (text)
+  "Show TEXT in this GBlame buffer's header line; nil removes it."
+  (setq-local header-line-format (when text (concat " " text "  git blame")))
+  (force-mode-line-update))
 
 (defun xl-gblame--start-spinner ()
-  "Show an animated loader in this GBlame buffer's header line."
-  (xl-gblame--stop-spinner)
-  (setq xl-gblame--spinner-frame 0)
-  (setq-local header-line-format
-              (concat " " (nth 0 xl-git-status-spinner-frames)
-                      "  git blame"))
-  (force-mode-line-update)
-  (let ((buffer (current-buffer)))
-    (setq xl-gblame--spinner-timer
-          (run-with-timer xl-git-status-spinner-interval
-                          xl-git-status-spinner-interval
-                          #'xl-gblame--spin buffer))))
-
-(defun xl-gblame--spin (buffer)
-  "Advance the loader of BUFFER."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (when (timerp xl-gblame--spinner-timer)
-        (setq xl-gblame--spinner-frame
-              (mod (1+ xl-gblame--spinner-frame)
-                   (length xl-git-status-spinner-frames)))
-        (setq-local header-line-format
-                    (concat " " (nth xl-gblame--spinner-frame
-                                     xl-git-status-spinner-frames)
-                            "  git blame"))
-        (force-mode-line-update)))))
+  "Show an animated loader in this GBlame buffer's header line.
+A blame that never finishes gives up after a minute of frames."
+  (xl-spinner-start #'xl-gblame--draw-loader :limit 1200))
 
 (defun xl-gblame--stop-spinner ()
   "Remove the loader from this GBlame buffer's header line."
-  (when (timerp xl-gblame--spinner-timer)
-    (cancel-timer xl-gblame--spinner-timer))
-  (setq xl-gblame--spinner-timer nil
-        xl-gblame--spinner-frame 0)
-  (setq-local header-line-format nil)
-  (force-mode-line-update))
+  (xl-spinner-stop))
 
 (defun xl-gblame--placeholders (lines)
   "Fill this GBlame buffer with LINES empty lines.

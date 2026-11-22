@@ -187,21 +187,19 @@ installed after the theme load, so `package-autoremove' keeps it."
     (package-menu-mode)
     ;; The loader takes the slot `package-menu-mode' gives to ":Loading".
     (should (equal "" (car mode-line-process)))
-    (should-not xl-package-menu--refreshing)
+    (should-not (xl-spinner-running-p))
     (xl-package-menu--start)
-    (should xl-package-menu--refreshing)
-    (should (timerp xl-package-menu--timer))
+    (should (xl-spinner-running-p))
     (should (string-match-p "\\` \\[[|/-]\\] Loading\\'"
                             xl-package-menu--indicator))
     ;; The mode line string itself moves with the frames.
     (should (equal (car mode-line-process) xl-package-menu--indicator))
     (let ((frame xl-package-menu--indicator))
-      (xl-package-menu--tick (current-buffer))
+      (xl-spinner-tick (current-buffer))
       (should-not (equal frame xl-package-menu--indicator))
       (should (equal (car mode-line-process) xl-package-menu--indicator)))
     (xl-package-menu--stop)
-    (should-not xl-package-menu--refreshing)
-    (should-not (timerp xl-package-menu--timer))
+    (should-not (xl-spinner-running-p))
     (should (equal "" xl-package-menu--indicator))
     (should (equal "" (car mode-line-process)))))
 
@@ -213,13 +211,33 @@ installed after the theme load, so `package-autoremove' keeps it."
         (with-current-buffer buffer
           (package-menu-mode)
           (xl-package-menu--on-refresh t)
-          (should xl-package-menu--refreshing)
-          (should (timerp xl-package-menu--timer))
+          (should (xl-spinner-running-p))
           (xl-package-menu--on-done)
-          (should-not xl-package-menu--refreshing)
-          (should-not (timerp xl-package-menu--timer)))
+          (should-not (xl-spinner-running-p)))
       (with-current-buffer buffer (xl-package-menu--stop))
       (kill-buffer buffer))))
+
+(ert-deftest xl-spinner-frames-ticks-and-stops ()
+  "The shared loader draws a frame at once, advances, limits and clears."
+  (with-temp-buffer
+    (let (drawn)
+      (xl-spinner-start (lambda (text) (push text drawn)) :limit 1)
+      ;; The first frame is on screen before the caller gets control back.
+      (should (xl-spinner-running-p))
+      (should (equal (car xl-spinner-frames) (car drawn)))
+      (xl-spinner-tick (current-buffer))
+      (should (equal (cadr xl-spinner-frames) (car drawn)))
+      ;; The limit stops the loader on the next tick and clears it.
+      (xl-spinner-tick (current-buffer))
+      (should-not (xl-spinner-running-p))
+      (should (equal '(nil "[/]" "[|]") drawn)))
+    ;; Starting again resets the frames; stopping clears the drawing.
+    (let (drawn)
+      (xl-spinner-start (lambda (text) (push text drawn)))
+      (should (xl-spinner-running-p))
+      (xl-spinner-stop)
+      (should-not (xl-spinner-running-p))
+      (should (equal '(nil "[|]") drawn)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
@@ -640,20 +658,20 @@ The other TAB command would insert two spaces, so it delegates to
             (with-current-buffer buffer
               (should (string-match-p "Git status" (buffer-string)))
               (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should (timerp xl-git-status--spinner-timer))
+              (should (xl-spinner-running-p))
               (should (overlayp xl-git-status--spinner-overlay))
-              (should (equal (car xl-git-status-spinner-frames)
+              (should (equal (car xl-spinner-frames)
                              (overlay-get xl-git-status--spinner-overlay
                                           'display)))
               ;; The timer advances the frames.
-              (xl-git-status--spin buffer)
-              (should (equal (cadr xl-git-status-spinner-frames)
+              (xl-spinner-tick buffer)
+              (should (equal (cadr xl-spinner-frames)
                              (overlay-get xl-git-status--spinner-overlay
                                           'display))))
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (should-not (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should-not (timerp xl-git-status--spinner-timer))
+              (should-not (xl-spinner-running-p))
               (should-not (overlayp xl-git-status--spinner-overlay)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
@@ -1169,7 +1187,7 @@ The other TAB command would insert two spaces, so it delegates to
             ;; The command returned before git did: the UI was not blocked,
             ;; and the placeholders already line up with the source file.
             (should header-line-format)
-            (should (timerp xl-gblame--spinner-timer))
+            (should (xl-spinner-running-p))
             (should (= (count-lines (point-min) (point-max))
                        (with-current-buffer buf
                          (count-lines (point-min) (point-max)))))
@@ -1178,7 +1196,7 @@ The other TAB command would insert two spaces, so it delegates to
           (with-current-buffer xl-gblame--buffer
             ;; Done: the loader is gone and the blame is in place.
             (should-not header-line-format)
-            (should-not (timerp xl-gblame--spinner-timer))
+            (should-not (xl-spinner-running-p))
             (should (get-text-property (point-min) 'xl-gblame-hash))))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
         (when (buffer-live-p blame) (kill-buffer blame)))
