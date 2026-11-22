@@ -2,7 +2,7 @@
 
 **A thin Emacs layer whose heavy work runs async. 重活异步，界面不等。**
 
-一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。读 Git 的重活——status、diff、log、blame——用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-emacs`、`xl-git-status`），同时是作者 Xueliang 的缩写。
+一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-emacs`、`xl-git-status`），同时是作者 Xueliang 的缩写。
 
 ## 三条可验证的承诺
 
@@ -10,11 +10,11 @@
 | --- | --- |
 | 个人层是薄的 | `init.el`、`early-init.el`、`spacemacs-keys.el`、`xueliang.el` 合计约 1200 行 |
 | 启动耗时有数 | 每次 GUI 启动把各阶段耗时写进 `startup.log`（见下文“启动耗时”） |
-| 读 Git 不阻塞 UI | status/diff/log、`git blame` 和 commit 视图全部走 `make-process`；测试在命令返回的瞬间断言 spinner/占位行已在、内容未到 |
+| Git 不阻塞 UI | 读（status/diff/log、blame、commit 视图）与写（stage/unstage/discard/commit）全部走 `make-process`；测试在命令返回的瞬间断言 loader 已在、内容未到 |
 
 还有一处异步不是我们做的：`list-packages` 的归档下载在 Emacs 31 里本来就是异步的（`package-menu-async` 默认为 t）。我们只把它 mode line 里静态的 `:Loading` 换成动画，见 `lisp/xl-package-menu.el`。重写它只会比上游更差。
 
-还没异步化的部分，如实写在这里，不假装已经完成：暂存、取消暂存、丢弃、提交仍然同步，好在它们都很短。这是下一轮的待办。
+还没异步化的部分，如实写在这里，不假装已经完成：`list-packages` 里的安装/删除（package transaction）仍然同步，归档刷新除外。那是上游的限制，装上后还要在同一个 Emacs 里激活包，拆到子进程反而更糟。
 
 不写形容词：不叫自己 “lite”，也不叫自己 “fast”。数字和测试能证明的东西，才写进 README。
 
@@ -111,7 +111,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 ### `lisp/xl-git-status.el`（异步 Git 页面）
 
-一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。commit 视图也是异步的：buffer 立刻打开，显示 hash 和 spinner，`git show` 返回后填入 diff；重复请求同一个 buffer 时，旧结果会被丢弃。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
+一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（先确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部。写操作排成一条队列（`xl-git-status--queue`）：一次只跑一个 git 进程，连按 `s s s` 会按顺序执行而不是互相抢索引；mode line 上显示 `[|] Staged file-1.txt +2`，队列排空后只刷新一次 status。没有 HEAD 的仓库里，`u` 会自动退回 `git rm --cached`；失败的输出用 `message` 报出来，不会吞掉；`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。commit 视图也是异步的：buffer 立刻打开，显示 hash 和 spinner，`git show` 返回后填入 diff；重复请求同一个 buffer 时，旧结果会被丢弃。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
 
 ### `lisp/xl-git-commands.el`（异步 G 命令）
 
@@ -121,6 +121,8 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 - `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），header line 上转 spinner，数据到了就替换；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
 - `Gwrite`（`:Gwrite`）：暂存当前文件。
 - `Gcommit`（`:Gcommit`）：用 `Update <文件名>` 提交当前文件。
+
+`Gwrite` 和 `Gcommit` 也不再经过 evil 的 `!`：它们用 `make-process` 在文件所在仓库里跑，成功后刷新同一个仓库的 status buffer，失败时把 git 的输出 `message` 出来。所以 pre-commit hook 跑几秒也不会卡住 Emacs，而且没有 evil 也能用。
 
 它依赖 `lisp/xl-git-status.el` 提供的 status buffer、faces 和 commit 窗口，所以在其后加载。
 
@@ -227,7 +229,7 @@ just emacs-check   # 上面两条一起跑
 
 ### `just emacs-test`
 
-`xl-emacs/tests/smoke-tests.el` 里的 104 个 ERT 测试在配置完整加载后运行，覆盖：
+`xl-emacs/tests/smoke-tests.el` 里的 105 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -241,6 +243,7 @@ just emacs-check   # 上面两条一起跑
 | Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
 | Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |
 | Commit 视图 | 打开时已有 spinner 和「Loading...」、还没有 diff；`git show` 返回后 spinner 消失、diff 就位 |
+| 写操作队列 | 连按两次 `s` 时命令立即返回、loader 在跑、动作写在 mode line；排空后两个文件都进了索引；没有 HEAD 的仓库能 `u` |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

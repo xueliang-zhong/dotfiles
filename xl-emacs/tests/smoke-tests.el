@@ -116,12 +116,17 @@
     dir))
 
 (defun xl-test--wait-for-git-status (buffer)
-  "Wait until the Git status BUFFER has finished rendering."
+  "Wait until the Git status BUFFER has rendered and its queue is empty."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (not buffer-read-only) (< (float-time) end))
+      (while (and (or (not buffer-read-only)
+                      (buffer-local-value 'xl-git-status--queue buffer)
+                      (buffer-local-value 'xl-git-status--queue-process buffer))
+                  (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should buffer-read-only)))
+    (should buffer-read-only)
+    (should-not (buffer-local-value 'xl-git-status--queue buffer))
+    (should-not (buffer-local-value 'xl-git-status--queue-process buffer))))
 
 (defun xl-test--wait-for-gblame (buffer)
   "Wait until the GBlame BUFFER has finished loading."
@@ -741,6 +746,43 @@ The other TAB command would insert two spaces, so it delegates to
               (xl-test--wait-for-git-status buffer)
               (should (equal "" (xl-test--git-output repo "diff" "--cached"
                                                       "--name-only"))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-queues-operations-in-order ()
+  "Rapid `s' presses run one git command at a time, then refresh once.
+The loader is visible while the queue runs."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (xl-git-status-stage)
+              ;; The command returned with git still running: no blocking,
+              ;; and the mode line says what is going on.
+              (should (xl-spinner-running-p))
+              (should xl-git-status--queue-process)
+              (should (equal "Staged file-0.txt"
+                             xl-git-status--queue-action))
+              (goto-char (point-min))
+              (should (search-forward "modified   file-1.txt" nil t))
+              (beginning-of-line)
+              (xl-git-status-stage))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal '("file-0.txt" "file-1.txt")
+                           (sort (split-string
+                                  (xl-test--git-output repo "diff" "--cached"
+                                                       "--name-only")
+                                  "\n" t)
+                                 #'string<)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
@@ -1721,29 +1763,23 @@ which Crafted still puts on `embark-collect-mode-hook'."
 ;;; Coverage: commands that shell out, open files or split windows
 ;;; ============================================================
 
-(defun xl-test--capture-ex (thunk)
-  "Run THUNK with `evil-ex-execute' stubbed; return the commands it received."
-  (let (commands)
-    (cl-letf (((symbol-function 'evil-ex-execute)
-               (lambda (cmd &rest _) (push cmd commands))))
-      (funcall thunk))
-    (nreverse commands)))
-
 (ert-deftest xl-git-helpers-run-the-right-command ()
   "`Gwrite' stages the file and `Gcommit' commits it with a fixed message."
-  (should (equal (xl-test--capture-ex #'Gwrite) '("!git add %")))
   (xl-test-with-temp-dir dir
     (with-temp-buffer
       (setq buffer-file-name (expand-file-name "note.txt" dir))
       (let ((default-directory "/")
-            command cwd)
-        (cl-letf (((symbol-function 'evil-ex-execute)
-                   (lambda (cmd &rest _)
-                     (setq command cmd cwd default-directory))))
+            calls)
+        (cl-letf (((symbol-function 'xl-git-commands--run)
+                   (lambda (args action) (push (list args action) calls))))
+          (Gwrite)
           (Gcommit))
-        (should (equal command "!git commit -m \"Update note.txt\""))
-        ;; Gcommit runs git in the file's folder without cd'ing the buffer.
-        (should (file-equal-p cwd dir))
+        (setq calls (nreverse calls))
+        (should (equal (caar calls) (list "add" "--" buffer-file-name)))
+        (should (equal (cadar calls) "Staged note.txt"))
+        (should (equal (caadr calls) (list "commit" "-m" "Update note.txt")))
+        (should (equal (cadadr calls) "Committed note.txt"))
+        ;; Neither command cd's the buffer.
         (should (equal default-directory "/"))))))
 
 (ert-deftest xl-just-commands-go-through-compile ()

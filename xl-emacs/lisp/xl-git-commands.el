@@ -449,22 +449,60 @@ loader in its header line, and saving refreshes it without blocking.
       (file-name-directory (expand-file-name buffer-file-name))
     default-directory))
 
+(defun xl-git-commands--refresh-status (root)
+  "Refresh the status buffer showing ROOT, when it is open."
+  (when-let* ((repo (file-name-nondirectory (directory-file-name root)))
+              (buffer (get-buffer (format "*git-status: %s*" repo))))
+    (with-current-buffer buffer
+      (xl-git-status))))
+
+(defun xl-git-commands--run (args action)
+  "Run git ARGS in the current file's folder in the background.
+Message ACTION on success, git's output on failure, and refresh the
+status buffer of the same repository.  A pre-commit hook that takes
+seconds no longer blocks Emacs."
+  (let* ((dir (xl-git-commands--file-directory))
+         (root (or (locate-dominating-file dir ".git")
+                   (file-name-as-directory (expand-file-name dir))))
+         (out (generate-new-buffer " *git-command*"))
+         (default-directory root))
+    (make-process
+     :name "xl-git-command"
+     :buffer out
+     :command (append '("git" "--no-pager" "-c" "core.quotepath=false") args)
+     :connection-type 'pipe
+     :noquery t
+     :sentinel
+     (lambda (proc _event)
+       (unless (process-live-p proc)
+         (let ((code (process-exit-status proc))
+               (output (if (buffer-live-p out)
+                           (with-current-buffer out (buffer-string))
+                         "")))
+           (when (buffer-live-p out) (kill-buffer out))
+           (if (zerop code)
+               (progn
+                 (message "%s" action)
+                 (xl-git-commands--refresh-status root))
+             (message "%s failed: %s" action (string-trim output)))))))))
+
 (defun Gwrite ()
   "Stage the current file, like vim-fugitive's :Gwrite."
   (interactive)
-  (unless (fboundp 'evil-ex-execute)
-    (user-error "Gwrite needs Evil"))
-  (let ((default-directory (xl-git-commands--file-directory)))
-    (evil-ex-execute "!git add %")))
+  (unless buffer-file-name
+    (user-error "This buffer is not visiting a file"))
+  (let ((file (expand-file-name buffer-file-name)))
+    (xl-git-commands--run (list "add" "--" file)
+                          (format "Staged %s" (file-name-nondirectory file)))))
 
 (defun Gcommit ()
   "Commit the current file, like vim-fugitive's :Gcommit."
   (interactive)
-  (unless (fboundp 'evil-ex-execute)
-    (user-error "Gcommit needs Evil"))
-  (let ((default-directory (xl-git-commands--file-directory)))
-    (evil-ex-execute (format "!git commit -m \"Update %s\""
-                             (file-name-nondirectory buffer-file-name)))))
+  (unless buffer-file-name
+    (user-error "This buffer is not visiting a file"))
+  (let ((name (file-name-nondirectory buffer-file-name)))
+    (xl-git-commands--run (list "commit" "-m" (format "Update %s" name))
+                          (format "Committed %s" name))))
 
 (defalias 'Gstatus 'xl-git-status)
 

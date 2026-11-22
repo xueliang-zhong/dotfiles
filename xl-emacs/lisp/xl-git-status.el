@@ -79,6 +79,18 @@
 (defvar-local xl-git-status--processes nil
   "Git processes still running for this status buffer.")
 
+(defvar-local xl-git-status--queue nil
+  "Pending git operations of this status buffer, oldest first.
+Each job is a plist: :root, :attempts (git argument lists, tried in
+order), :action (the message on success) and, for `git apply',
+:patch (the text to apply).")
+
+(defvar-local xl-git-status--queue-process nil
+  "The process running the head of this buffer's queue, if any.")
+
+(defvar-local xl-git-status--queue-action nil
+  "What the queued operation is doing, for the mode line.")
+
 (defvar-local xl-git-status--sections nil
   "Sections of this status buffer, as plists.
 Each plist has :key, :kind (`section', `file' or `hunk'), :status
@@ -426,39 +438,100 @@ diff text."
 ;; Git processes
 ;; ============================================================
 
-(defun xl-git-status--git-sync (&rest args)
-  "Run git ARGS in the current status buffer's repository.
-Return a cons (EXIT-CODE . OUTPUT)."
-  (let ((out (generate-new-buffer " *git-status-command*")))
-    (unwind-protect
-        (cons (apply #'call-process "git" nil out nil
-                     "-C" default-directory "--no-pager" args)
-              (with-current-buffer out (buffer-string)))
-      (kill-buffer out))))
+(defun xl-git-status--enqueue (job)
+  "Queue JOB and start the queue if it is idle.
+JOB is a plist with :root, :attempts (git argument lists, tried in
+order), :action (the message on success) and, for `git apply', :patch.
+One job runs at a time, so a rapid `s s s' stages in order instead of
+racing, and the status refreshes once when the queue drains."
+  (setq xl-git-status--queue (append xl-git-status--queue (list job)))
+  (unless (process-live-p xl-git-status--queue-process)
+    (xl-spinner-start #'xl-git-status--queue-indicator :limit 1200))
+  (xl-git-status--queue-start))
 
-(defun xl-git-status--apply-patch (patch &rest args)
-  "Feed PATCH to `git apply' with ARGS.
-Return a cons (EXIT-CODE . OUTPUT)."
-  (with-temp-buffer
-    (insert patch)
-    (let ((out (generate-new-buffer " *git-status-apply*")))
-      (unwind-protect
-          (cons (apply #'call-process-region
-                       (point-min) (point-max)
-                       "git" nil out nil
-                       "-C" default-directory "--no-pager"
-                       "apply" (append args (list "-")))
-                (with-current-buffer out (buffer-string)))
-        (kill-buffer out)))))
+(defun xl-git-status--queue-indicator (text)
+  "Show TEXT and the queue in this status buffer's mode line; nil clears."
+  (setq-local mode-line-process
+              (when text
+                (list (format " %s %s%s"
+                              text
+                              (or xl-git-status--queue-action "git")
+                              (if xl-git-status--queue
+                                  (format " +%d" (length xl-git-status--queue))
+                                "")))))
+  (force-mode-line-update))
 
-(defun xl-git-status--finish (result action)
-  "Refresh after RESULT succeeded, else report ACTION with its output."
-  (if (zerop (car result))
-      (progn
-        (xl-git-status)
-        (message "%s" action))
-    (user-error "%s failed: %s" action
-                (string-trim (cdr result)))))
+(defun xl-git-status--queue-start ()
+  "Run the head of this buffer's queue unless one is already running.
+When the queue drains, refresh the status once."
+  (when (and (not (process-live-p xl-git-status--queue-process))
+             (buffer-live-p (current-buffer)))
+    (if (null xl-git-status--queue)
+        (progn
+          (setq xl-git-status--queue-action nil)
+          (xl-spinner-stop)
+          (xl-git-status))
+      (let ((job (pop xl-git-status--queue)))
+        (setq xl-git-status--queue-action (plist-get job :action))
+        (setq xl-git-status--queue-process
+              (xl-git-status--queue-exec job))))))
+
+(defun xl-git-status--queue-exec (job)
+  "Start one attempt of JOB and return its process.
+A failed attempt falls back to the next one in JOB's :attempts, so a
+repository without HEAD can unstage with `git rm --cached'."
+  (let* ((attempts (plist-get job :attempts))
+         (args (car attempts))
+         (patch (plist-get job :patch))
+         (file (and patch (make-temp-file "xl-git-status-patch" nil ".patch")))
+         (out (generate-new-buffer " *git-status-operation*"))
+         (root (plist-get job :root))
+         (buffer (current-buffer))
+         (default-directory root))
+    (when file (with-temp-file file (insert patch)))
+    (let ((remaining (cdr attempts)))
+      (make-process
+       :name "xl-git-status-operation"
+       :buffer out
+       :command (append '("git" "--no-pager" "-c" "core.quotepath=false")
+                        args (when file (list file)))
+       :connection-type 'pipe
+       :noquery t
+       :sentinel
+       (lambda (proc _event)
+         (unless (process-live-p proc)
+           (let ((code (process-exit-status proc))
+                 (output (if (buffer-live-p out)
+                             (with-current-buffer out (buffer-string))
+                           "")))
+             (when (buffer-live-p out) (kill-buffer out))
+             (when file (ignore-errors (delete-file file)))
+             (when (buffer-live-p buffer)
+               (with-current-buffer buffer
+                 (cond
+                  ((not (eq proc xl-git-status--queue-process))
+                   nil)                 ; a newer queue run owns the buffer
+                  ((and (not (zerop code)) remaining)
+                   (plist-put job :attempts remaining)
+                   (setq xl-git-status--queue-process
+                         (xl-git-status--queue-exec job)))
+                  (t
+                   (setq xl-git-status--queue-process nil)
+                   (if (zerop code)
+                       (message "%s" (plist-get job :action))
+                     (message "%s failed: %s"
+                              (plist-get job :action)
+                              (string-trim output)))
+                   (xl-git-status--queue-start))))))))))))
+
+(defun xl-git-status--queue-teardown ()
+  "Stop this status buffer's queue, its process and its loader."
+  (xl-spinner-stop)
+  (when (process-live-p xl-git-status--queue-process)
+    (delete-process xl-git-status--queue-process))
+  (setq xl-git-status--queue nil
+        xl-git-status--queue-process nil
+        xl-git-status--queue-action nil))
 
 (defun xl-git-status--git (buffer name root args callback)
   "Run git ARGS in ROOT, then call CALLBACK with output and exit code.
@@ -505,17 +578,15 @@ BUFFER owns the process; NAME names it."
       (car files)
     (format "%d files" (length files))))
 
-(defun xl-git-status--unstage-files (files)
-  "Remove FILES from the index, coping with a repository without HEAD."
-  (let ((result (apply #'xl-git-status--git-sync
-                       "reset" "-q" "HEAD" "--" files)))
-    (unless (zerop (car result))
-      (setq result (apply #'xl-git-status--git-sync
-                          "rm" "--cached" "-q" "-r" "--" files)))
-    result))
+(defun xl-git-status--unstage-attempts (files)
+  "Return git argument lists that remove FILES from the index.
+`git reset' needs HEAD; a repository without commits needs `git rm'."
+  (list (append (list "reset" "-q" "HEAD" "--") files)
+        (append (list "rm" "--cached" "-q" "-r" "--") files)))
 
 (defun xl-git-status-stage ()
-  "Stage the hunk, file or change section at point."
+  "Stage the hunk, file or change section at point.
+The work runs in the background; the status refreshes when it is done."
   (interactive)
   (let* ((section (xl-git-status--section-at-point))
          (kind (plist-get section :kind))
@@ -524,20 +595,25 @@ BUFFER owns the process; NAME names it."
       ('hunk
        (unless (eq status 'unstaged)
          (user-error "That hunk is already staged"))
-       (xl-git-status--finish
-        (xl-git-status--apply-patch (plist-get section :patch) "--cached")
-        "Staged hunk"))
+       (xl-git-status--enqueue
+        (list :root default-directory
+              :attempts '(("apply" "--cached"))
+              :patch (plist-get section :patch)
+              :action "Staged hunk")))
       ((or 'file 'section)
        (unless (memq status '(unstaged untracked))
          (user-error "Nothing unstaged there"))
        (let ((files (xl-git-status--section-files section)))
-         (xl-git-status--finish
-          (apply #'xl-git-status--git-sync "add" "--" files)
-          (format "Staged %s" (xl-git-status--describe-files files)))))
+         (xl-git-status--enqueue
+          (list :root default-directory
+                :attempts (list (append (list "add" "--") files))
+                :action (format "Staged %s"
+                                (xl-git-status--describe-files files))))))
       (_ (user-error "Nothing to stage at point")))))
 
 (defun xl-git-status-unstage ()
-  "Unstage the hunk, file or change section at point."
+  "Unstage the hunk, file or change section at point.
+The work runs in the background; the status refreshes when it is done."
   (interactive)
   (let* ((section (xl-git-status--section-at-point))
          (kind (plist-get section :kind))
@@ -546,16 +622,20 @@ BUFFER owns the process; NAME names it."
       ('hunk
        (unless (eq status 'staged)
          (user-error "That hunk is not staged"))
-       (xl-git-status--finish
-        (xl-git-status--apply-patch (plist-get section :patch) "--cached" "-R")
-        "Unstaged hunk"))
+       (xl-git-status--enqueue
+        (list :root default-directory
+              :attempts '(("apply" "--cached" "-R"))
+              :patch (plist-get section :patch)
+              :action "Unstaged hunk")))
       ((or 'file 'section)
        (unless (eq status 'staged)
          (user-error "Nothing staged there"))
        (let ((files (xl-git-status--section-files section)))
-         (xl-git-status--finish
-          (xl-git-status--unstage-files files)
-          (format "Unstaged %s" (xl-git-status--describe-files files)))))
+         (xl-git-status--enqueue
+          (list :root default-directory
+                :attempts (xl-git-status--unstage-attempts files)
+                :action (format "Unstaged %s"
+                                (xl-git-status--describe-files files))))))
       (_ (user-error "Nothing to unstage at point")))))
 
 (defun xl-git-status--delete-untracked (file)
@@ -566,7 +646,8 @@ BUFFER owns the process; NAME names it."
       (delete-file path))))
 
 (defun xl-git-status-discard ()
-  "Discard the unstaged or untracked change at point, after confirmation."
+  "Discard the unstaged or untracked change at point, after confirmation.
+The git work runs in the background; the status refreshes when it is done."
   (interactive)
   (let* ((section (xl-git-status--section-at-point))
          (kind (plist-get section :kind))
@@ -576,19 +657,22 @@ BUFFER owns the process; NAME names it."
        (unless (eq status 'unstaged)
          (user-error "Unstage that hunk first"))
        (when (yes-or-no-p "Discard this hunk? ")
-         (xl-git-status--finish
-          (xl-git-status--apply-patch (plist-get section :patch) "-R")
-          "Discarded hunk")))
+         (xl-git-status--enqueue
+          (list :root default-directory
+                :attempts '(("apply" "-R"))
+                :patch (plist-get section :patch)
+                :action "Discarded hunk"))))
       ((or 'file 'section)
        (let ((files (xl-git-status--section-files section)))
          (pcase status
            ('unstaged
             (when (yes-or-no-p (format "Discard changes in %s? "
                                        (xl-git-status--describe-files files)))
-              (xl-git-status--finish
-               (apply #'xl-git-status--git-sync "checkout" "--" files)
-               (format "Discarded %s"
-                       (xl-git-status--describe-files files)))))
+              (xl-git-status--enqueue
+               (list :root default-directory
+                     :attempts (list (append (list "checkout" "--") files))
+                     :action (format "Discarded %s"
+                                     (xl-git-status--describe-files files))))))
            ('untracked
             (when (yes-or-no-p (format "Delete %s? "
                                        (xl-git-status--describe-files files)))
@@ -601,18 +685,20 @@ BUFFER owns the process; NAME names it."
       (_ (user-error "Nothing to discard at point")))))
 
 (defun xl-git-status-stage-all ()
-  "Stage every change in the working tree."
+  "Stage every change in the working tree, in the background."
   (interactive)
-  (xl-git-status--finish
-   (xl-git-status--git-sync "add" "--all")
-   "Staged all changes"))
+  (xl-git-status--enqueue
+   (list :root default-directory
+         :attempts '(("add" "--all"))
+         :action "Staged all changes")))
 
 (defun xl-git-status-unstage-all ()
-  "Unstage everything currently in the index."
+  "Unstage everything in the index, in the background."
   (interactive)
-  (xl-git-status--finish
-   (xl-git-status--unstage-files '("."))
-   "Unstaged all changes"))
+  (xl-git-status--enqueue
+   (list :root default-directory
+         :attempts (xl-git-status--unstage-attempts '("."))
+         :action "Unstaged all changes")))
 
 (defun xl-git-status--show-line-face (line)
   "Return the face for one LINE of `git show' diff output."
@@ -962,6 +1048,7 @@ it after confirmation, and `S'/`U' stage or unstage everything.
       ;; fold state, the section list and the refresh position.
       (unless (derived-mode-p 'xl-git-status-mode)
         (xl-git-status-mode))
+      (add-hook 'kill-buffer-hook #'xl-git-status--queue-teardown nil t)
       (setq xl-git-status--restore-key
             (plist-get (xl-git-status--section-at-point) :key))
       ;; A refresh replaces the previous run instead of racing it.
