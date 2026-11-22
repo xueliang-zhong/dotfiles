@@ -130,7 +130,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成动画。
 
 - `package-menu-mode-hook` 把 `mode-line-process` 的第一格换成一个字符串槽位
-- `package-refresh-contents-hook` 在刷新开始时启动 0.2 秒的 timer，逐帧改这个字符串
+- `package-refresh-contents-hook` 在刷新开始时启动 0.05 秒（20 fps）的 timer，逐帧改这个字符串
 - `package--post-download-archives-hook` 在最后一个下载完成时停掉 timer
 - 一分钟还没收到完成信号就自行放弃，坏掉的 archive 不会让 loader 永远转
 

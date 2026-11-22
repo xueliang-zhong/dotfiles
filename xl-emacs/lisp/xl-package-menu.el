@@ -24,8 +24,9 @@
   '("[|]" "[/]" "[-]" "[\\]")
   "ASCII frames of the loader in the Package Menu mode line.")
 
-(defvar xl-package-menu-spinner-interval 0.2
-  "Seconds between frames of the Package Menu loader.")
+(defvar xl-package-menu-spinner-interval 0.05
+  "Seconds between frames of the Package Menu loader.
+The same 20 frames per second as the Git status and GBlame loaders.")
 
 (defvar-local xl-package-menu--refreshing nil
   "Non-nil while this Package Menu waits for the archives.")

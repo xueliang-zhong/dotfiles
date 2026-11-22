@@ -105,8 +105,10 @@ hunks start unfolded, file diffs start folded.")
   '("[|]" "[/]" "[-]" "[\\]")
   "ASCII frames of the loading indicator in the Git status buffer.")
 
-(defvar xl-git-status-spinner-interval 0.2
-  "Seconds between frames of the Git status loading indicator.")
+(defvar xl-git-status-spinner-interval 0.05
+  "Seconds between frames of the Git status loading indicator.
+20 frames per second: fast enough to read as motion, not so fast that the
+ASCII frames blur together.")
 
 (defvar-local xl-git-status--spinner-overlay nil
   "Overlay drawing the loading indicator in this status buffer.")
