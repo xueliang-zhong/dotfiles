@@ -27,6 +27,10 @@ just docker-build && just docker-run
 just emacs-dotfiles-clean
 just doom-emacs-install
 just spacemacs-install
+
+# XL Emacs setup/checks without `just` (the emacs-* recipes wrap this script)
+bash emacs/install/xl-emacs.sh setup-macos
+bash emacs/install/xl-emacs.sh check
 ```
 
 Manual commands:

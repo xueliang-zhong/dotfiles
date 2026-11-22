@@ -1,6 +1,7 @@
 #!/bin/bash
 # Copy vim/nvim/tmux configs and ~/bin scripts into $HOME.
-# Emacs is managed separately by the emacs-* recipes (see `just emacs-mac-setup`).
+# Emacs is managed separately: `just emacs-mac-setup` or
+# `bash emacs/install/xl-emacs.sh setup-macos` (same script).
 set -e
 
 # Define a function for cp to ensure -f flag is always used
