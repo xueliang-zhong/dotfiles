@@ -1111,15 +1111,22 @@ Return non-nil when a GBlame buffer was open."
      (t (message "Commit %s" hash)))))
 
 (defun xueliang-gblame ()
-  "Toggle a git blame side window for the current file.
+  "Toggle a git blame window on the left of the current file.
 Each line shows the abbreviated commit, author and date, aligned with
-the file; the window follows the file's scrolling and point.  `RET'
-shows the commit at point, `g' refreshes, `q' closes the window."
+the file; the window follows the file's scrolling and point.  It is an
+ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
+`RET' shows the commit at point, `g' refreshes, `q' closes the window."
   (interactive)
   (unless buffer-file-name
     (user-error "This buffer is not visiting a file"))
-  (if (xueliang-gblame--close)
-      (message "GBlame closed")
+  (if (and (buffer-live-p xueliang-gblame--buffer)
+           (get-buffer-window xueliang-gblame--buffer t))
+      (progn
+        (xueliang-gblame--close)
+        (message "GBlame closed"))
+    ;; The buffer may survive a window closed with :only, C-w c or :q.
+    ;; Drop it before opening a fresh one.
+    (xueliang-gblame--close)
     (let* ((source (current-buffer))
            (file (file-truename buffer-file-name))
            (root (locate-dominating-file file ".git")))
@@ -1144,11 +1151,9 @@ shows the commit at point, `g' refreshes, `q' closes the window."
           (add-hook 'after-save-hook #'xueliang-gblame--refresh nil t)
           (add-hook 'kill-buffer-hook #'xueliang-gblame--close nil t))
         (display-buffer blame
-                        '((display-buffer-in-side-window)
-                          (side . left)
-                          (slot . 2)
-                          (window-width . 44)
-                          (window-parameters . ((no-other-window . t)))))
+                        '((display-buffer-in-direction)
+                          (direction . left)
+                          (window-width . 44)))
         (with-current-buffer source
           (xueliang-gblame--sync (get-buffer-window source t)))))))
 

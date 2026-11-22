@@ -975,6 +975,7 @@ The other TAB command would insert two spaces, so it delegates to
     (unwind-protect
         (progn
           (switch-to-buffer buf)
+          (delete-other-windows)
           (xueliang-gblame)
           (should (buffer-live-p xueliang-gblame--buffer))
           (should (get-buffer-window xueliang-gblame--buffer))
@@ -1036,6 +1037,18 @@ The other TAB command would insert two spaces, so it delegates to
                             (file-name-nondirectory (symbol-file cmd 'defun))))))
           (should (eq (cdr (assoc "Gwrite" evil-ex-commands)) 'Gwrite))
           (should (eq (cdr (assoc "Gcommit" evil-ex-commands)) 'Gcommit))
+          ;; The blame window is an ordinary split, not an Emacs side window,
+          ;; and it is not hidden from `other-window' (C-w C-w).
+          (let ((window (get-buffer-window xueliang-gblame--buffer t)))
+            (should-not (window-parameter window 'window-side))
+            (should-not (window-parameter window 'no-other-window))
+            (should (memq window (window-list))))
+          ;; :only (delete-other-windows) closes it; SPC g b opens it again.
+          (select-window (get-buffer-window buf t))
+          (delete-other-windows)
+          (should-not (get-buffer-window xueliang-gblame--buffer t))
+          (xueliang-gblame)
+          (should (get-buffer-window xueliang-gblame--buffer t))
           ;; Toggling closes the window and removes the source hooks.
           (xueliang-gblame)
           (should-not (buffer-live-p xueliang-gblame--buffer))
