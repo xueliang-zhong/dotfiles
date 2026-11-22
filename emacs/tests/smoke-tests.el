@@ -302,9 +302,9 @@ allowed."
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
         (setq keys-line (car entry)))
-      (when (string-match-p "git-status\\.el" (cdr entry))
+      (when (string-match-p "require 'xl-git-status" (cdr entry))
         (setq status-line (car entry)))
-      (when (string-match-p "git-commands\\.el" (cdr entry))
+      (when (string-match-p "require 'xl-git-commands" (cdr entry))
         (setq commands-line (car entry)))
       (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
@@ -2002,36 +2002,6 @@ the exit status."
   (should (eq (indirect-function 'xueliang-what-face) (indirect-function 'describe-face)))
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
-
-;;; ============================================================
-;;; Startup trace (white-screen diagnosis)
-;;; ============================================================
-
-(ert-deftest xl-startup-trace-writes-phases-outside-batch ()
-  "`xl-startup-mark' appends timed phases in a real start, nothing in batch."
-  (xl-test-with-temp-dir dir
-    (let ((xl-startup-log (expand-file-name "startup.log" dir)))
-      ;; Batch runs (tests, just recipes) must not touch the GUI's trace.
-      (xl-startup-mark "batch phase")
-      (should-not (file-exists-p xl-startup-log))
-      (let ((noninteractive nil))
-        (xl-startup-mark "phase one")
-        (xl-startup-mark "phase two"))
-      (let ((lines (split-string (xl-test--read-file xl-startup-log) "\n" t)))
-        (should (= (length lines) 2))
-        (should (string-match-p "\\`[ 0-9.]+s  phase one\\'" (nth 0 lines)))
-        (should (string-match-p "phase two\\'" (nth 1 lines)))))))
-
-(ert-deftest xl-startup-trace-marks-every-phase-in-init ()
-  "init.el marks each slow phase, including the network package install."
-  (let ((init (xl-test--read-file (expand-file-name "emacs/init.el" xl-dotfiles))))
-    (dolist (phase '("activating packages" "installing missing packages"
-                     "Crafted modules" "spacemacs-keys.el" "xl-git-status.el"
-                     "xl-git-commands.el" "xueliang.el" "init: done"))
-      (should (string-search phase init))))
-  (should (fboundp 'xueliang-startup-mark))
-  ;; Outside a real start, C-g stays a plain quit.
-  (should-not debug-on-quit))
 
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

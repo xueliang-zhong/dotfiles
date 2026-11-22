@@ -4,12 +4,11 @@
 
 一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-git-status`、`xl-spinner`），同时是作者 Xueliang 的缩写；配置本身放在 dotfiles 的 `emacs/` 目录里。
 
-## 三条可验证的承诺
+## 两条可验证的承诺
 
 | 承诺 | 怎么验证 |
 | --- | --- |
 | 个人层是薄的 | `init.el`、`early-init.el`、`spacemacs-keys.el`、`xueliang.el` 合计约 1200 行 |
-| 启动耗时有数 | 每次 GUI 启动把各阶段耗时写进 `startup.log`（见下文“启动耗时”） |
 | Git 不阻塞 UI | 读（status/diff/log、blame、commit 视图）与写（stage/unstage/discard/commit）全部走 `make-process`；测试在命令返回的瞬间断言 loader 已在、内容未到 |
 
 还有一处异步不是我们做的：`list-packages` 的归档下载在 Emacs 31 里本来就是异步的（`package-menu-async` 默认为 t）。我们只把它 mode line 里静态的 `:Loading` 换成动画，见 `lisp/xl-package-menu.el`。重写它只会比上游更差。
@@ -77,7 +76,6 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 启动时关掉 GC，启动完成后恢复到 128 MB。
 - 关掉菜单栏、工具栏、滚动条。
 - 包只用 bytecode：关闭 JIT 原生编译和装包时的原生编译。Emacs 自带的核心 Lisp 仍是 native 的；advice C 原语需要的 trampoline 会在缓存为空时在主线程同步编译一次（第一次启动可能多几秒白屏）。`just emacs-trampolines-cache-setup` 在 batch 里预先把它们建好，`just emacs-mac-setup` 会自动执行它。
-- 每次 GUI 启动把各阶段耗时写进 `~/.emacs-profiles/crafted/startup.log`（上一次的保留为 `startup.log.1`），白屏时看最后一行就知道卡在哪；启动期间按 C-g 会弹出 Backtrace。
 - 包目录按 Emacs 版本分开（`elpa-31.1`），编译产物不会跨版本混用。
 - 关闭 Crafted 每天启动时的包列表刷新检查，改为手动刷新。
 - 抑制 Emacs 31 对没有 `lexical-binding` 声明的第三方文件的警告。
@@ -235,7 +233,7 @@ bash emacs/install/emacs-setup.sh check
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 107 个 ERT 测试在配置完整加载后运行，覆盖：
+`emacs/tests/smoke-tests.el` 里的 105 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |

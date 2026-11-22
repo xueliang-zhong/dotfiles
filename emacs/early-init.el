@@ -7,34 +7,6 @@
 (setq crafted-init-auto-save-customized nil
       crafted-init-auto-save-selected-packages nil)
 
-;; Startup trace.  A white frame at startup means init is stuck before the
-;; theme loads, and the hang is rare and hard to reproduce.  Each phase of
-;; init appends one line to startup.log; after a white screen, the last line
-;; shows where init stopped (startup.log.1 keeps the start before).  GUI and
-;; terminal starts only: batch runs (tests, just recipes) leave it alone.
-(defvar xl-startup-time (current-time) "When this Emacs began early-init.")
-(defvar xl-startup-log (expand-file-name "startup.log" user-emacs-directory)
-  "File that records how far each phase of startup got.")
-
-(defun xl-startup-mark (phase)
-  "Append PHASE, with seconds since early-init, to `xl-startup-log'."
-  (unless noninteractive
-    (let ((inhibit-message t) (message-log-max nil))
-      (write-region (format "%6.2fs  %s\n"
-                            (float-time (time-subtract nil xl-startup-time)) phase)
-                    nil xl-startup-log t 'silent))))
-
-(unless noninteractive
-  (when (file-exists-p xl-startup-log)
-    (rename-file xl-startup-log (concat xl-startup-log ".1") t))
-  (xl-startup-mark (format "early-init (Emacs %s, pid %d)" emacs-version (emacs-pid)))
-  ;; C-g while the frame is still white opens a backtrace of where init is
-  ;; stuck; turned off again once startup is done.
-  (setq debug-on-quit t)
-  (add-hook 'emacs-startup-hook
-            (lambda () (setq debug-on-quit nil) (xl-startup-mark "startup done"))
-            90))
-
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook

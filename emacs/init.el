@@ -32,13 +32,11 @@
 (dolist (pkg xl-packages) (add-to-list 'package-selected-packages pkg))
 
 ;; Activate installed packages: load-path only, no archive reads
-(xl-startup-mark "init: activating packages")
 (package-activate-all)
 
 ;; Read archives and install only when something on the list is missing.
 ;; This downloads over the network and checks signatures with gpg, all before
-;; the first frame is painted: the trace names the packages, so a white screen
-;; caused by a slow or stuck install shows up in startup.log.
+;; the first frame is painted, but it only runs when a package is missing.
 (require 'seq)
 
 (defun xl-install-missing-packages ()
@@ -49,11 +47,8 @@ even though the archive offers it: transient asked for compat 31.1 on a
 machine whose cached index predated it.  So refresh whenever this path runs;
 that is only when a package is actually missing."
   (when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
-    (xl-startup-mark (format "init: installing missing packages %S" missing))
     (package-refresh-contents)
-    (xl-startup-mark "init: package archives refreshed")
     (package-install-selected-packages :noconfirm)
-    (xl-startup-mark "init: packages installed")
     (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
       (error "Still missing after refreshing the archives: %S (try `M-x package-refresh-contents')"
              still))))
@@ -67,7 +62,6 @@ that is only when a package is actually missing."
 ;; so both leaders work everywhere.  Must be set before the evil module.
 (setq evil-collection-key-blacklist '("SPC" ","))
 
-(xl-startup-mark "init: Crafted modules")
 (require 'crafted-defaults-config)   ; sane built-in defaults
 (require 'crafted-completion-config) ; vertico, consult, corfu, cape
 (require 'crafted-evil-config)       ; evil + evil-collection
@@ -94,20 +88,14 @@ that is only when a package is actually missing."
 ;; ============================================================
 ;; spacemacs-keys.el: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
-(xl-startup-mark "init: spacemacs-keys.el")
 (load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
 ;; lisp/: the packages that also work without this config, so `require'
 ;; them the way a user installing them from an archive would.
 (add-to-list 'load-path (expand-file-name "emacs/lisp" xl-dotfiles))
-(xl-startup-mark "init: xl-git-status.el")
 (require 'xl-git-status)
-(xl-startup-mark "init: xl-git-commands.el")
 (require 'xl-git-commands)
-(xl-startup-mark "init: xl-package-menu.el")
 (require 'xl-package-menu)
-(xl-startup-mark "init: xueliang.el")
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
-(xl-startup-mark "init: xueliang.el loaded")
 
 ;; ============================================================
 ;; Keep the Package List Complete
@@ -124,4 +112,3 @@ that is only when a package is actually missing."
 
 (xl-refresh-selected-packages)
 (add-hook 'enable-theme-functions #'xl-refresh-selected-packages)
-(xl-startup-mark "init: done")
