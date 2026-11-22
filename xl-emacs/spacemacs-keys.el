@@ -27,7 +27,7 @@
 (defun xl-sk-copy-whole-buffer () "Copy the whole buffer." (interactive)
   (kill-new (buffer-string)) (message "Buffer copied"))
 (defun xl-sk-open-dotfile () "Open my personal Emacs config." (interactive)
-  (find-file (expand-file-name "xl-emacs/user/xueliang.el" xl-dotfiles)))
+  (find-file (expand-file-name "xl-emacs/xueliang.el" xl-dotfiles)))
 (defun xl-sk-relative-line-numbers () "Toggle relative line numbers." (interactive)
   (setq-local display-line-numbers
               (if (eq display-line-numbers 'relative) nil 'relative)))

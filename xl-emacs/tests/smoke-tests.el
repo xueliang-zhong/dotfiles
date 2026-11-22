@@ -153,7 +153,7 @@
   (should-not (memq 'corfu xl-packages))
   (should (equal (symbol-file 'xl-packages 'defvar)
                  (expand-file-name "xl-emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/user/xueliang.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "xl-emacs/xueliang.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-packages-are-selected-and-installed ()
@@ -226,7 +226,7 @@ installed after the theme load, so `package-autoremove' keeps it."
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("xl-emacs/user/xueliang.el" "xl-emacs/lisp/xl-git-status.el"
+  (dolist (file '("xl-emacs/xueliang.el" "xl-emacs/lisp/xl-git-status.el"
                   "xl-emacs/lisp/xl-git-commands.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
@@ -249,7 +249,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "git-commands\\.el" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "xl-emacs/user/xueliang\\.el" (cdr entry))
+      (when (string-match-p "xl-emacs/xueliang\\.el" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -1803,11 +1803,11 @@ which Crafted still puts on `embark-collect-mode-hook'."
         (should-not (file-exists-p file))))))
 
 (ert-deftest xl-open-dotfile-opens-the-personal-config ()
-  "`SPC f e d' opens xl-emacs/user/xueliang.el."
+  "`SPC f e d' opens xl-emacs/xueliang.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
       (xl-sk-open-dotfile))
-    (should (string-suffix-p "xl-emacs/user/xueliang.el" opened))))
+    (should (string-suffix-p "xl-emacs/xueliang.el" opened))))
 
 (ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
