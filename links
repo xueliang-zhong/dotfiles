@@ -6,7 +6,7 @@ OS=$(uname)
 # Set the file path based on the operating system
 if [ "$OS" = "Darwin" ]; then
   # macOS
-  FILE=~/Dropbox/xzhong-links.txt
+  FILE=~/workspace/xzhong-links.txt
 elif [[ "$OS" =~ "CYGWIN"|"MINGW"|"MSYS" ]]; then
   # Windows
   FILE=~/workspace/org-notes/xzhong-links.txt

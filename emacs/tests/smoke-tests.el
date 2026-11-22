@@ -91,6 +91,30 @@
                     (format "line %d\n" i))))))
     dir))
 
+(defun xl-test--git-repo-blame ()
+  "Create a repository where file.txt spans two commits plus one edit."
+  (let ((dir (make-temp-file "xl-test-git-blame-" t))
+        (git (executable-find "git")))
+    (unless git
+      (error "git is not installed"))
+    (cl-flet ((run (&rest args)
+                (apply #'call-process git nil nil nil
+                       "-C" dir "-c" "user.email=test@example.com"
+                       "-c" "user.name=Test" args)))
+      (run "init" "-q")
+      (with-temp-file (expand-file-name "file.txt" dir)
+        (insert "one\ntwo\nthree\nfour\n"))
+      (run "add" "file.txt")
+      (run "commit" "-qm" "initial")
+      ;; A second commit owns the last two lines.
+      (with-temp-file (expand-file-name "file.txt" dir)
+        (insert "one\ntwo\nTHREE\nFOUR\n"))
+      (run "commit" "-qam" "second")
+      ;; The first line is then edited but not committed.
+      (with-temp-file (expand-file-name "file.txt" dir)
+        (insert "ONE\ntwo\nTHREE\nFOUR\n")))
+    dir))
+
 (defun xl-test--wait-for-git-status (buffer)
   "Wait until the Git status BUFFER has finished rendering."
   (with-current-buffer buffer
@@ -959,8 +983,9 @@ The other TAB command would insert two spaces, so it delegates to
             (should buffer-read-only)
             ;; One line of blame for each of the 20 source lines.
             (should (= 20 (how-many "\n" (point-min) (point-max))))
+            ;; The first commit gets the first palette face.
             (should (eq (get-text-property (point-min) 'face)
-                        'xueliang-git-status-hash))
+                        (car xueliang-gblame-hash-faces)))
             (should (string-match-p
                      "\\`[0-9a-f]\\{8\\}"
                      (buffer-substring (point-min) (+ (point-min) 8))))
@@ -1016,6 +1041,37 @@ The other TAB command would insert two spaces, so it delegates to
           (should-not (buffer-live-p xueliang-gblame--buffer))
           (should-not (memq #'xueliang-gblame--sync post-command-hook))
           (should-not (memq #'xueliang-gblame--refresh after-save-hook)))
+      (let ((blame (get-buffer "*GBlame: file.txt*")))
+        (when (buffer-live-p blame) (kill-buffer blame)))
+      (when (buffer-live-p buf) (kill-buffer buf))
+      (delete-directory repo t))))
+
+(ert-deftest xl-gblame-colours-different-commits ()
+  "Neighbouring commits get different hash faces; one commit keeps one."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo-blame))
+         (file (expand-file-name "file.txt" repo))
+         (buf (find-file-noselect file)))
+    (unwind-protect
+        (progn
+          (switch-to-buffer buf)
+          (xueliang-gblame)
+          (with-current-buffer xueliang-gblame--buffer
+            (let (faces)
+              (goto-char (point-min))
+              (dotimes (_ 4)
+                (push (get-text-property (point) 'face) faces)
+                (forward-line 1))
+              (setq faces (nreverse faces))
+              ;; Line 1 is uncommitted, line 2 is the initial commit,
+              ;; lines 3 and 4 belong to the second commit.
+              (should (eq (nth 0 faces) 'xueliang-git-status-comment))
+              (should (memq (nth 1 faces) xueliang-gblame-hash-faces))
+              (should (memq (nth 2 faces) xueliang-gblame-hash-faces))
+              ;; Different adjacent commits use different colours...
+              (should-not (eq (nth 1 faces) (nth 2 faces)))
+              ;; ...while one commit keeps one colour.
+              (should (eq (nth 2 faces) (nth 3 faces))))))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
         (when (buffer-live-p blame) (kill-buffer blame)))
       (when (buffer-live-p buf) (kill-buffer buf))

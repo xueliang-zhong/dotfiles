@@ -874,10 +874,11 @@ it after confirmation, and `S'/`U' stage or unstage everything.
 ;; ============================================================
 ;; `xueliang-gblame' (SPC g b, or :Gblame) shows one line of blame for
 ;; every line of the current file in a narrow window on the left:
-;; abbreviated commit, author and date, coloured with the same faces as
-;; the git status buffer.  The window follows the source window while
-;; scrolling, highlights the line at point, refreshes after saving, and
-;; closes with `q'.  RET on a blame line shows that commit.
+;; abbreviated commit, author and date, aligned with the file.  Different
+;; commits get different hash colours, so the boundaries between commits
+;; stand out; uncommitted lines stay dim.  The window follows the source
+;; window while scrolling, highlights the line at point, refreshes after
+;; saving, and closes with `q'.  RET on a blame line shows that commit.
 (defface xueliang-gblame-current-line
   '((t :inherit highlight))
   "Face for the line at point in the GBlame window."
@@ -932,36 +933,66 @@ OUTPUT is the text of `git blame --line-porcelain'."
   "Return TEXT padded with spaces to WIDTH display columns."
   (concat text (make-string (max 0 (- width (string-width text))) ?\s)))
 
-(defun xueliang-gblame--format (record)
+(defvar xueliang-gblame-hash-faces
+  '(font-lock-keyword-face        ; blue
+    font-lock-warning-face        ; orange
+    font-lock-string-face         ; green
+    font-lock-function-name-face  ; magenta
+    font-lock-doc-face            ; brown
+    font-lock-constant-face       ; purple
+    font-lock-type-face)          ; pink
+  "Faces that colour different commits in a GBlame window.
+A commit gets the next face the first time it appears in the file, so
+commits next to each other are easy to tell apart.  The faces inherit
+from the active theme; set this to nil to colour every hash with
+`xueliang-git-status-hash'.")
+
+(defun xueliang-gblame--format (record face)
   "Return the display line for one blame RECORD.
-RECORD is (LINE HASH AUTHOR TIME) as returned by `xueliang-gblame--parse'."
+Its hash is coloured with FACE."
   (pcase-let ((`(,_ ,hash ,author ,time) record))
-    (let* ((uncommitted (string-match-p "\\`0+\\'" hash))
-           (short (substring hash 0 (min 8 (length hash))))
-           (author (truncate-string-to-width author 18 nil nil "…"))
-           (date (if time (format-time-string "%Y-%m-%d" time) "")))
-      (concat (propertize short 'face (if uncommitted
-                                          'xueliang-git-status-comment
-                                        'xueliang-git-status-hash))
+    (let ((short (substring hash 0 (min 8 (length hash))))
+          (author (truncate-string-to-width author 18 nil nil "…"))
+          (date (if time (format-time-string "%Y-%m-%d" time) "")))
+      (concat (propertize short 'face face)
               " "
               (xueliang-gblame--pad author 18)
               " "
               (propertize date 'face 'xueliang-git-status-comment)))))
 
 (defun xueliang-gblame--insert (records)
-  "Insert one line per source line for blame RECORDS."
+  "Insert one line per source line for blame RECORDS.
+Different commits get different hash colours, so the boundaries between
+commits are easy to see."
   (let ((table (make-hash-table :test #'eql))
+        (faces (vconcat xueliang-gblame-hash-faces))
+        (face-of (make-hash-table :test #'equal))
+        (next 0)
         (lines 0))
     (dolist (record records)
       (puthash (car record) record table)
       (setq lines (max lines (car record))))
     (dotimes (i lines)
       (let* ((record (gethash (1+ i) table))
+             (hash (and record (cadr record)))
+             (face (cond
+                    ((null record) nil)
+                    ;; An uncommitted line gets no colour of its own.
+                    ((string-match-p "\\`0+\\'" hash)
+                     'xueliang-git-status-comment)
+                    ((gethash hash face-of))
+                    ((zerop (length faces))
+                     'xueliang-git-status-hash)
+                    (t
+                     (let ((face (aref faces (mod next (length faces)))))
+                       (setq next (1+ next))
+                       (puthash hash face face-of)
+                       face))))
              (start (point)))
-        (insert (if record (xueliang-gblame--format record) "") "\n")
+        (insert (if record (xueliang-gblame--format record face) "") "\n")
         (when record
           (add-text-properties start (1- (point))
-                               (list 'xueliang-gblame-hash (cadr record))))))))
+                               (list 'xueliang-gblame-hash hash)))))))
 
 (defun xueliang-gblame--fill (buffer root file)
   "Fill BUFFER with the blame of FILE in ROOT."
