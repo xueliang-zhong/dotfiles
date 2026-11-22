@@ -859,9 +859,9 @@ it after confirmation, and `S'/`U' stage or unstage everything.
     "s" #'xueliang-git-status-stage
     "u" #'xueliang-git-status-unstage
     "X" #'xueliang-git-status-discard
+    "x" #'xueliang-git-status-discard
     "S" #'xueliang-git-status-stage-all
     "U" #'xueliang-git-status-unstage-all
-    "g" #'revert-buffer
     (kbd "RET") #'xueliang-git-status-visit
     (kbd "<return>") #'xueliang-git-status-visit))
 
