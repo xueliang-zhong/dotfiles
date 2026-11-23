@@ -26,6 +26,7 @@ emacs/
 ├── install/emacs-setup.sh 不依赖 just 的安装、检查和启动脚本
 ├── lisp/                  用 require 加载的模块
 │   ├── xl-key-bindings.el     Spacemacs 键位习惯（SPC 树等）
+│   ├── xl-async.el            异步进程：归属、槽位取消、串行队列
 │   ├── xl-spinner.el          一个 loader，三处复用
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
@@ -60,7 +61,7 @@ just emacs-try
 | 运行时 | Emacs 31.1、elpa 包目录 | 系统与包管理 |
 | 框架 | Crafted 模块 | 上游项目，版本由 `frameworks.lock` 锁定 |
 | 适配 | `early-init.el`、`init.el`、`lisp/xl-key-bindings.el` | 把 Crafted 接到我的习惯上 |
-| 包 | `lisp/xl-spinner.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git、共用 loader 与 Package Menu 动画，可脱离本配置单独安装 |
+| 包 | `lisp/xl-async.el`、`lisp/xl-spinner.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git、共用 loader 与 Package Menu 动画，可脱离本配置单独安装 |
 | 个人 | `xueliang.el` | 我的全部口味，只用原生 Emacs 和包的接口，不发布 |
 
 ## 文件说明
@@ -138,6 +139,23 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 - 一分钟还没收到完成信号就自行放弃，坏掉的 archive 不会让 loader 永远转
 
 异步是 Emacs 的，loader 是我们的。
+
+### `lisp/xl-async.el`（共用异步进程层）
+
+status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、sentinel、输出 buffer 和"这个回答是否已过期"的判断。现在都走 `xl-async-run`：
+
+```elisp
+(xl-async-run
+ :command '("git" "blame" "--line-porcelain" "--" "init.el")
+ :directory root
+ :slot 'blame                          ; 同一 buffer 同一槽位，新请求取消旧请求
+ :stdin patch                          ; 可选：写入标准输入（git apply 不再需要临时文件）
+ :on-done (lambda (output code) ...))  ; 在 owner buffer 里回调；被取消或 buffer 已关则不回调
+```
+
+关掉 owner buffer 会杀掉它的进程，切换 major mode 也不会丢失这份归属；`:owner nil` 用于不该随 buffer 结束的命令（`Gcommit` 的 hook）。`xl-async-enqueue` 是串行队列：一次一个 job，失败时尝试下一个命令，清空时回调一次，status 的 `s`/`u`/`X`/push 都用它。
+
+为什么不用社区的库：`async.el` 解决的是"在子 Emacs 里跑 Elisp"，不是管理外部命令；`deferred`、`promise`、`aio` 是通用的 promise 风格，会多一层依赖和抽象，而这里需要的只有归属、槽位取消和队列，`make-process` 之上一百多行就够了。数据仍是 git 的文本格式（`status -z`、`--line-porcelain`），解析留给调用方。
 
 ### `lisp/xl-spinner.el`（共用 loader）
 

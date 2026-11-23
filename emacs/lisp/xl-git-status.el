@@ -29,6 +29,7 @@
 (require 'seq)       ; seq-find, seq-remove
 (require 'diff-mode) ; diff-added, diff-removed, diff-context, diff-hunk-header
 (require 'xl-spinner) ; the shared loading indicator
+(require 'xl-async)   ; owned, cancellable git processes and the job queue
 
 (defgroup xl-git-status nil
   "Faces for `xl-git-status'."
@@ -87,18 +88,10 @@ indicated."
   "Face for diff hunk headings."
   :group 'xl-git-status)
 
-(defvar-local xl-git-status--processes nil
-  "Git processes still running for this status buffer.")
-
-(defvar-local xl-git-status--queue nil
-  "Pending git operations of this status buffer, oldest first.
-Each job is a plist: :root, :attempts (git argument lists, tried in
-order), :action (the message on success), :progress (the mode line
-label while it runs, defaulting to :action) and, for `git apply',
-:patch (the text to apply).")
-
-(defvar-local xl-git-status--queue-process nil
-  "The process running the head of this buffer's queue, if any.")
+;; The git processes belong to `xl-async': the four reads of a refresh run
+;; in the slots `load-log', `load-status', `load-unstaged' and
+;; `load-staged', the staging and push operations in the queue `queue',
+;; and `git show' in the commit buffer's slot `show'.
 
 (defvar-local xl-git-status--queue-timer nil
   "Timer that will show the queue loader if the operation is slow.")
@@ -190,9 +183,14 @@ it rather than on its heading).")
     (?? "untracked")
     (_ "changed")))
 
+(defun xl-git-status--head-line (status)
+  "Return the `## branch' line of porcelain STATUS output.
+The output is NUL-separated (`-z'); a newline also ends the line."
+  (car (split-string status "[\0\n]")))
+
 (defun xl-git-status--branch (status)
   "Return the branch name from porcelain STATUS output."
-  (let ((line (car (split-string status "\n"))))
+  (let ((line (xl-git-status--head-line status)))
     (cond
      ((string-match "\\`## No commits yet on \\(.+\\)\\'" line)
       (match-string 1 line))
@@ -206,7 +204,7 @@ it rather than on its heading).")
 
 (defun xl-git-status--upstream (status)
   "Return the upstream ref from porcelain STATUS output, or nil."
-  (let ((line (car (split-string status "\n"))))
+  (let ((line (xl-git-status--head-line status)))
     (when (string-match "\\`## [^ \n]+\\.\\.\\.\\([^ \n]+\\)" line)
       (match-string 1 line))))
 
@@ -218,24 +216,28 @@ it rather than on its heading).")
       "")))
 
 (defun xl-git-status--entries (status)
-  "Return (STAGED UNSTAGED UNTRACKED) file entries from STATUS output."
-  (let (staged unstaged untracked)
-    (dolist (line (cdr (split-string status "\n" t)))
-      (when (>= (length line) 3)
-        (let* ((x (aref line 0))
-               (y (aref line 1))
-               (raw (substring line 3))
-               ;; For a rename/copy the porcelain line is "old -> new";
-               ;; act on the new path.
-               (path (if (string-match " -> " raw)
-                         (substring raw (match-end 0))
-                       raw)))
-          (if (and (eq x ??) (eq y ??))
-              (push (cons "untracked" path) untracked)
-            (unless (memq x '(?\s ?! ??))
-              (push (cons (xl-git-status--label x) path) staged))
-            (unless (memq y '(?\s ?! ??))
-              (push (cons (xl-git-status--label y) path) unstaged))))))
+  "Return (STAGED UNSTAGED UNTRACKED) file entries from STATUS output.
+STATUS is `git status --porcelain=v1 --branch -z': NUL-separated
+records with raw paths.  Without `-z' git wraps a path with a space
+in quotes, which `git add' then takes literally."
+  (let ((records (cdr (split-string status "\0" t)))
+        staged unstaged untracked)
+    (while records
+      (let ((line (pop records)))
+        (when (>= (length line) 3)
+          (let ((x (aref line 0))
+                (y (aref line 1))
+                (path (substring line 3)))
+            ;; A rename or copy is followed by a record with the old path;
+            ;; act on the new one.
+            (when (or (memq x '(?R ?C)) (memq y '(?R ?C)))
+              (pop records))
+            (if (and (eq x ??) (eq y ??))
+                (push (cons "untracked" path) untracked)
+              (unless (memq x '(?\s ?! ??))
+                (push (cons (xl-git-status--label x) path) staged))
+              (unless (memq y '(?\s ?! ??))
+                (push (cons (xl-git-status--label y) path) unstaged)))))))
     (list (nreverse staged) (nreverse unstaged) (nreverse untracked))))
 
 (defun xl-git-status--label-face (label)
@@ -263,6 +265,45 @@ HUNKS is a list of line lists, each starting with its `@@' line."
        (t (push line header))))
     (when hunk (push (nreverse hunk) hunks))
     (list (mapconcat #'identity (nreverse header) "\n") (nreverse hunks))))
+
+(defun xl-git-status--diff-path (lines)
+  "Return the path a per-file diff, given as LINES, applies to, or nil.
+A rename or copy names it on its `rename to'/`copy to' line.
+Otherwise the `diff --git a/X b/X' line names the same X twice, which
+holds even when X has spaces; `diff --cc X' names it once."
+  (let ((first (car lines)))
+    (or (seq-some (lambda (line)
+                    (and (string-match "\\`\\(?:rename\\|copy\\) to \\(.*\\)\\'" line)
+                         (match-string 1 line)))
+                  (seq-take-while (lambda (line) (not (string-prefix-p "@@" line)))
+                                  (cdr lines)))
+        (and (string-prefix-p "diff --cc " first)
+             (substring first 10))
+        (let* ((rest (substring first (length "diff --git ")))
+               (n (/ (- (length rest) 5) 2))
+               (path (and (> n 0) (substring rest 2 (+ 2 n)))))
+          (and path
+               (string= rest (concat "a/" path " b/" path))
+               path)))))
+
+(defun xl-git-status--split-files (text)
+  "Split the diff TEXT of many files into a list of (PATH . DIFF).
+Each DIFF starts at its `diff --git' line, the same text `git diff --
+PATH' prints for that file alone.  A header whose path cannot be read
+\(a C-quoted name with control characters) is left out."
+  (let (chunks lines)
+    (dolist (line (split-string (string-trim-right text "\n+") "\n"))
+      (when (string-match-p "\\`diff --\\(?:git\\|cc\\) " line)
+        (when lines (push (nreverse lines) chunks))
+        (setq lines nil))
+      (when (or lines (string-match-p "\\`diff --\\(?:git\\|cc\\) " line))
+        (push line lines)))
+    (when lines (push (nreverse lines) chunks))
+    (delq nil
+          (mapcar (lambda (chunk)
+                    (when-let* ((path (xl-git-status--diff-path chunk)))
+                      (cons path (concat (mapconcat #'identity chunk "\n") "\n"))))
+                  (nreverse chunks)))))
 
 (defun xl-git-status--header-notes (header)
   "Return the informative lines of a diff HEADER.
@@ -547,19 +588,36 @@ OLD was."
 ;; Git processes
 ;; ============================================================
 
+(defun xl-git-status--git-command (args)
+  "Return the full git command line for ARGS."
+  (append '("git" "--no-pager" "-c" "core.quotepath=false") args))
+
 (defun xl-git-status--enqueue (job)
   "Queue JOB and start the queue if it is idle.
 JOB is a plist with :root, :attempts (git argument lists, tried in
 order), :action (the message on success), :progress (the mode line
 label while it runs, defaulting to :action) and, for `git apply',
-:patch (the text to apply).  One job runs at a time, so a rapid
-`s s s' stages in order instead of racing, and the status refreshes
-once when the queue drains.  A spinner in the mode line shows the
-queue only when it runs longer than `xl-git-status-queue-delay', so
-fast local operations do not flicker; it has no frame limit, because
-a push over the network may take longer than a local git command."
-  (setq xl-git-status--queue (append xl-git-status--queue (list job)))
-  (xl-git-status--queue-start)
+:patch (the text to apply, sent on standard input).  `xl-async' runs
+one job at a time, so a rapid `s s s' stages in order instead of
+racing, and the status refreshes once when the queue drains.  A
+spinner in the mode line shows the queue only when it runs longer
+than `xl-git-status-queue-delay', so fast local operations do not
+flicker; it has no frame limit, because a push over the network may
+take longer than a local git command."
+  (let ((action (plist-get job :action))
+        (progress (or (plist-get job :progress) (plist-get job :action))))
+    (xl-async-enqueue
+     'queue
+     (list :directory (plist-get job :root)
+           :attempts (mapcar #'xl-git-status--git-command
+                             (plist-get job :attempts))
+           :stdin (plist-get job :patch)
+           :on-start (lambda () (setq xl-git-status--queue-action progress))
+           :on-done (lambda (output code)
+                      (if (zerop code)
+                          (message "%s" action)
+                        (message "%s failed: %s" action (string-trim output)))))
+     #'xl-git-status--queue-drained))
   (unless (or (xl-spinner-running-p)
               (timerp xl-git-status--queue-timer))
     (setq xl-git-status--queue-timer
@@ -572,8 +630,7 @@ a push over the network may take longer than a local git command."
     (with-current-buffer buffer
       (setq xl-git-status--queue-timer nil)
       (when (and (not (xl-spinner-running-p))
-                 (or xl-git-status--queue
-                     (process-live-p xl-git-status--queue-process)))
+                 (xl-async-queue-busy-p 'queue))
         (xl-spinner-start #'xl-git-status--queue-indicator)))))
 
 (defvar-local xl-git-status--mode-line nil
@@ -590,121 +647,29 @@ split window truncates it."
           (format "%s %s%s "
                   text
                   (or xl-git-status--queue-action "git")
-                  (if xl-git-status--queue
-                      (format " +%d" (length xl-git-status--queue))
-                    ""))))
+                  (let ((waiting (xl-async-queue-length 'queue)))
+                    (if (> waiting 0) (format " +%d" waiting) "")))))
   (force-mode-line-update))
 
-(defun xl-git-status--queue-start ()
-  "Run the head of this buffer's queue unless one is already running.
-When the queue drains, refresh the status once."
-  (when (and (not (process-live-p xl-git-status--queue-process))
-             (buffer-live-p (current-buffer)))
-    (if (null xl-git-status--queue)
-        (progn
-          (when (timerp xl-git-status--queue-timer)
-            (cancel-timer xl-git-status--queue-timer)
-            (setq xl-git-status--queue-timer nil))
-          ;; Keep the loader running under a new label until the render
-          ;; replaces the old content, so the mode line never flickers.
-          (setq xl-git-status--queue-action "Refreshing")
-          (when (xl-spinner-running-p)
-            (xl-git-status--queue-indicator (car xl-spinner-frames)))
-          (xl-git-status))
-      (let ((job (pop xl-git-status--queue)))
-        (setq xl-git-status--queue-action
-              (or (plist-get job :progress) (plist-get job :action)))
-        (setq xl-git-status--queue-process
-              (xl-git-status--queue-exec job))))))
-
-(defun xl-git-status--queue-exec (job)
-  "Start one attempt of JOB and return its process.
-A failed attempt falls back to the next one in JOB's :attempts, so a
-repository without HEAD can unstage with `git rm --cached'."
-  (let* ((attempts (plist-get job :attempts))
-         (args (car attempts))
-         (patch (plist-get job :patch))
-         (file (and patch (make-temp-file "xl-git-status-patch" nil ".patch")))
-         (out (generate-new-buffer " *git-status-operation*"))
-         (root (plist-get job :root))
-         (buffer (current-buffer))
-         (default-directory root))
-    (when file (with-temp-file file (insert patch)))
-    (let ((remaining (cdr attempts)))
-      (make-process
-       :name "xl-git-status-operation"
-       :buffer out
-       :command (append '("git" "--no-pager" "-c" "core.quotepath=false")
-                        args (when file (list file)))
-       :connection-type 'pipe
-       :noquery t
-       :sentinel
-       (lambda (proc _event)
-         (unless (process-live-p proc)
-           (let ((code (process-exit-status proc))
-                 (output (if (buffer-live-p out)
-                             (with-current-buffer out (buffer-string))
-                           "")))
-             (when (buffer-live-p out) (kill-buffer out))
-             (when file (ignore-errors (delete-file file)))
-             (when (buffer-live-p buffer)
-               (with-current-buffer buffer
-                 (cond
-                  ((not (eq proc xl-git-status--queue-process))
-                   nil)                 ; a newer queue run owns the buffer
-                  ((and (not (zerop code)) remaining)
-                   (plist-put job :attempts remaining)
-                   (setq xl-git-status--queue-process
-                         (xl-git-status--queue-exec job)))
-                  (t
-                   (setq xl-git-status--queue-process nil)
-                   (if (zerop code)
-                       (message "%s" (plist-get job :action))
-                     (message "%s failed: %s"
-                              (plist-get job :action)
-                              (string-trim output)))
-                   (xl-git-status--queue-start))))))))))))
+(defun xl-git-status--queue-drained ()
+  "Refresh the status once the operation queue has run out of jobs."
+  (when (timerp xl-git-status--queue-timer)
+    (cancel-timer xl-git-status--queue-timer)
+    (setq xl-git-status--queue-timer nil))
+  ;; Keep the loader running under a new label until the render replaces
+  ;; the old content, so the mode line never flickers.
+  (setq xl-git-status--queue-action "Refreshing")
+  (when (xl-spinner-running-p)
+    (xl-git-status--queue-indicator (car xl-spinner-frames)))
+  (xl-git-status))
 
 (defun xl-git-status--queue-teardown ()
-  "Stop this status buffer's queue, its process and its loader."
+  "Stop this status buffer's loader timer; `xl-async' kills its processes."
   (when (timerp xl-git-status--queue-timer)
     (cancel-timer xl-git-status--queue-timer)
     (setq xl-git-status--queue-timer nil))
   (xl-spinner-stop)
-  (when (process-live-p xl-git-status--queue-process)
-    (delete-process xl-git-status--queue-process))
-  (setq xl-git-status--queue nil
-        xl-git-status--queue-process nil
-        xl-git-status--queue-action nil))
-
-(defun xl-git-status--git (buffer name root args callback)
-  "Run git ARGS in ROOT, then call CALLBACK with output and exit code.
-BUFFER owns the process; NAME names it."
-  (let* ((out (generate-new-buffer (format " *%s*" name)))
-         (proc
-          (let ((default-directory root))
-            (make-process
-             :name name
-             :buffer out
-             :command (append '("git" "--no-pager" "-c" "core.quotepath=false")
-                              args)
-             :connection-type 'pipe
-             :noquery t
-             :sentinel
-             (lambda (proc _event)
-               (if (not (eq (process-status proc) 'exit))
-                   (when (buffer-live-p out) (kill-buffer out))
-                 (let ((output (with-current-buffer out (buffer-string)))
-                       (code (process-exit-status proc)))
-                   (when (buffer-live-p out) (kill-buffer out))
-                   (when (buffer-live-p buffer)
-                     (with-current-buffer buffer
-                       (setq xl-git-status--processes
-                             (delq proc xl-git-status--processes)))
-                     (funcall callback output code)))))))))
-    (with-current-buffer buffer
-      (setq xl-git-status--processes
-            (cons proc xl-git-status--processes)))))
+  (setq xl-git-status--queue-action nil))
 
 (defun xl-git-status--git-string (root &rest args)
   "Return the trimmed output of git ARGS run in ROOT, or nil.
@@ -1034,10 +999,6 @@ added, removed, context and hunk-heading faces as the status hunks."
 ;; commit hash and a loader, and is filled when the diff arrives.  A new
 ;; request for the same buffer (another commit, or the same hash again)
 ;; discards the older answer.
-(defvar-local xl-git-status--show-process nil
-  "The `git show' process filling this commit buffer, if any.")
-(defvar-local xl-git-status--show-request 0
-  "Number of the latest request for this commit buffer.")
 (defvar-local xl-git-status--show-spinner nil
   "Overlay drawing the loader in this commit buffer.")
 
@@ -1050,65 +1011,38 @@ added, removed, context and hunk-heading faces as the status hunks."
       (setq xl-git-status--show-spinner nil))))
 
 (defun xl-git-status--show-teardown ()
-  "Stop this commit buffer's loader and process."
-  (xl-spinner-stop)
-  (when (process-live-p xl-git-status--show-process)
-    (delete-process xl-git-status--show-process))
-  (setq xl-git-status--show-process nil))
+  "Stop this commit buffer's loader; `xl-async' kills its process."
+  (xl-spinner-stop))
 
-(defun xl-git-status--show-fetch (hash request root)
+(defun xl-git-status--show-fetch (hash root)
   "Fill this commit buffer with `git show' HASH, run in ROOT.
-REQUEST identifies this fetch; a later one makes its answer irrelevant."
-  (let ((buffer (current-buffer))
-        (out (generate-new-buffer " *git-show*"))
-        (default-directory root))
-    (setq xl-git-status--show-process
-          (make-process
-           :name "xl-git-show"
-           :buffer out
-           :command (list "git" "--no-pager" "show" "--no-color" hash)
-           :connection-type 'pipe
-           :noquery t
-           :sentinel
-           (lambda (proc _event)
-             (unless (process-live-p proc)
-               (let* ((out (process-buffer proc))
-                      (text (if (buffer-live-p out)
-                                (with-current-buffer out (buffer-string))
-                              ""))
-                      (code (process-exit-status proc)))
-                 (when (buffer-live-p out) (kill-buffer out))
-                 (when (buffer-live-p buffer)
-                   (with-current-buffer buffer
-                     (when (and (eq proc xl-git-status--show-process)
-                                (= request xl-git-status--show-request))
-                       (setq xl-git-status--show-process nil)
-                       (xl-spinner-stop)
-                       (let ((inhibit-read-only t))
-                         (erase-buffer)
-                         (if (zerop code)
-                             (xl-git-status--insert-show text)
-                           (insert (propertize "git show failed: " 'face 'error)
-                                   (string-trim text) "\n")))
-                       (goto-char (point-min))
-                       (dolist (window (get-buffer-window-list buffer nil t))
-                         (set-window-point window (point-min)))))))))))))
+The run takes the buffer's `show' slot, so a newer request cancels it."
+  (xl-async-run
+   :name "xl-git-show"
+   :command (list "git" "--no-pager" "show" "--no-color" hash)
+   :directory root
+   :slot 'show
+   :on-done (lambda (text code)
+              (xl-spinner-stop)
+              (let ((inhibit-read-only t))
+                (erase-buffer)
+                (if (zerop code)
+                    (xl-git-status--insert-show text)
+                  (insert (propertize "git show failed: " 'face 'error)
+                          (string-trim text) "\n")))
+              (goto-char (point-min))
+              (dolist (window (get-buffer-window-list (current-buffer) nil t))
+                (set-window-point window (point-min))))))
 
 (defun xl-git-status--show-commit (hash)
   "Show commit HASH in a read-only buffer, with the status buffer's faces.
 The buffer opens at once and fills when `git show' answers."
   (let* ((root default-directory)
-         (buffer (get-buffer-create (format "*git-show: %s*" hash)))
-         request)
+         (buffer (get-buffer-create (format "*git-show: %s*" hash))))
     (with-current-buffer buffer
-      (when (process-live-p xl-git-status--show-process)
-        (delete-process xl-git-status--show-process))
-      ;; `xl-git-show-mode' kills buffer-local variables, so it must run
-      ;; before the request counter and the process are set.
+      ;; The mode resets buffer-locals, but not `xl-async''s ownership:
+      ;; the fetch below still replaces an older one in the `show' slot.
       (xl-git-show-mode)
-      (setq xl-git-status--show-process nil
-            request (setq xl-git-status--show-request
-                          (1+ xl-git-status--show-request)))
       (let ((inhibit-read-only t))
         (erase-buffer)
         (insert (propertize "commit " 'face 'xl-git-status-heading)
@@ -1122,7 +1056,7 @@ The buffer opens at once and fills when `git show' answers."
                 "\n"))
       (xl-spinner-start #'xl-git-status--show-draw :limit 1200)
       (add-hook 'kill-buffer-hook #'xl-git-status--show-teardown nil t)
-      (xl-git-status--show-fetch hash request root)
+      (xl-git-status--show-fetch hash root)
       (goto-char (point-min)))
     (pop-to-buffer buffer)
     buffer))
@@ -1243,45 +1177,46 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
         (when first
           (message "Git status ready: %s" (buffer-name buffer)))))))
 
+(defun xl-git-status--diffs (unstaged staged)
+  "Return a table of \"STATUS:PATH\" to diff from two whole-repo diffs.
+UNSTAGED is `git diff' and STAGED `git diff --cached'."
+  (let ((diffs (make-hash-table :test #'equal)))
+    (dolist (part (list (cons "unstaged" unstaged) (cons "staged" staged)))
+      (dolist (file (xl-git-status--split-files (cdr part)))
+        (puthash (concat (car part) ":" (car file)) (cdr file) diffs)))
+    diffs))
+
 (defun xl-git-status--load (buffer root)
-  "Load the log, status and per-file diffs of ROOT into BUFFER."
-  (xl-git-status--git
-   buffer "git-status-log" root
-   '("log" "--oneline" "--decorate" "--no-color" "-n" "10")
-   (lambda (log log-code)
-     (xl-git-status--git
-      buffer "git-status-status" root
-      '("status" "--porcelain=v1" "--branch")
-      (lambda (status status-code)
-        (let* ((entries (xl-git-status--entries status))
-               (unstaged (mapcar #'cdr (nth 1 entries)))
-               (staged (mapcar #'cdr (nth 0 entries)))
-               (diffs (make-hash-table :test #'equal))
-               (pending (+ (length unstaged) (length staged))))
-          (if (zerop pending)
-              (xl-git-status--render buffer log status
-                                           log-code status-code diffs)
-            (dolist (spec (append (mapcar (lambda (path) (cons 'unstaged path))
-                                          unstaged)
-                                  (mapcar (lambda (path) (cons 'staged path))
-                                          staged)))
-              (let ((status-kind (car spec))
-                    (path (cdr spec)))
-                (xl-git-status--git
-                 buffer (format "git-status-diff-%s-%s" status-kind path) root
-                 (append (if (eq status-kind 'staged)
-                             '("diff" "--cached")
-                           '("diff"))
-                         '("--no-color" "--no-ext-diff" "--")
-                         (list path))
-                 (lambda (text _code)
-                   (puthash (concat (symbol-name status-kind) ":" path)
-                            text diffs)
-                   (setq pending (1- pending))
-                   (when (zerop pending)
-                     (xl-git-status--render buffer log status
-                                                  log-code status-code
-                                                  diffs)))))))))))))
+  "Load the log, status and diffs of ROOT into BUFFER.
+Four git commands run in parallel, one per `xl-async' slot, and the
+buffer renders once all have answered.  A refresh starts them again in
+the same slots, which cancels the older runs, so a stale answer never
+reaches the buffer.  The diffs are one `git diff' for the work tree and
+one for the index, not one per file: a status with 50 changed files
+starts four processes instead of over fifty."
+  (let ((results (make-hash-table :test #'eq))
+        (pending 4))
+    (with-current-buffer buffer
+      (dolist (spec '((log "log" "--oneline" "--decorate" "--no-color" "-n" "10")
+                      (status "status" "--porcelain=v1" "--branch" "-z")
+                      (unstaged "diff" "--no-color" "--no-ext-diff")
+                      (staged "diff" "--cached" "--no-color" "--no-ext-diff")))
+        (let ((key (car spec)))
+          (xl-async-run
+           :name (format "git-status-%s" key)
+           :command (xl-git-status--git-command (cdr spec))
+           :directory root
+           :slot (intern (format "load-%s" key))
+           :on-done
+           (lambda (output code)
+             (puthash key (cons output code) results)
+             (when (zerop (setq pending (1- pending)))
+               (let ((log (gethash 'log results))
+                     (status (gethash 'status results)))
+                 (xl-git-status--render
+                  buffer (car log) (car status) (cdr log) (cdr status)
+                  (xl-git-status--diffs (car (gethash 'unstaged results))
+                                        (car (gethash 'staged results)))))))))))))
 
 ;; ============================================================
 ;; Mode and entry point
@@ -1353,10 +1288,6 @@ or shows the commit at point."
         (xl-git-status-mode))
       (add-hook 'kill-buffer-hook #'xl-git-status--queue-teardown nil t)
       (xl-git-status--save-point)
-      ;; A refresh replaces the previous run instead of racing it.
-      (dolist (proc xl-git-status--processes)
-        (when (process-live-p proc) (delete-process proc)))
-      (setq xl-git-status--processes nil)
       ;; Keep a rendered status on screen until its replacement is ready.
       ;; Only a buffer with nothing rendered yet shows the loading line.
       (unless xl-git-status--sections

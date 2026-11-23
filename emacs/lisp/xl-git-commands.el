@@ -19,6 +19,7 @@
 (require 'subr-x)     ; truncate-string-to-width
 (require 'xl-git-status) ; status buffer, its faces and `--show-commit'
 (require 'xl-spinner)    ; the loader
+(require 'xl-async)      ; owned, cancellable git processes
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
@@ -36,7 +37,9 @@
 ;; and an animated spinner at the left of the mode line says the data is on
 ;; its way.
 ;; A refresh keeps the old lines visible until the new ones arrive, so
-;; saving never makes the blame window flicker.
+;; saving never makes the blame window flicker.  The process runs in the
+;; GBlame buffer's `blame' slot of `xl-async', so a newer request or a
+;; killed buffer throws an older answer away.
 (defface xl-gblame-current-line
   '((t :inherit highlight))
   "Face for the line at point in the GBlame window."
@@ -53,11 +56,6 @@
   "Source buffer of this GBlame buffer.")
 (defvar-local xl-gblame--highlight nil
   "Overlay marking the source line in this GBlame buffer.")
-
-(defvar-local xl-gblame--process nil
-  "The `git blame' process filling this GBlame buffer, if any.")
-(defvar-local xl-gblame--request 0
-  "Number of the latest blame request; older results are thrown away.")
 
 (defvar-local xl-gblame--mode-line nil
   "Loader or error text shown at the left of this GBlame buffer's mode line.")
@@ -128,9 +126,7 @@ placeholders remain for alignment."
 (defun xl-gblame--teardown ()
   "Stop the loader and the process of this GBlame buffer."
   (xl-gblame--stop-spinner)
-  (when (process-live-p xl-gblame--process)
-    (delete-process xl-gblame--process))
-  (setq xl-gblame--process nil))
+  (xl-async-cancel 'blame))
 
 (defun xl-gblame--parse (output)
   "Return blame records (LINE HASH AUTHOR TIME) parsed from OUTPUT.
@@ -224,50 +220,27 @@ commits are easy to see."
 The git process runs asynchronously: the buffer shows one placeholder
 line per source line and a loader until the output arrives."
   (with-current-buffer buffer
-    (setq xl-gblame--request (1+ xl-gblame--request))
-    (let ((id xl-gblame--request)
-          (out (generate-new-buffer " *git blame*")))
-      (xl-gblame--teardown)
-      (unless (> (buffer-size) 0)
-        (xl-gblame--placeholders
-         (if (buffer-live-p xl-gblame--source)
-             (with-current-buffer xl-gblame--source
-               (count-lines (point-min) (point-max)))
-           0)))
-      (xl-gblame--start-spinner)
-      (setq xl-gblame--process
-            (let ((default-directory root))
-              (make-process
-               :name "xl-gblame"
-               :buffer out
-               :command (append '("git" "--no-pager"
-                                  "-c" "core.quotepath=false"
-                                  "blame" "--line-porcelain" "--")
-                                (list (file-relative-name file root)))
-               :connection-type 'pipe
-               :noquery t
-               :sentinel
-               (lambda (proc _event)
-                 (unless (process-live-p proc)
-                   (let* ((out (process-buffer proc))
-                          (output (if (buffer-live-p out)
-                                      (with-current-buffer out (buffer-string))
-                                    ""))
-                          (code (process-exit-status proc)))
-                     (when (buffer-live-p out) (kill-buffer out))
-                     (when (buffer-live-p buffer)
-                       (with-current-buffer buffer
-                         ;; A newer request (or a closed window) wins.
-                         (when (and (eq proc xl-gblame--process)
-                                    (= id xl-gblame--request))
-                           (setq xl-gblame--process nil)
-                           (xl-gblame--stop-spinner)
-                           (if (zerop code)
-                               (progn
-                                 (xl-gblame--render
-                                  (xl-gblame--parse output))
-                                 (xl-gblame--resync))
-                             (xl-gblame--fail output))))))))))))))
+    (unless (> (buffer-size) 0)
+      (xl-gblame--placeholders
+       (if (buffer-live-p xl-gblame--source)
+           (with-current-buffer xl-gblame--source
+             (count-lines (point-min) (point-max)))
+         0)))
+    (xl-gblame--start-spinner)
+    (xl-async-run
+     :name "xl-gblame"
+     :command (append '("git" "--no-pager" "-c" "core.quotepath=false"
+                        "blame" "--line-porcelain" "--")
+                      (list (file-relative-name file root)))
+     :directory root
+     :slot 'blame
+     :on-done (lambda (output code)
+                (xl-gblame--stop-spinner)
+                (if (zerop code)
+                    (progn
+                      (xl-gblame--render (xl-gblame--parse output))
+                      (xl-gblame--resync))
+                  (xl-gblame--fail output))))))
 
 (defun xl-gblame--sync (&optional window _new-start)
   "Align the GBlame window with WINDOW and follow its point.
@@ -472,31 +445,22 @@ blocking.
   "Run git ARGS in the current file's folder in the background.
 Message ACTION on success, git's output on failure, and refresh the
 status buffer of the same repository.  A pre-commit hook that takes
-seconds no longer blocks Emacs."
+seconds no longer blocks Emacs.  The run is unowned: closing the file
+buffer must not kill a commit halfway through its hooks."
   (let* ((dir (xl-git-commands--file-directory))
          (root (or (locate-dominating-file dir ".git")
-                   (file-name-as-directory (expand-file-name dir))))
-         (out (generate-new-buffer " *git-command*"))
-         (default-directory root))
-    (make-process
+                   (file-name-as-directory (expand-file-name dir)))))
+    (xl-async-run
      :name "xl-git-command"
-     :buffer out
      :command (append '("git" "--no-pager" "-c" "core.quotepath=false") args)
-     :connection-type 'pipe
-     :noquery t
-     :sentinel
-     (lambda (proc _event)
-       (unless (process-live-p proc)
-         (let ((code (process-exit-status proc))
-               (output (if (buffer-live-p out)
-                           (with-current-buffer out (buffer-string))
-                         "")))
-           (when (buffer-live-p out) (kill-buffer out))
-           (if (zerop code)
-               (progn
-                 (message "%s" action)
-                 (xl-git-commands--refresh-status root))
-             (message "%s failed: %s" action (string-trim output)))))))))
+     :directory root
+     :owner nil
+     :on-done (lambda (output code)
+                (if (zerop code)
+                    (progn
+                      (message "%s" action)
+                      (xl-git-commands--refresh-status root))
+                  (message "%s failed: %s" action (string-trim output)))))))
 
 (defun Gwrite ()
   "Stage the current file, like vim-fugitive's :Gwrite."

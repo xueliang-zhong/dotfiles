@@ -120,32 +120,31 @@
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
-                      (buffer-local-value 'xl-git-status--queue buffer)
-                      (buffer-local-value 'xl-git-status--queue-process buffer)
-                      (buffer-local-value 'xl-git-status--processes buffer))
+                      (xl-async-queue-busy-p 'queue buffer)
+                      (xl-async-busy-p nil buffer))
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
     (should buffer-read-only)
-    (should-not (buffer-local-value 'xl-git-status--queue buffer))
-    (should-not (buffer-local-value 'xl-git-status--queue-process buffer))))
+    (should-not (xl-async-queue-busy-p 'queue buffer))
+    (should-not (xl-async-busy-p nil buffer))))
 
 (defun xl-test--wait-for-gblame (buffer)
   "Wait until the GBlame BUFFER has finished loading."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (buffer-local-value 'xl-gblame--process buffer)
+      (while (and (xl-async-busy-p 'blame buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (buffer-local-value 'xl-gblame--process buffer))))
+    (should-not (xl-async-busy-p 'blame buffer))))
 
 (defun xl-test--wait-for-git-show (buffer)
   "Wait until the commit BUFFER has finished loading."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (buffer-local-value 'xl-git-status--show-process buffer)
+      (while (and (xl-async-busy-p 'show buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (buffer-local-value 'xl-git-status--show-process buffer))))
+    (should-not (xl-async-busy-p 'show buffer))))
 
 ;;; ============================================================
 ;;; Profile and file structure
@@ -300,6 +299,118 @@ one made transient's dependency compat 31.1 look unavailable."
       (xl-spinner-stop)
       (should-not (xl-spinner-running-p))
       (should (equal '(nil "[|]") drawn)))))
+
+;;; ============================================================
+;;; xl-async: owned processes, slots and queues
+;;; ============================================================
+
+(defun xl-test--async-wait (pred)
+  "Spin the event loop until PRED returns non-nil, at most 10 seconds."
+  (let ((end (+ (float-time) 10)))
+    (while (and (not (funcall pred)) (< (float-time) end))
+      (accept-process-output nil 0.05))
+    (should (funcall pred))))
+
+(ert-deftest xl-async-run-delivers-output-in-the-owner ()
+  "ON-DONE gets the output and exit code, with the owner buffer current."
+  (with-temp-buffer
+    (let ((owner (current-buffer)) result)
+      (xl-async-run :command '("sh" "-c" "printf hi; exit 3")
+                    :on-done (lambda (output code)
+                               (setq result (list output code (current-buffer)))))
+      (should (xl-async-busy-p))
+      (xl-test--async-wait (lambda () result))
+      (should (equal result (list "hi" 3 owner)))
+      (should-not (xl-async-busy-p)))))
+
+(ert-deftest xl-async-stdin-reaches-the-process ()
+  "STDIN is written and closed, so a reader such as `git apply' finishes."
+  (with-temp-buffer
+    (let (result)
+      (xl-async-run :command '("cat") :stdin "patch text\n"
+                    :on-done (lambda (output _code) (setq result output)))
+      (xl-test--async-wait (lambda () result))
+      (should (equal result "patch text\n")))))
+
+(ert-deftest xl-async-slot-cancels-the-older-run ()
+  "A newer run in the same slot kills the older one, whose ON-DONE never runs."
+  (with-temp-buffer
+    (let (calls)
+      (xl-async-run :command '("sleep" "5") :slot 'test
+                    :on-done (lambda (&rest _) (push 'old calls)))
+      (xl-async-run :command '("true") :slot 'test
+                    :on-done (lambda (&rest _) (push 'new calls)))
+      (xl-test--async-wait (lambda () (not (xl-async-busy-p 'test))))
+      ;; Give a stray sentinel of the killed run a chance to fire.
+      (accept-process-output nil 0.1)
+      (should (equal calls '(new))))))
+
+(ert-deftest xl-async-killing-the-owner-kills-its-processes ()
+  "A killed owner takes its processes with it, even after a mode change."
+  (let* ((buffer (generate-new-buffer " *xl-async-test*"))
+         (proc (with-current-buffer buffer
+                 (prog1 (xl-async-run :command '("sleep" "5") :slot 'test)
+                   ;; A major mode resets buffer-locals; ownership survives.
+                   (fundamental-mode)))))
+    (should (xl-async-busy-p 'test buffer))
+    (kill-buffer buffer)
+    (should-not (process-live-p proc))))
+
+(ert-deftest xl-async-unowned-run-outlives-buffers ()
+  "With :owner nil, ON-DONE runs and no buffer tracks the process."
+  (let (result)
+    (with-temp-buffer
+      (xl-async-run :command '("echo" "done") :owner nil
+                    :on-done (lambda (output _code) (setq result output)))
+      (should-not (xl-async-busy-p)))
+    (xl-test--async-wait (lambda () result))
+    (should (equal result "done\n"))))
+
+(ert-deftest xl-async-queue-runs-in-order-and-retries ()
+  "Jobs run one at a time; a failed attempt falls back; drain runs once."
+  (with-temp-buffer
+    (let (events)
+      (dolist (n '(1 2))
+        (xl-async-enqueue
+         'q (list :attempts (list '("false") (list "echo" (number-to-string n)))
+                  :on-start (lambda () (push (list 'start n) events))
+                  :on-done (lambda (output code)
+                             (push (list 'done (string-trim output) code) events)))
+         (lambda () (push 'drained events))))
+      (should (= 1 (xl-async-queue-length 'q)))
+      (should (xl-async-queue-busy-p 'q))
+      (xl-test--async-wait (lambda () (memq 'drained events)))
+      (should (equal (nreverse events)
+                     '((start 1) (done "1" 0) (start 2) (done "2" 0) drained)))
+      (should-not (xl-async-queue-busy-p 'q)))))
+
+(ert-deftest xl-git-status-parses-nul-separated-status ()
+  "`-z' status gives raw paths: spaces stay unquoted, renames use the new path."
+  (let* ((status (concat "## main...origin/main [ahead 1]\0"
+                         " M a b.txt\0"
+                         "R  new name\0plain\0"
+                         "?? ü.txt\0"))
+         (entries (xl-git-status--entries status)))
+    (should (equal (xl-git-status--branch status) "main"))
+    (should (equal (xl-git-status--upstream status) "origin/main"))
+    (should (equal entries '((("renamed" . "new name"))
+                             (("modified" . "a b.txt"))
+                             (("untracked" . "ü.txt")))))))
+
+(ert-deftest xl-git-status-splits-a-whole-repo-diff ()
+  "One `git diff' splits into the per-file diffs the sections show."
+  (let* ((text (concat "diff --git a/a b.txt b/a b.txt\n"
+                       "index 1..2 100644\n--- a/a b.txt\t\n+++ b/a b.txt\t\n"
+                       "@@ -1 +1,2 @@\n a\n+b\n"
+                       "diff --git a/plain b/new name\n"
+                       "similarity index 100%\nrename from plain\nrename to new name\n"
+                       "diff --git a/img.png b/img.png\n"
+                       "Binary files a/img.png and b/img.png differ\n"))
+         (files (xl-git-status--split-files text)))
+    (should (equal (mapcar #'car files) '("a b.txt" "new name" "img.png")))
+    (should (string-prefix-p "diff --git a/a b.txt" (cdr (nth 0 files))))
+    (should (string-suffix-p "+b\n" (cdr (nth 0 files))))
+    (should (string-match-p "rename to new name\n\\'" (cdr (nth 1 files))))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
@@ -788,8 +899,7 @@ The other TAB command would insert two spaces, so it delegates to
                     (setq xl-git-status--queue-timer nil))
                   (xl-git-status--queue-spinner buffer)
                   (let ((end (+ (float-time) 10)))
-                    (while (and (or xl-git-status--queue
-                                    xl-git-status--queue-process)
+                    (while (and (xl-async-queue-busy-p 'queue)
                                 (< (float-time) end))
                       (accept-process-output nil 0.05)))
                   (should (xl-spinner-running-p))
@@ -960,7 +1070,7 @@ The loader is visible while the queue runs."
               (xl-git-status-stage)
               ;; The command returned with git still running: no blocking,
               ;; and no loader yet, because fast operations must not flicker.
-              (should xl-git-status--queue-process)
+              (should (xl-async-busy-p 'queue))
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
               (should-not (xl-spinner-running-p))
@@ -1379,6 +1489,46 @@ The loader is visible while the queue runs."
               ;; Staging a hunk touches the index, not the working tree.
               (should (string-match-p "changed 1\\b" worktree))
               (should (string-match-p "changed 18" worktree)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-stages-a-path-with-a-space ()
+  "A path with a space shows its diff and stages.
+Porcelain without `-z' quoted it, and `git add' took the quotes literally."
+  (skip-unless (executable-find "git"))
+  (let ((repo (make-temp-file "xl-test-git-space-" t))
+        (buffer nil))
+    (unwind-protect
+        (progn
+          (cl-flet ((run (&rest args)
+                      (apply #'call-process "git" nil nil nil "-C" repo
+                             "-c" "user.email=test@example.com"
+                             "-c" "user.name=Test" args)))
+            (run "init" "-q")
+            (with-temp-file (expand-file-name "a b.txt" repo) (insert "one\n"))
+            (run "add" ".")
+            (run "commit" "-qm" "initial")
+            (with-temp-file (expand-file-name "a b.txt" repo) (insert "two\n")))
+          (cl-letf (((symbol-function 'display-buffer)
+                     (lambda (b &rest _) (setq buffer b) b)))
+            (let ((default-directory (file-name-as-directory repo)))
+              (xl-git-status)
+              (xl-test--wait-for-git-status buffer)
+              (with-current-buffer buffer
+                (goto-char (point-min))
+                (should (search-forward "modified   a b.txt" nil t))
+                (beginning-of-line)
+                ;; The single whole-repo diff was split back onto the file.
+                (xl-git-status-toggle)
+                (should (string-match-p "^\\+two$" (buffer-string)))
+                (goto-char (point-min))
+                (search-forward "modified   a b.txt")
+                (beginning-of-line)
+                (xl-git-status-stage))
+              (xl-test--wait-for-git-status buffer)
+              (should (equal "a b.txt"
+                             (xl-test--git-output repo "diff" "--cached"
+                                                  "--name-only"))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
