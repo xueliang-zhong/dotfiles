@@ -231,7 +231,8 @@ were, found again by their entry IDs."
           (set-window-point win (point))))
       (set-buffer-modified-p nil)
       (setq xl-package-menu--listing-p nil)
-      (xl-spinner-mode-line-stop))))
+      (xl-spinner-mode-line-stop)
+      (package-menu--set-mode-line-format))))
 
 (defcustom xl-package-menu-archive-chunk 500
   "Archive entries merged into the package list between two redraws."
@@ -337,6 +338,81 @@ otherwise nothing would, so the read stays where it was."
 (advice-add 'package-read-all-archive-contents :around
             #'xl-package-menu--skip-archive-read-around)
 (advice-add 'list-packages :around #'xl-package-menu--list-packages-around)
+
+;; ============================================================
+;; After a refresh
+;; ============================================================
+;; package.el ends a refresh by printing the whole list at once (about
+;; 0.3 s), then builds the mode line by asking every row for its status,
+;; and each of those asks searches the table again (about 0.5 s).  The two
+;; functions below draw the list in chunks, and count the rows in one pass.
+
+(defun xl-package-menu--post-refresh ()
+  "Redraw the Package Menu after a refresh, as a chunked listing.
+Replaces `package-menu--post-refresh', which printed every row at once."
+  (remove-hook 'post-command-hook #'package-menu--post-refresh)
+  (when-let* ((buffer (get-buffer "*Packages*")))
+    (with-current-buffer buffer
+      (package-menu--populate-new-package-list)
+      ;; `tabulated-list-revert-hook' holds package.el's `package-menu--refresh',
+      ;; which computes every row's status on the main thread.  The chunked
+      ;; listing below does that work, so the hook is not run.
+      (setq xl-package-upgrades-count nil)
+      (package-menu--generate t t))))
+
+(defun xl-package-menu--set-mode-line-format ()
+  "Set the Package Menu's mode line from one pass over its rows.
+Replaces `package-menu--set-mode-line-format', which searched the table
+for every row's status, and the upgrades, on the main thread.  The number
+to upgrade comes from the child Emacs; until it answers, it shows `?'."
+  (when-let* ((buffer (get-buffer "*Packages*"))
+              ((buffer-live-p buffer)))
+    (with-current-buffer buffer
+      (xl-package-upgrades-ensure-count)
+      (let ((installed 0)
+            (new 0))
+        (dolist (entry tabulated-list-entries)
+          (let ((status (aref (cadr entry) 2)))
+            (cond
+             ((member status '("installed" "dependency" "unsigned"))
+              (setq installed (1+ installed)))
+             ((equal status "new")
+              (setq new (1+ new))))))
+        (let ((total-help "Total number of packages of all package archives")
+              (installed-help "Total number of packages installed")
+              (upgrade-help "Total number of packages to upgrade")
+              (new-help "Total number of packages added recently"))
+          (setq package-menu-mode-line-info
+                (list
+                 " ["
+                 (propertize "Total: " 'help-echo total-help)
+                 (propertize (number-to-string (length package-archive-contents))
+                             'help-echo total-help
+                             'face 'package-mode-line-total)
+                 " / "
+                 (propertize "Installed: " 'help-echo installed-help)
+                 (propertize (number-to-string installed)
+                             'help-echo installed-help
+                             'face 'package-mode-line-installed)
+                 " / "
+                 (propertize "To Upgrade: " 'help-echo upgrade-help)
+                 (propertize (if xl-package-upgrades-count
+                                 (number-to-string xl-package-upgrades-count)
+                               "?")
+                             'help-echo upgrade-help
+                             'face 'package-mode-line-to-upgrade)
+                 (when (> new 0)
+                   (concat
+                    " / "
+                    (propertize "New: " 'help-echo new-help)
+                    (propertize (number-to-string new)
+                                'help-echo new-help
+                                'face 'package-mode-line-new)))
+                 "] ")))))))
+
+(advice-add 'package-menu--post-refresh :override #'xl-package-menu--post-refresh)
+(advice-add 'package-menu--set-mode-line-format :override
+            #'xl-package-menu--set-mode-line-format)
 
 (defun xl-package-menu-setup ()
   "Put the animated loader in this Package Menu's mode line.

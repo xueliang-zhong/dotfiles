@@ -136,6 +136,8 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 打开 `list-packages` 时，原来的整个列表要在主线程上连续算完，约 0.7 秒界面完全不动。`lisp/xl-package-menu.el` 把它分块做：先分块读取 archive（`list-packages` 期间跳过 `package-initialize` 里那次同步读取），再分块计算每个包的状态，排序之后分块追加行，块与块之间让出主线程。刷新时新行接在旧行后面，全部完成后才删掉旧行，并按行的 id 恢复窗口顶部和光标所在的行，所以屏幕不会跟着翻动；中途开始新的列表时，已追加的半成品会被撤掉。同一份数据得到相同的行、文字和光标位置（测试比较过）。实测最长一次阻塞从约 0.72 秒降到约 0.07 秒，总耗时约多 0.17 秒。只有"显示全部包、不带关键字过滤"这一种情况走分块路径，其它情况仍是 package.el 的函数。
 
+刷新结束后的收尾也改了：package.el 的 `tabulated-list-revert-hook` 会同步重算全部包的状态（约 0.2 秒），`package-menu--post-refresh` 整表重打印（约 0.3 秒），mode line 逐行查询状态（约 0.5 秒）。现在收尾改为分块列表，mode line 一次遍历统计，"可升级"数量由子进程给出（回来之前显示 `?`）。下载完成后 package.el 自己的 archive 读取（约 0.15 到 0.25 秒）仍在主线程上。
+
 刷新结束后，package.el 会在回显区报告"可升级 N 个包"。这个搜索在主线程上第一次运行要约 0.25 秒，现在由 `lisp/xl-package-upgrades.el` 放到子 Emacs 里做：子进程自己合并 archive，只接收已安装包的版本，回答是包名列表，消息内容不变，只是晚一点出现。`U` 标记升级等用户主动的命令仍然是同步搜索，因为它们马上要用结果。子进程失败时回退到 package.el 原来的搜索。
 
 - `package-menu-mode-hook` 装上 `xl-spinner` 的 mode line 槽位（见下），`mode-line-process` 只留 transaction status

@@ -30,10 +30,36 @@
 (defvar xl-package-upgrades--process nil
   "The child Emacs counting upgrades, while one runs.")
 
+(defvar xl-package-upgrades-count nil
+  "How many packages can be upgraded, from the last child, or nil if unknown.
+A refresh sets it to nil, and the next count fills it in.")
+
 (defvar xl-package-upgrades--source
   (let ((lib (locate-library "xl-package-upgrades")))
     (and lib (concat (file-name-sans-extension lib) ".el")))
   "The source file the child Emacs loads to count the upgrades.")
+
+(defun xl-package-upgrades--set-count (count)
+  "Store COUNT and show it in the Package Menu's mode line, if one is open."
+  (setq xl-package-upgrades-count count)
+  (when-let* ((buffer (get-buffer "*Packages*")))
+    (with-current-buffer buffer
+      (package-menu--set-mode-line-format))))
+
+(defun xl-package-upgrades-ensure-count ()
+  "Count the upgrades in a child Emacs, unless known or on its way.
+The Package Menu's mode line calls this, so it never searches on the main
+thread."
+  (when (and (null xl-package-upgrades-count)
+             xl-package-upgrades--source
+             (not (process-live-p xl-package-upgrades--process)))
+    (xl-package-upgrades--spawn
+     (lambda (names)
+       (xl-package-upgrades--set-count
+        (if (eq names 'failed)
+            (length (package-menu--find-upgrades))
+          (length names)))))))
+
 
 ;; ============================================================
 ;; Child side
@@ -131,6 +157,7 @@ search on the main thread; it is the fallback when the child fails."
        (cond
         ((eq names 'failed) (funcall orig))
         (names
+         (xl-package-upgrades--set-count (length names))
          (message "Packages that can be upgraded: %d; type `%s' to mark for upgrading."
                   (length names)
                   (substitute-command-keys "\\[package-menu-mark-upgrades]"))))))))
