@@ -1,9 +1,21 @@
-;;; spacemacs-keys.el --- Spacemacs key habits on top of Crafted -*- lexical-binding: t; -*-
+;;; xl-key-bindings.el --- Spacemacs key habits on top of Crafted  -*- lexical-binding: t; -*-
+
+;; Author: Xueliang Zhong
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "30.1"))
+;; Keywords: convenience
+
+;;; Commentary:
 ;; Crafted has no leader-key system; this file recreates the Spacemacs
 ;; defaults my fingers use: the SPC tree, `M-m' in insert/emacs state, the
 ;; `,' / `SPC m' major-mode leader, `fd' escape, surround and window numbers.
 ;; Loaded by emacs/init.el before xueliang.el, so personal bindings
 ;; there win on conflicts (e.g. SPC SPC, SPC x, SPC g f).
+;;
+;; This is an adapter rather than a standalone package: it reads
+;; `xl-dotfiles' and calls commands defined in xueliang.el.
+
+;;; Code:
 
 (require 'seq)
 (autoload 'flymake-show-buffer-diagnostics "flymake" nil t) ; SPC e l before flymake loads
@@ -302,3 +314,6 @@
 (when (fboundp 'global-evil-surround-mode) (global-evil-surround-mode 1))
 (setq winum-auto-setup-mode-line t)
 (when (fboundp 'winum-mode) (winum-mode 1))
+
+(provide 'xl-key-bindings)
+;;; xl-key-bindings.el ends here

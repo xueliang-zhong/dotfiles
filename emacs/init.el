@@ -153,12 +153,12 @@ session."
 ;; ============================================================
 ;; My Layers - Spacemacs keys first, then my own config
 ;; ============================================================
-;; spacemacs-keys.el: SPC tree, M-m, `,' major-mode leader, fd, surround.
-;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
-(load (expand-file-name "emacs/spacemacs-keys.el" xl-dotfiles))
-;; lisp/: the packages that also work without this config, so `require'
-;; them the way a user installing them from an archive would.
+;; lisp/: modules loaded with `require'.  The ones with package headers
+;; also work when installed on their own.
 (add-to-list 'load-path (expand-file-name "emacs/lisp" xl-dotfiles))
+;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
+;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
+(require 'xl-key-bindings)
 (require 'xl-git-status)
 (require 'xl-git-commands)
 (require 'xl-package-menu)

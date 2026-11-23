@@ -736,7 +736,7 @@ disappearing with the shell command's temporary buffer."
 ;; ============================================================
 ;; Leader keys - my overrides on top of the Spacemacs defaults
 ;; ============================================================
-;; Only my own commands here; Spacemacs-position keys are in spacemacs-keys.el
+;; Only my own commands here; Spacemacs-position keys are in xl-key-bindings.el
 (defun xl-leader (&rest specs)
   "Bind KEY LABEL COMMAND triples from SPECS under the SPC leader."
   (while specs

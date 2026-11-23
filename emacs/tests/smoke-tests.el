@@ -322,7 +322,7 @@ allowed."
   (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
         keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
-      (when (string-match-p "spacemacs-keys\\.el" (cdr entry))
+      (when (string-match-p "require 'xl-key-bindings" (cdr entry))
         (setq keys-line (car entry)))
       (when (string-match-p "require 'xl-git-status" (cdr entry))
         (setq status-line (car entry)))
@@ -1671,7 +1671,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (eq (keymap-lookup xl-leader-map "g h") 'diff-hl-show-hunk)))
 
 ;;; ============================================================
-;;; Coverage: functions in xueliang.el and spacemacs-keys.el
+;;; Coverage: functions in xueliang.el and xl-key-bindings.el
 ;;; ============================================================
 
 (defun xl-test--capture-message (thunk)
@@ -1781,7 +1781,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
 ;;; ============================================================
 
 (ert-deftest xl-global-modes-are-on ()
-  "Persistence and housekeeping modes from `xueliang.el' and `spacemacs-keys.el'."
+  "Persistence and housekeeping modes from `xueliang.el' and `xl-key-bindings.el'."
   (should (bound-and-true-p savehist-mode))
   (should (bound-and-true-p recentf-mode))
   (should (bound-and-true-p save-place-mode))
