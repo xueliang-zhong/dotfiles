@@ -122,46 +122,52 @@ it rather than on its heading).")
 ;; ============================================================
 ;; Loading indicator
 ;; ============================================================
-;; Git runs asynchronously, so the buffer is briefly empty.  Show a small
-;; ASCII spinner instead, replaced by the status as soon as it is ready.
-;; The clock and the frames come from `xl-spinner'; the overlay below is
-;; only the place the frames are drawn.
-(defvar-local xl-git-status--spinner-overlay nil
-  "Overlay drawing the loading indicator in this status buffer.")
+;; Git runs asynchronously, so the buffer is briefly empty on its first
+;; load.  The loader is the one every buffer of this config uses: the
+;; `xl-spinner' slot at the left of the mode line, and, while the buffer is
+;; still empty, the same frames in the middle of the window, drawn through
+;; the slot's `:also' hook on the slot's clock.  The slot waits
+;; `xl-spinner-show-delay' first, so a status that is ready sooner shows
+;; no loader at all.
 
-(defun xl-git-status--draw-spinner (text)
-  "Show TEXT in this status buffer's loader; nil removes it."
-  (if (and text (overlayp xl-git-status--spinner-overlay))
-      (overlay-put xl-git-status--spinner-overlay 'display text)
-    (when (overlayp xl-git-status--spinner-overlay)
-      (delete-overlay xl-git-status--spinner-overlay)
-      (setq xl-git-status--spinner-overlay nil))))
+(defvar-local xl-git-status--blank nil
+  "Non-nil while this status buffer is empty, before its first render.")
+
+(defvar-local xl-git-status--center nil
+  "Overlay drawing the loader in the middle of an empty status window.")
+
+(defun xl-git-status--draw-center (frame)
+  "Draw FRAME in the middle of this status window while it is empty.
+nil, or a buffer that has rendered, removes it.  The buffer has no text
+yet, so the loader is the `before-string' of an overlay at its start,
+with newlines that bring it down to the middle row."
+  (if (not (and frame xl-git-status--blank))
+      (when (overlayp xl-git-status--center)
+        (delete-overlay xl-git-status--center)
+        (setq xl-git-status--center nil))
+    (when-let* ((window (get-buffer-window (current-buffer) t)))
+      (let* ((text (concat frame "  git status…"))
+             (pad (max 0 (/ (- (window-body-width window) (string-width text)) 2)))
+             (rows (max 0 (/ (window-body-height window) 2))))
+        (unless (overlayp xl-git-status--center)
+          (setq xl-git-status--center (make-overlay (point-min) (point-min))))
+        (overlay-put xl-git-status--center 'before-string
+                     (concat (make-string rows ?\n) (make-string pad ?\s) text))))))
 
 (defun xl-git-status--stop-spinner ()
   "Remove this status buffer's loaders once a render is on screen.
-The first-load loader lives in the body, which the render has just
-replaced.  The mode-line loader ends unless more operations are queued;
-`xl-spinner' keeps it for its minimum time, so it never flashes."
-  (when (overlayp xl-git-status--spinner-overlay)
-    (xl-spinner-stop))
+The loader in the middle goes at once.  The mode-line loader ends unless
+more operations are queued; `xl-spinner' keeps it for its minimum time,
+so it never flashes."
+  (setq xl-git-status--blank nil)
+  (xl-git-status--draw-center nil)
   (unless (xl-async-queue-busy-p 'queue)
     (xl-spinner-mode-line-stop)))
 
 (defun xl-git-status--start-spinner ()
-  "Show an animated loading line until the next render."
-  (xl-git-status--stop-spinner)
-  (let ((inhibit-read-only t))
-    (insert (propertize "Git status" 'face 'xl-git-status-heading)
-            "  ")
-    (let ((start (point)))
-      ;; The overlay's display string replaces these three spaces.
-      (insert "   ")
-      (setq xl-git-status--spinner-overlay (make-overlay start (point)))
-      (overlay-put xl-git-status--spinner-overlay
-                   'face 'xl-git-status-branch))
-    (insert "  " (propertize "Loading..." 'face 'xl-git-status-comment)
-            "\n\n"))
-  (xl-spinner-start #'xl-git-status--draw-spinner))
+  "Show the first-load loader, in the mode line and the window's middle."
+  (setq xl-git-status--blank t)
+  (xl-spinner-mode-line-start "git status" :also #'xl-git-status--draw-center))
 
 ;; ============================================================
 ;; Parsing

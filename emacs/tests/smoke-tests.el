@@ -1414,33 +1414,39 @@ The other TAB command would insert two spaces, so it delegates to
       (delete-directory repo t))))
 
 (ert-deftest xl-git-status-loading-spinner ()
-  "An ASCII spinner runs until the status has been rendered."
+  "The first load shows the loader in the mode line and in the middle.
+The buffer stays empty: the middle loader is an overlay's before-string.
+Both go when the status is rendered."
   (skip-unless (executable-find "git"))
-  (let ((repo (xl-test--git-repo))
-        (buffer nil))
+  (let* ((xl-spinner-show-delay 0)
+         (repo (xl-test--git-repo))
+         (name (format "*git-status: %s*"
+                       (file-name-nondirectory (directory-file-name repo))))
+         (buffer nil))
     (unwind-protect
-        (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
-          (let ((default-directory (file-name-as-directory repo)))
-            (xl-git-status)
-            (with-current-buffer buffer
-              (should (string-match-p "Git status" (buffer-string)))
-              (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should (xl-spinner-running-p))
-              (should (overlayp xl-git-status--spinner-overlay))
-              (should (equal (car (xl-spinner-default-frames))
-                             (overlay-get xl-git-status--spinner-overlay
-                                          'display)))
-              ;; The timer advances the frames.
+        (let ((default-directory (file-name-as-directory repo)))
+          (delete-other-windows)
+          (xl-git-status)
+          (setq buffer (get-buffer name))
+          (with-current-buffer buffer
+            (should xl-git-status--blank)
+            (should (= 0 (buffer-size)))
+            (should (string-match-p "git status" xl-spinner-mode-line))
+            ;; The window exists now; the next frame draws in its middle.
+            (xl-spinner-tick buffer)
+            (should (overlayp xl-git-status--center))
+            (let ((first (overlay-get xl-git-status--center 'before-string)))
+              (should (string-match-p "git status…" first))
               (xl-spinner-tick buffer)
-              (should (equal (cadr (xl-spinner-default-frames))
-                             (overlay-get xl-git-status--spinner-overlay
-                                          'display))))
-            (xl-test--wait-for-git-status buffer)
-            (with-current-buffer buffer
-              (should-not (string-match-p "Loading\\.\\.\\." (buffer-string)))
-              (should-not (xl-spinner-running-p))
-              (should-not (overlayp xl-git-status--spinner-overlay)))))
+              (should-not (equal first (overlay-get xl-git-status--center
+                                                    'before-string))))
+            (should (= 0 (buffer-size))))
+          (xl-test--wait-for-git-status buffer)
+          (with-current-buffer buffer
+            (should-not xl-git-status--blank)
+            (should-not xl-git-status--center)
+            (should (string-match-p "^Head:" (buffer-string))))
+          (xl-test--wait-for-slot buffer))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
