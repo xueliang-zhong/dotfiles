@@ -749,6 +749,11 @@ The other TAB command would insert two spaces, so it delegates to
                   ("RET" . xl-git-status-visit)))
     (should (eq (keymap-lookup xl-git-status-mode-map (car spec))
                 (cdr spec))))
+  (dolist (key '("P" "p"))
+    (should (eq (keymap-lookup xl-git-status-mode-map key)
+                xl-git-status-push-map)))
+  (should (eq (keymap-lookup xl-git-status-push-map "p")
+              #'xl-git-status-push))
   (require 'evil)
   (let ((normal (evil-get-auxiliary-keymap
                  xl-git-status-mode-map 'normal t)))
@@ -761,7 +766,9 @@ The other TAB command would insert two spaces, so it delegates to
                     ("S" . xl-git-status-stage-all)
                     ("U" . xl-git-status-unstage-all)
                     ("RET" . xl-git-status-visit)))
-      (should (eq (keymap-lookup normal (car spec)) (cdr spec))))))
+      (should (eq (keymap-lookup normal (car spec)) (cdr spec))))
+    (dolist (key '("P" "p"))
+      (should (eq (keymap-lookup normal key) xl-git-status-push-map)))))
 
 (ert-deftest xl-git-status-stages-and-unstages ()
   "`s' stages the file at point and `u' puts it back in the index."
@@ -832,6 +839,44 @@ The loader is visible while the queue runs."
                                  #'string<)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
+
+(ert-deftest xl-git-status-pushes ()
+  "`P p' pushes the current branch in the background, like Magit."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo))
+         (remote (make-temp-file "xl-test-remote-" t))
+         (branch (xl-test--git-output repo "rev-parse" "--abbrev-ref" "HEAD"))
+         (buffer nil))
+    (unwind-protect
+        (progn
+          (should (zerop (call-process "git" nil nil nil "-C" remote
+                                       "init" "--bare" "-q")))
+          (should (zerop (call-process "git" nil nil nil "-C" repo
+                                       "remote" "add" "origin" remote)))
+          (should (zerop (call-process "git" nil nil nil "-C" repo
+                                       "push" "-q" "-u" "origin" branch)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (cl-letf (((symbol-function 'display-buffer)
+                       (lambda (b &rest _) (setq buffer b) b)))
+              (xl-git-status)
+              (xl-test--wait-for-git-status buffer)
+              ;; A new commit is only on the local side until `P p'.
+              (with-temp-file (expand-file-name "file-0.txt" repo)
+                (insert "changed again\n"))
+              (should (zerop (call-process "git" nil nil nil "-C" repo
+                                           "-c" "user.email=test@example.com"
+                                           "-c" "user.name=Test"
+                                           "commit" "-qam" "second")))
+              (with-current-buffer buffer
+                (xl-git-status-push)
+                ;; The push runs in the queue, with its own mode line label.
+                (should (equal "Pushing" xl-git-status--queue-action))))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal (xl-test--git-output repo "rev-parse" branch)
+                           (xl-test--git-output remote "rev-parse" branch)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t)
+      (delete-directory remote t))))
 
 (ert-deftest xl-git-status-visits-files-and-commits ()
   "`RET' opens the file at point and shows the commit at point."

@@ -15,7 +15,8 @@
 ;; S-TAB toggles every file diff).  On a hunk, file or section line `s' stages and `u'
 ;; unstages it, `X' discards it after confirmation, and `RET' visits the
 ;; file at the hunk line or shows the commit at point in a buffer that
-;; uses the same faces.
+;; uses the same faces.  `P p' (and `p p') pushes the current branch,
+;; like Magit's `P p'.
 ;;
 ;; The vim-fugitive style G* commands (Gstatus, Gblame, Gwrite, Gcommit)
 ;; live in xl-git-commands.el, which loads after this file.
@@ -82,7 +83,8 @@
 (defvar-local xl-git-status--queue nil
   "Pending git operations of this status buffer, oldest first.
 Each job is a plist: :root, :attempts (git argument lists, tried in
-order), :action (the message on success) and, for `git apply',
+order), :action (the message on success), :progress (the mode line
+label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply).")
 
 (defvar-local xl-git-status--queue-process nil
@@ -472,7 +474,8 @@ When the queue drains, refresh the status once."
           (xl-spinner-stop)
           (xl-git-status))
       (let ((job (pop xl-git-status--queue)))
-        (setq xl-git-status--queue-action (plist-get job :action))
+        (setq xl-git-status--queue-action
+              (or (plist-get job :progress) (plist-get job :action)))
         (setq xl-git-status--queue-process
               (xl-git-status--queue-exec job))))))
 
@@ -699,6 +702,18 @@ The git work runs in the background; the status refreshes when it is done."
    (list :root default-directory
          :attempts (xl-git-status--unstage-attempts '("."))
          :action "Unstaged all changes")))
+
+(defun xl-git-status-push ()
+  "Push the current branch in the background, like Magit's `P p'.
+The push joins the operation queue, so the mode line shows a loader
+until git answers and the status refreshes once it is done.  A branch
+without an upstream fails with git's own hint."
+  (interactive)
+  (xl-git-status--enqueue
+   (list :root default-directory
+         :attempts '(("push"))
+         :action "Pushed"
+         :progress "Pushing")))
 
 (defun xl-git-status--show-line-face (line)
   "Return the face for one LINE of `git show' diff output."
@@ -993,6 +1008,10 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
 ;; Mode and entry point
 ;; ============================================================
 
+(defvar-keymap xl-git-status-push-map
+  :doc "Push commands for `xl-git-status-mode'."
+  "p" #'xl-git-status-push)
+
 (defvar-keymap xl-git-status-mode-map
   :doc "Keymap for `xl-git-status-mode'."
   :parent special-mode-map
@@ -1004,6 +1023,8 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
   "X" #'xl-git-status-discard
   "S" #'xl-git-status-stage-all
   "U" #'xl-git-status-unstage-all
+  "P" xl-git-status-push-map
+  "p" xl-git-status-push-map
   "RET" #'xl-git-status-visit
   "<return>" #'xl-git-status-visit)
 
@@ -1034,7 +1055,8 @@ buffer and `q' quits it.  TAB folds or unfolds the
 file or hunk at point, S-TAB toggles every file diff.  `s' stages
 the hunk, file or section at point, `u' unstages it, `X' discards
 it after confirmation, and `S'/`U' stage or unstage everything.
-`RET' opens the file at the hunk line, or shows the commit at point."
+`P p' (also `p p') pushes the current branch.  `RET' opens the file
+at the hunk line, or shows the commit at point."
   (interactive)
   (let* ((root (xl-git-status--root))
          (repo (and root (file-name-nondirectory (directory-file-name root))))
@@ -1065,7 +1087,7 @@ it after confirmation, and `S'/`U' stage or unstage everything.
     (display-buffer buffer)
     (xl-git-status--load buffer root)))
 
-;; Evil's normal state would otherwise take TAB, s, u, X, S, U and RET first.
+;; Evil's normal state would otherwise take TAB, s, u, X, S, U, p, P and RET first.
 (with-eval-after-load 'evil
   (evil-define-key 'normal xl-git-status-mode-map
     (kbd "TAB") #'xl-git-status-toggle
@@ -1076,6 +1098,8 @@ it after confirmation, and `S'/`U' stage or unstage everything.
     "x" #'xl-git-status-discard
     "S" #'xl-git-status-stage-all
     "U" #'xl-git-status-unstage-all
+    "P" xl-git-status-push-map
+    "p" xl-git-status-push-map
     (kbd "RET") #'xl-git-status-visit
     (kbd "<return>") #'xl-git-status-visit))
 
