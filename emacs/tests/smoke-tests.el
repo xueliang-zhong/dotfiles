@@ -517,6 +517,84 @@ one made transient's dependency compat 31.1 look unavailable."
     (should (string-suffix-p "+b\n" (cdr (nth 0 files))))
     (should (string-match-p "rename to new name\n\\'" (cdr (nth 1 files))))))
 
+;;; ============================================================
+;;; xl-package-upgrades: the upgrade count, computed in a child Emacs
+;;; ============================================================
+
+(defmacro xl-test-with-archive (&rest body)
+  "Run BODY with a temporary package dir holding one archive.
+The archive offers foo 2.0 and bar 1.0.  Installed: foo 1.0 and bar 1.0,
+so only foo can be upgraded."
+  (declare (indent 0))
+  `(let* ((dir (make-temp-file "xl-test-pkgs-" t))
+          (archive-dir (expand-file-name "archives/a" dir)))
+     (unwind-protect
+         (progn
+           (make-directory archive-dir t)
+           (with-temp-file (expand-file-name "archive-contents" archive-dir)
+             (prin1 '(1 (foo . [(2 0) nil "Foo" single nil])
+                        (bar . [(1 0) nil "Bar" single nil]))
+                    (current-buffer)))
+           (let ((package-user-dir dir)
+                 (package-archives '(("a" . "https://example.invalid/")))
+                 (package-archive-priorities nil)
+                 (package-pinned-packages nil)
+                 (package-archive-contents nil))
+             ,@body))
+       (delete-directory dir t))))
+
+(defun xl-test-installed ()
+  "Return foo 1.0 and bar 1.0 as installed packages."
+  (list (list 'foo (package-desc-create :name 'foo :version '(1 0)))
+        (list 'bar (package-desc-create :name 'bar :version '(1 0)))))
+
+(ert-deftest xl-package-upgrades-match-package-el ()
+  "The child's count is package.el's search: same names, same order."
+  (require 'package)
+  (xl-test-with-archive
+    (let ((package--initialized t)
+          (package-alist (xl-test-installed)))
+      (package-read-all-archive-contents)
+      (let ((expected (mapcar #'symbol-name (package--upgradeable-packages)))
+            (child (xl-package-upgrades-names
+                    (list :user-dir package-user-dir
+                          :archives package-archives
+                          :priorities package-archive-priorities
+                          :pinned package-pinned-packages
+                          :installed (xl-package-upgrades--installed)))))
+        (should (equal expected '("foo")))
+        (should (equal expected child))))))
+
+(ert-deftest xl-package-upgrades-parse-takes-the-last-line ()
+  "Messages before the answer are skipped; anything else is a failure."
+  (should (equal '("foo") (xl-package-upgrades--parse "Loading x...\n[\"foo\"]\n")))
+  (should (null (xl-package-upgrades--parse "Loading x...\n[]\n")))
+  (should (eq 'failed (xl-package-upgrades--parse "not json")))
+  (should (eq 'failed (xl-package-upgrades--parse "[1, 2]"))))
+
+(ert-deftest xl-package-upgrades-notify-says-the-count ()
+  "The message is package.el's, with the count from the child."
+  (let ((xl-package-upgrades--source "/nonexistent.el")
+        messages orig-called)
+    (cl-letf (((symbol-function 'xl-package-upgrades--spawn)
+               (lambda (on-done) (funcall on-done '("foo" "bar"))))
+              ((symbol-function 'message)
+               (lambda (fmt &rest args) (push (apply #'format fmt args) messages))))
+      (xl-package-upgrades--notify (lambda () (setq orig-called t)))
+      (should-not orig-called)
+      (should (equal messages
+                     (list (format "Packages that can be upgraded: 2; type `%s' to mark for upgrading."
+                                   (substitute-command-keys "\\[package-menu-mark-upgrades]"))))))))
+
+(ert-deftest xl-package-upgrades-fall-back-when-the-child-fails ()
+  "A failed child runs package.el's own search instead, so nothing is lost."
+  (let ((xl-package-upgrades--source "/nonexistent.el")
+        orig-called)
+    (cl-letf (((symbol-function 'xl-package-upgrades--spawn)
+               (lambda (on-done) (funcall on-done 'failed))))
+      (xl-package-upgrades--notify (lambda () (setq orig-called t))))
+    (should orig-called)))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).

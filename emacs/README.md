@@ -30,7 +30,8 @@ emacs/
 │   ├── xl-spinner.el          共用 loader：帧、mode line 槽位、不抖屏
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
-│   └── xl-package-menu.el     Package Menu 刷新时的 loader
+│   ├── xl-package-menu.el     Package Menu 刷新时的 loader
+│   └── xl-package-upgrades.el 可升级包数量，在子 Emacs 里算
 ├── xueliang.el            私有口味，不发布
 ├── tests/smoke-tests.el   ERT 测试
 └── frameworks.lock        Crafted 的仓库地址与提交号
@@ -132,6 +133,8 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 `list-packages` 在 Emacs 31 里本来就是异步的：`package-menu-async` 默认开着，`package-refresh-contents` 把下载记进 `package--downloads-in-progress`，菜单先显示缓存，下载完再由 `package--post-download-archives-hook` 刷新。所以这里没有"重写"任何东西——重写只会比上游更差。
 
 它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成和 Git buffer 一样的动画 loader。
+
+刷新结束后，package.el 会在回显区报告"可升级 N 个包"。这个搜索在主线程上第一次运行要约 0.25 秒，现在由 `lisp/xl-package-upgrades.el` 放到子 Emacs 里做：子进程自己合并 archive，只接收已安装包的版本，回答是包名列表，消息内容不变，只是晚一点出现。`U` 标记升级等用户主动的命令仍然是同步搜索，因为它们马上要用结果。子进程失败时回退到 package.el 原来的搜索。
 
 - `package-menu-mode-hook` 装上 `xl-spinner` 的 mode line 槽位（见下），`mode-line-process` 只留 transaction status
 - `package-refresh-contents-hook` 在刷新开始时启动 loader，标签是 `Loading archives`

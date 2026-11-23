@@ -20,6 +20,7 @@
 
 (require 'package)
 (require 'xl-spinner)
+(require 'xl-package-upgrades) ; the "can be upgraded" count, from a child Emacs
 
 (defun xl-package-menu--start ()
   "Start the loader in this Package Menu buffer.
