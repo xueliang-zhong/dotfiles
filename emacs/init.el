@@ -162,6 +162,7 @@ session."
 (require 'xl-git-status)
 (require 'xl-git-commands)
 (require 'xl-package-menu)
+(require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
 
 ;; ============================================================

@@ -166,6 +166,21 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 
 为什么不用社区的库：`async.el` 解决的是"在子 Emacs 里跑 Elisp"，不是管理外部命令；`deferred`、`promise`、`aio` 是通用的 promise 风格，会多一层依赖和抽象，而这里需要的只有归属、槽位取消和队列，`make-process` 之上一百多行就够了。数据仍是 git 的文本格式（`status -z`、`--line-porcelain`），解析留给调用方。
 
+### `lisp/xl-org-babel-async.el`（后台执行 shell 代码块）
+
+源码块加上 `:async yes` 就在后台运行，`C-c C-c` 立即返回。没有这个参数，块照常同步执行，结果和顺序都不变。`:session` 的块不能异步，会同步执行并给出提示。
+
+输出分两层，长度不影响编辑：
+
+- 运行中：每一块输出都进入 `*Org Babel Output: 文件:行号*`；块下面只显示最后 `xl-org-babel-live-lines`（默认 20）行。
+- 结束后：写入文件的是前 `xl-org-babel-result-lines`（默认 200）行，后面附一行说明，完整输出仍在输出 buffer 里。
+
+结果位置用 marker 记住，运行时在上方增删文字不会放错；块被删掉时，结果只留在输出 buffer。`C-c C-k` 取消光标所在的块（保留已经输出的内容）；同一个块再次运行时，取消仍在运行的那次。`:timeout 秒数` 超时后停止进程。
+
+块之间是并行的，不排队：彼此依赖的块需要自己按顺序执行。
+
+`lisp/xl-async.el` 为此新增了 `:on-output`（每次有输出就回调一次）和 `:timeout`（超时后杀掉进程，退出码为 124，和 coreutils `timeout` 一致）。
+
 ### `lisp/xl-spinner.el`（共用 loader）
 
 目标是既好看、又醒目，但不让屏幕动。分两层。

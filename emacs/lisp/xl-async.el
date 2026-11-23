@@ -48,9 +48,26 @@
   (xl-async-cancel))
 (put 'xl-async--kill-owned 'permanent-local-hook t)
 
+(defconst xl-async-timeout-code 124
+  "The exit code ON-DONE gets when a run was stopped by its :timeout.
+It is the code of coreutils `timeout', so callers can treat both alike.")
+
+(defun xl-async--exit-code (proc)
+  "Return the exit code of the finished PROC, or the timeout code."
+  (if (process-get proc 'xl-async-timed-out)
+      xl-async-timeout-code
+    (process-exit-status proc)))
+
+(defun xl-async--stop-timer (proc)
+  "Cancel PROC's timeout timer, if it has one."
+  (let ((timer (process-get proc 'xl-async-timer)))
+    (when (timerp timer) (cancel-timer timer))
+    (process-put proc 'xl-async-timer nil)))
+
 (defun xl-async--sentinel (proc _event)
   "Deliver PROC's output to its owner once it has exited."
   (unless (process-live-p proc)
+    (xl-async--stop-timer proc)
     (let* ((out (process-buffer proc))
            (output (if (buffer-live-p out)
                        (with-current-buffer out (buffer-string))
@@ -61,14 +78,29 @@
       (cond
        ((process-get proc 'xl-async-unowned)
         (when on-done
-          (funcall on-done output (process-exit-status proc))))
+          (funcall on-done output (xl-async--exit-code proc))))
        ((buffer-live-p owner)
         (with-current-buffer owner
           ;; A cancelled run was removed from the list before it was killed.
           (when (memq proc xl-async--processes)
             (setq xl-async--processes (delq proc xl-async--processes))
             (when on-done
-              (funcall on-done output (process-exit-status proc))))))))))
+              (funcall on-done output (xl-async--exit-code proc))))))))))
+
+(defun xl-async--filter (proc chunk)
+  "Append CHUNK, output of PROC, to its buffer and to its :on-output callback."
+  (let ((out (process-buffer proc)))
+    (when (buffer-live-p out)
+      (with-current-buffer out
+        (save-excursion
+          (goto-char (point-max))
+          (insert chunk))))
+    (let ((on-output (process-get proc 'xl-async-on-output))
+          (owner (process-get proc 'xl-async-owner)))
+      (when on-output
+        (if (buffer-live-p owner)
+            (with-current-buffer owner (funcall on-output chunk))
+          (funcall on-output chunk))))))
 
 (defun xl-async-run (&rest args)
   "Start a process described by the plist ARGS and return it.
@@ -82,6 +114,10 @@
   :stdin      text written to the process before its input is closed
   :name       the process name, default \"xl-async\"
   :on-done    called as (ON-DONE OUTPUT EXIT-CODE) with OWNER current
+  :on-output  called as (ON-OUTPUT CHUNK) with OWNER current each time the
+              process writes; OUTPUT in ON-DONE still has all of it
+  :timeout    seconds; the process is then killed and ON-DONE gets the
+              exit code `xl-async-timeout-code'
 
 ON-DONE is skipped when OWNER was killed or the run was cancelled."
   (let* ((unowned (and (plist-member args :owner)
@@ -100,11 +136,20 @@ ON-DONE is skipped when OWNER was killed or the run was cancelled."
                 :command (plist-get args :command)
                 :connection-type 'pipe
                 :noquery t
-                :sentinel #'xl-async--sentinel))
+                :sentinel #'xl-async--sentinel
+                :filter (and (plist-get args :on-output) #'xl-async--filter)))
     (process-put proc 'xl-async-owner owner)
     (process-put proc 'xl-async-slot slot)
     (process-put proc 'xl-async-unowned unowned)
     (process-put proc 'xl-async-on-done (plist-get args :on-done))
+    (process-put proc 'xl-async-on-output (plist-get args :on-output))
+    (when-let* ((seconds (plist-get args :timeout)))
+      (process-put proc 'xl-async-timer
+                   (run-with-timer seconds nil
+                                   (lambda ()
+                                     (when (process-live-p proc)
+                                       (process-put proc 'xl-async-timed-out t)
+                                       (delete-process proc))))))
     (when owner
       (with-current-buffer owner
         (push proc xl-async--processes)
@@ -122,6 +167,7 @@ current buffer.  Queued jobs are not touched; see `xl-async-clear-queue'."
     (dolist (proc xl-async--processes)
       (when (or (null slot) (eq slot (process-get proc 'xl-async-slot)))
         (setq xl-async--processes (delq proc xl-async--processes))
+        (xl-async--stop-timer proc)
         (when (process-live-p proc)
           (delete-process proc))))))
 
@@ -145,6 +191,8 @@ JOB is a plist:
   :attempts   commands tried in order; the next runs when one fails
   :directory  working directory, default `default-directory'
   :stdin      text for every attempt's standard input
+  :on-output  streaming callback, see `xl-async-run'
+  :timeout    seconds for every attempt, see `xl-async-run'
   :on-start   called with no arguments when the job begins
   :on-done    called as (ON-DONE OUTPUT EXIT-CODE) for the last attempt
 
@@ -176,6 +224,8 @@ called once the queue runs out of jobs."
    :slot slot
    :directory (plist-get job :directory)
    :stdin (plist-get job :stdin)
+   :on-output (plist-get job :on-output)
+   :timeout (plist-get job :timeout)
    :on-done (lambda (output code)
               (if (and (not (zerop code)) (cdr attempts))
                   (xl-async--queue-attempt slot job (cdr attempts))

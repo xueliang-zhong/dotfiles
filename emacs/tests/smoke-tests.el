@@ -754,6 +754,143 @@ so only foo can be upgraded."
           (should (= refreshes 0)))
       (kill-buffer buffer))))
 
+;;; ============================================================
+;;; xl-org-babel-async: `:async yes' shell blocks
+;;; ============================================================
+
+(defun xl-test-org-buffer (body &optional header)
+  "Return a temporary org buffer with one bash block running BODY.
+HEADER is added to the block's header line.  Point is in the block."
+  (require 'org)
+  (require 'ob-shell)
+  (let ((org-confirm-babel-evaluate nil)
+        (dir (make-temp-file "xl-test-org-" t)))
+    (let ((buffer (find-file-noselect (expand-file-name "t.org" dir))))
+      (with-current-buffer buffer
+        (erase-buffer)
+        (insert (format "* Test\n\n#+begin_src bash %s\n%s\n#+end_src\n\nafter\n"
+                        (or header ":async yes") body))
+        (org-mode)
+        (goto-char (point-min))
+        (re-search-forward "^#\\+begin_src")
+        (forward-line 1))
+      buffer)))
+
+(defun xl-test-org-wait (buffer)
+  "Wait until BUFFER has no running block."
+  (let ((end (+ (float-time) 15)))
+    (while (and (buffer-local-value 'xl-org-babel--runs buffer)
+                (< (float-time) end))
+      (sit-for 0.02)))
+  (should-not (buffer-local-value 'xl-org-babel--runs buffer)))
+
+(defun xl-test-org-text (buffer)
+  "Return the text of BUFFER."
+  (with-current-buffer buffer
+    (buffer-substring-no-properties (point-min) (point-max))))
+
+(ert-deftest xl-org-babel-async-returns-at-once-and-fills-results ()
+  "An `:async yes' block returns before it ends; its results come after."
+  (skip-unless (executable-find "bash"))
+  (let ((buffer (xl-test-org-buffer "echo first; sleep 0.5; echo second")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (let ((t0 (float-time)))
+            (org-babel-execute-src-block)
+            (should (< (- (float-time) t0) 0.4))
+            (should (string-match-p "running…" (xl-test-org-text buffer))))
+          (xl-test-org-wait buffer)
+          (should (string-match-p "^: first$" (xl-test-org-text buffer)))
+          (should (string-match-p "^: second$" (xl-test-org-text buffer)))
+          (should-not (string-match-p "running…" (xl-test-org-text buffer))))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-org-babel-async-keeps-the-first-results-lines ()
+  "Long output: the live tail is replaced by the first lines and a note."
+  (skip-unless (executable-find "bash"))
+  (let ((xl-org-babel-result-lines 20)
+        (buffer (xl-test-org-buffer "seq 1 300")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          (xl-test-org-wait buffer)
+          (let ((text (xl-test-org-text buffer)))
+            (should (string-match-p "^: 20$" text))
+            (should-not (string-match-p "^: 21$" text))
+            (should (string-match-p "280 more lines not written" text)))
+          ;; The whole output is still in its buffer.
+          (with-current-buffer (get-buffer (format "*Org Babel Output: %s:%d*"
+                                                   (buffer-name) 3))
+            (should (= 300 (count-lines (point-min) (point-max))))))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-org-babel-async-reports-exit-code-and-timeout ()
+  "A failing block says its exit code; a timed-out one says it was stopped."
+  (skip-unless (executable-find "bash"))
+  (let ((buffer (xl-test-org-buffer "echo x; exit 3")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          (xl-test-org-wait buffer)
+          (should (string-match-p "exit code 3" (xl-test-org-text buffer))))
+      (kill-buffer buffer)))
+  (let ((buffer (xl-test-org-buffer "sleep 5" ":async yes :timeout 0.3")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          (xl-test-org-wait buffer)
+          (should (string-match-p "timed out, stopped" (xl-test-org-text buffer))))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-org-babel-async-cancel-keeps-the-output-so-far ()
+  "C-c C-k stops the block and writes that it was cancelled."
+  (skip-unless (executable-find "bash"))
+  (let ((buffer (xl-test-org-buffer "echo before; sleep 5; echo never")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          (sit-for 0.3)
+          (xl-org-babel-cancel-at-point)
+          (should-not xl-org-babel--runs)
+          (let ((text (xl-test-org-text buffer)))
+            (should (string-match-p "^: before$" text))
+            (should (string-match-p "cancelled" text))
+            ;; The body mentions `never'; the output must not have it.
+            (should-not (string-match-p "^: never$" text))))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-org-babel-async-running-again-replaces-the-run ()
+  "Running a block that is still going cancels that run."
+  (skip-unless (executable-find "bash"))
+  (let ((buffer (xl-test-org-buffer "sleep 5; echo OLDRUN")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          (should (= 1 (length xl-org-babel--runs)))
+          (goto-char (point-min))
+          (re-search-forward "^#\\+begin_src")
+          (forward-line 1)
+          (org-babel-execute-src-block)
+          ;; The second run owns the results now; one run is listed.
+          (should (= 1 (length xl-org-babel--runs)))
+          (xl-org-babel-cancel-at-point)
+          ;; The first run was killed: its output never reaches the file.
+          (should-not (string-match-p "^: OLDRUN$" (xl-test-org-text buffer))))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-org-babel-async-sessions-and-plain-blocks-stay-synchronous ()
+  "Without `:async yes', or with a `:session', a block runs as org-babel does."
+  (skip-unless (executable-find "bash"))
+  (dolist (header '(":results output" ":async yes :session s"))
+    (let ((buffer (xl-test-org-buffer "echo done" header)))
+      (unwind-protect
+          (with-current-buffer buffer
+            (org-babel-execute-src-block)
+            (should-not xl-org-babel--runs)
+            (should-not (string-match-p "running…" (xl-test-org-text buffer)))
+            (should (string-match-p "done" (xl-test-org-text buffer))))
+        (kill-buffer buffer)))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
