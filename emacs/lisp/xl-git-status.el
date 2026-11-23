@@ -30,6 +30,7 @@
 (require 'diff-mode) ; diff-added, diff-removed, diff-context, diff-hunk-header
 (require 'xl-spinner) ; the shared loading indicator
 (require 'xl-async)   ; owned, cancellable git processes and the job queue
+(require 'filenotify) ; watch the work tree for changes
 
 (defgroup xl-git-status nil
   "Faces for `xl-git-status'."
@@ -1253,6 +1254,170 @@ Dired and some other buffers use an abbreviated directory such as
   (when-let* ((root (locate-dominating-file default-directory ".git")))
     (file-name-as-directory (expand-file-name root))))
 
+;; ============================================================
+;; Auto refresh
+;; ============================================================
+;; A save in an editor, or a commit made in a terminal, changes the status,
+;; and a visible status buffer should show it without `g'.  file-notify
+;; reports the changes.  A save writes several files at once, so the events
+;; are debounced: one refresh, `xl-git-status-refresh-delay' after the last.
+;;
+;; file-notify does not recurse into subdirectories on macOS or on Linux.
+;; FSEvents reports a change in a subdirectory only as a change of that
+;; subdirectory, and inotify needs a watch per directory.  So the status
+;; watches the root, the .git directory, and every directory that holds a
+;; tracked or untracked file, as `git ls-files' lists them.  A directory
+;; created later is watched when its creation is seen.
+
+(defcustom xl-git-status-auto-refresh t
+  "Non-nil refreshes a visible status buffer when the work tree changes."
+  :type 'boolean
+  :group 'xl-git-status)
+
+(defcustom xl-git-status-refresh-delay 0.5
+  "Seconds to wait after the last file change before refreshing the status."
+  :type 'number
+  :group 'xl-git-status)
+
+(defcustom xl-git-status-max-watches 1000
+  "Most directories the status watches; the rest go unwatched."
+  :type 'integer
+  :group 'xl-git-status)
+
+(defvar-local xl-git-status--watches nil
+  "file-notify descriptors this status buffer holds.")
+
+(defvar-local xl-git-status--watching nil
+  "Non-nil once this status buffer's watches are set up or being set up.")
+
+(defvar-local xl-git-status--watch-timer nil
+  "Timer of the refresh this status buffer waits to run, if any.")
+
+(defconst xl-git-status--git-state-files
+  '("index" "HEAD" "ORIG_HEAD" "FETCH_HEAD" "packed-refs")
+  "Files in .git whose change can change the status.")
+
+(defun xl-git-status--relevant-event-p (root file)
+  "Return non-nil when a change to FILE, under ROOT, can change the status.
+Lock files, editor backups and most of .git (objects, logs) do not."
+  (let* ((rel (file-relative-name file root))
+         (name (file-name-nondirectory rel)))
+    (cond
+     ((string-suffix-p ".lock" name) nil)
+     ((or (string-prefix-p ".#" name)
+          (string-prefix-p "#" name)
+          (string-suffix-p "~" name))
+      nil)
+     ((string-prefix-p ".git/" rel)
+      ;; Only the state files directly in .git, not logs/HEAD and the like.
+      (or (and (string= (file-name-directory rel) ".git/")
+               (member name xl-git-status--git-state-files))
+          (string-match-p "/refs/" rel)))
+     (t t))))
+
+(defun xl-git-status--watch-dirs (root paths)
+  "Return the directories under ROOT that hold PATHS, root first.
+PATHS are relative to ROOT, as `git ls-files -z' prints them.  A directory
+is included with each of its parents, so a new subdirectory is seen."
+  (let ((dirs (make-hash-table :test #'equal))
+        (order nil))
+    (cl-flet ((add (dir)
+                (unless (gethash dir dirs)
+                  (puthash dir t dirs)
+                  (push dir order))))
+      (add (directory-file-name root))
+      (dolist (path paths)
+        (let ((dir (file-name-directory path)))
+          (while dir
+            (add (directory-file-name (expand-file-name dir root)))
+            (setq dir (file-name-directory (directory-file-name dir)))))))
+    (nreverse order)))
+
+(defun xl-git-status--watch-dir (buffer dir)
+  "Watch DIR for BUFFER, a status buffer, unless the limit is reached."
+  (when (and (< (length (buffer-local-value 'xl-git-status--watches buffer))
+                xl-git-status-max-watches)
+             (file-directory-p dir))
+    (with-current-buffer buffer
+      (push (file-notify-add-watch
+             dir '(change)
+             (lambda (event) (xl-git-status--on-event buffer event)))
+            xl-git-status--watches))))
+
+(defun xl-git-status--on-event (buffer event)
+  "Handle a file-notify EVENT for BUFFER, a status buffer."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (let* ((root default-directory)
+             (action (nth 1 event))
+             (file (nth 2 event))
+             (new (nth 3 event)))
+        (when (and xl-git-status-auto-refresh (stringp file))
+          (when (and (eq action 'created)
+                     (string-prefix-p root file)
+                     (file-directory-p file))
+            (xl-git-status--watch-dir buffer file))
+          (when (or (xl-git-status--relevant-event-p root file)
+                    (and (stringp new)
+                         (xl-git-status--relevant-event-p root new)))
+            (xl-git-status--schedule-refresh buffer)))))))
+
+(defun xl-git-status--schedule-refresh (buffer)
+  "Refresh BUFFER after `xl-git-status-refresh-delay', restarting the wait."
+  (with-current-buffer buffer
+    (when (timerp xl-git-status--watch-timer)
+      (cancel-timer xl-git-status--watch-timer))
+    (setq xl-git-status--watch-timer
+          (run-with-timer xl-git-status-refresh-delay nil
+                          #'xl-git-status--auto-refresh buffer))))
+
+(defun xl-git-status--auto-refresh (buffer)
+  "Refresh BUFFER if it is on screen and the queue is idle.
+A queue that is busy refreshes the status itself when it drains."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq xl-git-status--watch-timer nil)
+      (when (and (get-buffer-window buffer t)
+                 (not (xl-async-queue-busy-p 'queue buffer)))
+        (xl-git-status)))))
+
+(defun xl-git-status--scan-watch-dirs (buffer root)
+  "List the tracked and untracked files of ROOT, then watch their directories."
+  (xl-async-run
+   :name "xl-git-watch-scan"
+   :command '("git" "ls-files" "-z" "--cached" "--others" "--exclude-standard")
+   :directory root
+   :owner buffer
+   :slot 'watch-scan
+   :on-done (lambda (output code)
+              (when (zerop code)
+                (let ((dirs (xl-git-status--watch-dirs
+                             root (split-string output "\0" t))))
+                  (dolist (dir dirs)
+                    (xl-git-status--watch-dir buffer dir)))))))
+
+(defun xl-git-status--ensure-watching (buffer root)
+  "Start watching ROOT for BUFFER, once, when auto refresh is on."
+  (when (and xl-git-status-auto-refresh
+             (not (buffer-local-value 'xl-git-status--watching buffer))
+             (fboundp (quote file-notify-add-watch)))
+    (with-current-buffer buffer
+      (setq xl-git-status--watching t)
+      (xl-git-status--watch-dir buffer root)
+      (xl-git-status--watch-dir buffer (expand-file-name ".git" root))
+      (add-hook 'kill-buffer-hook #'xl-git-status--stop-watching nil t)
+      (xl-git-status--scan-watch-dirs buffer root))))
+
+(defun xl-git-status--stop-watching ()
+  "Remove this status buffer's watches and pending refresh."
+  (dolist (descriptor xl-git-status--watches)
+    (ignore-errors (file-notify-rm-watch descriptor)))
+  (setq xl-git-status--watches nil
+        xl-git-status--watching nil)
+  (when (timerp xl-git-status--watch-timer)
+    (cancel-timer xl-git-status--watch-timer))
+  (setq xl-git-status--watch-timer nil))
+
 (defun xl-git-status ()
   "Show the Git status and recent log of the current repository.
 The buffer lists the head, untracked, unstaged and staged files
@@ -1292,6 +1457,7 @@ or shows the commit at point."
         (xl-git-status--start-spinner))
       (setq default-directory root))
     (display-buffer buffer)
+    (xl-git-status--ensure-watching buffer root)
     (xl-git-status--load buffer root)))
 
 ;; Evil's normal state would otherwise take TAB, s, u, X, S, U, p, P and RET first.

@@ -693,6 +693,67 @@ so only foo can be upgraded."
             (should (equal (car (car (xl-test-listing-both-ways)))
                            (buffer-string)))))))))
 
+;;; ============================================================
+;;; xl-git-status: auto refresh on file changes
+;;; ============================================================
+
+(ert-deftest xl-git-status-watch-ignores-noise ()
+  "Lock files, editor backups and most of .git do not refresh the status."
+  (let ((root "/repo/"))
+    (should (xl-git-status--relevant-event-p root "/repo/src/a.el"))
+    (should (xl-git-status--relevant-event-p root "/repo/.git/index"))
+    (should (xl-git-status--relevant-event-p root "/repo/.git/HEAD"))
+    (should (xl-git-status--relevant-event-p root "/repo/.git/refs/heads/main"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/.git/index.lock"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/.git/objects/ab/cd"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/.git/logs/HEAD"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/a.el~"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/.#a.el"))
+    (should-not (xl-git-status--relevant-event-p root "/repo/#a.el#"))))
+
+(ert-deftest xl-git-status-watch-dirs-include-parents ()
+  "The directories of the listed files, each with its parents, root first."
+  (let ((dirs (xl-git-status--watch-dirs "/repo" '("a.el" "src/b.el" "src/x/c.el"))))
+    (should (equal (car dirs) "/repo"))
+    (should (member "/repo/src" dirs))
+    (should (member "/repo/src/x" dirs))
+    (should (= (length dirs) (length (delete-dups (copy-sequence dirs)))))))
+
+(ert-deftest xl-git-status-debounces-a-burst-into-one-refresh ()
+  "Several changes in a row refresh the visible status once, after the delay."
+  (let ((xl-git-status-refresh-delay 0.1)
+        (refreshes 0)
+        (buffer (generate-new-buffer " *status-watch-test*")))
+    (unwind-protect
+        (cl-letf (((symbol-function 'xl-git-status)
+                   (lambda () (cl-incf refreshes)))
+                  ((symbol-function 'get-buffer-window)
+                   (lambda (&rest _) 'window)))
+          (with-current-buffer buffer
+            (setq default-directory "/repo/"))
+          (dotimes (_ 3)
+            (xl-git-status--on-event buffer '(1 changed "/repo/a.el")))
+          (should (= refreshes 0))
+          (sit-for 0.3)
+          (should (= refreshes 1)))
+      (kill-buffer buffer))))
+
+(ert-deftest xl-git-status-hidden-buffer-is-not-refreshed ()
+  "A status buffer that is not on screen is left alone."
+  (let ((xl-git-status-refresh-delay 0.05)
+        (refreshes 0)
+        (buffer (generate-new-buffer " *status-hidden-test*")))
+    (unwind-protect
+        (cl-letf (((symbol-function 'xl-git-status)
+                   (lambda () (cl-incf refreshes)))
+                  ((symbol-function 'get-buffer-window)
+                   (lambda (&rest _) nil)))
+          (with-current-buffer buffer (setq default-directory "/repo/"))
+          (xl-git-status--on-event buffer '(1 changed "/repo/a.el"))
+          (sit-for 0.2)
+          (should (= refreshes 0)))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
