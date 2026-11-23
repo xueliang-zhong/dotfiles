@@ -18,7 +18,7 @@
 
 (require 'subr-x)     ; truncate-string-to-width
 (require 'xl-git-status) ; status buffer, its faces and `--show-commit'
-(require 'xl-spinner)    ; the loader in the header line
+(require 'xl-spinner)    ; the loader
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
@@ -33,7 +33,8 @@
 ;;
 ;; `git blame' runs asynchronously: the window is filled at once with one
 ;; placeholder line per source line, so scrolling and point still line up,
-;; and an animated spinner in the header line says the data is on its way.
+;; and an animated spinner at the left of the mode line says the data is on
+;; its way.
 ;; A refresh keeps the old lines visible until the new ones arrive, so
 ;; saving never makes the blame window flicker.
 (defface xl-gblame-current-line
@@ -58,18 +59,23 @@
 (defvar-local xl-gblame--request 0
   "Number of the latest blame request; older results are thrown away.")
 
+(defvar-local xl-gblame--mode-line nil
+  "Loader or error text shown at the left of this GBlame buffer's mode line.")
+
 (defun xl-gblame--draw-loader (text)
-  "Show TEXT in this GBlame buffer's header line; nil removes it."
-  (setq-local header-line-format (when text (concat " " text "  git blame")))
+  "Show TEXT at the left of this GBlame buffer's mode line; nil removes it.
+The blame window is narrow, so the loader goes where the mode line is
+not truncated."
+  (setq xl-gblame--mode-line (when text (concat text "  git blame ")))
   (force-mode-line-update))
 
 (defun xl-gblame--start-spinner ()
-  "Show an animated loader in this GBlame buffer's header line.
-A blame that never finishes gives up after a minute of frames."
-  (xl-spinner-start #'xl-gblame--draw-loader :limit 1200))
+  "Show an animated loader at the left of this GBlame buffer's mode line.
+It runs until the blame answers or the buffer is torn down."
+  (xl-spinner-start #'xl-gblame--draw-loader))
 
 (defun xl-gblame--stop-spinner ()
-  "Remove the loader from this GBlame buffer's header line."
+  "Remove the loader from this GBlame buffer's mode line."
   (xl-spinner-stop))
 
 (defun xl-gblame--placeholders (lines)
@@ -108,15 +114,15 @@ Keep point on the same line, so a refresh does not jump."
 
 (defun xl-gblame--fail (output)
   "Report a failed `git blame' in this GBlame buffer, showing OUTPUT.
-The header line keeps the error, so the message stays visible while the
+The mode line keeps the error, so the message stays visible while the
 placeholders remain for alignment."
   (let* ((text (string-trim output))
          (reason (if (string-empty-p text)
                      "unknown error"
                    (car (split-string text "\n")))))
-    (setq-local header-line-format
-                (propertize (format " git blame failed: %s" reason)
-                            'face 'error))
+    (setq xl-gblame--mode-line
+          (propertize (format "git blame failed: %s " reason)
+                      'face 'error))
     (force-mode-line-update)))
 
 (defun xl-gblame--teardown ()
@@ -371,7 +377,8 @@ Each line shows the abbreviated commit, author and date, aligned with
 the file; the window follows the file's scrolling and point.  It is an
 ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
 `git blame' runs in the background: the window opens at once with a
-loader in its header line, and saving refreshes it without blocking.
+loader at the left of its mode line, and saving refreshes it without
+blocking.
 `RET' shows the commit at point, `g' refreshes, `q' closes the window."
   (interactive)
   (unless buffer-file-name
@@ -425,7 +432,12 @@ loader in its header line, and saving refreshes it without blocking.
 
 (define-derived-mode xl-gblame-mode special-mode "GBlame"
   "Major mode for `xl-gblame' buffers."
-  (setq-local truncate-lines t))
+  (setq-local truncate-lines t)
+  ;; The blame window is narrow: keep the loader at the left edge of the
+  ;; mode line, where it is not truncated.
+  (setq-local mode-line-format
+              (cons '(:eval xl-gblame--mode-line)
+                    (default-value 'mode-line-format))))
 
 ;; Evil's normal state would otherwise take RET, g and q first.
 (with-eval-after-load 'evil

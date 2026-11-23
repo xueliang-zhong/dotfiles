@@ -117,7 +117,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 vim-fugitive 风格的命令，都定义在这个文件里：
 
 - `Gstatus`（`:Gstatus`）：打开 `lisp/xl-git-status.el` 的 status buffer。
-- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），header line 上转 spinner，数据到了就替换；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
+- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），mode line 最左边转 spinner（窗口很窄，header line 会占行，放在 mode line 左边才不会被截掉），数据到了就替换；失败时错误也写在那里，不会挤掉占位行；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
 - `Gwrite`（`:Gwrite`）：暂存当前文件。
 - `Gcommit`（`:Gcommit`）：用 `Update <文件名>` 提交当前文件。
 
@@ -140,7 +140,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 ### `lisp/xl-spinner.el`（共用 loader）
 
-三处 loader 原本各写一份 timer 和帧计数，只有"画在哪里"不同：status 初次加载换 overlay、status 的写操作队列和 Package Menu 换 mode line 的一格、GBlame 换 header line。所以这里只保留时钟和帧序号，落点交给调用方：
+三处 loader 原本各写一份 timer 和帧计数，只有"画在哪里"不同：status 初次加载换 overlay，status 的写操作队列和 GBlame 换 mode line 的最左边，Package Menu 换 mode line 的一格。所以这里只保留时钟和帧序号，落点交给调用方：
 
 ```elisp
 (xl-spinner-start
@@ -245,7 +245,7 @@ bash emacs/install/emacs-setup.sh check
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
-| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 header 上的 spinner；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
+| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 mode line 最左边的 spinner；失败时错误也留在 mode line，占位行不动；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
 | Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
 | 静默刷新 | 已有内容时刷新（`g`）不清空 buffer、不出现 `Loading...`；本地的 `s` 不显示 loader（超过延迟才出现）；一个慢任务结束后 mode line 最左边变成 `Refreshing` 且旧内容还在，渲染完成才替换 |
 | Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |

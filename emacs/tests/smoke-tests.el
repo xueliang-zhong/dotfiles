@@ -1630,7 +1630,9 @@ The loader is visible while the queue runs."
           (with-current-buffer xl-gblame--buffer
             ;; The command returned before git did: the UI was not blocked,
             ;; and the placeholders already line up with the source file.
-            (should header-line-format)
+            (should xl-gblame--mode-line)
+            (should (equal '(:eval xl-gblame--mode-line)
+                           (car mode-line-format)))
             (should (xl-spinner-running-p))
             (should (= (count-lines (point-min) (point-max))
                        (with-current-buffer buf
@@ -1639,10 +1641,33 @@ The loader is visible while the queue runs."
           (xl-test--wait-for-gblame xl-gblame--buffer)
           (with-current-buffer xl-gblame--buffer
             ;; Done: the loader is gone and the blame is in place.
-            (should-not header-line-format)
+            (should-not xl-gblame--mode-line)
             (should-not (xl-spinner-running-p))
             (should (get-text-property (point-min) 'xl-gblame-hash))))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
+        (when (buffer-live-p blame) (kill-buffer blame)))
+      (when (buffer-live-p buf) (kill-buffer buf))
+      (delete-directory repo t))))
+
+(ert-deftest xl-gblame-reports-failures-in-the-mode-line ()
+  "A failed `git blame' keeps the error at the left of the mode line."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo))
+         (buf (find-file-noselect (expand-file-name "untracked.txt" repo))))
+    (unwind-protect
+        (progn
+          (switch-to-buffer buf)
+          (delete-other-windows)
+          (xl-gblame)
+          (xl-test--wait-for-gblame xl-gblame--buffer)
+          (with-current-buffer xl-gblame--buffer
+            (should (string-match-p "git blame failed" xl-gblame--mode-line))
+            (should-not (xl-spinner-running-p))
+            ;; The placeholders stay, so the window remains aligned.
+            (should (= (count-lines (point-min) (point-max))
+                       (with-current-buffer buf
+                         (count-lines (point-min) (point-max)))))))
+      (let ((blame (get-buffer "*GBlame: untracked.txt*")))
         (when (buffer-live-p blame) (kill-buffer blame)))
       (when (buffer-live-p buf) (kill-buffer buf))
       (delete-directory repo t))))
