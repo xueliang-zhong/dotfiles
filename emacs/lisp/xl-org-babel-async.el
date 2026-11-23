@@ -35,6 +35,7 @@
 (require 'subr-x)
 (require 'ansi-color)
 (require 'xl-async)
+(require 'xl-spinner)
 
 (declare-function org-babel-get-src-block-info "ob-core")
 (declare-function org-babel-where-is-src-block-head "ob-core")
@@ -65,7 +66,7 @@
 (cl-defstruct (xl-org-babel-run
                (:constructor xl-org-babel-run--make))
   "A block running in the background."
-  slot head start end out timer)
+  slot head start end out timer overlay)
 
 (defvar-local xl-org-babel--runs nil
   "The blocks of this buffer that are running, as `xl-org-babel-run' objects.")
@@ -138,12 +139,28 @@ The `#+RESULTS:' line is made if the block has none."
                   (and h (= (marker-position h) head))))
               xl-org-babel--runs))
 
+(defun xl-org-babel--spinner-frame (frame)
+  "Show FRAME on the spinner overlay of every running block of this buffer.
+A nil FRAME, sent when the spinner stops, removes the overlays."
+  (dolist (run xl-org-babel--runs)
+    (let ((overlay (xl-org-babel-run-overlay run)))
+      (when (overlayp overlay)
+        (if frame
+            (overlay-put overlay 'display
+                         (concat frame " running… (C-c C-k cancels)"))
+          (delete-overlay overlay))))))
+
 (defun xl-org-babel--forget (run)
-  "Stop the timer of RUN and drop it from this buffer's running blocks."
+  "Stop the timer of RUN, remove its overlay, and drop it from the running blocks.
+The buffer's spinner stops with its last running block."
   (when (timerp (xl-org-babel-run-timer run))
     (cancel-timer (xl-org-babel-run-timer run)))
   (setf (xl-org-babel-run-timer run) nil)
-  (setq xl-org-babel--runs (delq run xl-org-babel--runs)))
+  (let ((overlay (xl-org-babel-run-overlay run)))
+    (when (overlayp overlay) (delete-overlay overlay)))
+  (setq xl-org-babel--runs (delq run xl-org-babel--runs))
+  (unless xl-org-babel--runs
+    (xl-spinner-stop (current-buffer))))
 
 (defun xl-org-babel--finish (run note)
   "End RUN: write its final results, with NOTE if given, and forget it."
@@ -237,8 +254,18 @@ The `#+RESULTS:' line is made if the block has none."
                  :start (car region)
                  :end (cdr region)
                  :out out))
-      (push run xl-org-babel--runs)
       (xl-org-babel--write-results run '("running… (C-c C-k cancels)"))
+      ;; The spinner sits on the #+RESULTS: line, which the live output
+      ;; never rewrites; the file keeps the static placeholder.
+      (let* ((header (save-excursion
+                       (goto-char (car region))
+                       (forward-line -1)
+                       (line-beginning-position)))
+             (header-end (save-excursion (goto-char header) (line-end-position))))
+        (setf (xl-org-babel-run-overlay run) (make-overlay header header-end)))
+      (push run xl-org-babel--runs)
+      (unless (xl-spinner-running-p)
+        (xl-spinner-start #'xl-org-babel--spinner-frame))
       (xl-async-run
        :name "xl-org-babel"
        :owner (current-buffer)

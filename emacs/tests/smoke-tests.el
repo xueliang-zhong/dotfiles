@@ -789,6 +789,33 @@ HEADER is added to the block's header line.  Point is in the block."
   (with-current-buffer buffer
     (buffer-substring-no-properties (point-min) (point-max))))
 
+(ert-deftest xl-org-babel-async-spinner-overlay-while-running ()
+  "A running block shows a spinner on its #+RESULTS: line, not in the text."
+  (skip-unless (executable-find "bash"))
+  (let ((buffer (xl-test-org-buffer "sleep 0.6; echo late")))
+    (unwind-protect
+        (with-current-buffer buffer
+          (org-babel-execute-src-block)
+          ;; Starting the block wrote the placeholder; only the ticks are tested.
+          (set-buffer-modified-p nil)
+          (let* ((run (car xl-org-babel--runs))
+                 (overlay (xl-org-babel-run-overlay run))
+                 (first (overlay-get overlay 'display)))
+            (should (overlayp overlay))
+            (should (xl-spinner-running-p))
+            (should (string-match-p "running… (C-c C-k cancels)" first))
+            ;; Frames move, and the buffer text does not change for them.
+            (xl-spinner-tick (current-buffer))
+            (should-not (equal first (overlay-get overlay 'display)))
+            (should-not (buffer-modified-p))
+            (should (string-match-p "^#\\+RESULTS:$" (xl-test-org-text buffer)))
+            (xl-test-org-wait buffer)
+            ;; Done: the overlay is gone and so is the spinner.
+            (should-not (overlay-buffer overlay))
+            (should-not (xl-spinner-running-p))
+            (should (string-match-p "^: late$" (xl-test-org-text buffer)))))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-org-babel-async-returns-at-once-and-fills-results ()
   "An `:async yes' block returns before it ends; its results come after."
   (skip-unless (executable-find "bash"))
