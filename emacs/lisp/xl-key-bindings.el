@@ -144,7 +144,7 @@
 
   "q" "quit" nil
   "q q" "quit" #'save-buffers-kill-terminal  "q Q" "kill emacs" #'kill-emacs
-  "q r" "restart" #'restart-emacs  "q z" "close frame" #'delete-frame
+  "q r" "restart" #'xl-sk-restart-emacs  "q z" "close frame" #'delete-frame
 
   "r" "resume/registers" nil
   "r l" "resume list" #'vertico-repeat
@@ -293,6 +293,110 @@
 
 (defun xl-sk-home-buffer () "Redraw and show the Crafted home buffer." (interactive)
   (crafted-startup-screen))
+
+;;; Restart: come back to the same file and place, or to the home buffer
+(defvar xl-sk-restart-file (expand-file-name "xl-restart-place.eld"
+                                             user-emacs-directory)
+  "File that remembers the place to restore after `xl-sk-restart-emacs'.")
+
+(defvar xl-sk-restart--pending nil
+  "Saved place waiting to be restored after startup, if any.")
+
+(defvar xl-sk-restart--buffer nil
+  "Buffer that `xl-sk-restart--pending' belongs to, if any.")
+
+(defun xl-sk--current-place ()
+  "Return a plist describing this buffer's file or dired place, or nil.
+A buffer without a file, such as *scratch* or *Messages*, counts as
+temporary: a restart from it goes to the home buffer."
+  (let ((start (and (eq (window-buffer) (current-buffer)) (window-start))))
+    (cond
+     ((and buffer-file-name (file-exists-p buffer-file-name))
+      (list :file (expand-file-name buffer-file-name)
+            :point (point)
+            :window-start start))
+     ((derived-mode-p 'dired-mode)
+      (list :dired dired-directory
+            :point (point)
+            :window-start start)))))
+
+(defun xl-sk--take-restart-place ()
+  "Return the place saved by `xl-sk-restart-emacs', then forget it."
+  (when (file-exists-p xl-sk-restart-file)
+    (prog1 (with-temp-buffer
+             (insert-file-contents xl-sk-restart-file)
+             (goto-char (point-min))
+             (condition-case nil (read (current-buffer)) (error nil)))
+      (ignore-errors (delete-file xl-sk-restart-file)))))
+
+(defun xl-sk--restart-buffer (place)
+  "Return the buffer PLACE describes, or nil when its file is gone."
+  (condition-case nil
+      (let ((file (plist-get place :file))
+            (dir (plist-get place :dired)))
+        (cond
+         ((and file (file-exists-p file))
+          (find-file-noselect file))
+         ((and dir (file-directory-p (if (consp dir) (car dir) dir)))
+          (dired-noselect dir))))
+    (error nil)))
+
+(defun xl-sk-initial-buffer-choice ()
+  "Show the place from before a restart, or the Crafted home buffer."
+  (let* ((place (xl-sk--take-restart-place))
+         (buffer (and (consp place) (xl-sk--restart-buffer place))))
+    (if buffer
+        (progn
+          (setq xl-sk-restart--pending place
+                xl-sk-restart--buffer buffer)
+          buffer)
+      (crafted-startup-screen))))
+
+(defun xl-sk--restore-restart-place ()
+  "Put point and the window start back after a restart."
+  (when (and xl-sk-restart--pending
+             (buffer-live-p xl-sk-restart--buffer))
+    (let* ((place xl-sk-restart--pending)
+           (buffer xl-sk-restart--buffer)
+           (window (or (get-buffer-window buffer t) (selected-window))))
+      (setq xl-sk-restart--pending nil
+            xl-sk-restart--buffer nil)
+      (with-current-buffer buffer
+        (let ((point (plist-get place :point))
+              (start (plist-get place :window-start)))
+          (when point
+            (goto-char (max (point-min) (min (point-max) point))))
+          (when (and point (eq (window-buffer window) buffer))
+            (set-window-point window (point))
+            (when start
+              (set-window-start window
+                                (max (point-min)
+                                     (min (point-max) start))))))))))
+
+(defun xl-sk--save-restart-place ()
+  "Write this buffer's place for the next start, or drop a stale one.
+Return the place that was saved, or nil for a temporary buffer."
+  (let ((place (xl-sk--current-place)))
+    (if place
+        (with-temp-file xl-sk-restart-file
+          (prin1 place (current-buffer)))
+      (ignore-errors (delete-file xl-sk-restart-file)))
+    place))
+
+(defun xl-sk-restart-emacs ()
+  "Restart Emacs and come back to this file and place.
+A temporary buffer, one without a file or a dired directory,
+restarts into the home buffer instead.  A cancelled restart
+forgets the saved place."
+  (interactive)
+  (xl-sk--save-restart-place)
+  (unwind-protect
+      (restart-emacs)
+    ;; Only reached when the restart did not happen.
+    (ignore-errors (delete-file xl-sk-restart-file))))
+
+(add-hook 'emacs-startup-hook #'xl-sk--restore-restart-place)
+(setq initial-buffer-choice #'xl-sk-initial-buffer-choice)
 
 ;;; Leader keys that sit on Spacemacs' own positions, with the commands I use
 (xl-sk-bind xl-leader-map

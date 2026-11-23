@@ -444,6 +444,7 @@ keypress.  Prefix keymaps are walked recursively."
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
                   ("p s" . consult-ripgrep)
+                  ("q r" . xl-sk-restart-emacs)
                   ("r l" . vertico-repeat)
                   ("r y" . consult-yank-pop)
                   ("s s" . consult-line)
@@ -1946,6 +1947,85 @@ which Crafted still puts on `embark-collect-mode-hook'."
              (buffer-string))))
   (should (<= (length xl-sk--home-files) 9))
   (should (listp xl-sk--home-files)))
+
+(ert-deftest xl-restart-comes-back-to-the-same-file ()
+  "Restarting saves the file and point, and the next start restores them."
+  (let* ((file (make-temp-file "xl-restart-file-" nil ".txt"))
+         (state (make-temp-file "xl-restart-state-" nil ".eld"))
+         (xl-sk-restart-file state)
+         (xl-sk-restart--pending nil)
+         (xl-sk-restart--buffer nil)
+         (buffer nil))
+    (unwind-protect
+        (progn
+          (with-temp-file file (insert "one\ntwo\nthree\nfour\nfive\n"))
+          (setq buffer (find-file-noselect file))
+          (set-window-buffer (selected-window) buffer)
+          (with-current-buffer buffer
+            (goto-char (point-min))
+            (forward-line 4)               ; line 5
+            (let ((place (xl-sk--save-restart-place)))
+              (should (equal file (plist-get place :file)))
+              (should (= 5 (line-number-at-pos (plist-get place :point))))))
+          (should (file-exists-p state))
+          ;; The next start picks the file and consumes the saved place.
+          (let ((restored (xl-sk-initial-buffer-choice)))
+            (should (eq restored buffer))
+            (should-not (file-exists-p state))
+            (set-window-buffer (selected-window) restored)
+            (xl-sk--restore-restart-place)
+            (with-current-buffer restored
+              (should (= 5 (line-number-at-pos (point)))))
+            (should (= (with-current-buffer restored (point))
+                       (window-point (selected-window))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (ignore-errors (delete-file file))
+      (ignore-errors (delete-file state)))))
+
+(ert-deftest xl-restart-from-a-temporary-buffer-goes-home ()
+  "A buffer without a file saves nothing, and cancelling cleans up."
+  (let* ((state (make-temp-file "xl-restart-state-" nil ".eld"))
+         (xl-sk-restart-file state))
+    (unwind-protect
+        (progn
+          (with-temp-file state (insert "(:file \"/tmp/gone\" :point 1)"))
+          (with-temp-buffer
+            (should-not (xl-sk--save-restart-place)))
+          (should-not (file-exists-p state))
+          ;; A restart that is cancelled must not leave a place behind.
+          (with-temp-buffer
+            (cl-letf (((symbol-function 'restart-emacs)
+                       (lambda () (interactive))))
+              (xl-sk-restart-emacs)))
+          (should-not (file-exists-p state))
+          ;; With nothing saved the home screen is the initial buffer.
+          (should (eq initial-buffer-choice #'xl-sk-initial-buffer-choice))
+          (cl-letf (((symbol-function 'crafted-startup-screen)
+                     (lambda () 'home)))
+            (should (eq 'home (xl-sk-initial-buffer-choice)))))
+      (ignore-errors (delete-file state)))))
+
+(ert-deftest xl-restart-remembers-a-dired-directory ()
+  "A dired buffer is a real place, not a temporary one."
+  (let* ((dir (make-temp-file "xl-restart-dired-" t))
+         (state (make-temp-file "xl-restart-state-" nil ".eld"))
+         (xl-sk-restart-file state)
+         (buffer nil))
+    (unwind-protect
+        (progn
+          (setq buffer (dired-noselect dir))
+          (set-window-buffer (selected-window) buffer)
+          (with-current-buffer buffer
+            (let ((place (xl-sk--save-restart-place)))
+              (should (plist-get place :dired)))
+            (let ((restored (xl-sk-initial-buffer-choice)))
+              (should (eq restored buffer))
+              (with-current-buffer restored
+                (should (derived-mode-p 'dired-mode))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (ignore-errors (delete-file state))
+      (ignore-errors (delete-directory dir t)))))
+
 
 ;;; ============================================================
 ;;; Kill ring, redisplay, ffap and the small Crafted defaults

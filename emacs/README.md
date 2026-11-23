@@ -8,7 +8,7 @@
 
 | 承诺 | 怎么验证 |
 | --- | --- |
-| 个人层是薄的 | `init.el`、`early-init.el`、`lisp/xl-key-bindings.el`、`xueliang.el` 合计约 1200 行 |
+| 个人层是薄的 | `init.el`、`early-init.el`、`lisp/xl-key-bindings.el`、`xueliang.el` 合计约 1400 行 |
 | Git 不阻塞 UI | 读（status/diff/log、blame、commit 视图）与写（stage/unstage/discard/commit）全部走 `make-process`；测试在命令返回的瞬间断言 loader 已在、内容未到 |
 
 还有一处异步不是我们做的：`list-packages` 的归档下载在 Emacs 31 里本来就是异步的（`package-menu-async` 默认为 t）。我们只把它 mode line 里静态的 `:Loading` 换成动画，见 `lisp/xl-package-menu.el`。重写它只会比上游更差。
@@ -104,6 +104,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - `,` 与 `SPC m` 主模式 leader，目前对 Org 和 Emacs Lisp 生效。
 - `fd` 退出插入态，evil-surround，窗口编号 `SPC 1`–`9`。
 - 首页（`SPC b h`），列出最近文件，按数字打开。
+- `SPC q r` 重启 Emacs：重启后回到当前文件和光标位置（dired 回到同一个目录）；从临时 buffer（没有文件）重启则回到首页。状态写在 `user-emacs-directory` 的 `xl-restart-place.eld` 里，只用一次；取消重启会把它删掉。
 - 创建 `xl-leader-map`，供 `xueliang.el` 继续往里加绑定。
 
 它在 `xueliang.el` 之前加载，所以 `xueliang.el` 里的绑定会覆盖这里的默认值（例如 `SPC SPC`、`SPC x`）。它和 `xueliang.el` 一起构成适配层，因此虽然放在 `lisp/` 里，用 `require` 加载，但不是可以单独安装的包：它要用 `xl-dotfiles` 和 `xueliang.el` 里的命令。
@@ -151,7 +152,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 - 第一帧在函数返回前就画好，所以调用方不用自己渲染初始状态
 - `:frames`、`:interval` 默认取 `xl-spinner-frames`（`[|] [/] [-] [\]`）和 `xl-spinner-interval`（0.05 秒，20 fps）
-- `:limit` 是保险：Package Menu 和 GBlame 都设 1200 帧（一分钟），挂住的下载或 blame 不会永远转
+- `:limit` 是保险：Package Menu 设 1200 帧（一分钟），挂住的下载不会永远转；status 的写操作队列和 GBlame 不设上限，一直转到 git 或调用方停下来
 - 缓冲区被杀而没人停 loader 时，timer 会自己取消
 - `xl-spinner-running-p` 给测试和调用方判断状态，`xl-spinner-tick` 让测试不必等真实时钟
 
@@ -194,7 +195,7 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 13. 加载 `emacs/lisp/xl-package-menu.el`，给 Package Menu 装上刷新用的动画 loader。
 14. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
 15. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
-16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。
+16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。如果这次启动来自 `SPC q r`，`initial-buffer-choice` 改为打开上次的文件/dired 并恢复 point 和 window-start，这时不显示首页。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
 
@@ -255,6 +256,7 @@ bash emacs/install/emacs-setup.sh check
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |
+| 重启 | 文件和 dired 保存位置并在下次启动恢复；临时 buffer 不保存、回到首页；取消重启会删掉保存的位置；`SPC q r` 绑定到 `xl-sk-restart-emacs` |
 | 其它 | 主题、`xl-idle-require`、保存时建目录、按输入顺序选择候选 |
 
 测试不启动图形界面，全部在 `emacs --batch` 里完成。
