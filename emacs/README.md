@@ -110,7 +110,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 
 ### `lisp/xl-git-status.el`（异步 Git 页面）
 
-一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（`y/n` 确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`P p`（Magit 的键位，`p p` 也行）在后台 `git push` 当前分支。写操作排成一条队列（`xl-git-status--queue`）：一次只跑一个 git 进程，连按 `s s s` 会按顺序执行而不是互相抢索引；header line 上显示 `[|] Staged file-1.txt +2`，push 时显示 `[|] Pushing`，没有帧数上限，再慢的 push 也一直转，队列排空后只刷新一次 status。没有 HEAD 的仓库里，`u` 会自动退回 `git rm --cached`；失败的输出用 `message` 报出来，不会吞掉；没有 upstream 的 push 也照此把 git 自己的提示报出来。`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。commit 视图也是异步的：buffer 立刻打开，显示 hash 和 spinner，`git show` 返回后填入 diff；重复请求同一个 buffer 时，旧结果会被丢弃。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
+一个不调用 Magit 的异步 status 摘要：`Head:`、`Untracked files`、`Unstaged changes`、`Staged changes`（文件下面带 diff hunk）和最近 10 条 commit，顺序与 `magit-status` 一致。加载期间先显示 `[|]`/`[/]` 这种 ASCII spinner（`Loading...`），git 返回后替换成内容。buffer 只读，`g` 刷新，`q` 关闭，`SPC g g` 打开。折叠方式和 Magit 一样：文件 diff 默认收起，`TAB` 折叠/展开光标所在的文件或 hunk，`S-TAB` 一次折叠/展开所有文件 diff。操作以 hunk 为单位：`s` 暂存光标处的 hunk、文件或整个 section，`u` 取消暂存，`X` 丢弃（`y/n` 确认，删除未跟踪文件也用它），`S`/`U` 暂存/取消暂存全部；`p` 立即打开 Magit 那样的推送菜单（`set-transient-map` + which-key 直接绘制，不等 which-key 的 idle delay，标签里写着目标 ref）：`p` 推到 push remote、`u` 推到 upstream、`e` 推到别处并在 minibuffer 里选 remote 和分支。选中后 push 照样进后台队列。写操作排成一条队列（`xl-git-status--queue`）：一次只跑一个 git 进程，连按 `s s s` 会按顺序执行而不是互相抢索引；header line 上显示 `[|] Staged file-1.txt +2`，push 时显示 `[|] Pushing master to origin`，没有帧数上限，再慢的 push 也一直转，队列排空后只刷新一次 status。没有 HEAD 的仓库里，`u` 会自动退回 `git rm --cached`；失败的输出用 `message` 报出来，不会吞掉；没有 upstream 的 push 也照此把 git 自己的提示报出来。`RET` 在文件行打开文件，在 hunk 上直接跳到该 hunk 行在文件中的位置，在 commit 行查看 commit（commit 窗口沿用同一套标题和 diff 高亮）。commit 视图也是异步的：buffer 立刻打开，显示 hash 和 spinner，`git show` 返回后填入 diff；重复请求同一个 buffer 时，旧结果会被丢弃。标题、状态、文件名、commit hash、分支/标签和 diff 行都有沿用主题 `font-lock` / `diff-mode` 配色的高亮。
 
 ### `lisp/xl-git-commands.el`（异步 G 命令）
 
@@ -249,7 +249,7 @@ bash emacs/install/emacs-setup.sh check
 | Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
 | Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |
 | Commit 视图 | 打开时已有 spinner 和「Loading...」、还没有 diff；`git show` 返回后 spinner 消失、diff 就位 |
-| 写操作队列 | 连按两次 `s` 时命令立即返回、loader 在跑、动作写在 header line；push 同样立即返回并一直转 spinner；排空后两个文件都进了索引；没有 HEAD 的仓库能 `u` |
+| 写操作队列 | 连按两次 `s` 时命令立即返回、loader 在跑、动作写在 header line；push 菜单由 `set-transient-map` 立即弹出、标签带目标 ref，选 push remote / upstream / elsewhere 后立即返回并一直转 spinner；排空后两个文件都进了索引；没有 HEAD 的仓库能 `u` |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |
 | 补全 | vertico/consult/corfu 状态；Corfu 弹窗的背景、当前候选项和边框跟随主题；补全栈的包由 Crafted 选中、已安装，切换主题后也不会被 `package-autoremove` 当作可清理 |
 | 首页 | 底部显示两位小数的启动耗时；最近文件最多 9 个 |

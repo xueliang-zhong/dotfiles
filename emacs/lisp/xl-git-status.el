@@ -15,8 +15,10 @@
 ;; S-TAB toggles every file diff).  On a hunk, file or section line `s' stages and `u'
 ;; unstages it, `X' discards it after confirmation, and `RET' visits the
 ;; file at the hunk line or shows the commit at point in a buffer that
-;; uses the same faces.  `P p' (and `p p') pushes the current branch,
-;; like Magit's `P p'.
+;; uses the same faces.  `p' opens a push menu like Magit's `Push <branch>
+;; to': the labelled keymap is shown at once, without which-key's idle
+;; delay, with `p' for the push remote, `u' for the upstream and `e' for
+;; anywhere else.
 ;;
 ;; The vim-fugitive style G* commands (Gstatus, Gblame, Gwrite, Gcommit)
 ;; live in xl-git-commands.el, which loads after this file.
@@ -111,6 +113,12 @@ hunks start unfolded, file diffs start folded.")
 (defvar-local xl-git-status--restore-key nil
   "Section key to return to after the next render.")
 
+(defvar-local xl-git-status--head-branch nil
+  "Branch of the last render, or nil for a detached HEAD.")
+
+(defvar-local xl-git-status--head-upstream nil
+  "Upstream ref of the last render, e.g. \"origin/master\", or nil.")
+
 ;; ============================================================
 ;; Loading indicator
 ;; ============================================================
@@ -178,6 +186,12 @@ hunks start unfolded, file diffs start folded.")
             (match-string 1 branch)
           branch)))
      (t ""))))
+
+(defun xl-git-status--upstream (status)
+  "Return the upstream ref from porcelain STATUS output, or nil."
+  (let ((line (car (split-string status "\n"))))
+    (when (string-match "\\`## [^ \n]+\\.\\.\\.\\([^ \n]+\\)" line)
+      (match-string 1 line))))
 
 (defun xl-git-status--subject (log)
   "Return the newest commit's subject from LOG output."
@@ -569,6 +583,20 @@ BUFFER owns the process; NAME names it."
       (setq xl-git-status--processes
             (cons proc xl-git-status--processes)))))
 
+(defun xl-git-status--git-string (root &rest args)
+  "Return the trimmed output of git ARGS run in ROOT, or nil.
+A failing command, or one that prints nothing, returns nil.  This
+runs synchronously and is only for the small config lookups the push
+menu needs; the status, diff and log reads, and every write, stay
+asynchronous."
+  (with-temp-buffer
+    (let ((default-directory root)
+          (code (apply #'call-process "git" nil t nil
+                       "--no-pager" "-c" "core.quotepath=false" args)))
+      (when (zerop code)
+        (let ((text (string-trim (buffer-string))))
+          (unless (string-empty-p text) text))))))
+
 ;; ============================================================
 ;; Operations
 ;; ============================================================
@@ -707,17 +735,133 @@ The git work runs in the background; the status refreshes when it is done."
          :attempts (xl-git-status--unstage-attempts '("."))
          :action "Unstaged all changes")))
 
-(defun xl-git-status-push ()
-  "Push the current branch in the background, like Magit's `P p'.
-The push joins the operation queue, so the header line shows a loader
-until git answers and the status refreshes once it is done.  A branch
-without an upstream fails with git's own hint."
+(defun xl-git-status--push-branch ()
+  "Return the checked-out branch, or signal an error when detached."
+  (or xl-git-status--head-branch
+      (user-error "No branch is checked out")))
+
+(defun xl-git-status--upstream-parts ()
+  "Return (REMOTE . BRANCH) for the current branch's upstream, or nil."
+  (when-let* ((upstream xl-git-status--head-upstream)
+              (slash (string-match "/" upstream)))
+    (cons (substring upstream 0 slash)
+          (substring upstream (1+ slash)))))
+
+(defun xl-git-status--push-remote (branch)
+  "Return the remote BRANCH pushes to, or nil when none is configured.
+Git prefers `branch.<name>.pushRemote' over `remote.pushDefault'
+over the remote of the upstream, and the menu offers the same."
+  (or (xl-git-status--git-string
+       default-directory "config" "--get"
+       (format "branch.%s.pushRemote" branch))
+      (xl-git-status--git-string default-directory "config" "--get"
+                                 "remote.pushDefault")
+      (car-safe (xl-git-status--upstream-parts))))
+
+(defun xl-git-status--remotes ()
+  "Return the names of this repository's remotes."
+  (split-string (or (xl-git-status--git-string default-directory "remote") "")
+                "\n" t))
+
+(defun xl-git-status-push-to-pushremote ()
+  "Push the current branch to its push remote, in the background.
+This is `p' in the push menu, the `Push <branch> to' part of Magit's
+`P p'.  The push joins the operation queue, so the header line shows
+a loader until git answers and the status refreshes once it is done."
   (interactive)
-  (xl-git-status--enqueue
-   (list :root default-directory
-         :attempts '(("push"))
-         :action "Pushed"
-         :progress "Pushing")))
+  (let* ((branch (xl-git-status--push-branch))
+         (remote (xl-git-status--push-remote branch)))
+    (xl-git-status--enqueue
+     (list :root default-directory
+           :attempts (list
+                      (if remote
+                          (list "push" remote
+                                (format "refs/heads/%s:refs/heads/%s"
+                                        branch branch))
+                        '("push")))
+           :action (if remote
+                       (format "Pushed %s to %s" branch remote)
+                     "Pushed")
+           :progress (if remote
+                         (format "Pushing %s to %s" branch remote)
+                       "Pushing")))))
+
+(defun xl-git-status-push-to-upstream ()
+  "Push the current branch to its upstream, in the background.
+This is `u' in the push menu.  Without an upstream the push falls
+back to `git push', whose error message carries git's own hint."
+  (interactive)
+  (let* ((branch (xl-git-status--push-branch))
+         (parts (xl-git-status--upstream-parts)))
+    (xl-git-status--enqueue
+     (list :root default-directory
+           :attempts (list
+                      (if parts
+                          (list "push" (car parts)
+                                (format "refs/heads/%s:refs/heads/%s"
+                                        branch (cdr parts)))
+                        '("push")))
+           :action (format "Pushed %s" branch)
+           :progress (if xl-git-status--head-upstream
+                         (format "Pushing to %s" xl-git-status--head-upstream)
+                       "Pushing")))))
+
+(defun xl-git-status-push-elsewhere ()
+  "Push the current branch to a remote and branch chosen now.
+This is `e' in the push menu, Magit's plain `Push elsewhere'."
+  (interactive)
+  (let* ((branch (xl-git-status--push-branch))
+         (remotes (xl-git-status--remotes)))
+    (unless remotes
+      (user-error "No Git remotes"))
+    (let* ((remote (completing-read (format "Push %s to remote: " branch)
+                                    remotes nil t))
+           (target (read-string (format "Remote branch (default %s): " branch)
+                                nil nil branch)))
+      (when (string-empty-p target)
+        (user-error "No remote branch to push to"))
+      (xl-git-status--enqueue
+       (list :root default-directory
+             :attempts (list
+                        (list "push" remote
+                              (format "refs/heads/%s:refs/heads/%s"
+                                      branch target)))
+             :action (format "Pushed %s to %s/%s" branch remote target)
+             :progress (format "Pushing to %s/%s" remote target))))))
+
+(defun xl-git-status--push-menu (push upstream)
+  "Return a push destination keymap.
+PUSH and UPSTREAM are the refs the menu shows next to `p' and `u'."
+  (let ((map (make-sparse-keymap)))
+    (keymap-set map "p" (cons (format "push to %s" (or push "push remote"))
+                              #'xl-git-status-push-to-pushremote))
+    (keymap-set map "u" (cons (format "push to %s" (or upstream "upstream"))
+                              #'xl-git-status-push-to-upstream))
+    (keymap-set map "e" (cons "push elsewhere"
+                              #'xl-git-status-push-elsewhere))
+    map))
+
+(defun xl-git-status--hide-push-menu ()
+  "Hide what `xl-git-status-push' drew, when which-key drew it."
+  (when (fboundp 'which-key--hide-popup)
+    (which-key--hide-popup)))
+
+(defun xl-git-status-push ()
+  "Choose where to push, like Magit's `Push <branch> to'.
+The menu appears at once, without which-key's idle delay, and shows
+the push remote and the upstream from the last render.  The chosen
+push runs in the background queue."
+  (interactive)
+  (let* ((branch (xl-git-status--push-branch))
+         (remote (xl-git-status--push-remote branch))
+         (push (and remote (concat remote "/" branch)))
+         (upstream xl-git-status--head-upstream)
+         (map (xl-git-status--push-menu push upstream)))
+    (set-transient-map map nil #'xl-git-status--hide-push-menu)
+    (if (require 'which-key nil t)
+        (which-key--show-keymap (format "Push %s to" branch) map nil nil t)
+      (message "Push %s to: p %s, u %s, e elsewhere"
+               branch (or push "push remote") (or upstream "upstream")))))
 
 (defun xl-git-status--show-line-face (line)
   "Return the face for one LINE of `git show' diff output."
@@ -927,7 +1071,11 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
             (subject (xl-git-status--subject log)))
         (erase-buffer)
         (setq xl-git-status--sections nil
-              xl-git-status--overlays nil)
+              xl-git-status--overlays nil
+              xl-git-status--head-branch
+              (unless (member branch '("" "detached HEAD")) branch)
+              xl-git-status--head-upstream
+              (xl-git-status--upstream status))
         (insert (propertize "Head:" 'face 'bold)
                 "     "
                 (propertize branch 'face 'xl-git-status-branch)
@@ -1012,10 +1160,6 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
 ;; Mode and entry point
 ;; ============================================================
 
-(defvar-keymap xl-git-status-push-map
-  :doc "Push commands for `xl-git-status-mode'."
-  "p" #'xl-git-status-push)
-
 (defvar-keymap xl-git-status-mode-map
   :doc "Keymap for `xl-git-status-mode'."
   :parent special-mode-map
@@ -1027,8 +1171,8 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
   "X" #'xl-git-status-discard
   "S" #'xl-git-status-stage-all
   "U" #'xl-git-status-unstage-all
-  "P" xl-git-status-push-map
-  "p" xl-git-status-push-map
+  "P" #'xl-git-status-push
+  "p" #'xl-git-status-push
   "RET" #'xl-git-status-visit
   "<return>" #'xl-git-status-visit)
 
@@ -1059,8 +1203,9 @@ buffer and `q' quits it.  TAB folds or unfolds the
 file or hunk at point, S-TAB toggles every file diff.  `s' stages
 the hunk, file or section at point, `u' unstages it, `X' discards
 it after confirmation, and `S'/`U' stage or unstage everything.
-`P p' (also `p p') pushes the current branch.  `RET' opens the file
-at the hunk line, or shows the commit at point."
+`p' opens the push menu at once: `p' pushes to the push remote, `u' to
+the upstream and `e' elsewhere.  `RET' opens the file at the hunk line,
+or shows the commit at point."
   (interactive)
   (let* ((root (xl-git-status--root))
          (repo (and root (file-name-nondirectory (directory-file-name root))))
@@ -1102,8 +1247,8 @@ at the hunk line, or shows the commit at point."
     "x" #'xl-git-status-discard
     "S" #'xl-git-status-stage-all
     "U" #'xl-git-status-unstage-all
-    "P" xl-git-status-push-map
-    "p" xl-git-status-push-map
+    "P" #'xl-git-status-push
+    "p" #'xl-git-status-push
     (kbd "RET") #'xl-git-status-visit
     (kbd "<return>") #'xl-git-status-visit))
 

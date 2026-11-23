@@ -751,9 +751,20 @@ The other TAB command would insert two spaces, so it delegates to
                 (cdr spec))))
   (dolist (key '("P" "p"))
     (should (eq (keymap-lookup xl-git-status-mode-map key)
-                xl-git-status-push-map)))
-  (should (eq (keymap-lookup xl-git-status-push-map "p")
-              #'xl-git-status-push))
+                #'xl-git-status-push)))
+  ;; The menu keymap carries the refs it was built with as which-key labels.
+  (require 'which-key)
+  (let ((map (xl-git-status--push-menu "origin/main" "origin/main")))
+    (dolist (spec '(("p" . xl-git-status-push-to-pushremote)
+                    ("u" . xl-git-status-push-to-upstream)
+                    ("e" . xl-git-status-push-elsewhere)))
+      (should (eq (keymap-lookup map (car spec)) (cdr spec))))
+    (dolist (spec '(("p" . "push to origin/main")
+                    ("u" . "push to origin/main")
+                    ("e" . "push elsewhere")))
+      (should (equal (cdr (assoc (car spec)
+                                 (which-key--get-keymap-bindings map)))
+                     (cdr spec)))))
   (require 'evil)
   (let ((normal (evil-get-auxiliary-keymap
                  xl-git-status-mode-map 'normal t)))
@@ -768,7 +779,7 @@ The other TAB command would insert two spaces, so it delegates to
                     ("RET" . xl-git-status-visit)))
       (should (eq (keymap-lookup normal (car spec)) (cdr spec))))
     (dolist (key '("P" "p"))
-      (should (eq (keymap-lookup normal key) xl-git-status-push-map)))))
+      (should (eq (keymap-lookup normal key) #'xl-git-status-push)))))
 
 (ert-deftest xl-git-status-stages-and-unstages ()
   "`s' stages the file at point and `u' puts it back in the index."
@@ -843,7 +854,7 @@ The loader is visible while the queue runs."
       (delete-directory repo t))))
 
 (ert-deftest xl-git-status-pushes ()
-  "`P p' pushes the current branch in the background, like Magit."
+  "The push menu pushes to the push remote and to the upstream."
   (skip-unless (executable-find "git"))
   (let* ((repo (xl-test--git-repo))
          (remote (make-temp-file "xl-test-remote-" t))
@@ -862,7 +873,12 @@ The loader is visible while the queue runs."
                        (lambda (b &rest _) (setq buffer b) b)))
               (xl-git-status)
               (xl-test--wait-for-git-status buffer)
-              ;; A new commit is only on the local side until `P p'.
+              ;; The render remembers what the push menu offers.
+              (with-current-buffer buffer
+                (should (equal branch xl-git-status--head-branch))
+                (should (equal (format "origin/%s" branch)
+                               xl-git-status--head-upstream)))
+              ;; A new commit is only on the local side until the push.
               (with-temp-file (expand-file-name "file-0.txt" repo)
                 (insert "changed again\n"))
               (should (zerop (call-process "git" nil nil nil "-C" repo
@@ -870,18 +886,95 @@ The loader is visible while the queue runs."
                                            "-c" "user.name=Test"
                                            "commit" "-qam" "second")))
               (with-current-buffer buffer
-                (xl-git-status-push)
-                ;; The push runs in the queue, with its own header line label.
-                (should (equal "Pushing" xl-git-status--queue-action))
-                (should (equal " [|] Pushing" header-line-format))
-                ;; The frames advance, so the loader animates.
-                (xl-spinner-tick)
-                (should (equal " [/] Pushing" header-line-format))))
+                (require 'which-key)
+                ;; `execute-kbd-macro' runs commands in the selected window's
+                ;; buffer, not in `current-buffer', so make that the status.
+                (set-window-buffer (selected-window) buffer)
+                (let (title labels)
+                  (cl-letf (((symbol-function 'which-key--show-keymap)
+                             (lambda (name map &rest _)
+                               (setq title name)
+                               (setq labels
+                                     (which-key--get-keymap-bindings map)))))
+                    ;; `p' pops the menu at once, without which-key's delay.
+                    (xl-git-status-push))
+                  (should (equal (format "Push %s to" branch) title))
+                  (should (equal (format "push to origin/%s" branch)
+                                 (cdr (assoc "p" labels))))
+                  (should (equal (format "push to origin/%s" branch)
+                                 (cdr (assoc "u" labels))))
+                  ;; The transient map reads the very next key, here `p'.
+                  (execute-kbd-macro (kbd "p"))
+                  ;; The push runs in the queue, with its destination in the
+                  ;; header line, and its frames advance.
+                  (should (equal (format "Pushing %s to origin" branch)
+                                 xl-git-status--queue-action))
+                  (should (equal (format " [|] Pushing %s to origin" branch)
+                                 header-line-format))
+                  (xl-spinner-tick)
+                  (should (equal (format " [/] Pushing %s to origin" branch)
+                                 header-line-format)))))
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (should-not header-line-format))
             (should (equal (xl-test--git-output repo "rev-parse" branch)
+                           (xl-test--git-output remote "rev-parse" branch)))
+            ;; A third commit goes out through the upstream choice.
+            (with-temp-file (expand-file-name "file-0.txt" repo)
+              (insert "changed once more\n"))
+            (should (zerop (call-process "git" nil nil nil "-C" repo
+                                         "-c" "user.email=test@example.com"
+                                         "-c" "user.name=Test"
+                                         "commit" "-qam" "third")))
+            (with-current-buffer buffer
+              (xl-git-status-push-to-upstream)
+              (should (equal (format "Pushing to origin/%s" branch)
+                             xl-git-status--queue-action)))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal (xl-test--git-output repo "rev-parse" branch)
                            (xl-test--git-output remote "rev-parse" branch)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t)
+      (delete-directory remote t))))
+
+(ert-deftest xl-git-status-pushes-elsewhere ()
+  "The `e' choice asks for a remote and branch, then pushes there."
+  (skip-unless (executable-find "git"))
+  (let* ((repo (xl-test--git-repo))
+         (remote (make-temp-file "xl-test-remote-" t))
+         (branch (xl-test--git-output repo "rev-parse" "--abbrev-ref" "HEAD"))
+         (buffer nil))
+    (unwind-protect
+        (progn
+          (should (zerop (call-process "git" nil nil nil "-C" remote
+                                       "init" "--bare" "-q")))
+          (should (zerop (call-process "git" nil nil nil "-C" repo
+                                       "remote" "add" "origin" remote)))
+          (should (zerop (call-process "git" nil nil nil "-C" repo
+                                       "push" "-q" "-u" "origin" branch)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (cl-letf (((symbol-function 'display-buffer)
+                       (lambda (b &rest _) (setq buffer b) b)))
+              (xl-git-status)
+              (xl-test--wait-for-git-status buffer)
+              (with-temp-file (expand-file-name "file-0.txt" repo)
+                (insert "changed again\n"))
+              (should (zerop (call-process "git" nil nil nil "-C" repo
+                                           "-c" "user.email=test@example.com"
+                                           "-c" "user.name=Test"
+                                           "commit" "-qam" "second")))
+              (with-current-buffer buffer
+                (cl-letf (((symbol-function 'completing-read)
+                           (lambda (&rest _) "origin"))
+                          ((symbol-function 'read-string)
+                           (lambda (&rest _) "elsewhere")))
+                  (xl-git-status-push-elsewhere))
+                (should (equal "Pushing to origin/elsewhere"
+                               xl-git-status--queue-action))))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal (xl-test--git-output repo "rev-parse" branch)
+                           (xl-test--git-output remote "rev-parse"
+                                                "elsewhere")))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t)
       (delete-directory remote t))))
