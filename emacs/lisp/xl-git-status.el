@@ -34,6 +34,14 @@
   "Faces for `xl-git-status'."
   :group 'tools)
 
+(defcustom xl-git-status-queue-delay 0.2
+  "Seconds to wait before showing the operation queue's loader.
+Local staging finishes before that, so the mode line does not
+flash on every keypress; a push over the network is still
+indicated."
+  :type 'number
+  :group 'xl-git-status)
+
 (defface xl-git-status-heading
   '((t :inherit font-lock-keyword-face :weight bold))
   "Face for Git status section headings."
@@ -85,15 +93,18 @@
 (defvar-local xl-git-status--queue nil
   "Pending git operations of this status buffer, oldest first.
 Each job is a plist: :root, :attempts (git argument lists, tried in
-order), :action (the message on success), :progress (the header line
+order), :action (the message on success), :progress (the mode line
 label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply).")
 
 (defvar-local xl-git-status--queue-process nil
   "The process running the head of this buffer's queue, if any.")
 
+(defvar-local xl-git-status--queue-timer nil
+  "Timer that will show the queue loader if the operation is slow.")
+
 (defvar-local xl-git-status--queue-action nil
-  "What the queued operation is doing, for the header line.")
+  "What the queued operation is doing, for the mode line.")
 
 (defvar-local xl-git-status--sections nil
   "Sections of this status buffer, as plists.
@@ -539,28 +550,44 @@ OLD was."
 (defun xl-git-status--enqueue (job)
   "Queue JOB and start the queue if it is idle.
 JOB is a plist with :root, :attempts (git argument lists, tried in
-order), :action (the message on success), :progress (the header line
+order), :action (the message on success), :progress (the mode line
 label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply).  One job runs at a time, so a rapid
 `s s s' stages in order instead of racing, and the status refreshes
-once when the queue drains.  A spinner in the header line shows the
-queue while it runs; it has no frame limit, because a push over the
-network may take longer than a local git command."
+once when the queue drains.  A spinner in the mode line shows the
+queue only when it runs longer than `xl-git-status-queue-delay', so
+fast local operations do not flicker; it has no frame limit, because
+a push over the network may take longer than a local git command."
   (setq xl-git-status--queue (append xl-git-status--queue (list job)))
   (xl-git-status--queue-start)
-  (unless (xl-spinner-running-p)
-    (xl-spinner-start #'xl-git-status--queue-indicator)))
+  (unless (or (xl-spinner-running-p)
+              (timerp xl-git-status--queue-timer))
+    (setq xl-git-status--queue-timer
+          (run-with-timer xl-git-status-queue-delay nil
+                          #'xl-git-status--queue-spinner (current-buffer)))))
+
+(defun xl-git-status--queue-spinner (buffer)
+  "Show the queue loader in BUFFER if its operation is still running."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq xl-git-status--queue-timer nil)
+      (when (and (not (xl-spinner-running-p))
+                 (or xl-git-status--queue
+                     (process-live-p xl-git-status--queue-process)))
+        (xl-spinner-start #'xl-git-status--queue-indicator)))))
 
 (defun xl-git-status--queue-indicator (text)
-  "Show TEXT and the queue in this status buffer's header line; nil clears."
-  (setq-local header-line-format
+  "Show TEXT and the queue in this status buffer's mode line; nil clears.
+The header line would take a screen line only while the loader runs,
+which moves the buffer contents; the mode line is always there."
+  (setq-local mode-line-process
               (when text
-                (format " %s %s%s"
-                        text
-                        (or xl-git-status--queue-action "git")
-                        (if xl-git-status--queue
-                            (format " +%d" (length xl-git-status--queue))
-                          ""))))
+                (list (format " %s %s%s"
+                              text
+                              (or xl-git-status--queue-action "git")
+                              (if xl-git-status--queue
+                                  (format " +%d" (length xl-git-status--queue))
+                                "")))))
   (force-mode-line-update))
 
 (defun xl-git-status--queue-start ()
@@ -570,8 +597,14 @@ When the queue drains, refresh the status once."
              (buffer-live-p (current-buffer)))
     (if (null xl-git-status--queue)
         (progn
-          (setq xl-git-status--queue-action nil)
-          (xl-spinner-stop)
+          (when (timerp xl-git-status--queue-timer)
+            (cancel-timer xl-git-status--queue-timer)
+            (setq xl-git-status--queue-timer nil))
+          ;; Keep the loader running under a new label until the render
+          ;; replaces the old content, so the mode line never flickers.
+          (setq xl-git-status--queue-action "Refreshing")
+          (when (xl-spinner-running-p)
+            (xl-git-status--queue-indicator (car xl-spinner-frames)))
           (xl-git-status))
       (let ((job (pop xl-git-status--queue)))
         (setq xl-git-status--queue-action
@@ -629,6 +662,9 @@ repository without HEAD can unstage with `git rm --cached'."
 
 (defun xl-git-status--queue-teardown ()
   "Stop this status buffer's queue, its process and its loader."
+  (when (timerp xl-git-status--queue-timer)
+    (cancel-timer xl-git-status--queue-timer)
+    (setq xl-git-status--queue-timer nil))
   (xl-spinner-stop)
   (when (process-live-p xl-git-status--queue-process)
     (delete-process xl-git-status--queue-process))
@@ -848,7 +884,7 @@ over the remote of the upstream, and the menu offers the same."
 (defun xl-git-status-push-to-pushremote ()
   "Push the current branch to its push remote, in the background.
 This is `p' in the push menu, the `Push <branch> to' part of Magit's
-`P p'.  The push joins the operation queue, so the header line shows
+`P p'.  The push joins the operation queue, so the mode line shows
 a loader until git answers and the status refreshes once it is done."
   (interactive)
   (let* ((branch (xl-git-status--push-branch))
@@ -1148,6 +1184,9 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
     (with-current-buffer buffer
       (xl-git-status--stop-spinner)
       (let ((inhibit-read-only t)
+            ;; A refresh keeps the old sections until here, which is how
+            ;; the first load is told apart from a silent refresh.
+            (first (null xl-git-status--sections))
             (entries (xl-git-status--entries status))
             (branch (xl-git-status--branch status))
             (subject (xl-git-status--subject log)))
@@ -1193,10 +1232,11 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
                    (format "\nGit exited with %d (status) / %d (log)\n"
                            status-code log-code)
                    'face 'error)))
-        (xl-git-status--apply-folds))
-      (setq buffer-read-only t)
-      (xl-git-status--restore-point)
-      (message "Git status ready: %s" (buffer-name buffer)))))
+        (xl-git-status--apply-folds)
+        (setq buffer-read-only t)
+        (xl-git-status--restore-point)
+        (when first
+          (message "Git status ready: %s" (buffer-name buffer)))))))
 
 (defun xl-git-status--load (buffer root)
   "Load the log, status and per-file diffs of ROOT into BUFFER."
@@ -1307,13 +1347,16 @@ or shows the commit at point."
       (dolist (proc xl-git-status--processes)
         (when (process-live-p proc) (delete-process proc)))
       (setq xl-git-status--processes nil)
-      (let ((inhibit-read-only t))
-        (erase-buffer))
-      (setq xl-git-status--sections nil
-            xl-git-status--overlays nil
-            buffer-read-only nil
-            default-directory root)
-      (xl-git-status--start-spinner))
+      ;; Keep a rendered status on screen until its replacement is ready.
+      ;; Only a buffer with nothing rendered yet shows the loading line.
+      (unless xl-git-status--sections
+        (let ((inhibit-read-only t))
+          (erase-buffer))
+        (setq xl-git-status--sections nil
+              xl-git-status--overlays nil
+              buffer-read-only nil)
+        (xl-git-status--start-spinner))
+      (setq default-directory root))
     (display-buffer buffer)
     (xl-git-status--load buffer root)))
 

@@ -121,7 +121,8 @@
     (let ((end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
                       (buffer-local-value 'xl-git-status--queue buffer)
-                      (buffer-local-value 'xl-git-status--queue-process buffer))
+                      (buffer-local-value 'xl-git-status--queue-process buffer)
+                      (buffer-local-value 'xl-git-status--processes buffer))
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
     (should buffer-read-only)
@@ -737,6 +738,70 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
+(ert-deftest xl-git-status-refreshes-without-blanking ()
+  "A refresh keeps the old status on screen until the new one is ready."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (let ((before (buffer-string)))
+                ;; The load is stubbed, so only the buffer handling runs.
+                (cl-letf (((symbol-function 'xl-git-status--load)
+                           (lambda (&rest _) nil)))
+                  (xl-git-status))
+                (should (equal before (buffer-string)))
+                (should-not (string-match-p "Loading\\.\\.\\." (buffer-string)))
+                (should buffer-read-only)
+                (should (derived-mode-p 'xl-git-status-mode))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-says-refreshing-after-a-job ()
+  "The queue's loader keeps running under `Refreshing' while reloading."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (let ((before (buffer-string)))
+                (cl-letf (((symbol-function 'xl-git-status--load)
+                           (lambda (&rest _) nil)))
+                  (xl-git-status-stage)
+                  ;; Pretend the operation outlived the delay.
+                  (when (timerp xl-git-status--queue-timer)
+                    (cancel-timer xl-git-status--queue-timer)
+                    (setq xl-git-status--queue-timer nil))
+                  (xl-git-status--queue-spinner buffer)
+                  (let ((end (+ (float-time) 10)))
+                    (while (and (or xl-git-status--queue
+                                    xl-git-status--queue-process)
+                                (< (float-time) end))
+                      (accept-process-output nil 0.05)))
+                  (should (xl-spinner-running-p))
+                  (should (equal "Refreshing" xl-git-status--queue-action))
+                  (should (string-match-p " Refreshing"
+                                          (car mode-line-process)))
+                  ;; Nothing was blanked: the old status is still there.
+                  (should (equal before (buffer-string)))))
+              (xl-spinner-stop))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+
 (ert-deftest xl-git-status-keys ()
   "Folding, operations and RET are bound in the status mode and Evil."
   (dolist (spec '(("TAB" . xl-git-status-toggle)
@@ -893,13 +958,20 @@ The loader is visible while the queue runs."
               (beginning-of-line)
               (xl-git-status-stage)
               ;; The command returned with git still running: no blocking,
-              ;; and the header line says what is going on.
-              (should (xl-spinner-running-p))
+              ;; and no loader yet, because fast operations must not flicker.
               (should xl-git-status--queue-process)
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
-              (should (equal " [|] Staged file-0.txt"
-                             header-line-format))
+              (should-not (xl-spinner-running-p))
+              (should-not mode-line-process)
+              ;; Once it runs past the delay, the mode line says what runs.
+              (when (timerp xl-git-status--queue-timer)
+                (cancel-timer xl-git-status--queue-timer)
+                (setq xl-git-status--queue-timer nil))
+              (xl-git-status--queue-spinner buffer)
+              (should (xl-spinner-running-p))
+              (should (equal '(" [|] Staged file-0.txt")
+                             mode-line-process))
               (goto-char (point-min))
               (should (search-forward "modified   file-1.txt" nil t))
               (beginning-of-line)
@@ -966,18 +1038,25 @@ The loader is visible while the queue runs."
                                  (cdr (assoc "u" labels))))
                   ;; The transient map reads the very next key, here `p'.
                   (execute-kbd-macro (kbd "p"))
-                  ;; The push runs in the queue, with its destination in the
-                  ;; header line, and its frames advance.
+                  ;; The push runs in the queue; the mode line shows it only
+                  ;; when the operation outlives the delay.
                   (should (equal (format "Pushing %s to origin" branch)
                                  xl-git-status--queue-action))
-                  (should (equal (format " [|] Pushing %s to origin" branch)
-                                 header-line-format))
+                  (should-not (xl-spinner-running-p))
+                  (when (timerp xl-git-status--queue-timer)
+                    (cancel-timer xl-git-status--queue-timer)
+                    (setq xl-git-status--queue-timer nil))
+                  (xl-git-status--queue-spinner buffer)
+                  (should (equal (list (format " [|] Pushing %s to origin"
+                                               branch))
+                                 mode-line-process))
                   (xl-spinner-tick)
-                  (should (equal (format " [/] Pushing %s to origin" branch)
-                                 header-line-format)))))
+                  (should (equal (list (format " [/] Pushing %s to origin"
+                                               branch))
+                                 mode-line-process)))))
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
-              (should-not header-line-format))
+              (should-not mode-line-process))
             (should (equal (xl-test--git-output repo "rev-parse" branch)
                            (xl-test--git-output remote "rev-parse" branch)))
             ;; A third commit goes out through the upstream choice.
