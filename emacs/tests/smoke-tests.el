@@ -669,6 +669,30 @@ so only foo can be upgraded."
         (let ((expected (xl-test-listing-both-ways)))
           (should (equal (car expected) (xl-test-menu-state (current-buffer)))))))))
 
+(ert-deftest xl-package-menu-refresh-keeps-the-rows-on-screen ()
+  "A refresh appends the new rows and keeps point on its row, no duplicates."
+  (require 'package)
+  (xl-test-with-archive
+    (let ((package--initialized t)
+          (package-alist (xl-test-installed)))
+      (package-read-all-archive-contents)
+      (with-temp-buffer
+        (package-menu-mode)
+        (package-menu--generate nil t)
+        (xl-test-wait-for-listing (current-buffer))
+        (let ((count (count-lines (point-min) (point-max))))
+          (forward-line 3)
+          (let ((id (tabulated-list-get-id)))
+            (should id)
+            ;; The second listing starts while the first rows are on screen.
+            (package-menu--generate nil t)
+            (xl-test-wait-for-listing (current-buffer))
+            (should (equal id (tabulated-list-get-id)))
+            (should (= count (count-lines (point-min) (point-max))))
+            ;; The text is what a fresh listing shows.
+            (should (equal (car (car (xl-test-listing-both-ways)))
+                           (buffer-string)))))))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).

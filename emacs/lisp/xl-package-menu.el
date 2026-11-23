@@ -106,11 +106,22 @@ The list is in the same order, so rows that compare equal keep their order."
             (push pkg info-list)))))
     info-list))
 
+(defvar-local xl-package-menu--append-start nil
+  "Marker where the rows of the listing being printed begin.
+The rows before it are the ones on screen, which stay until the new ones
+are complete.")
+
 (defun xl-package-menu--cancel-listing ()
-  "Stop the listing of this Package Menu, if one runs."
+  "Stop the listing of this Package Menu, if one runs.
+The rows it has appended so far are taken out, so the old list stays whole."
   (when (timerp xl-package-menu--listing-timer)
     (cancel-timer xl-package-menu--listing-timer))
   (setq xl-package-menu--listing-timer nil)
+  (when (markerp xl-package-menu--append-start)
+    (let ((inhibit-read-only t))
+      (delete-region xl-package-menu--append-start (point-max)))
+    (set-marker xl-package-menu--append-start nil)
+    (setq xl-package-menu--append-start nil))
   (when xl-package-menu--listing-p
     (setq xl-package-menu--listing-p nil)
     (xl-spinner-mode-line-stop)))
@@ -120,10 +131,9 @@ The list is in the same order, so rows that compare equal keep their order."
   (and (buffer-live-p buffer)
        (= generation (buffer-local-value 'xl-package-menu--generation buffer))))
 
-(defun xl-package-menu--status-chunk (buffer generation todo done total id column)
+(defun xl-package-menu--status-chunk (buffer generation todo done total)
   "Compute the entries of TODO, a chunk at a time, into DONE.
-TOTAL is the number of packages, for the mode-line label.  ID and COLUMN
-are where point was when the listing started, if REMEMBER-POS was given."
+TOTAL is the number of packages, for the mode-line label."
   (when (xl-package-menu--current-p buffer generation)
     (with-current-buffer buffer
       (let ((n 0))
@@ -135,30 +145,32 @@ are where point was when the listing started, if REMEMBER-POS was given."
       (if todo
           (setq xl-package-menu--listing-timer
                 (run-with-timer 0 nil #'xl-package-menu--status-chunk
-                                buffer generation todo done total id column))
+                                buffer generation todo done total))
         (setq xl-package-menu--listing-timer nil)
-        (xl-package-menu--print-start buffer generation (nreverse done)
-                                      id column)))))
+        (xl-package-menu--print-start buffer generation (nreverse done))))))
 
-(defun xl-package-menu--print-start (buffer generation entries id column)
-  "Sort ENTRIES as the table does, clear the buffer and print them in chunks.
-ID and COLUMN are where point goes afterwards, if given."
+(defun xl-package-menu--print-start (buffer generation entries)
+  "Sort ENTRIES as the table does, then append them to BUFFER in chunks.
+The rows on screen stay where they are until the new ones are complete."
   (when (xl-package-menu--current-p buffer generation)
     (with-current-buffer buffer
       (let* ((sorter (tabulated-list--get-sorter))
              (sorted (if sorter (sort entries sorter) entries))
              (inhibit-read-only t))
         (setq tabulated-list-entries sorted)
-        (erase-buffer)
-        (unless tabulated-list-use-header-line
-          (tabulated-list-print-fake-header))
+        ;; Only the end of the buffer changes here, and point is put back,
+        ;; so the window does not move.
+        (save-excursion
+          (goto-char (point-max))
+          (setq xl-package-menu--append-start (copy-marker (point)))
+          (unless tabulated-list-use-header-line
+            (tabulated-list-print-fake-header)))
         (setq xl-package-menu--listing-timer
               (run-with-timer 0 nil #'xl-package-menu--print-chunk
-                              buffer generation sorter sorted id column))))))
+                              buffer generation sorter sorted))))))
 
-(defun xl-package-menu--print-chunk (buffer generation sorter rest id column)
-  "Print the next chunk of REST, the rows still to print.
-ID and COLUMN are where point was before the listing, to restore it."
+(defun xl-package-menu--print-chunk (buffer generation sorter rest)
+  "Append the next chunk of REST, the rows still to print."
   (when (xl-package-menu--current-p buffer generation)
     (with-current-buffer buffer
       (let ((inhibit-read-only t)
@@ -167,27 +179,59 @@ ID and COLUMN are where point was before the listing, to restore it."
         (while (and rest (< n xl-package-menu-row-chunk))
           (push (pop rest) chunk)
           (setq n (1+ n)))
-        (goto-char (point-max))
-        (tabulated-list-print-entries (nreverse chunk) sorter nil nil)
+        (save-excursion
+          (goto-char (point-max))
+          (tabulated-list-print-entries (nreverse chunk) sorter nil nil))
         (if rest
             (setq xl-package-menu--listing-timer
                   (run-with-timer 0 nil #'xl-package-menu--print-chunk
-                                  buffer generation sorter rest id column))
+                                  buffer generation sorter rest))
           (setq xl-package-menu--listing-timer nil)
-          (xl-package-menu--finish-listing id column))))))
+          (xl-package-menu--finish-listing buffer))))))
 
-(defun xl-package-menu--finish-listing (id column)
-  "End the listing: point goes to ID at COLUMN, or the top; clear the loader."
-  (set-buffer-modified-p nil)
-  (goto-char (point-min))
-  (when id
-    (while (and (not (eobp)) (not (equal (tabulated-list-get-id) id)))
-      (forward-line 1))
-    (unless (eobp)
-      (move-to-column column)))
-  (when (eobp) (goto-char (point-min)))
-  (setq xl-package-menu--listing-p nil)
-  (xl-spinner-mode-line-stop))
+(defun xl-package-menu--id-at (pos)
+  "Return the entry ID of the row at POS, or nil."
+  (save-excursion
+    (goto-char pos)
+    (tabulated-list-get-id)))
+
+(defun xl-package-menu--position-of (id)
+  "Return the start of the row whose entry ID is ID, or nil."
+  (save-excursion
+    (goto-char (point-min))
+    (let (found)
+      (while (and (not found) (not (eobp)))
+        (if (equal (tabulated-list-get-id) id)
+            (setq found (line-beginning-position))
+          (forward-line 1)))
+      found)))
+
+(defun xl-package-menu--finish-listing (buffer)
+  "Replace the old rows of BUFFER with the new ones, keeping the screen.
+The row at the top of the window and the row point is on stay where they
+were, found again by their entry IDs."
+  (with-current-buffer buffer
+    (let* ((inhibit-read-only t)
+           (win (get-buffer-window buffer t))
+           (top-id (and win (xl-package-menu--id-at (window-start win))))
+           (point-pos (if win (window-point win) (point)))
+           (point-id (xl-package-menu--id-at point-pos))
+           (point-col (save-excursion (goto-char point-pos) (current-column))))
+      (when (markerp xl-package-menu--append-start)
+        (delete-region (point-min) (marker-position xl-package-menu--append-start))
+        (set-marker xl-package-menu--append-start nil)
+        (setq xl-package-menu--append-start nil))
+      (let ((top (and top-id (xl-package-menu--position-of top-id)))
+            (at (and point-id (xl-package-menu--position-of point-id))))
+        (when win
+          (set-window-start win (or top (point-min)) t))
+        (goto-char (or at (point-min)))
+        (when at (move-to-column point-col))
+        (when win
+          (set-window-point win (point))))
+      (set-buffer-modified-p nil)
+      (setq xl-package-menu--listing-p nil)
+      (xl-spinner-mode-line-stop))))
 
 (defcustom xl-package-menu-archive-chunk 500
   "Archive entries merged into the package list between two redraws."
@@ -236,7 +280,7 @@ what `package-read-all-archive-contents' does, split up."
       (setq xl-package-menu--listing-timer nil)
       (funcall continue)))))
 
-(defun xl-package-menu--begin (buffer generation id column)
+(defun xl-package-menu--begin (buffer generation)
   "List the packages of BUFFER, now that the archives are merged."
   (when (xl-package-menu--current-p buffer generation)
     (with-current-buffer buffer
@@ -244,20 +288,19 @@ what `package-read-all-archive-contents' does, split up."
         (setf (car (aref tabulated-list-format 0)) "Package")
         (tabulated-list-init-header)
         (xl-package-menu--status-chunk buffer generation infos nil
-                                       (length infos) id column)))))
+                                       (length infos))))))
 
 (defun xl-package-menu--generate-around (orig remember-pos &optional packages keywords)
   "List the packages in chunks; ORIG is `package-menu--generate'.
 Only the full listing is chunked: a keyword filter or a list of packages
-goes to package.el's function."
+goes to package.el's function.  REMEMBER-POS is not needed here: the
+rows on screen always stay where they are, while the new ones are printed."
   (if (not (and (or (null packages) (eq packages t)) (null keywords)))
       (funcall orig remember-pos packages keywords)
     (xl-package-menu--cancel-listing)
     (setq xl-package-menu--generation (1+ xl-package-menu--generation))
-    (let* ((generation xl-package-menu--generation)
-           (buffer (current-buffer))
-           (id (and remember-pos (tabulated-list-get-id)))
-           (column (current-column)))
+    (let ((generation xl-package-menu--generation)
+          (buffer (current-buffer)))
       (setq xl-package-menu--listing-p t)
       (xl-spinner-mode-line-start "Listing packages")
       (if (xl-package-menu--archives-stale-p)
@@ -266,8 +309,8 @@ goes to package.el's function."
                   package--old-archive-priorities package-archive-priorities)
             (xl-package-menu--read-archives
              buffer generation package-archives nil
-             (lambda () (xl-package-menu--begin buffer generation id column))))
-        (xl-package-menu--begin buffer generation id column)))))
+             (lambda () (xl-package-menu--begin buffer generation))))
+        (xl-package-menu--begin buffer generation)))))
 
 (advice-add 'package-menu--generate :around #'xl-package-menu--generate-around)
 
