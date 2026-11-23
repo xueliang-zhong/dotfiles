@@ -509,6 +509,9 @@ line can be switched off without deleting it."
 
   ;; org-babel improvements
   (org-babel-do-load-languages 'org-babel-load-languages '((shell . t)))
+  ;; shell blocks run in the background unless a block says `:async no'
+  (setq org-babel-default-header-args:bash '((:async . "yes"))
+        org-babel-default-header-args:sh   '((:async . "yes")))
   ;; better org-mode CMD key behaviour on MacOS
   (define-keymap :keymap org-mode-map
     "s-<right>"  #'org-metaright

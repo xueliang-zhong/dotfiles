@@ -879,16 +879,48 @@ HEADER is added to the block's header line.  Point is in the block."
       (kill-buffer buffer))))
 
 (ert-deftest xl-org-babel-async-sessions-and-plain-blocks-stay-synchronous ()
-  "Without `:async yes', or with a `:session', a block runs as org-babel does."
+  "Without `:async yes' (and no default), or with a `:session', a block runs as org-babel does."
   (skip-unless (executable-find "bash"))
-  (dolist (header '(":results output" ":async yes :session s"))
-    (let ((buffer (xl-test-org-buffer "echo done" header)))
+  (let ((org-babel-default-header-args:bash nil)
+        (org-babel-default-header-args:sh nil))
+    (dolist (header '(":results output" ":async yes :session s"))
+      (let ((buffer (xl-test-org-buffer "echo done" header)))
+        (unwind-protect
+            (with-current-buffer buffer
+              (org-babel-execute-src-block)
+              (should-not xl-org-babel--runs)
+              (should-not (string-match-p "running…" (xl-test-org-text buffer)))
+              (should (string-match-p "done" (xl-test-org-text buffer))))
+          (kill-buffer buffer))))))
+
+(ert-deftest xl-org-babel-async-falls-back-silently-for-other-results ()
+  "With the default on, blocks that are not output, or have a session, run as before."
+  (skip-unless (executable-find "bash"))
+  (let ((org-babel-default-header-args:bash '((:async . "yes")))
+        messages)
+    (cl-letf (((symbol-function 'message)
+               (lambda (fmt &rest args) (push (apply #'format fmt args) messages))))
+      (dolist (header '(":results value" ":results silent" ":session s" ":results output file"))
+        (let ((buffer (xl-test-org-buffer "echo done" header)))
+          (unwind-protect
+              (with-current-buffer buffer
+                (org-babel-execute-src-block)
+                (should-not xl-org-babel--runs))
+            (kill-buffer buffer)))))
+    ;; org prints the results of the blocks that ran as before; we print nothing.
+    (should-not (cl-some (lambda (m) (string-match-p "async\\|session" m)) messages))))
+
+(ert-deftest xl-org-babel-async-default-header-makes-blocks-async ()
+  "With `:async yes' as the default header, a plain bash block runs in the background."
+  (skip-unless (executable-find "bash"))
+  (let ((org-babel-default-header-args:bash '((:async . "yes"))))
+    (let ((buffer (xl-test-org-buffer "sleep 0.3; echo later" ":results output")))
       (unwind-protect
           (with-current-buffer buffer
             (org-babel-execute-src-block)
-            (should-not xl-org-babel--runs)
-            (should-not (string-match-p "running…" (xl-test-org-text buffer)))
-            (should (string-match-p "done" (xl-test-org-text buffer))))
+            (should (= 1 (length xl-org-babel--runs)))
+            (xl-test-org-wait buffer)
+            (should (string-match-p "later" (xl-test-org-text buffer))))
         (kill-buffer buffer)))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()

@@ -255,15 +255,25 @@ The `#+RESULTS:' line is made if the block has none."
 
 (defun xl-org-babel--async-p (lang params)
   "Return non-nil when the block with LANG and PARAMS runs asynchronously.
-A block with `:async yes' and a `:session' runs as usual, with a message."
+Only a block with `:async yes' whose results are its output can run in
+the background.  Any other block runs as org-babel does, without a word:
+a `:session', or `:results' that are not output (value, file, silent,
+...), since the background path writes output only.  A block without
+`:results' counts as output when `org-babel-shell-results-defaults-to-output'."
   (and (member lang xl-org-babel-async-languages)
        (equal (cdr (assq :async params)) "yes")
-       (let ((session (cdr (assq :session params))))
-         (or (null session)
-             (equal session "none")
-             (progn
-               (message "`:session' blocks run synchronously; `:async' ignored")
-               nil)))))
+       (let* ((session (cdr (assq :session params)))
+              ;; org always fills in `:results replace'; placement words say
+              ;; where results go, not what they are.
+              (kinds (seq-remove (lambda (word)
+                                   (member word '("replace" "append" "prepend")))
+                                 (split-string (or (cdr (assq :results params)) "")
+                                               "[ \t]+" t))))
+         (and (or (null session) (equal session "none"))
+              (if kinds
+                  (and (member "output" kinds)
+                       (not (member "file" kinds)))
+                (bound-and-true-p org-babel-shell-results-defaults-to-output))))))
 
 (defun xl-org-babel--execute-around (orig &optional arg info params executor-type)
   "Run the block asynchronously when it asks for it; else ORIG.
