@@ -1024,6 +1024,8 @@ The other TAB command would insert two spaces, so it delegates to
                   ("X" . xl-git-status-discard)
                   ("S" . xl-git-status-stage-all)
                   ("U" . xl-git-status-unstage-all)
+                  ("f" . xl-git-status-fetch)
+                  ("F" . xl-git-status-pull)
                   ("RET" . xl-git-status-visit)))
     (should (eq (keymap-lookup xl-git-status-mode-map (car spec))
                 (cdr spec))))
@@ -1591,6 +1593,95 @@ The loader is visible while the queue runs."
               ;; Staging a hunk touches the index, not the working tree.
               (should (string-match-p "changed 1\\b" worktree))
               (should (string-match-p "changed 18" worktree)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(defun xl-test--remote-with-peer ()
+  "Return (REPO . PEER) sharing a bare remote; REPO tracks it, PEER pushes.
+PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
+  (let* ((remote (make-temp-file "xl-test-remote-" t))
+         (repo (xl-test--git-repo))
+         (peer (make-temp-file "xl-test-peer-" t))
+         (branch (xl-test--git-output repo "rev-parse" "--abbrev-ref" "HEAD")))
+    (cl-flet ((git (dir &rest args)
+                (should (zerop (apply #'call-process "git" nil nil nil
+                                      "-C" dir
+                                      "-c" "user.email=test@example.com"
+                                      "-c" "user.name=Test" args)))))
+      (git remote "init" "--bare" "-q")
+      (git repo "remote" "add" "origin" remote)
+      (git repo "push" "-q" "-u" "origin" branch)
+      ;; The peer clones the remote and pushes one more commit.
+      (git peer "clone" "-q" remote ".")
+      (with-temp-file (expand-file-name "peer.txt" peer) (insert "peer\n"))
+      (git peer "add" "peer.txt")
+      (git peer "commit" "-qm" "from the peer")
+      (git peer "push" "-q" "origin" branch))
+    (cons repo peer)))
+
+(ert-deftest xl-git-status-fetch-updates-the-remote-branch ()
+  "`f' fetches the upstream: the remote-tracking ref moves, the branch does not."
+  (skip-unless (executable-find "git"))
+  (let* ((pair (xl-test--remote-with-peer))
+         (repo (car pair))
+         (before (xl-test--git-output repo "rev-parse" "HEAD"))
+         (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (xl-git-status-fetch)
+              (should (xl-async-queue-busy-p 'queue)))
+            (xl-test--wait-for-git-status buffer)
+            ;; The branch stays where it was; only origin/<branch> moved.
+            (should (equal before (xl-test--git-output repo "rev-parse" "HEAD")))
+            (should-not (equal before
+                               (xl-test--git-output repo "rev-parse" "@{u}")))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t)
+      (delete-directory (cdr pair) t))))
+
+(ert-deftest xl-git-status-pull-fast-forwards-the-branch ()
+  "`F' fast-forwards the branch to its upstream and refreshes the status."
+  (skip-unless (executable-find "git"))
+  (let* ((pair (xl-test--remote-with-peer))
+         (repo (car pair))
+         (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            ;; The peer's commit only adds peer.txt, so the local edits to
+            ;; file-N.txt do not get in the way of a fast-forward.
+            (with-current-buffer buffer
+              (xl-git-status-pull))
+            (xl-test--wait-for-git-status buffer)
+            (should (equal (xl-test--git-output repo "rev-parse" "HEAD")
+                           (xl-test--git-output repo "rev-parse" "@{u}")))
+            (should (file-exists-p (expand-file-name "peer.txt" repo)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t)
+      (delete-directory (cdr pair) t))))
+
+(ert-deftest xl-git-status-pull-refuses-without-an-upstream ()
+  "`F' on a branch with no upstream says so, instead of running git."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (should-error (xl-git-status-pull) :type 'user-error)
+              (should-not (xl-async-queue-busy-p 'queue)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 

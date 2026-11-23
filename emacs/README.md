@@ -282,6 +282,7 @@ bash emacs/install/emacs-setup.sh check
 | 静默刷新 | 已有内容时刷新（`g`）不清空 buffer、不出现 `Loading...`；本地的 `s` 不显示 loader（超过延迟才出现）；一个慢任务结束后 mode line 最左边变成 `Refreshing` 且旧内容还在，渲染完成才替换 |
 | Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；字体或终端画不了圆点时退回 ASCII；mode line 槽位在延迟内结束就完全不出现、出现后留够最短时间、换标签不变窄、错误文本立即替换并转义 `%`；着色按比例混色 |
 | Commit 视图 | 打开时已有 spinner 和「Loading...」、还没有 diff；`git show` 返回后 spinner 消失、diff 就位 |
+| 远端同步 | `f` 在队列里 `git fetch` 上游的 remote，mode line 显示 `Fetching from origin`，完成后 status 重新渲染，远端分支的变化可见；`F` 执行 `git pull --ff-only`，没有 upstream 时直接报错，不分叉、不弹合并编辑器；分叉时 git 的错误显示在 echo area |
 | 写操作队列 | 连按两次 `s` 时命令立即返回、loader 在跑、动作写在 mode line 最左边；push 菜单由 `set-transient-map` 立即弹出、标签带目标 ref，选 push remote / upstream / elsewhere 后立即返回并一直转 spinner；排空后两个文件都进了索引；没有 HEAD 的仓库能 `u` |
 | 光标保持 | 暂存文件后光标留在同一文件（已到 Staged changes），取消暂存再跟回来；暂存 hunk 后光标落在 staged 的同一行，并展开目标文件 diff；丢弃后落在最近的标题 |
 | Dired / Eshell | `-alh`、`TAB` 预览、`h/l/RET`；eshell 的插入态键位和 `eshell/e` 等别名 |

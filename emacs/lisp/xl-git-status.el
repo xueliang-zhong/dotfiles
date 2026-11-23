@@ -876,6 +876,38 @@ This is `e' in the push menu, Magit's plain `Push elsewhere'."
              :action (format "Pushed %s to %s/%s" branch remote target)
              :progress (format "Pushing to %s/%s" remote target))))))
 
+(defun xl-git-status-fetch ()
+  "Fetch from the upstream's remote, or from the default remote.
+This is `f'.  The fetch joins the operation queue, so the mode line
+shows a loader while git talks to the remote, and the status refreshes
+once it is done: new remote branches show up in the Head line."
+  (interactive)
+  (let* ((parts (xl-git-status--upstream-parts))
+         (remote (car-safe parts)))
+    (xl-git-status--enqueue
+     (list :root default-directory
+           :attempts (list (if remote (list "fetch" remote) '("fetch")))
+           :action (if remote (format "Fetched %s" remote) "Fetched")
+           :progress (if remote
+                         (format "Fetching from %s" remote)
+                       "Fetching")))))
+
+(defun xl-git-status-pull ()
+  "Fast-forward the current branch from its upstream, in the background.
+This is `F'.  It only fast-forwards (`--ff-only'): a diverged branch
+fails with git's message instead of opening a merge editor the
+background process cannot show, or creating a merge commit unasked."
+  (interactive)
+  (let* ((branch (xl-git-status--push-branch))
+         (upstream xl-git-status--head-upstream))
+    (unless upstream
+      (user-error "No upstream to pull %s from" branch))
+    (xl-git-status--enqueue
+     (list :root default-directory
+           :attempts (list (list "pull" "--ff-only"))
+           :action (format "Pulled %s" upstream)
+           :progress (format "Pulling from %s" upstream)))))
+
 (defun xl-git-status--push-menu (push upstream)
   "Return a push destination keymap.
 PUSH and UPSTREAM are the refs the menu shows next to `p' and `u'."
@@ -1195,6 +1227,8 @@ starts four processes instead of over fifty."
   "U" #'xl-git-status-unstage-all
   "P" #'xl-git-status-push
   "p" #'xl-git-status-push
+  "f" #'xl-git-status-fetch
+  "F" #'xl-git-status-pull
   "RET" #'xl-git-status-visit
   "<return>" #'xl-git-status-visit)
 
@@ -1273,6 +1307,9 @@ or shows the commit at point."
     "U" #'xl-git-status-unstage-all
     "P" #'xl-git-status-push
     "p" #'xl-git-status-push
+    ;; Evil's `f' and `F' find a character; the status buffer has none.
+    "f" #'xl-git-status-fetch
+    "F" #'xl-git-status-pull
     (kbd "RET") #'xl-git-status-visit
     (kbd "<return>") #'xl-git-status-visit))
 
