@@ -814,6 +814,67 @@ The other TAB command would insert two spaces, so it delegates to
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
+(ert-deftest xl-git-status-keeps-point-on-a-staged-file ()
+  "`s' leaves point on the file, which now sits under Staged changes."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (should (search-forward "modified   file-0.txt" nil t))
+              (beginning-of-line)
+              (xl-git-status-stage)
+              (xl-test--wait-for-git-status buffer)
+              ;; The refresh moved the file, not point: same path, now staged.
+              (should (looking-at "modified +file-0\\.txt"))
+              (should (eq (plist-get (xl-git-status--section-at-point) :status)
+                          'staged))
+              ;; Unstaging brings point back with the file.
+              (xl-git-status-unstage)
+              (xl-test--wait-for-git-status buffer)
+              (should (looking-at "modified +file-0\\.txt"))
+              (should (eq (plist-get (xl-git-status--section-at-point) :status)
+                          'unstaged)))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+(ert-deftest xl-git-status-keeps-point-on-a-staged-hunk ()
+  "`s' on a hunk follows the hunk into Staged changes.
+The staged file diff is unfolded so the restored line is visible."
+  (skip-unless (executable-find "git"))
+  (let ((repo (xl-test--git-repo-hunks))
+        (buffer nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'display-buffer)
+                   (lambda (b &rest _) (setq buffer b) b)))
+          (let ((default-directory (file-name-as-directory repo)))
+            (xl-git-status)
+            (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (goto-char (point-min))
+              (should (search-forward "file.txt" nil t))
+              (beginning-of-line)
+              ;; File diffs start folded, so unfold this one to reach a hunk.
+              (xl-git-status-toggle)
+              (should (search-forward "+changed 1" nil t))
+              (beginning-of-line)
+              (xl-git-status-stage)
+              (xl-test--wait-for-git-status buffer)
+              ;; Same line of the same hunk, now under Staged changes.
+              (should (looking-at "\\+changed 1"))
+              (should (eq (plist-get (xl-git-status--section-at-point) :status)
+                          'staged))
+              (should-not (invisible-p (point))))))
+      (when (buffer-live-p buffer) (kill-buffer buffer))
+      (delete-directory repo t))))
+
+
 (ert-deftest xl-git-status-queues-operations-in-order ()
   "Rapid `s' presses run one git command at a time, then refresh once.
 The loader is visible while the queue runs."

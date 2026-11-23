@@ -100,7 +100,9 @@ label while it runs, defaulting to :action) and, for `git apply',
 Each plist has :key, :kind (`section', `file' or `hunk'), :status
 \(`untracked', `unstaged', `staged' or `log'), :heading-start,
 :content-start and :content-end.  File sections add :path; hunk
-sections add :patch; change sections add :files.")
+sections add :patch and :hunk-text (the hunk without the diff
+header, used to follow a hunk across sections); change sections
+add :files.")
 
 (defvar-local xl-git-status--overlays nil
   "Invisibility overlays that fold sections in this buffer.")
@@ -110,8 +112,12 @@ sections add :patch; change sections add :files.")
 Sections missing from it use their default: foldable headings and
 hunks start unfolded, file diffs start folded.")
 
-(defvar-local xl-git-status--restore-key nil
-  "Section key to return to after the next render.")
+(defvar-local xl-git-status--restore-section nil
+  "Section to return to after the next render, or nil.
+It is the section at point when a refresh starts, with :heading-line
+added (the line number before the buffer is emptied) and
+:point-offset (the distance into the section when point was inside
+it rather than on its heading).")
 
 (defvar-local xl-git-status--head-branch nil
   "Branch of the last render, or nil for a detached HEAD.")
@@ -285,6 +291,7 @@ The file name already appears on the section line, so drop the
                                 :status status
                                 :path path
                                 :patch patch
+                                :hunk-text (mapconcat #'identity hunk "\n")
                                 :heading-start (point))))
             (insert (propertize (concat (car hunk) "\n")
                                 'face 'xl-git-status-hunk-heading))
@@ -437,15 +444,90 @@ diff text."
     (xl-git-status--apply-folds)
     (xl-git-status--move-out-of-hidden)))
 
+(defun xl-git-status--save-point ()
+  "Remember the section at point for the next render."
+  (let* ((section (xl-git-status--section-at-point))
+         (content (plist-get section :content-start)))
+    (setq xl-git-status--restore-section
+          (when section
+            (append section
+                    (list :heading-line
+                          (line-number-at-pos
+                           (plist-get section :heading-start))
+                          :point-offset
+                          (when (and content (>= (point) content))
+                            (- (point) content))))))))
+
+(defun xl-git-status--nearest-section (line)
+  "Return the section whose heading line is closest to LINE."
+  (let (best distance)
+    (dolist (section xl-git-status--sections best)
+      (let ((current (line-number-at-pos (plist-get section :heading-start))))
+        (when (or (null best) (< (abs (- current line)) distance))
+          (setq best section
+                distance (abs (- current line))))))))
+
+(defun xl-git-status--matching-section (old)
+  "Return the section that replaces OLD after a render, or nil.
+A hunk is followed by its text, because staging or unstaging moves
+it to the other change section and renumbers the hunks there.  A
+file is followed by its path, because the part that changes is its
+status.  Anything else falls back to the heading closest to where
+OLD was."
+  (let ((kind (plist-get old :kind)))
+    (or (if (eq kind 'hunk)
+            (seq-find (lambda (section)
+                        (and (eq (plist-get section :kind) 'hunk)
+                             (equal (plist-get section :path)
+                                    (plist-get old :path))
+                             (equal (plist-get section :hunk-text)
+                                    (plist-get old :hunk-text))))
+                      xl-git-status--sections)
+          (seq-find (lambda (section)
+                      (equal (plist-get section :key)
+                             (plist-get old :key)))
+                    xl-git-status--sections))
+        (when (eq kind 'file)
+          (seq-find (lambda (section)
+                      (and (eq (plist-get section :kind) 'file)
+                           (equal (plist-get section :path)
+                                  (plist-get old :path))))
+                    xl-git-status--sections))
+        (xl-git-status--nearest-section (plist-get old :heading-line)))))
+
+(defun xl-git-status--reveal (position)
+  "Unfold the sections that hide POSITION, so point can go there."
+  (let (changed)
+    (dolist (section xl-git-status--sections)
+      (when (and (plist-get section :content-start)
+                 (<= (plist-get section :content-start) position)
+                 (< position (plist-get section :content-end))
+                 (not (xl-git-status--expanded-p section)))
+        (puthash (plist-get section :key) t xl-git-status--expanded)
+        (setq changed t)))
+    (when changed
+      (xl-git-status--apply-folds))))
+
+(defun xl-git-status--restore-target (section old)
+  "Return the position in SECTION that corresponds to OLD."
+  (let ((offset (plist-get old :point-offset))
+        (start (plist-get section :content-start)))
+    (if (and offset start)
+        ;; Same line inside the section, when the new content still has it.
+        (min (+ start offset) (max start (1- (plist-get section :content-end))))
+      (plist-get section :heading-start))))
+
 (defun xl-git-status--restore-point ()
   "Move point back to the section marked for restore, else to the start."
-  (let* ((key xl-git-status--restore-key)
-         (section (and key
-                       (seq-find (lambda (section)
-                                   (equal key (plist-get section :key)))
-                                 xl-git-status--sections)))
-         (target (if section (plist-get section :heading-start) (point-min))))
-    (setq xl-git-status--restore-key nil)
+  (let* ((old xl-git-status--restore-section)
+         (section (and old (xl-git-status--matching-section old)))
+         (target (if section
+                     (xl-git-status--restore-target section old)
+                   (point-min))))
+    (setq xl-git-status--restore-section nil)
+    ;; Staging a hunk moves it into a file diff that starts folded.
+    (when (invisible-p target)
+      (xl-git-status--reveal target))
     (goto-char target)
     (dolist (window (get-buffer-window-list (current-buffer) nil t))
       (set-window-point window target))))
@@ -1220,8 +1302,7 @@ or shows the commit at point."
       (unless (derived-mode-p 'xl-git-status-mode)
         (xl-git-status-mode))
       (add-hook 'kill-buffer-hook #'xl-git-status--queue-teardown nil t)
-      (setq xl-git-status--restore-key
-            (plist-get (xl-git-status--section-at-point) :key))
+      (xl-git-status--save-point)
       ;; A refresh replaces the previous run instead of racing it.
       (dolist (proc xl-git-status--processes)
         (when (process-live-p proc) (delete-process proc)))
