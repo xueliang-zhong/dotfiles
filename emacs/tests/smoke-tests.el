@@ -816,6 +816,43 @@ HEADER is added to the block's header line.  Point is in the block."
             (should (string-match-p "^: late$" (xl-test-org-text buffer)))))
       (kill-buffer buffer))))
 
+(ert-deftest xl-org-babel-async-mode-line-counts-running-blocks ()
+  "The mode line says how many blocks run in the background, then clears."
+  (skip-unless (executable-find "bash"))
+  (require 'org)
+  (require 'ob-shell)
+  (let* ((org-confirm-babel-evaluate nil)
+         (dir (make-temp-file "xl-test-org-" t))
+         (buffer (find-file-noselect (expand-file-name "two.org" dir))))
+    (unwind-protect
+        (with-current-buffer buffer
+          (erase-buffer)
+          (insert "#+begin_src bash :async yes\nsleep 0.6; echo one\n#+end_src\n\n"
+                  "#+begin_src bash :async yes\nsleep 0.6; echo two\n#+end_src\n")
+          (org-mode)
+          (goto-char (point-min))
+          (forward-line 1)
+          (org-babel-execute-src-block)
+          ;; The slot is at the left edge of this buffer's mode line.
+          (should (equal '(:eval xl-spinner-mode-line) (car mode-line-format)))
+          (should (string-match-p "1 block running" xl-spinner-mode-line))
+          (goto-char (point-min))
+          (re-search-forward "echo two")
+          (org-babel-execute-src-block)
+          (should (string-match-p "2 blocks running" xl-spinner-mode-line))
+          ;; The overlays still animate: one clock draws both.
+          (let ((overlay (xl-org-babel-run-overlay (car xl-org-babel--runs))))
+            (let ((before (overlay-get overlay 'display)))
+              (xl-spinner-tick (current-buffer))
+              (should-not (equal before (overlay-get overlay 'display)))))
+          (xl-test-org-wait buffer)
+          (should-not xl-spinner-mode-line)
+          (should-not (xl-spinner-running-p))
+          (should (string-match-p "^: one$" (xl-test-org-text buffer)))
+          (should (string-match-p "^: two$" (xl-test-org-text buffer))))
+      (with-current-buffer buffer (set-buffer-modified-p nil))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-org-babel-async-returns-at-once-and-fills-results ()
   "An `:async yes' block returns before it ends; its results come after."
   (skip-unless (executable-find "bash"))

@@ -139,16 +139,28 @@ The `#+RESULTS:' line is made if the block has none."
                   (and h (= (marker-position h) head))))
               xl-org-babel--runs))
 
+(defun xl-org-babel--mode-line-text (frame count)
+  "Return the mode-line text for COUNT running blocks, drawn with FRAME."
+  (format " %s %s " frame
+          (if (= count 1) "1 block running" (format "%d blocks running" count))))
+
 (defun xl-org-babel--spinner-frame (frame)
-  "Show FRAME on the spinner overlay of every running block of this buffer.
-A nil FRAME, sent when the spinner stops, removes the overlays."
+  "Show FRAME on every running block of this buffer and in its mode line.
+Each block's #+RESULTS: line has an overlay for it; the mode line uses
+the `xl-spinner' slot at its left edge, so a buffer with blocks running in
+the background says so even when the blocks are off screen.  A nil FRAME,
+sent when the spinner stops, removes the overlays and empties the slot."
   (dolist (run xl-org-babel--runs)
     (let ((overlay (xl-org-babel-run-overlay run)))
       (when (overlayp overlay)
         (if frame
             (overlay-put overlay 'display
                          (concat frame " running… (C-c C-k cancels)"))
-          (delete-overlay overlay))))))
+          (delete-overlay overlay)))))
+  (setq xl-spinner-mode-line
+        (and frame xl-org-babel--runs
+             (xl-org-babel--mode-line-text frame (length xl-org-babel--runs))))
+  (force-mode-line-update))
 
 (defun xl-org-babel--forget (run)
   "Stop the timer of RUN, remove its overlay, and drop it from the running blocks.
@@ -264,7 +276,11 @@ The buffer's spinner stops with its last running block."
              (header-end (save-excursion (goto-char header) (line-end-position))))
         (setf (xl-org-babel-run-overlay run) (make-overlay header header-end)))
       (push run xl-org-babel--runs)
-      (unless (xl-spinner-running-p)
+      ;; One clock draws both the overlays and the mode line: a second
+      ;; `xl-spinner' in this buffer would stop the first.
+      (xl-spinner-mode-line-install)
+      (if (xl-spinner-running-p)
+          (xl-org-babel--spinner-frame (xl-spinner-current-frame))
         (xl-spinner-start #'xl-org-babel--spinner-frame))
       (xl-async-run
        :name "xl-org-babel"

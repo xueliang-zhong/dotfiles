@@ -177,6 +177,8 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 
 结果位置用 marker 记住，运行时在上方增删文字不会放错；块被删掉时，结果只留在输出 buffer。`C-c C-k` 取消光标所在的块（保留已经输出的内容）；同一个块再次运行时，取消仍在运行的那次。`:timeout 秒数` 超时后停止进程。
 
+运行中的块在 `#+RESULTS:` 行上显示 spinner（overlay，不改文件）；buffer 的 mode line 最左边同时显示 `●·· 2 blocks running`，块不在屏幕上时也能一眼看出这个 buffer 有后台任务。两处由同一个 spinner 时钟绘制。
+
 块之间是并行的，不排队：彼此依赖的块需要自己按顺序执行。
 
 `lisp/xl-async.el` 为此新增了 `:on-output`（每次有输出就回调一次）和 `:timeout`（超时后杀掉进程，退出码为 124，和 coreutils `timeout` 一致）。
