@@ -260,7 +260,9 @@ Keys: :label, :width (the widest label of this busy period), :limit,
                     ;; The slot is a mode line construct: `%' is a directive.
                     (string-replace "%" "%%" label)
                     (make-string (- width (string-width label)) ?\s)
-                    " "))))
+                    " ")))
+    (when-let* ((also (plist-get xl-spinner--slot :also)))
+      (funcall also frame)))
   (force-mode-line-update))
 
 (defun xl-spinner--tint-color (face)
@@ -308,6 +310,10 @@ Keys: :label, :width (the widest label of this busy period), :limit,
           (let ((timer (plist-get xl-spinner--slot key)))
             (when (timerp timer) (cancel-timer timer))))
         (xl-spinner--tint-off)
+        ;; The extra drawing goes with the slot: tell it before the slot,
+        ;; and with it the function, is forgotten.
+        (when-let* ((also (plist-get xl-spinner--slot :also)))
+          (funcall also nil))
         ;; Only a loader that appeared owns the clock; one still waiting
         ;; must not stop another loader of this buffer.
         (let ((shown (plist-get xl-spinner--slot :shown-at)))
@@ -322,17 +328,24 @@ It appears after `xl-spinner-show-delay'.  Starting while a loader
 runs, or while it lingers for `xl-spinner-min-duration', only changes
 its label, so back-to-back operations keep one steady loader.  ARGS
 may give :limit, the most frames to run, for work that might never
-report its end."
+report its end, and :also, a function called with each frame drawn in
+the slot, and with nil when the slot empties.  It draws the same loader
+somewhere else in the buffer, on the slot's clock: a second spinner in
+this buffer would stop the first."
   (xl-spinner-mode-line-install)
   (if xl-spinner--slot
       (let ((timer (plist-get xl-spinner--slot :hide-timer)))
         (when (timerp timer) (cancel-timer timer))
         (setq xl-spinner--slot (plist-put xl-spinner--slot :hide-timer nil))
+        (when (plist-member args :also)
+          (setq xl-spinner--slot
+                (plist-put xl-spinner--slot :also (plist-get args :also))))
         (xl-spinner-mode-line-label label))
     ;; A message left by the last stop (an error) goes with the new work.
     (setq xl-spinner-mode-line nil)
     (setq xl-spinner--slot (list :label label :width 0
-                                 :limit (plist-get args :limit)))
+                                 :limit (plist-get args :limit)
+                                 :also (plist-get args :also)))
     (if (<= xl-spinner-show-delay 0)
         (xl-spinner--slot-show (current-buffer))
       (setq xl-spinner--slot

@@ -122,7 +122,7 @@ status 窗口可见时，工作区变化会自动刷新，不用按 `g`。用 `f
 vim-fugitive 风格的命令，都定义在这个文件里：
 
 - `Gstatus`（`:Gstatus`）：打开 `lisp/xl-git-status.el` 的 status buffer。
-- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），mode line 最左边转 spinner（窗口很窄，header line 会占行，放在 mode line 左边才不会被截掉），数据到了就替换；失败时错误也写在那里，不会挤掉占位行；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
+- `Gblame`（`SPC g b`，或 `:Gblame`）：在当前文件左侧打开 blame 栏，每个源码行对应一行 commit、作者和日期，不同 commit 的 hash 用不同颜色区分（未提交的行保持暗色），跟随源码窗口滚动并高亮光标所在行；它是普通窗口，`C-w C-w` 可以切换过去，`:only`、`C-w c`、`:x` 也能关掉。`git blame` 在后台跑：窗口立刻打开，先铺好与源码行数相同的占位行（滚动和光标依然对齐），mode line 最左边转 spinner（窗口很窄，header line 会占行，放在 mode line 左边才不会被截掉）；第一次打开、窗口还是空白时，窗口正中间也显示同一个 spinner（零宽 overlay 的 `before-string`，不插入行，占位行仍与源码对齐，两处由同一个时钟绘制）；数据到了就替换，中间的 spinner 立即消失；失败时错误也写在那里，不会挤掉占位行；保存后的刷新也保留旧内容，不会闪。`RET` 查看该行 commit，`g` 刷新，`q` 关闭。
 - `Gwrite`（`:Gwrite`）：暂存当前文件。
 - `Gcommit`（`:Gcommit`）：用 `Update <文件名>` 提交当前文件。
 

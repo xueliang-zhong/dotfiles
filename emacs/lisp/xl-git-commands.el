@@ -56,11 +56,41 @@
 (defvar-local xl-gblame--highlight nil
   "Overlay marking the source line in this GBlame buffer.")
 
+(defvar-local xl-gblame--blank nil
+  "Non-nil while this GBlame buffer holds only placeholder lines.")
+
+(defvar-local xl-gblame--center nil
+  "Overlay drawing the loader in the middle of a blank GBlame window.")
+
+(defun xl-gblame--draw-center (frame)
+  "Draw FRAME in the middle of this GBlame window while it is blank.
+nil, or a buffer that already shows blame, removes it.  The loader is a
+`before-string' on an empty placeholder line, so no line is added and
+the window stays aligned with the source file."
+  (if (not (and frame xl-gblame--blank))
+      (when (overlayp xl-gblame--center)
+        (delete-overlay xl-gblame--center)
+        (setq xl-gblame--center nil))
+    (when-let* ((window (get-buffer-window (current-buffer) t)))
+      (let* ((text (concat frame "  git blame…"))
+             (pad (max 0 (/ (- (window-body-width window) (string-width text)) 2)))
+             (pos (save-excursion
+                    (goto-char (window-start window))
+                    (forward-line (/ (window-body-height window) 2))
+                    (line-beginning-position))))
+        (unless (overlayp xl-gblame--center)
+          (setq xl-gblame--center (make-overlay pos pos)))
+        (move-overlay xl-gblame--center pos pos)
+        (overlay-put xl-gblame--center 'before-string
+                     (concat (make-string pad ?\s) text))))))
+
 (defun xl-gblame--start-spinner ()
   "Show the loader in this GBlame buffer's mode-line slot.
 The blame window is narrow, so the loader sits at the left edge of the
-mode line, which is not truncated.  It runs until the blame answers."
-  (xl-spinner-mode-line-start "git blame"))
+mode line, which is not truncated.  It runs until the blame answers.
+While the window is still blank, the same frames are drawn in its middle
+too, on the slot's clock."
+  (xl-spinner-mode-line-start "git blame" :also #'xl-gblame--draw-center))
 
 (defun xl-gblame--stop-spinner ()
   "End the loader in this GBlame buffer's mode-line slot."
@@ -70,6 +100,7 @@ mode line, which is not truncated.  It runs until the blame answers."
   "Fill this GBlame buffer with LINES empty lines.
 One line per source line keeps scrolling and point aligned while the
 blame is still loading.  A later render replaces them."
+  (setq xl-gblame--blank t)
   (let ((inhibit-read-only t))
     (erase-buffer)
     (dotimes (_ lines) (insert "\n"))
@@ -81,6 +112,10 @@ blame is still loading.  A later render replaces them."
 (defun xl-gblame--render (records)
   "Replace this GBlame buffer with blame RECORDS.
 Keep point on the same line, so a refresh does not jump."
+  ;; The blame is in: the middle loader goes at once, even while the
+  ;; mode line keeps its loader for its minimum time.
+  (setq xl-gblame--blank nil)
+  (xl-gblame--draw-center nil)
   (let ((inhibit-read-only t)
         (line (line-number-at-pos)))
     (erase-buffer)

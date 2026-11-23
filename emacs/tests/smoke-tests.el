@@ -380,6 +380,25 @@ one made transient's dependency compat 31.1 look unavailable."
       (should-not (xl-spinner-running-p))
       (should-not xl-spinner-mode-line))))
 
+(ert-deftest xl-spinner-slot-also-draws-each-frame ()
+  "`:also' gets every frame the slot draws, and nil when the slot empties."
+  (dolist (stop '(plain with-text))
+    (with-temp-buffer
+      (let ((xl-spinner-show-delay 0)
+            (xl-spinner-min-duration 0)
+            (xl-spinner-style 'ascii)
+            drawn)
+        (xl-spinner-mode-line-install)
+        (xl-spinner-mode-line-start "work" :also (lambda (frame) (push frame drawn)))
+        (xl-spinner-tick (current-buffer))
+        (should (equal '("[/]" "[|]") (mapcar #'substring-no-properties drawn)))
+        (if (eq stop 'plain)
+            (xl-spinner-mode-line-stop)
+          (xl-spinner-mode-line-stop "failed"))
+        ;; The last call is the nil that clears it, made once.
+        (should (null (car drawn)))
+        (should (= 1 (cl-count nil drawn)))))))
+
 (ert-deftest xl-spinner-slot-shows-text-after-stop ()
   "A stop with text (an error) replaces the loader at once and stays."
   (with-temp-buffer
@@ -2425,6 +2444,52 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
           (should-not (buffer-live-p xl-gblame--buffer))
           (should-not (memq #'xl-gblame--sync post-command-hook))
           (should-not (memq #'xl-gblame--refresh after-save-hook)))
+      (let ((blame (get-buffer "*GBlame: file.txt*")))
+        (when (buffer-live-p blame) (kill-buffer blame)))
+      (when (buffer-live-p buf) (kill-buffer buf))
+      (delete-directory repo t))))
+
+(ert-deftest xl-gblame-blank-window-shows-a-centered-loader ()
+  "A first GBlame shows the loader in the middle of its blank window too.
+The loader is a before-string: no line is added, so the placeholders stay
+aligned.  It goes as soon as the blame is in, and a refresh of a window
+that shows blame has the mode-line loader only."
+  (skip-unless (executable-find "git"))
+  (let* ((xl-spinner-show-delay 0)
+         (repo (xl-test--git-repo-blame))
+         (file (expand-file-name "file.txt" repo))
+         (buf (find-file-noselect file)))
+    (unwind-protect
+        (progn
+          (switch-to-buffer buf)
+          (delete-other-windows)
+          (xl-gblame)
+          (let ((blame xl-gblame--buffer))
+            (with-current-buffer blame
+              (should xl-gblame--blank)
+              ;; The window exists now; the next frame draws in it.
+              (xl-spinner-tick (current-buffer))
+              (should (overlayp xl-gblame--center))
+              (let ((first (overlay-get xl-gblame--center 'before-string)))
+                (should (string-match-p "git blame…" first))
+                (should (= (overlay-start xl-gblame--center)
+                           (overlay-end xl-gblame--center)))
+                (xl-spinner-tick (current-buffer))
+                (should-not (equal first (overlay-get xl-gblame--center
+                                                      'before-string))))
+              ;; One placeholder per source line: nothing was inserted.
+              (should (= (count-lines (point-min) (point-max))
+                         (with-current-buffer buf
+                           (count-lines (point-min) (point-max))))))
+            (xl-test--wait-for-gblame blame)
+            (with-current-buffer blame
+              (should-not xl-gblame--blank)
+              (should-not xl-gblame--center)
+              ;; A refresh keeps the blame on screen: no middle loader.
+              (xl-gblame-refresh)
+              (xl-spinner-tick (current-buffer))
+              (should-not xl-gblame--center))
+            (xl-test--wait-for-gblame blame)))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
         (when (buffer-live-p blame) (kill-buffer blame)))
       (when (buffer-live-p buf) (kill-buffer buf))
