@@ -821,11 +821,13 @@ The loader is visible while the queue runs."
               (beginning-of-line)
               (xl-git-status-stage)
               ;; The command returned with git still running: no blocking,
-              ;; and the mode line says what is going on.
+              ;; and the header line says what is going on.
               (should (xl-spinner-running-p))
               (should xl-git-status--queue-process)
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
+              (should (equal " [|] Staged file-0.txt"
+                             header-line-format))
               (goto-char (point-min))
               (should (search-forward "modified   file-1.txt" nil t))
               (beginning-of-line)
@@ -869,9 +871,15 @@ The loader is visible while the queue runs."
                                            "commit" "-qam" "second")))
               (with-current-buffer buffer
                 (xl-git-status-push)
-                ;; The push runs in the queue, with its own mode line label.
-                (should (equal "Pushing" xl-git-status--queue-action))))
+                ;; The push runs in the queue, with its own header line label.
+                (should (equal "Pushing" xl-git-status--queue-action))
+                (should (equal " [|] Pushing" header-line-format))
+                ;; The frames advance, so the loader animates.
+                (xl-spinner-tick)
+                (should (equal " [/] Pushing" header-line-format))))
             (xl-test--wait-for-git-status buffer)
+            (with-current-buffer buffer
+              (should-not header-line-format))
             (should (equal (xl-test--git-output repo "rev-parse" branch)
                            (xl-test--git-output remote "rev-parse" branch)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))

@@ -83,7 +83,7 @@
 (defvar-local xl-git-status--queue nil
   "Pending git operations of this status buffer, oldest first.
 Each job is a plist: :root, :attempts (git argument lists, tried in
-order), :action (the message on success), :progress (the mode line
+order), :action (the message on success), :progress (the header line
 label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply).")
 
@@ -91,7 +91,7 @@ label while it runs, defaulting to :action) and, for `git apply',
   "The process running the head of this buffer's queue, if any.")
 
 (defvar-local xl-git-status--queue-action nil
-  "What the queued operation is doing, for the mode line.")
+  "What the queued operation is doing, for the header line.")
 
 (defvar-local xl-git-status--sections nil
   "Sections of this status buffer, as plists.
@@ -443,24 +443,28 @@ diff text."
 (defun xl-git-status--enqueue (job)
   "Queue JOB and start the queue if it is idle.
 JOB is a plist with :root, :attempts (git argument lists, tried in
-order), :action (the message on success) and, for `git apply', :patch.
-One job runs at a time, so a rapid `s s s' stages in order instead of
-racing, and the status refreshes once when the queue drains."
+order), :action (the message on success), :progress (the header line
+label while it runs, defaulting to :action) and, for `git apply',
+:patch (the text to apply).  One job runs at a time, so a rapid
+`s s s' stages in order instead of racing, and the status refreshes
+once when the queue drains.  A spinner in the header line shows the
+queue while it runs; it has no frame limit, because a push over the
+network may take longer than a local git command."
   (setq xl-git-status--queue (append xl-git-status--queue (list job)))
-  (unless (process-live-p xl-git-status--queue-process)
-    (xl-spinner-start #'xl-git-status--queue-indicator :limit 1200))
-  (xl-git-status--queue-start))
+  (xl-git-status--queue-start)
+  (unless (xl-spinner-running-p)
+    (xl-spinner-start #'xl-git-status--queue-indicator)))
 
 (defun xl-git-status--queue-indicator (text)
-  "Show TEXT and the queue in this status buffer's mode line; nil clears."
-  (setq-local mode-line-process
+  "Show TEXT and the queue in this status buffer's header line; nil clears."
+  (setq-local header-line-format
               (when text
-                (list (format " %s %s%s"
-                              text
-                              (or xl-git-status--queue-action "git")
-                              (if xl-git-status--queue
-                                  (format " +%d" (length xl-git-status--queue))
-                                "")))))
+                (format " %s %s%s"
+                        text
+                        (or xl-git-status--queue-action "git")
+                        (if xl-git-status--queue
+                            (format " +%d" (length xl-git-status--queue))
+                          ""))))
   (force-mode-line-update))
 
 (defun xl-git-status--queue-start ()
@@ -705,7 +709,7 @@ The git work runs in the background; the status refreshes when it is done."
 
 (defun xl-git-status-push ()
   "Push the current branch in the background, like Magit's `P p'.
-The push joins the operation queue, so the mode line shows a loader
+The push joins the operation queue, so the header line shows a loader
 until git answers and the status refreshes once it is done.  A branch
 without an upstream fails with git's own hint."
   (interactive)
