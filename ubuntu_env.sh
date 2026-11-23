@@ -6,7 +6,7 @@ source env.sh
 
 # Git Config
 git config --global user.name "Xueliang Zhong"
-git config --global user.email "xueliang.zhong@arm.com"
+git config --global user.email "xueliang.zhong@gmail.com"
 export EDITOR='vim'
 
 #
