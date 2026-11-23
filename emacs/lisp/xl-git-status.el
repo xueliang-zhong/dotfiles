@@ -34,7 +34,7 @@
   "Faces for `xl-git-status'."
   :group 'tools)
 
-(defcustom xl-git-status-queue-delay 0.2
+(defcustom xl-git-status-queue-delay 0.1
   "Seconds to wait before showing the operation queue's loader.
 Local staging finishes before that, so the mode line does not
 flash on every keypress; a push over the network is still
@@ -576,18 +576,23 @@ a push over the network may take longer than a local git command."
                      (process-live-p xl-git-status--queue-process)))
         (xl-spinner-start #'xl-git-status--queue-indicator)))))
 
+(defvar-local xl-git-status--mode-line nil
+  "Loader text shown at the left of this status buffer's mode line.")
+
 (defun xl-git-status--queue-indicator (text)
-  "Show TEXT and the queue in this status buffer's mode line; nil clears.
-The header line would take a screen line only while the loader runs,
-which moves the buffer contents; the mode line is always there."
-  (setq-local mode-line-process
-              (when text
-                (list (format " %s %s%s"
-                              text
-                              (or xl-git-status--queue-action "git")
-                              (if xl-git-status--queue
-                                  (format " +%d" (length xl-git-status--queue))
-                                "")))))
+  "Show TEXT and the queue at the left of the mode line; nil clears.
+The mode line is always present, so it does not move the buffer
+contents.  It is drawn at the left edge rather than through
+`mode-line-process', which sits after the mode name where a narrow
+split window truncates it."
+  (setq xl-git-status--mode-line
+        (when text
+          (format "%s %s%s "
+                  text
+                  (or xl-git-status--queue-action "git")
+                  (if xl-git-status--queue
+                      (format " +%d" (length xl-git-status--queue))
+                    ""))))
   (force-mode-line-update))
 
 (defun xl-git-status--queue-start ()
@@ -1302,6 +1307,11 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
   "Major mode for `xl-git-status' buffers."
   (unless (hash-table-p xl-git-status--expanded)
     (setq xl-git-status--expanded (make-hash-table :test #'equal)))
+  ;; Keep the queue loader at the left edge of the mode line, where a
+  ;; narrow split window still shows it.
+  (setq-local mode-line-format
+              (cons '(:eval xl-git-status--mode-line)
+                    (default-value 'mode-line-format)))
   (setq-local revert-buffer-function
               (lambda (_ignore-auto _noconfirm)
                 (xl-git-status))))

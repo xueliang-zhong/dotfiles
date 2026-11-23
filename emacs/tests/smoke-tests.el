@@ -793,8 +793,8 @@ The other TAB command would insert two spaces, so it delegates to
                       (accept-process-output nil 0.05)))
                   (should (xl-spinner-running-p))
                   (should (equal "Refreshing" xl-git-status--queue-action))
-                  (should (string-match-p " Refreshing"
-                                          (car mode-line-process)))
+                  (should (string-match-p "Refreshing"
+                                          xl-git-status--mode-line))
                   ;; Nothing was blanked: the old status is still there.
                   (should (equal before (buffer-string)))))
               (xl-spinner-stop))))
@@ -963,15 +963,17 @@ The loader is visible while the queue runs."
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
               (should-not (xl-spinner-running-p))
-              (should-not mode-line-process)
+              (should-not xl-git-status--mode-line)
               ;; Once it runs past the delay, the mode line says what runs.
               (when (timerp xl-git-status--queue-timer)
                 (cancel-timer xl-git-status--queue-timer)
                 (setq xl-git-status--queue-timer nil))
               (xl-git-status--queue-spinner buffer)
               (should (xl-spinner-running-p))
-              (should (equal '(" [|] Staged file-0.txt")
-                             mode-line-process))
+              (should (equal "[|] Staged file-0.txt "
+                             xl-git-status--mode-line))
+              (should (equal '(:eval xl-git-status--mode-line)
+                             (car mode-line-format)))
               (goto-char (point-min))
               (should (search-forward "modified   file-1.txt" nil t))
               (beginning-of-line)
@@ -1047,16 +1049,14 @@ The loader is visible while the queue runs."
                     (cancel-timer xl-git-status--queue-timer)
                     (setq xl-git-status--queue-timer nil))
                   (xl-git-status--queue-spinner buffer)
-                  (should (equal (list (format " [|] Pushing %s to origin"
-                                               branch))
-                                 mode-line-process))
+                  (should (equal (format "[|] Pushing %s to origin " branch)
+                                 xl-git-status--mode-line))
                   (xl-spinner-tick)
-                  (should (equal (list (format " [/] Pushing %s to origin"
-                                               branch))
-                                 mode-line-process)))))
+                  (should (equal (format "[/] Pushing %s to origin " branch)
+                                 xl-git-status--mode-line)))))
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
-              (should-not mode-line-process))
+              (should-not xl-git-status--mode-line))
             (should (equal (xl-test--git-output repo "rev-parse" branch)
                            (xl-test--git-output remote "rev-parse" branch)))
             ;; A third commit goes out through the upstream choice.
