@@ -35,14 +35,6 @@
   "Faces for `xl-git-status'."
   :group 'tools)
 
-(defcustom xl-git-status-queue-delay 0.1
-  "Seconds to wait before showing the operation queue's loader.
-Local staging finishes before that, so the mode line does not
-flash on every keypress; a push over the network is still
-indicated."
-  :type 'number
-  :group 'xl-git-status)
-
 (defface xl-git-status-heading
   '((t :inherit font-lock-keyword-face :weight bold))
   "Face for Git status section headings."
@@ -92,9 +84,6 @@ indicated."
 ;; in the slots `load-log', `load-status', `load-unstaged' and
 ;; `load-staged', the staging and push operations in the queue `queue',
 ;; and `git show' in the commit buffer's slot `show'.
-
-(defvar-local xl-git-status--queue-timer nil
-  "Timer that will show the queue loader if the operation is slow.")
 
 (defvar-local xl-git-status--queue-action nil
   "What the queued operation is doing, for the mode line.")
@@ -148,8 +137,14 @@ it rather than on its heading).")
       (setq xl-git-status--spinner-overlay nil))))
 
 (defun xl-git-status--stop-spinner ()
-  "Remove the loading indicator of this status buffer."
-  (xl-spinner-stop))
+  "Remove this status buffer's loaders once a render is on screen.
+The first-load loader lives in the body, which the render has just
+replaced.  The mode-line loader ends unless more operations are queued;
+`xl-spinner' keeps it for its minimum time, so it never flashes."
+  (when (overlayp xl-git-status--spinner-overlay)
+    (xl-spinner-stop))
+  (unless (xl-async-queue-busy-p 'queue)
+    (xl-spinner-mode-line-stop)))
 
 (defun xl-git-status--start-spinner ()
   "Show an animated loading line until the next render."
@@ -599,11 +594,10 @@ order), :action (the message on success), :progress (the mode line
 label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply, sent on standard input).  `xl-async' runs
 one job at a time, so a rapid `s s s' stages in order instead of
-racing, and the status refreshes once when the queue drains.  A
-spinner in the mode line shows the queue only when it runs longer
-than `xl-git-status-queue-delay', so fast local operations do not
-flicker; it has no frame limit, because a push over the network may
-take longer than a local git command."
+racing, and the status refreshes once when the queue drains.  The
+mode-line loader of `xl-spinner' names the running operation and how
+many wait behind it; fast local operations end before it appears.  It
+has no frame limit, because a push may take a while."
   (let ((action (plist-get job :action))
         (progress (or (plist-get job :progress) (plist-get job :action))))
     (xl-async-enqueue
@@ -612,64 +606,29 @@ take longer than a local git command."
            :attempts (mapcar #'xl-git-status--git-command
                              (plist-get job :attempts))
            :stdin (plist-get job :patch)
-           :on-start (lambda () (setq xl-git-status--queue-action progress))
+           :on-start (lambda ()
+                       (setq xl-git-status--queue-action progress)
+                       (xl-spinner-mode-line-label (xl-git-status--queue-label)))
            :on-done (lambda (output code)
                       (if (zerop code)
                           (message "%s" action)
                         (message "%s failed: %s" action (string-trim output)))))
      #'xl-git-status--queue-drained))
-  (unless (or (xl-spinner-running-p)
-              (timerp xl-git-status--queue-timer))
-    (setq xl-git-status--queue-timer
-          (run-with-timer xl-git-status-queue-delay nil
-                          #'xl-git-status--queue-spinner (current-buffer)))))
+  (xl-spinner-mode-line-start (xl-git-status--queue-label)))
 
-(defun xl-git-status--queue-spinner (buffer)
-  "Show the queue loader in BUFFER if its operation is still running."
-  (when (buffer-live-p buffer)
-    (with-current-buffer buffer
-      (setq xl-git-status--queue-timer nil)
-      (when (and (not (xl-spinner-running-p))
-                 (xl-async-queue-busy-p 'queue))
-        (xl-spinner-start #'xl-git-status--queue-indicator)))))
-
-(defvar-local xl-git-status--mode-line nil
-  "Loader text shown at the left of this status buffer's mode line.")
-
-(defun xl-git-status--queue-indicator (text)
-  "Show TEXT and the queue at the left of the mode line; nil clears.
-The mode line is always present, so it does not move the buffer
-contents.  It is drawn at the left edge rather than through
-`mode-line-process', which sits after the mode name where a narrow
-split window truncates it."
-  (setq xl-git-status--mode-line
-        (when text
-          (format "%s %s%s "
-                  text
-                  (or xl-git-status--queue-action "git")
-                  (let ((waiting (xl-async-queue-length 'queue)))
-                    (if (> waiting 0) (format " +%d" waiting) "")))))
-  (force-mode-line-update))
+(defun xl-git-status--queue-label ()
+  "Return the mode-line label of the operation queue.
+It names the running operation and, after it, how many wait."
+  (let ((waiting (xl-async-queue-length 'queue)))
+    (concat (or xl-git-status--queue-action "git")
+            (if (> waiting 0) (format " +%d" waiting) ""))))
 
 (defun xl-git-status--queue-drained ()
-  "Refresh the status once the operation queue has run out of jobs."
-  (when (timerp xl-git-status--queue-timer)
-    (cancel-timer xl-git-status--queue-timer)
-    (setq xl-git-status--queue-timer nil))
-  ;; Keep the loader running under a new label until the render replaces
-  ;; the old content, so the mode line never flickers.
-  (setq xl-git-status--queue-action "Refreshing")
-  (when (xl-spinner-running-p)
-    (xl-git-status--queue-indicator (car xl-spinner-frames)))
+  "Refresh the status once the operation queue has run out of jobs.
+The refresh relabels the running loader \"Refreshing\" instead of
+ending it, so the mode line stays put until the new status is drawn."
+  (setq xl-git-status--queue-action nil)
   (xl-git-status))
-
-(defun xl-git-status--queue-teardown ()
-  "Stop this status buffer's loader timer; `xl-async' kills its processes."
-  (when (timerp xl-git-status--queue-timer)
-    (cancel-timer xl-git-status--queue-timer)
-    (setq xl-git-status--queue-timer nil))
-  (xl-spinner-stop)
-  (setq xl-git-status--queue-action nil))
 
 (defun xl-git-status--git-string (root &rest args)
   "Return the trimmed output of git ARGS run in ROOT, or nil.
@@ -1054,7 +1013,8 @@ The buffer opens at once and fills when `git show' answers."
                        'face 'xl-git-status-branch))
         (insert "  " (propertize "Loading..." 'face 'xl-git-status-comment)
                 "\n"))
-      (xl-spinner-start #'xl-git-status--show-draw :limit 1200)
+      ;; A minute of frames at most, should git never answer.
+      (xl-spinner-start #'xl-git-status--show-draw :limit 600)
       (add-hook 'kill-buffer-hook #'xl-git-status--show-teardown nil t)
       (xl-git-status--show-fetch hash root)
       (goto-char (point-min)))
@@ -1242,11 +1202,9 @@ starts four processes instead of over fifty."
   "Major mode for `xl-git-status' buffers."
   (unless (hash-table-p xl-git-status--expanded)
     (setq xl-git-status--expanded (make-hash-table :test #'equal)))
-  ;; Keep the queue loader at the left edge of the mode line, where a
+  ;; The loader slot sits at the left edge of the mode line, where a
   ;; narrow split window still shows it.
-  (setq-local mode-line-format
-              (cons '(:eval xl-git-status--mode-line)
-                    (default-value 'mode-line-format)))
+  (xl-spinner-mode-line-install)
   (setq-local revert-buffer-function
               (lambda (_ignore-auto _noconfirm)
                 (xl-git-status))))
@@ -1286,11 +1244,12 @@ or shows the commit at point."
       ;; fold state, the section list and the refresh position.
       (unless (derived-mode-p 'xl-git-status-mode)
         (xl-git-status-mode))
-      (add-hook 'kill-buffer-hook #'xl-git-status--queue-teardown nil t)
       (xl-git-status--save-point)
-      ;; Keep a rendered status on screen until its replacement is ready.
+      ;; Keep a rendered status on screen until its replacement is ready:
+      ;; a refresh only says so in the mode line, which moves nothing.
       ;; Only a buffer with nothing rendered yet shows the loading line.
-      (unless xl-git-status--sections
+      (if xl-git-status--sections
+          (xl-spinner-mode-line-start "Refreshing")
         (let ((inhibit-read-only t))
           (erase-buffer))
         (setq xl-git-status--sections nil

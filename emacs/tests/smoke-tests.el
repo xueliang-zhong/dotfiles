@@ -128,6 +128,22 @@
     (should-not (xl-async-queue-busy-p 'queue buffer))
     (should-not (xl-async-busy-p nil buffer))))
 
+(defun xl-test--slot-show-now (buffer)
+  "Make BUFFER's waiting mode-line loader appear now.
+It is what happens when the operation outlives `xl-spinner-show-delay'."
+  (with-current-buffer buffer
+    (let ((timer (plist-get xl-spinner--slot :show-timer)))
+      (when (timerp timer) (cancel-timer timer)))
+    (xl-spinner--slot-show buffer)))
+
+(defun xl-test--wait-for-slot (buffer)
+  "Wait until BUFFER's mode-line loader has gone, minimum time included."
+  (let ((end (+ (float-time) 10)))
+    (while (and (xl-spinner-mode-line-busy-p buffer)
+                (< (float-time) end))
+      (accept-process-output nil 0.05)))
+  (should-not (xl-spinner-mode-line-busy-p buffer)))
+
 (defun xl-test--wait-for-gblame (buffer)
   "Wait until the GBlame BUFFER has finished loading."
   (with-current-buffer buffer
@@ -239,30 +255,31 @@ one made transient's dependency compat 31.1 look unavailable."
 ;;; ============================================================
 
 (ert-deftest xl-package-menu-has-a-loader ()
-  "The Package Menu mode line animates while the archives refresh."
+  "The Package Menu shows the shared mode-line loader while archives refresh."
   (require 'package)
   (should (memq #'xl-package-menu--on-refresh package-refresh-contents-hook))
   (should (memq #'xl-package-menu--on-done
                 package--post-download-archives-hook))
   (with-temp-buffer
     (package-menu-mode)
-    ;; The loader takes the slot `package-menu-mode' gives to ":Loading".
-    (should (equal "" (car mode-line-process)))
-    (should-not (xl-spinner-running-p))
-    (xl-package-menu--start)
+    ;; The slot is at the left edge; the static ":Loading" is gone.
+    (should (equal '(:eval xl-spinner-mode-line) (car mode-line-format)))
+    (should (equal mode-line-process
+                   '(package-menu--transaction-status
+                     package-menu--transaction-status)))
+    (should-not (xl-spinner-mode-line-busy-p))
+    (let ((xl-spinner-show-delay 0))
+      (xl-package-menu--start))
     (should (xl-spinner-running-p))
-    (should (string-match-p "\\` \\[[|/-]\\] Loading\\'"
-                            xl-package-menu--indicator))
+    (should (string-match-p "Loading archives" xl-spinner-mode-line))
     ;; The mode line string itself moves with the frames.
-    (should (equal (car mode-line-process) xl-package-menu--indicator))
-    (let ((frame xl-package-menu--indicator))
+    (let ((frame xl-spinner-mode-line))
       (xl-spinner-tick (current-buffer))
-      (should-not (equal frame xl-package-menu--indicator))
-      (should (equal (car mode-line-process) xl-package-menu--indicator)))
-    (xl-package-menu--stop)
+      (should-not (equal frame xl-spinner-mode-line)))
+    (let ((xl-spinner-min-duration 0))
+      (xl-package-menu--stop))
     (should-not (xl-spinner-running-p))
-    (should (equal "" xl-package-menu--indicator))
-    (should (equal "" (car mode-line-process)))))
+    (should-not xl-spinner-mode-line)))
 
 (ert-deftest xl-package-menu-loader-follows-a-refresh ()
   "A refresh starts the loader and its completion hook stops it."
@@ -272,16 +289,18 @@ one made transient's dependency compat 31.1 look unavailable."
         (with-current-buffer buffer
           (package-menu-mode)
           (xl-package-menu--on-refresh t)
-          (should (xl-spinner-running-p))
+          (should (xl-spinner-mode-line-busy-p))
+          ;; Done before the delay: the loader never appeared at all.
           (xl-package-menu--on-done)
-          (should-not (xl-spinner-running-p)))
-      (with-current-buffer buffer (xl-package-menu--stop))
+          (should-not (xl-spinner-mode-line-busy-p))
+          (should-not xl-spinner-mode-line))
       (kill-buffer buffer))))
 
 (ert-deftest xl-spinner-frames-ticks-and-stops ()
   "The shared loader draws a frame at once, advances, limits and clears."
   (with-temp-buffer
-    (let (drawn)
+    (let ((xl-spinner-style 'ascii)
+          drawn)
       (xl-spinner-start (lambda (text) (push text drawn)) :limit 1)
       ;; The first frame is on screen before the caller gets control back.
       (should (xl-spinner-running-p))
@@ -293,12 +312,98 @@ one made transient's dependency compat 31.1 look unavailable."
       (should-not (xl-spinner-running-p))
       (should (equal '(nil "[/]" "[|]") drawn)))
     ;; Starting again resets the frames; stopping clears the drawing.
-    (let (drawn)
+    (let ((xl-spinner-style 'ascii)
+          drawn)
       (xl-spinner-start (lambda (text) (push text drawn)))
       (should (xl-spinner-running-p))
       (xl-spinner-stop)
       (should-not (xl-spinner-running-p))
       (should (equal '(nil "[|]") drawn)))))
+
+;;; ============================================================
+;;; xl-spinner: frames per display and the mode-line slot
+;;; ============================================================
+
+(ert-deftest xl-spinner-frames-fall-back-to-ascii ()
+  "Dots only when every dot glyph keeps the mode line's size, else ASCII."
+  (let ((xl-spinner-style 'auto))
+    (cl-letf (((symbol-function 'xl-spinner--glyph-safe-p) #'always))
+      (should (equal (xl-spinner-default-frames) xl-spinner-dot-frames)))
+    ;; One glyph from a fallback font (taller mode line) means ASCII.
+    (cl-letf (((symbol-function 'xl-spinner--glyph-safe-p)
+               (lambda (char) (/= char ?●))))
+      (should (equal (xl-spinner-default-frames) xl-spinner-frames))))
+  (let ((xl-spinner-style 'ascii))
+    (should (equal (xl-spinner-default-frames) xl-spinner-frames)))
+  (let ((xl-spinner-style 'dots))
+    (should (equal (xl-spinner-default-frames) xl-spinner-dot-frames)))
+  ;; A terminal without UTF-8 (e.g. LANG=C over ssh) gets ASCII.
+  (cl-letf (((symbol-function 'display-graphic-p) #'ignore)
+            ((symbol-function 'terminal-coding-system)
+             (lambda (&rest _) 'us-ascii)))
+    (should-not (xl-spinner--glyph-safe-p ?●))))
+
+(ert-deftest xl-spinner-slot-never-flashes-a-fast-operation ()
+  "Work that ends before the delay leaves the mode line untouched."
+  (with-temp-buffer
+    (xl-spinner-mode-line-install)
+    (xl-spinner-mode-line-start "Staging")
+    (should (xl-spinner-mode-line-busy-p))
+    (should-not (xl-spinner-running-p))
+    (should-not xl-spinner-mode-line)
+    (xl-spinner-mode-line-stop)
+    (should-not (xl-spinner-mode-line-busy-p))
+    (should-not xl-spinner-mode-line)))
+
+(ert-deftest xl-spinner-slot-lingers-and-keeps-its-width ()
+  "A shown loader stays its minimum time, a restart keeps it, it never narrows."
+  (with-temp-buffer
+    (let ((xl-spinner-show-delay 0)
+          (xl-spinner-min-duration 0.2)
+          (xl-spinner-style 'ascii))
+      (xl-spinner-mode-line-install)
+      (xl-spinner-mode-line-start "Pushing main to origin")
+      (should (equal " [|] Pushing main to origin " xl-spinner-mode-line))
+      ;; A shorter label keeps the width, so nothing after the slot moves.
+      (xl-spinner-mode-line-label "Refreshing")
+      (should (equal (string-width " [|] Pushing main to origin ")
+                     (string-width xl-spinner-mode-line)))
+      (should (string-prefix-p " [|] Refreshing " xl-spinner-mode-line))
+      ;; Stopping right away lingers instead of flashing off.
+      (xl-spinner-mode-line-stop)
+      (should (xl-spinner-running-p))
+      ;; New work during the linger takes the same loader over.
+      (xl-spinner-mode-line-start "Staging")
+      (should (string-prefix-p " [|] Staging " xl-spinner-mode-line))
+      (xl-spinner-mode-line-stop)
+      (xl-test--wait-for-slot (current-buffer))
+      (should-not (xl-spinner-running-p))
+      (should-not xl-spinner-mode-line))))
+
+(ert-deftest xl-spinner-slot-shows-text-after-stop ()
+  "A stop with text (an error) replaces the loader at once and stays."
+  (with-temp-buffer
+    (let ((xl-spinner-show-delay 0))
+      (xl-spinner-mode-line-install)
+      (xl-spinner-mode-line-start "git blame")
+      (xl-spinner-mode-line-stop "git blame failed: 100% broken")
+      (should-not (xl-spinner-running-p))
+      (should-not (xl-spinner-mode-line-busy-p))
+      ;; `%' is escaped, because the slot is a mode line construct.
+      (should (equal " git blame failed: 100%% broken " xl-spinner-mode-line))
+      ;; The next start clears it.
+      (xl-spinner-mode-line-start "git blame")
+      (should-not (string-match-p "failed" (or xl-spinner-mode-line ""))))))
+
+(ert-deftest xl-spinner-tint-blends-toward-the-loader-colour ()
+  "The tint moves the background by `xl-spinner-tint' toward the accent."
+  (cl-letf (((symbol-function 'display-color-cells) (lambda (&rest _) 16777216))
+            ((symbol-function 'face-background) (lambda (&rest _) "#000000"))
+            ((symbol-function 'face-foreground) (lambda (&rest _) "#ffffff")))
+    (let ((xl-spinner-tint 0.2))
+      (should (equal "#333333" (xl-spinner--tint-color 'mode-line-active))))
+    (let ((xl-spinner-tint nil))
+      (should-not (xl-spinner--tint-color 'mode-line-active)))))
 
 ;;; ============================================================
 ;;; xl-async: owned processes, slots and queues
@@ -834,12 +939,12 @@ The other TAB command would insert two spaces, so it delegates to
               (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
               (should (xl-spinner-running-p))
               (should (overlayp xl-git-status--spinner-overlay))
-              (should (equal (car xl-spinner-frames)
+              (should (equal (car (xl-spinner-default-frames))
                              (overlay-get xl-git-status--spinner-overlay
                                           'display)))
               ;; The timer advances the frames.
               (xl-spinner-tick buffer)
-              (should (equal (cadr xl-spinner-frames)
+              (should (equal (cadr (xl-spinner-default-frames))
                              (overlay-get xl-git-status--spinner-overlay
                                           'display))))
             (xl-test--wait-for-git-status buffer)
@@ -894,21 +999,18 @@ The other TAB command would insert two spaces, so it delegates to
                            (lambda (&rest _) nil)))
                   (xl-git-status-stage)
                   ;; Pretend the operation outlived the delay.
-                  (when (timerp xl-git-status--queue-timer)
-                    (cancel-timer xl-git-status--queue-timer)
-                    (setq xl-git-status--queue-timer nil))
-                  (xl-git-status--queue-spinner buffer)
+                  (xl-test--slot-show-now buffer)
                   (let ((end (+ (float-time) 10)))
                     (while (and (xl-async-queue-busy-p 'queue)
                                 (< (float-time) end))
                       (accept-process-output nil 0.05)))
+                  ;; The same loader carries on under a new label.
                   (should (xl-spinner-running-p))
-                  (should (equal "Refreshing" xl-git-status--queue-action))
-                  (should (string-match-p "Refreshing"
-                                          xl-git-status--mode-line))
+                  (should (string-match-p "Refreshing" xl-spinner-mode-line))
                   ;; Nothing was blanked: the old status is still there.
                   (should (equal before (buffer-string)))))
-              (xl-spinner-stop))))
+              (let ((xl-spinner-min-duration 0))
+                (xl-spinner-mode-line-stop)))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
@@ -1074,16 +1176,14 @@ The loader is visible while the queue runs."
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
               (should-not (xl-spinner-running-p))
-              (should-not xl-git-status--mode-line)
+              (should-not xl-spinner-mode-line)
               ;; Once it runs past the delay, the mode line says what runs.
-              (when (timerp xl-git-status--queue-timer)
-                (cancel-timer xl-git-status--queue-timer)
-                (setq xl-git-status--queue-timer nil))
-              (xl-git-status--queue-spinner buffer)
+              (xl-test--slot-show-now buffer)
               (should (xl-spinner-running-p))
-              (should (equal "[|] Staged file-0.txt "
-                             xl-git-status--mode-line))
-              (should (equal '(:eval xl-git-status--mode-line)
+              (should (equal (concat " " (xl-spinner-current-frame)
+                                     " Staged file-0.txt ")
+                             xl-spinner-mode-line))
+              (should (equal '(:eval xl-spinner-mode-line)
                              (car mode-line-format)))
               (goto-char (point-min))
               (should (search-forward "modified   file-1.txt" nil t))
@@ -1156,18 +1256,20 @@ The loader is visible while the queue runs."
                   (should (equal (format "Pushing %s to origin" branch)
                                  xl-git-status--queue-action))
                   (should-not (xl-spinner-running-p))
-                  (when (timerp xl-git-status--queue-timer)
-                    (cancel-timer xl-git-status--queue-timer)
-                    (setq xl-git-status--queue-timer nil))
-                  (xl-git-status--queue-spinner buffer)
-                  (should (equal (format "[|] Pushing %s to origin " branch)
-                                 xl-git-status--mode-line))
-                  (xl-spinner-tick)
-                  (should (equal (format "[/] Pushing %s to origin " branch)
-                                 xl-git-status--mode-line)))))
+                  (xl-test--slot-show-now buffer)
+                  (should (equal (format " %s Pushing %s to origin "
+                                         (xl-spinner-current-frame) branch)
+                                 xl-spinner-mode-line))
+                  (let ((frame (xl-spinner-current-frame)))
+                    (xl-spinner-tick)
+                    (should-not (equal frame (xl-spinner-current-frame))))
+                  (should (equal (format " %s Pushing %s to origin "
+                                         (xl-spinner-current-frame) branch)
+                                 xl-spinner-mode-line)))))
             (xl-test--wait-for-git-status buffer)
+            (xl-test--wait-for-slot buffer)
             (with-current-buffer buffer
-              (should-not xl-git-status--mode-line))
+              (should-not xl-spinner-mode-line))
             (should (equal (xl-test--git-output repo "rev-parse" branch)
                            (xl-test--git-output remote "rev-parse" branch)))
             ;; A third commit goes out through the upstream choice.
@@ -1781,18 +1883,18 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
           (with-current-buffer xl-gblame--buffer
             ;; The command returned before git did: the UI was not blocked,
             ;; and the placeholders already line up with the source file.
-            (should xl-gblame--mode-line)
-            (should (equal '(:eval xl-gblame--mode-line)
+            (should (xl-spinner-mode-line-busy-p))
+            (should (equal '(:eval xl-spinner-mode-line)
                            (car mode-line-format)))
-            (should (xl-spinner-running-p))
             (should (= (count-lines (point-min) (point-max))
                        (with-current-buffer buf
                          (count-lines (point-min) (point-max)))))
             (should-not (get-text-property (point-min) 'xl-gblame-hash)))
           (xl-test--wait-for-gblame xl-gblame--buffer)
+          (xl-test--wait-for-slot xl-gblame--buffer)
           (with-current-buffer xl-gblame--buffer
             ;; Done: the loader is gone and the blame is in place.
-            (should-not xl-gblame--mode-line)
+            (should-not xl-spinner-mode-line)
             (should-not (xl-spinner-running-p))
             (should (get-text-property (point-min) 'xl-gblame-hash))))
       (let ((blame (get-buffer "*GBlame: file.txt*")))
@@ -1812,7 +1914,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
           (xl-gblame)
           (xl-test--wait-for-gblame xl-gblame--buffer)
           (with-current-buffer xl-gblame--buffer
-            (should (string-match-p "git blame failed" xl-gblame--mode-line))
+            (should (string-match-p "git blame failed" xl-spinner-mode-line))
             (should-not (xl-spinner-running-p))
             ;; The placeholders stay, so the window remains aligned.
             (should (= (count-lines (point-min) (point-max))

@@ -27,7 +27,7 @@ emacs/
 ├── lisp/                  用 require 加载的模块
 │   ├── xl-key-bindings.el     Spacemacs 键位习惯（SPC 树等）
 │   ├── xl-async.el            异步进程：归属、槽位取消、串行队列
-│   ├── xl-spinner.el          一个 loader，三处复用
+│   ├── xl-spinner.el          共用 loader：帧、mode line 槽位、不抖屏
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
 │   └── xl-package-menu.el     Package Menu 刷新时的 loader
@@ -131,11 +131,11 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 `list-packages` 在 Emacs 31 里本来就是异步的：`package-menu-async` 默认开着，`package-refresh-contents` 把下载记进 `package--downloads-in-progress`，菜单先显示缓存，下载完再由 `package--post-download-archives-hook` 刷新。所以这里没有"重写"任何东西——重写只会比上游更差。
 
-它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成动画。
+它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成和 Git buffer 一样的动画 loader。
 
-- `package-menu-mode-hook` 把 `mode-line-process` 的第一格换成一个字符串槽位
-- `package-refresh-contents-hook` 在刷新开始时启动 `xl-spinner`（见下）
-- `package--post-download-archives-hook` 在最后一个下载完成时停掉 timer
+- `package-menu-mode-hook` 装上 `xl-spinner` 的 mode line 槽位（见下），`mode-line-process` 只留 transaction status
+- `package-refresh-contents-hook` 在刷新开始时启动 loader，标签是 `Loading archives`
+- `package--post-download-archives-hook` 在最后一个下载完成时停掉它
 - 一分钟还没收到完成信号就自行放弃，坏掉的 archive 不会让 loader 永远转
 
 异步是 Emacs 的，loader 是我们的。
@@ -159,22 +159,35 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 
 ### `lisp/xl-spinner.el`（共用 loader）
 
-三处 loader 原本各写一份 timer 和帧计数，只有"画在哪里"不同：status 初次加载换 overlay，status 的写操作队列和 GBlame 换 mode line 的最左边，Package Menu 换 mode line 的一格。所以这里只保留时钟和帧序号，落点交给调用方：
+目标是既好看、又醒目，但不让屏幕动。分两层。
+
+**内核**只管时钟和帧序号，画在哪里交给调用方。status 首次加载和 commit 视图用它在空 buffer 里画 overlay：buffer 里本来没有内容，所以没有东西会被推开。
 
 ```elisp
 (xl-spinner-start
  (lambda (text)                       ; text 为 nil 时表示停止，负责擦掉
-   (setq-local header-line-format (and text (concat " " text "  working"))))
- :limit 1200)                         ; 可选：最多走多少帧
+   (overlay-put my-overlay 'display text))
+ :limit 600)                          ; 可选：最多走多少帧（0.1 秒一帧，600 帧一分钟）
 ```
 
-- 第一帧在函数返回前就画好，所以调用方不用自己渲染初始状态
-- `:frames`、`:interval` 默认取 `xl-spinner-frames`（`[|] [/] [-] [\]`）和 `xl-spinner-interval`（0.05 秒，20 fps）
-- `:limit` 是保险：Package Menu 设 1200 帧（一分钟），挂住的下载不会永远转；status 的写操作队列和 GBlame 不设上限，一直转到 git 或调用方停下来
-- 缓冲区被杀而没人停 loader 时，timer 会自己取消
-- `xl-spinner-running-p` 给测试和调用方判断状态，`xl-spinner-tick` 让测试不必等真实时钟
+**Mode line 槽位**给已经有内容的 buffer 用：status 的刷新和写操作队列、GBlame、Package Menu。它在 mode line 最左边，窄的分屏也截不掉；在 buffer 里临时插一行会把内容整体下移，看起来像刷新，所以不放在 buffer 里。
 
-测试里 `xl-spinner-frames-ticks-and-stops` 覆盖了首帧、推进、上限和清除。
+```elisp
+(xl-spinner-mode-line-install)              ; major mode 里装一次
+(xl-spinner-mode-line-start "Pushing main") ; 0.1 秒后才出现
+(xl-spinner-mode-line-label "Refreshing")   ; 换标签
+(xl-spinner-mode-line-stop)                 ; 或 (xl-spinner-mode-line-stop "git blame failed: ...")
+```
+
+不抖屏靠下面几条，每条都有测试：
+
+- **帧只用 mode line 自己字体里的字形。** 字体缺的字形会从 fallback 字体借，GUI 下 mode line 会因此变高：实测 JetBrains Mono 下 `⠋`（来自 Apple Braille）和 `▰` 让 mode line 从 23px 变成 24px，loader 一出一收，整个窗口就跟着跳一下。所以默认的 `xl-spinner-style` 为 `auto`：GUI 里只有当 `char-displayable-p` 报告圆点（`●··` `·●·` `··●`）由 mode line 的字体自己画时才用它，否则退回 ASCII `[|] [/] [-] [\]`。`●` 和 `·` 在 JetBrains Mono、Menlo、Consolas 里都有，所以 macOS、Windows 和大多数 Linux 看到的是同一个动画。终端里（ssh 到 Linux）字符排在固定网格里，高度不会变，但看不到终端用的字体，所以只在 UTF-8 终端、且字符为单宽时用圆点；`LANG=C` 之类会退回 ASCII。终端字体缺圆点时，可以把 `xl-spinner-style` 设为 `ascii`。
+- **出现前等 0.1 秒，出现后至少留 0.3 秒**（`xl-spinner-show-delay`、`xl-spinner-min-duration`）。本地 stage 在出现前就结束，mode line 完全不动；刚过 0.1 秒就结束的操作也不会一闪而过。
+- **忙碌期间槽位只会变宽不会变窄。** 标签从 `Pushing main to origin` 换成 `Refreshing` 时用空格补齐，后面的 buffer 名不会左右来回移动。留存期间来了新操作，接着用同一个 loader，只换标签。
+- **醒目靠颜色，不靠尺寸。** 圆点用 `xl-spinner` face（继承主题的 keyword 色）；忙碌时 mode line 的背景向这个颜色混 20%（`xl-spinner-tint`，设为 nil 关闭），只改背景色，不改 box 和高度，少于 256 色的终端不着色。
+- **0.1 秒一帧**（`xl-spinner-interval`）：看得出在动，又不闪，ssh 上重绘的数据量也少一半。
+
+实测（GUI Emacs、JetBrains Mono 18pt）：从空闲、出现并着色、连续三帧、换标签到收起，mode line 一直是 23px，正文高度和 `window-start` 不变。
 
 ### `xueliang.el`（个人层，不发布）
 
@@ -264,10 +277,10 @@ bash emacs/install/emacs-setup.sh check
 | 主模式 leader | `,` 和 `SPC m` 在 Org、Emacs Lisp、其它模式中的解析 |
 | Org | 变量、TODO 关键字、链接缩写、表头 face；`org-tempo` 的 `<s` + TAB 展开；打开文件后 `org-indent`、`org-superstar`、`evil-org` 和截断长行 |
 | Magit | `h/j/k/l` 在 Magit 里保持 vim 方向；在临时 git 仓库里真的打开一次 status |
-| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行和 mode line 最左边的 spinner；失败时错误也留在 mode line，占位行不动；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
-| Package Menu | 刷新时 mode line 出现动画 loader、帧会变；完成钩子把它停掉；loader 槽位不覆盖 transaction status |
+| GBlame | 每个源码行一行 blame；未提交行、光标高亮和滚动同步；`git blame` 返回前已有对齐的占位行，mode line 最左边的槽位在等 loader；失败时错误也留在 mode line，占位行不动；`:Gblame`、`Gwrite`、`Gcommit` 命令 |
+| Package Menu | 刷新时 mode line 最左边出现动画 loader、帧会变；完成钩子把它停掉；静态 `:Loading` 去掉，transaction status 保留 |
 | 静默刷新 | 已有内容时刷新（`g`）不清空 buffer、不出现 `Loading...`；本地的 `s` 不显示 loader（超过延迟才出现）；一个慢任务结束后 mode line 最左边变成 `Refreshing` 且旧内容还在，渲染完成才替换 |
-| Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；三处 loader 共用它 |
+| Loader | `xl-spinner` 首帧立即绘制、逐帧推进、`:limit` 到点自停并清除；字体或终端画不了圆点时退回 ASCII；mode line 槽位在延迟内结束就完全不出现、出现后留够最短时间、换标签不变窄、错误文本立即替换并转义 `%`；着色按比例混色 |
 | Commit 视图 | 打开时已有 spinner 和「Loading...」、还没有 diff；`git show` 返回后 spinner 消失、diff 就位 |
 | 写操作队列 | 连按两次 `s` 时命令立即返回、loader 在跑、动作写在 mode line 最左边；push 菜单由 `set-transient-map` 立即弹出、标签带目标 ref，选 push remote / upstream / elsewhere 后立即返回并一直转 spinner；排空后两个文件都进了索引；没有 HEAD 的仓库能 `u` |
 | 光标保持 | 暂存文件后光标留在同一文件（已到 Staged changes），取消暂存再跟回来；暂存 hunk 后光标落在 staged 的同一行，并展开目标文件 diff；丢弃后落在最近的标题 |

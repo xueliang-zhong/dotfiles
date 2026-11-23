@@ -34,8 +34,7 @@
 ;;
 ;; `git blame' runs asynchronously: the window is filled at once with one
 ;; placeholder line per source line, so scrolling and point still line up,
-;; and an animated spinner at the left of the mode line says the data is on
-;; its way.
+;; and the mode-line loader of `xl-spinner' says the data is on its way.
 ;; A refresh keeps the old lines visible until the new ones arrive, so
 ;; saving never makes the blame window flicker.  The process runs in the
 ;; GBlame buffer's `blame' slot of `xl-async', so a newer request or a
@@ -57,24 +56,15 @@
 (defvar-local xl-gblame--highlight nil
   "Overlay marking the source line in this GBlame buffer.")
 
-(defvar-local xl-gblame--mode-line nil
-  "Loader or error text shown at the left of this GBlame buffer's mode line.")
-
-(defun xl-gblame--draw-loader (text)
-  "Show TEXT at the left of this GBlame buffer's mode line; nil removes it.
-The blame window is narrow, so the loader goes where the mode line is
-not truncated."
-  (setq xl-gblame--mode-line (when text (concat text "  git blame ")))
-  (force-mode-line-update))
-
 (defun xl-gblame--start-spinner ()
-  "Show an animated loader at the left of this GBlame buffer's mode line.
-It runs until the blame answers or the buffer is torn down."
-  (xl-spinner-start #'xl-gblame--draw-loader))
+  "Show the loader in this GBlame buffer's mode-line slot.
+The blame window is narrow, so the loader sits at the left edge of the
+mode line, which is not truncated.  It runs until the blame answers."
+  (xl-spinner-mode-line-start "git blame"))
 
 (defun xl-gblame--stop-spinner ()
-  "Remove the loader from this GBlame buffer's mode line."
-  (xl-spinner-stop))
+  "End the loader in this GBlame buffer's mode-line slot."
+  (xl-spinner-mode-line-stop))
 
 (defun xl-gblame--placeholders (lines)
   "Fill this GBlame buffer with LINES empty lines.
@@ -118,10 +108,8 @@ placeholders remain for alignment."
          (reason (if (string-empty-p text)
                      "unknown error"
                    (car (split-string text "\n")))))
-    (setq xl-gblame--mode-line
-          (propertize (format "git blame failed: %s " reason)
-                      'face 'error))
-    (force-mode-line-update)))
+    (xl-spinner-mode-line-stop
+     (propertize (format "git blame failed: %s" reason) 'face 'error))))
 
 (defun xl-gblame--teardown ()
   "Stop the loader and the process of this GBlame buffer."
@@ -408,9 +396,7 @@ blocking.
   (setq-local truncate-lines t)
   ;; The blame window is narrow: keep the loader at the left edge of the
   ;; mode line, where it is not truncated.
-  (setq-local mode-line-format
-              (cons '(:eval xl-gblame--mode-line)
-                    (default-value 'mode-line-format))))
+  (xl-spinner-mode-line-install))
 
 ;; Evil's normal state would otherwise take RET, g and q first.
 (with-eval-after-load 'evil
