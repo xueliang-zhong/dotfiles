@@ -595,6 +595,80 @@ so only foo can be upgraded."
       (xl-package-upgrades--notify (lambda () (setq orig-called t))))
     (should orig-called)))
 
+;;; ============================================================
+;;; xl-package-menu: the chunked listing matches package.el's
+;;; ============================================================
+
+(defun xl-test-wait-for-listing (buffer)
+  "Wait until BUFFER's chunked listing has printed every row."
+  (let ((end (+ (float-time) 10)))
+    (while (and (buffer-local-value 'xl-package-menu--listing-p buffer)
+                (< (float-time) end))
+      (sit-for 0.01)))
+  (should-not (buffer-local-value 'xl-package-menu--listing-p buffer)))
+
+(defun xl-test-menu-state (buffer)
+  "Return what the Package Menu shows in BUFFER: text, rows and point."
+  (with-current-buffer buffer
+    (list (buffer-string) tabulated-list-entries (point))))
+
+(defun xl-test-listing-both-ways ()
+  "Return (ORIGINAL . CHUNKED) listing states of the archive fixture."
+  (let (original chunked)
+    (with-temp-buffer
+      (package-menu-mode)
+      ;; package.el's own path: refresh, then display.
+      (package-menu--refresh t nil)
+      (package-menu--display nil nil)
+      (setq original (xl-test-menu-state (current-buffer))))
+    (with-temp-buffer
+      (package-menu-mode)
+      (package-menu--generate nil t)
+      (xl-test-wait-for-listing (current-buffer))
+      (setq chunked (xl-test-menu-state (current-buffer))))
+    (cons original chunked)))
+
+(ert-deftest xl-package-menu-chunked-listing-matches-package-el ()
+  "The chunked listing shows the same text, rows and point as package.el."
+  (require 'package)
+  (xl-test-with-archive
+    (let ((package--initialized t)
+          (package-alist (xl-test-installed)))
+      (package-read-all-archive-contents)
+      (let ((both (xl-test-listing-both-ways)))
+        (should (equal (car both) (cdr both)))
+        ;; The menu also lists built-in packages, so only a lower bound.
+        (should (>= (length (cadr (car both))) 2))))))
+
+(ert-deftest xl-package-menu-chunked-listing-one-row-at-a-time ()
+  "Chunks of one package and one row still give package.el's listing."
+  (require 'package)
+  (xl-test-with-archive
+    (let ((package--initialized t)
+          (package-alist (xl-test-installed))
+          (xl-package-menu-status-chunk 1)
+          (xl-package-menu-row-chunk 1))
+      (package-read-all-archive-contents)
+      (let ((both (xl-test-listing-both-ways)))
+        (should (equal (car both) (cdr both)))))))
+
+(ert-deftest xl-package-menu-newer-listing-stops-the-older ()
+  "A second listing before the first finishes wins; the first never prints."
+  (require 'package)
+  (xl-test-with-archive
+    (let ((package--initialized t)
+          (package-alist (xl-test-installed))
+          (xl-package-menu-status-chunk 1)
+          (xl-package-menu-row-chunk 1))
+      (package-read-all-archive-contents)
+      (with-temp-buffer
+        (package-menu-mode)
+        (package-menu--generate nil t)
+        (package-menu--generate nil t)
+        (xl-test-wait-for-listing (current-buffer))
+        (let ((expected (xl-test-listing-both-ways)))
+          (should (equal (car expected) (xl-test-menu-state (current-buffer)))))))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).

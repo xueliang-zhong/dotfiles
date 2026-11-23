@@ -134,6 +134,8 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 它只补上游没有的一件事：把 mode line 里静态的 `:Loading` 换成和 Git buffer 一样的动画 loader。
 
+打开 `list-packages` 时，原来的整个列表要在主线程上连续算完，约 0.7 秒界面完全不动。`lisp/xl-package-menu.el` 把它分块做：先分块读取 archive（`list-packages` 期间跳过 `package-initialize` 里那次同步读取），再分块计算每个包的状态，排序之后分块插入行，块与块之间让出主线程。同一份数据得到相同的行、文字和光标位置（测试比较过）。实测最长一次阻塞从约 0.72 秒降到约 0.07 秒，总耗时约多 0.17 秒。只有"显示全部包、不带关键字过滤"这一种情况走分块路径，其它情况仍是 package.el 的函数。
+
 刷新结束后，package.el 会在回显区报告"可升级 N 个包"。这个搜索在主线程上第一次运行要约 0.25 秒，现在由 `lisp/xl-package-upgrades.el` 放到子 Emacs 里做：子进程自己合并 archive，只接收已安装包的版本，回答是包名列表，消息内容不变，只是晚一点出现。`U` 标记升级等用户主动的命令仍然是同步搜索，因为它们马上要用结果。子进程失败时回退到 package.el 原来的搜索。
 
 - `package-menu-mode-hook` 装上 `xl-spinner` 的 mode line 槽位（见下），`mode-line-process` 只留 transaction status
