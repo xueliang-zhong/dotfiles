@@ -514,13 +514,13 @@ altogether.  The ranking table comes last."
       (princ (format "\nCompiled by xl-jit and native now: %d file(s), %d function(s)\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
       (when built
-        (princ (xl-jit-rank--line "-" "-" "KB" "trusted" "native" "file" "[functions]"))
+        (princ (format "\n%-28s  %6s  %9s  %s\n" "file" "KB" "functions" "examples"))
         (dolist (row built)
-          (princ (xl-jit-rank--line
-                  "-" "-"
-                  (format "%.1f" (/ (plist-get row :size) 1024.0))
-                  "yes" "yes" (plist-get row :file)
-                  (format "%d, e.g. %S" (plist-get row :count) (plist-get row :top))))))
+          (princ (format "%-28s  %6.1f  %9d  %S\n"
+                         (plist-get row :file)
+                         (/ (plist-get row :size) 1024.0)
+                         (plist-get row :count)
+                         (plist-get row :top)))))
       (when done
         (princ "\nEntries in the ledger, status done (time of the build):\n")
         (dolist (e done)
