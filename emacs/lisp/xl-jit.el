@@ -714,6 +714,25 @@ from the ranking, if the total eln size allows it."
                                    :result result))
           (cons 'ran result))))))
 
+(defun xl-jit-run-summary (result)
+  "One readable line saying what RESULT of `xl-jit-run' did."
+  (pcase result
+    ('unavailable "xl-jit: native compilation is not available here; nothing done.")
+    ('busy "xl-jit: another run holds the lock; nothing done.")
+    ('unchanged "xl-jit: nothing changed since the last run; nothing done.")
+    (`(ran . ,r)
+     (let ((compiled (plist-get r :compiled))
+           (failed (plist-get r :failed))
+           (skipped (plist-get r :skipped))
+           (quarantined (plist-get r :quarantined)))
+       (format (concat "xl-jit: compiled %d file(s), failed %d, quarantined %d.\n"
+                       "      %d candidate(s) were already built or waiting to retry.%s")
+               compiled failed quarantined skipped
+               (if (plist-get r :capped)
+                   "\n      Stopped early: the total eln size is at its cap."
+                 ""))))
+    (_ (format "xl-jit: %S" result))))
+
 (defun xl-jit-run ()
   "One background run.  Return `unavailable', `busy', `unchanged', or (ran . RESULT).
 Does nothing at all on a platform without native compilation."

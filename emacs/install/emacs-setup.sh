@@ -276,7 +276,7 @@ cmd_compile_lisp() {
 cmd_jit_run() {
     require_emacs
     require_profile
-    emacs_batch --eval '(progn (require (quote xl-jit)) (princ (format "xl-jit run: %S\n" (xl-jit-run))))'
+    emacs_batch --eval '(progn (require (quote xl-jit)) (princ (concat (xl-jit-run-summary (xl-jit-run)) "\n")))'
 }
 
 cmd_jit_status() {

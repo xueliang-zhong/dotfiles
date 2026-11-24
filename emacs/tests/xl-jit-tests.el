@@ -743,5 +743,18 @@ power, native compilation available, and timers recorded instead of armed."
     (should (cl-some (lambda (a) (and (stringp a) (string-suffix-p "init.el" a))) cmd))
     (should (cl-some (lambda (a) (and (stringp a) (string-match-p "xl-jit-report" a))) cmd))))
 
+;;; The one-line summary of a run
+
+(ert-deftest xl-jit-run-summary-says-what-happened-in-words ()
+  "Each result of `xl-jit-run' is one readable sentence, not Lisp data."
+  (should (string-match-p "not available" (xl-jit-run-summary 'unavailable)))
+  (should (string-match-p "nothing changed" (xl-jit-run-summary 'unchanged)))
+  (should (string-match-p "compiled 2 file(s), failed 0"
+                          (xl-jit-run-summary '(ran :compiled 2 :failed 0 :skipped 1
+                                                    :quarantined 0 :capped nil))))
+  (should (string-match-p "Stopped early"
+                          (xl-jit-run-summary '(ran :compiled 0 :failed 0 :skipped 0
+                                                    :quarantined 0 :capped t)))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here
