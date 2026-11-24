@@ -369,11 +369,12 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 - **失败原因**只保存"Error:"开始的至多 300 字符，不保存整段回溯。
 - **Tier 1 的 `xueliang.el` 也会被 Tier 2 编译成 eln**（它在排名前列）。之后它的函数类型是 `subr`，不是 `byte-code-function`；冒烟测试据此改为"字节码或 native 都算已编译"。
 - **Crafted 的模块**没有 .elc，是解释执行的（报告里数量为 1120）。它们不在可信根里，也就不进入 Tier 2。要不要把 Crafted 纳入可信根，需要你决定。
-- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 20**、**单文件源码 200 KB**、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
+- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 200 KB**、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
 - **总量超限时只停止编译，不做 LRU 淘汰**。设计里的按最近排名时间淘汰还没实现。
 
 ## 未验证的部分
 
+- 查询 native 函数：`M-x xl-jit-native-report` 列出 xl-jit 编译过的文件和其中已是 native 的函数，并给出 Emacs 自身预加载的 native 函数总数。
 - 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `xl-jit-auto--start`），还没有在 GUI 里等它自己在 10 分钟后触发。
 - 崩溃隔离只用伪造的崩溃报告测过。真实的 macOS 崩溃报告调用栈里是否会出现 eln 文件名，还没有确认。
 - 不再检查热限制（launchd 版本用 `pmset -g therm`，换成 timer 后去掉了）。

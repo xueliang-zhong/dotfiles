@@ -700,5 +700,28 @@ power, native compilation available, and timers recorded instead of armed."
       (should (equal (seq-take (xl-jit-auto--command) 3) '("nice" "-n" "19"))))
     (should (member "--batch" (xl-jit-auto--command)))))
 
+;;; Query: which functions are native
+
+(ert-deftest xl-jit-native-list-shows-a-native-toy ()
+  "A function that is native in this Emacs shows up in the native list."
+  (skip-unless (native-comp-available-p))
+  (xl-jit-test--with-state
+    (let* ((dir (make-temp-file "xl-jit-native-toy-" t))
+           (src (xl-jit-test--toy-src dir "native-toy"))
+           (eln (expand-file-name "native-toy.eln" dir)))
+      (unwind-protect
+          (progn
+            (native-compile src eln)
+            (load eln nil t)
+            (let* ((info (xl-jit-native-list))
+                   (names (apply #'append (mapcar #'cdr (plist-get info :files)))))
+              (should (memq 'native-toy-fn names))
+              (should (> (plist-get info :total) 0))
+              (should (stringp (with-output-to-string
+                                 (let ((noninteractive t))
+                                   (xl-jit-native-report)))))))
+        (ignore-errors (fmakunbound 'native-toy-fn))
+        (ignore-errors (delete-directory dir t))))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

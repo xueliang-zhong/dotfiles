@@ -9,6 +9,9 @@
 
 (require 'cl-lib)
 
+;; M-x entry points defined in xl-jit.el; autoloaded so startup does not load it.
+(autoload 'xl-jit-native-report "xl-jit" "Show the native-compiled functions." t)
+
 (defgroup xl-jit nil
   "Background native compilation of the hot files."
   :group 'comp)

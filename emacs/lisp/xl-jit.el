@@ -505,7 +505,7 @@ The state folder is left out: the run itself changes it."
 (defconst xl-jit-compile-budget 3
   "Most files one run compiles.  Each costs a child Emacs with the profile.")
 
-(defconst xl-jit-min-ratio 20.0
+(defconst xl-jit-min-ratio 5.0
   "Lowest ranking ratio worth a compile.  Uncalibrated: set it from a profiler run.")
 
 (defconst xl-jit-max-source-bytes (* 200 1024)
@@ -747,6 +747,80 @@ the roots is refused, because its truename is what gets compiled."
                                  (string-prefix-p r true)
                                (string= r true)))))
                   (xl-jit-trusted-roots)))))
+
+;;; Query: which functions are native-compiled in this Emacs
+
+(defun xl-jit--source-stem (file)
+  "FILE's truename without .elc or .el, for matching a loaded file to a source."
+  (file-name-sans-extension
+   (or (ignore-errors (file-truename file)) file)))
+
+(defun xl-jit-native-list ()
+  "Natively compiled functions in this Emacs, grouped by source file.
+Returns a plist:
+  :built    the files xl-jit built, from the ledger, as (SOURCE . ELN)
+  :files    alist (FILE . SYMBOLS) for every file that has a native function,
+            FILE being what `symbol-file' reports; sorted by file name
+  :total    how many functions are native in all
+Emacs's own preloaded native code is in :files too, so `:total' is large."
+  (let ((built (let (out)
+                 (dolist (e (xl-jit--ledger-load))
+                   (when (and (eq (plist-get (cdr e) :status) 'done)
+                              (plist-get (cdr e) :eln)
+                              (file-exists-p (plist-get (cdr e) :eln)))
+                     (push (cons (car (car e)) (plist-get (cdr e) :eln)) out)))
+                 (sort out (lambda (a b) (string< (car a) (car b))))))
+        (groups (make-hash-table :test #'equal))
+        (total 0))
+    (mapatoms
+     (lambda (s)
+       (when (and (fboundp s) (not (macrop s))
+                  (ignore-errors (native-comp-function-p (indirect-function s))))
+         (cl-incf total)
+         (let ((file (or (symbol-file s 'defun) "(no file)")))
+           (push s (gethash file groups))))))
+    (let (files)
+      (maphash (lambda (f syms) (push (cons f (sort syms #'string<)) files)) groups)
+      (list :built built
+            :files (sort files (lambda (a b) (string< (car a) (car b))))
+            :total total))))
+
+(defun xl-jit-native-report ()
+  "Show which functions are native-compiled here, and which xl-jit built.
+Interactive: a buffer.  Batch: printed to stdout.  Compiles nothing."
+  (interactive)
+  (let* ((info (xl-jit-native-list))
+         (built (plist-get info :built))
+         (built-stems (mapcar (lambda (b) (xl-jit--source-stem (car b))) built))
+         (text
+          (with-output-to-string
+            (princ "xl-jit: natively compiled functions\n")
+            (princ (format "\nBuilt by xl-jit (%d file(s)):\n" (length built)))
+            (dolist (b built)
+              (princ (format "  %s\n      eln: %s\n"
+                             (car b) (cdr b))))
+            (princ (format "\nNative now, from xl-jit-built files (%d function(s)):\n"
+                           (apply #'+ (mapcar (lambda (f)
+                                                (if (member (xl-jit--source-stem (car f))
+                                                            built-stems)
+                                                    (length (cdr f)) 0))
+                                              (plist-get info :files)))))
+            (dolist (f (plist-get info :files))
+              (when (member (xl-jit--source-stem (car f)) built-stems)
+                (princ (format "  %s  (%d)\n      %s\n"
+                               (file-name-nondirectory (car f)) (length (cdr f))
+                               (mapconcat #'symbol-name (cdr f) " ")))))
+            (princ (format "\nAll native functions in this Emacs: %d (Emacs's own preloaded code included)\n"
+                           (plist-get info :total))))))
+    (if noninteractive
+        (princ text)
+      (with-current-buffer (get-buffer-create "*xl-jit native*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert text))
+        (goto-char (point-min))
+        (special-mode)
+        (display-buffer (current-buffer))))))
 
 (provide 'xl-jit)
 ;;; xl-jit.el ends here
