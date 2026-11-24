@@ -550,7 +550,7 @@
                    (make-directory (file-name-directory eln) t)
                    (with-temp-file eln (insert "fake eln"))
                    'ok))
-                ((symbol-function 'xl-jit-verify) (lambda (_src _eln) nil)))
+                ((symbol-function 'xl-jit-verify) (lambda (_src _eln &optional _names) nil)))
         (let ((first (xl-jit--work)))
           (should (= (plist-get first :compiled) 3))
           (should (= children 3)))
@@ -603,6 +603,32 @@
           (let ((r (xl-jit--work)))
             (should (plist-get r :capped))
             (should (= children 0))))))))
+
+;;; Step 7: skipped runs are recorded; the launchd template has what the design asks
+
+(ert-deftest xl-jit-record-skip-keeps-the-other-fields ()
+  "Recording a skip adds the reason and time, and keeps the fingerprint."
+  (xl-jit-test--with-state
+    (xl-jit--write-eld (xl-jit--last-run-file) (list :fingerprint "fp" :next 5))
+    (xl-jit-record-skip "on battery")
+    (let ((last (xl-jit--read-eld (xl-jit--last-run-file))))
+      (should (equal (plist-get last :skipped) "on battery"))
+      (should (equal (plist-get last :fingerprint) "fp"))
+      (should (= (plist-get last :next) 5))
+      (should (numberp (plist-get last :time))))))
+
+(ert-deftest xl-jit-launchd-template-has-the-required-settings ()
+  "The daily job runs in the background with low I/O and nice 19, at 04:17."
+  (let* ((lisp-dir (file-name-directory (locate-library "xl-jit")))
+         (template (expand-file-name "../install/xl-jit.plist.in" lisp-dir))
+         (text (with-temp-buffer
+                 (insert-file-contents template)
+                 (buffer-string))))
+    (should (string-match-p "<string>Background</string>" text))
+    (should (string-match-p "<key>LowPriorityIO</key>\\s-*<true/>" text))
+    (should (string-match-p "<key>Nice</key>\\s-*<integer>19</integer>" text))
+    (should (string-match-p "<key>Hour</key>\\s-*<integer>4</integer>" text))
+    (should (string-match-p "<key>Minute</key>\\s-*<integer>17</integer>" text))))
 
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

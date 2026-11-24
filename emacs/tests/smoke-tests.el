@@ -3450,8 +3450,8 @@ the exit status."
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
 
 ;; xl-jit tier 1: our lisp runs as byte code exactly when a current .elc exists.
-(ert-deftest xl-own-lisp-is-bytecode-when-compiled ()
-  "Our lisp is byte code when its .elc is current, and interpreted otherwise."
+(ert-deftest xl-own-lisp-is-compiled-when-built ()
+  "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "emacs" xl-dotfiles)))
     (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")
                     (xueliang-elisp-completion-setup "xueliang.el")))
@@ -3459,8 +3459,10 @@ the exit status."
              (elc (concat src "c"))
              (current (and (file-exists-p elc)
                            (not (file-newer-than-file-p src elc)))))
-        (should (eq (and (byte-code-function-p (symbol-function (car case))) t)
-                    (and current t)))))))
+        ;; Compiled means byte code, or native once tier 2 has built an eln.
+        (let ((f (symbol-function (car case))))
+          (should (eq (and (or (byte-code-function-p f) (native-comp-function-p f)) t)
+                      (and current t))))))))
 
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

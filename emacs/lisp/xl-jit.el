@@ -323,18 +323,38 @@ Anything else (quarantined, unknown) is left alone."
 
 ;;; Verification and audit
 
-(defun xl-jit--child (form)
-  "Evaluate FORM in a fresh batch Emacs without init.  Return (EXIT . OUTPUT).
+(defun xl-jit--short (text)
+  "The part of TEXT that says what went wrong, at most 300 characters."
+  (let* ((start (or (string-match "Error:" text) 0))
+         (piece (string-trim (substring text start))))
+    (if (> (length piece) 300) (substring piece 0 300) piece)))
+
+(defun xl-jit--child (form &optional profile)
+  "Evaluate FORM in a fresh batch Emacs.  Return (EXIT . OUTPUT).
 A fresh process is the only honest test of loading: this process may already
 hold a native version of the same function.  It gets this process's
 `load-path', because an eln can require its dependencies when it loads (winum
-requires dash), and those must be found."
+requires dash).  With PROFILE, it first loads that profile, because a file of
+ours can depend on what init defines: xueliang.el uses `xl-leader-map'."
   (with-temp-buffer
-    (let ((status (call-process (expand-file-name invocation-name invocation-directory)
-                                nil t nil "-Q" "--batch" "--eval"
-                                (format "%S" `(progn (setq load-path ',load-path)
-                                                     ,form)))))
+    (let* ((exe (expand-file-name invocation-name invocation-directory))
+           (init (and profile (expand-file-name "init.el" profile)))
+           (args (if (and init (file-exists-p init))
+                     (list "--batch" "--init-directory" profile
+                           "-l" (expand-file-name "early-init.el" profile)
+                           "--eval" "(run-hooks (quote before-init-hook))"
+                           "-l" init)
+                   (list "-Q" "--batch")))
+           (status (apply #'call-process exe nil t nil
+                          (append args
+                                  (list "--eval"
+                                        (format "%S" `(progn (setq load-path ',load-path)
+                                                             ,form)))))))
       (cons status (buffer-string)))))
+
+(defun xl-jit--child-in-profile (form)
+  "`xl-jit--child' with this run's profile loaded first."
+  (xl-jit--child form (xl-jit--profile-dir)))
 
 (defun xl-jit--first-defun (src)
   "Name of the first top-level defun in SRC, or nil.  SRC is read, not run."
@@ -350,19 +370,26 @@ requires dash), and those must be found."
         (error nil))
       found)))
 
-(defun xl-jit-verify (src eln)
-  "Load ELN in a fresh process and check that a defun of SRC is native.
-Return nil when it is, otherwise a string saying why not.  This is the only
-test of \"done\": the file existing is not enough (see xl-jit.md)."
-  (let ((name (xl-jit--first-defun src)))
-    (if (null name)
-        "no defun to check"
-      (let* ((r (xl-jit--child
+(defun xl-jit-verify (src eln &optional names)
+  "Load ELN in a fresh process and check that one of NAMES is native.
+NAMES are the functions the ranking found in SRC.  Without them, the first
+top-level defun of SRC is checked.  Return nil when it is, otherwise a string
+saying why not.  This is the only test of \"done\": the file existing is not
+enough (see xl-jit.md).  A file can define its functions through macros, so
+its defuns need not be visible when read."
+  (let ((names (or (seq-filter #'symbolp names)
+                   (let ((first (xl-jit--first-defun src))) (and first (list first))))))
+    (if (null names)
+        "no function to check"
+      (let* ((r (xl-jit--child-in-profile
                  `(progn (load ,eln nil t)
-                         (princ (if (native-comp-function-p (symbol-function ',name))
+                         (princ (if (seq-some (lambda (s)
+                                                (and (fboundp s)
+                                                     (native-comp-function-p (symbol-function s))))
+                                              ',names)
                                     "XL-JIT-OK" "XL-JIT-NOT-NATIVE")))))
              (out (string-trim (cdr r))))
-        (cond ((/= (car r) 0) (format "child exited %s: %s" (car r) out))
+        (cond ((/= (car r) 0) (format "child exited %s: %s" (car r) (xl-jit--short out)))
               ((string-match-p "XL-JIT-OK\\'" out) nil)
               (t "loaded but not native"))))))
 
@@ -386,10 +413,10 @@ counted as a failure."
           (xl-jit--discard-eln eln)
           (xl-jit--record-failure key "sha256 or size differs from the ledger"))
          (t
-          (let* ((r (xl-jit--child `(load ,eln nil t)))
+          (let* ((r (xl-jit--child-in-profile `(load ,eln nil t)))
                  (why (and (/= (car r) 0)
                            (format "load failed in a fresh process: %s"
-                                   (string-trim (cdr r))))))
+                                   (xl-jit--short (cdr r))))))
             (when why
               (xl-jit--discard-eln eln)
               (xl-jit--record-failure key why)))))))))
@@ -519,10 +546,9 @@ too long is killed, so a hung compile cannot hold the lock forever."
             (format "timed out after %d s" seconds))
            ((zerop (process-exit-status proc)) 'ok)
            (t (format "exit %d: %s" (process-exit-status proc)
-                      (with-current-buffer buf
-                        (string-trim
-                         (buffer-substring-no-properties
-                          (max (point-min) (- (point-max) 400)) (point-max))))))))
+                      (xl-jit--short
+                       (with-current-buffer buf
+                         (buffer-substring-no-properties (point-min) (point-max))))))))
       (when (buffer-live-p buf) (kill-buffer buf)))))
 
 (defun xl-jit--child-compile (src eln)
@@ -594,8 +620,9 @@ opt-out cookie, and must be a reasonable size."
 (declare-function xl-jit-rank--compute "xl-jit-rank")
 (declare-function xl-jit-rank--no-native-p "xl-jit-rank")
 
-(defun xl-jit--compile-one (src)
-  "Compile and verify SRC.  Return `done', `skipped', or `failed'."
+(defun xl-jit--compile-one (src &optional names)
+  "Compile and verify SRC; NAMES are its functions from the ranking.
+Return `done', `skipped', or `failed'."
   (let* ((true (file-truename src))
          (key (xl-jit-source-key true))
          (eln (comp-el-to-eln-filename true))
@@ -605,7 +632,7 @@ opt-out cookie, and must be a reasonable size."
       (let* ((built (xl-jit--child-compile true eln))
              (reason (cond ((not (eq built 'ok)) built)
                            ((not (file-exists-p eln)) "no eln written")
-                           (t (xl-jit-verify true eln)))))
+                           (t (xl-jit-verify true eln names)))))
         (if reason
             (progn
               (xl-jit--discard-eln eln)
@@ -632,7 +659,7 @@ from the ranking, if the total eln size allows it."
                               xl-jit-compile-budget)))
         (dolist (row cands)
           (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
-            (pcase (xl-jit--compile-one src)
+            (pcase (xl-jit--compile-one src (plist-get row :defuns))
               ('done (cl-incf compiled))
               ('failed (cl-incf failed))
               (_ (cl-incf skipped)))))))
@@ -720,6 +747,17 @@ the roots is refused, because its truename is what gets compiled."
                                  (string-prefix-p r true)
                                (string= r true)))))
                   (xl-jit-trusted-roots)))))
+
+;;; Step 7: a scheduled run that was skipped (battery, heat) is recorded here,
+;;; so `jit-status' shows why nothing happened.
+
+(defun xl-jit-record-skip (reason)
+  "Record that a scheduled run was skipped for REASON.  Other fields stay."
+  (let ((last (or (xl-jit--read-eld (xl-jit--last-run-file)) nil)))
+    (xl-jit--write-eld (xl-jit--last-run-file)
+                       (plist-put (plist-put (copy-sequence last) :skipped reason)
+                                  :time (xl-jit--now)))
+    reason))
 
 (provide 'xl-jit)
 ;;; xl-jit.el ends here
