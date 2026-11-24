@@ -1419,7 +1419,7 @@ altogether.  The ranking table comes last."
           (let ((why (if (memq row next)
                          "compile in the next pass"
                        (or (eln-opt--candidate-reason row)
-                           "candidate, but past the budget of 3 per pass"))))
+                           (format "candidate, but past the budget of %d per pass" eln-opt-compile-budget)))))
             (when (< n 40)
               (princ (format "  %-28s score %6.1f  %s\n"
                              (plist-get row :file) (plist-get row :score) why)))
