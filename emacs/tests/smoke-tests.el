@@ -716,6 +716,14 @@ so only foo can be upgraded."
 ;;; xl-git-status: auto refresh on file changes
 ;;; ============================================================
 
+(ert-deftest xl-git-status-reads-do-not-rewrite-the-index ()
+  "Every status command carries --no-optional-locks, so a refresh does not
+rewrite .git/index and retrigger the auto refresh."
+  (should (member "--no-optional-locks"
+                  (xl-git-status--git-command '("status" "--porcelain=v1"))))
+  (should (equal "--no-optional-locks"
+                 (nth 2 (xl-git-status--git-command '("status"))))))
+
 (ert-deftest xl-git-status-watch-ignores-noise ()
   "Lock files, editor backups and most of .git do not refresh the status."
   (let ((root "/repo/"))

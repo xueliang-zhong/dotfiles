@@ -591,8 +591,13 @@ OLD was."
 ;; ============================================================
 
 (defun xl-git-status--git-command (args)
-  "Return the full git command line for ARGS."
-  (append '("git" "--no-pager" "-c" "core.quotepath=false") args))
+  "Return the full git command line for ARGS.
+`--no-optional-locks' stops a read such as `status' from rewriting
+.git/index.  That rewrite is a change the auto refresh watches for, so
+without the flag each refresh would trigger the next one.  Commands that
+must write still lock as usual."
+  (append '("git" "--no-pager" "--no-optional-locks" "-c" "core.quotepath=false")
+          args))
 
 (defun xl-git-status--enqueue (job)
   "Queue JOB and start the queue if it is idle.
