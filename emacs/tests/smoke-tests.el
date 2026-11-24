@@ -1049,14 +1049,14 @@ own final character is drawn."
         (should (equal xl-consult-spinner-idle (overlay-get overlay 'display)))
         (funcall handler [indicator running])
         (should (xl-spinner-running-p))
-        (should (= xl-spinner-two-dot-interval
+        (should (= xl-spinner-one-dot-interval
                    (plist-get xl-spinner--state :interval)))
         (should (member (substring-no-properties (overlay-get overlay 'display))
-                        xl-spinner-two-dot-frames))
-        ;; Every frame and the idle text take the same two cells.
-        (dolist (frame xl-spinner-two-dot-frames)
-          (should (= 2 (string-width frame))))
-        (should (= 2 (string-width xl-consult-spinner-idle)))
+                        xl-spinner-one-dot-frames))
+        ;; Every frame and the idle text take the same one cell.
+        (dolist (frame xl-spinner-one-dot-frames)
+          (should (= 1 (string-width frame))))
+        (should (= 1 (string-width xl-consult-spinner-idle)))
         ;; Same colour as the mode-line loaders: the frame keeps its face.
         (should (eq 'xl-spinner
                     (get-text-property 0 'face (overlay-get overlay 'display))))
@@ -1071,7 +1071,7 @@ own final character is drawn."
         (should-not (xl-spinner-running-p))
         ;; The spinner stopped, and the idle text is back, at the same width.
         (should (equal xl-consult-spinner-idle (overlay-get overlay 'display)))
-        (should (= 2 (string-width (overlay-get overlay 'display))))
+        (should (= 1 (string-width (overlay-get overlay 'display))))
         (funcall handler 'destroy)))))
 
 (ert-deftest xl-search-project-at-point-uses-grep-without-ripgrep ()

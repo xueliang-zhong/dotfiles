@@ -142,6 +142,16 @@ is exactly two cells wide, so text beside it never moves.")
 Three frames of two dots need a longer frame than the four-frame dot wave
 of `xl-spinner-interval' to read as steady motion.")
 
+(defvar xl-spinner-one-dot-frames
+  (if (seq-every-p #'xl-spinner--glyph-safe-p "·•●")
+      '("·" "•" "●" "•")
+    '("." "o" "O" "o"))
+  "Four frames of one dot pulsing, for a loader that has only one cell.
+Dots when the font draws them, ASCII otherwise.  Every frame is one cell.")
+
+(defvar xl-spinner-one-dot-interval 0.15
+  "Seconds per frame of a one-dot loader: a four-frame pulse, 0.6 s a turn.")
+
 ;; ============================================================
 ;; Core: clock and frame counter
 ;; ============================================================

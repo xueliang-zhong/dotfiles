@@ -17,9 +17,8 @@
 ;; on the end states it stops the spinner and then lets consult draw its own
 ;; final character, so the static state is what remains.
 ;;
-;; The frames are the three-cell frames of the mode-line loaders.  They are
-;; wider than consult's one character, so the typed text moves two cells
-;; right while the search runs.
+;; The frames are one cell, like consult's own character, so the typed text
+;; never moves.
 
 ;;; Code:
 
@@ -28,8 +27,8 @@
 
 (declare-function consult--async-indicator "consult")
 
-(defconst xl-consult-spinner-idle ": "
-  "What the reserved cells show when no search runs: consult's colon, padded.")
+(defconst xl-consult-spinner-idle ":"
+  "What the one cell shows when no search runs: consult's colon.")
 
 (defun xl-consult-spinner--overlay ()
   "Return the indicator overlay consult put in front of the minibuffer prompt."
@@ -45,7 +44,7 @@ loaders."
     (overlay-put overlay 'display frame)))
 
 (defun xl-consult-spinner--idle (overlay)
-  "Show the idle text on OVERLAY, two cells wide like the frames."
+  "Show the idle text on OVERLAY, one cell wide like the frames."
   (when (and (overlayp overlay) (overlay-buffer overlay))
     (overlay-put overlay 'display xl-consult-spinner-idle)))
 
@@ -77,8 +76,8 @@ the pipeline element, a function of SINK."
          (unless (xl-spinner-running-p)
            (xl-spinner-start (lambda (frame)
                                (xl-consult-spinner--draw overlay frame))
-                             :frames xl-spinner-two-dot-frames
-                             :interval xl-spinner-two-dot-interval)))
+                             :frames xl-spinner-one-dot-frames
+                             :interval xl-spinner-one-dot-interval)))
         (`[indicator ,(or 'finished 'killed 'failed)]
          (when (xl-spinner-running-p)
            (xl-spinner-stop))
