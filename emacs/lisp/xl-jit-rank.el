@@ -514,11 +514,13 @@ altogether.  The ranking table comes last."
       (princ (format "\nCompiled by xl-jit and native now: %d file(s), %d function(s)\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
       (when built
-        (princ (format "\n%-28s  %6s  %9s  %s\n" "file" "KB" "functions" "examples"))
+        (princ (format "\n%-28s  %6s  %-7s  %-6s  %9s  %s\n"
+                       "file" "KB" "trusted" "native" "functions" "examples"))
         (dolist (row built)
-          (princ (format "%-28s  %6.1f  %9d  %S\n"
+          (princ (format "%-28s  %6.1f  %-7s  %-6s  %9d  %S\n"
                          (plist-get row :file)
                          (/ (plist-get row :size) 1024.0)
+                         "yes" "yes"
                          (plist-get row :count)
                          (plist-get row :top)))))
       (when done
