@@ -84,13 +84,17 @@
     (should (equal (directory-files xl-jit-state-dir nil "\\`[^.]")
                    '("platform.eld")))))
 
+(defvar xl-jit-test--evaluated nil)
+
 (ert-deftest xl-jit-state-file-is-read-with-read-only ()
-  "An oversized or non-Lisp platform file is ignored, not evaluated."
+  "A state file with #. is read but its form never runs."
   (xl-jit-test--with-state
     (make-directory xl-jit-state-dir t)
+    (setq xl-jit-test--evaluated nil)
     (with-temp-file (xl-jit--platform-file)
-      (insert "#.(error \"must not run\")"))
-    (should (null (xl-jit--read-eld (xl-jit--platform-file))))))
+      (insert "#.(setq xl-jit-test--evaluated t)"))
+    (should (null (xl-jit--read-eld (xl-jit--platform-file))))
+    (should-not xl-jit-test--evaluated)))
 
 ;;; Step 2: trampoline prediction and build
 
@@ -352,6 +356,18 @@
       (should-not (file-exists-p eln))
       (should (eq (plist-get (xl-jit--ledger-get key) :status) 'failed)))))
 
+(ert-deftest xl-jit-child-sees-our-load-path ()
+  "A fresh child can require a file that is only on our load-path."
+  (let* ((dir (make-temp-file "xl-jit-dep-" t))
+         (load-path (cons dir load-path)))
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name "xl-jit-dep-probe.el" dir)
+            (insert "(provide 'xl-jit-dep-probe)\n"))
+          (let ((r (xl-jit--child '(require 'xl-jit-dep-probe))))
+            (should (= (car r) 0))))
+      (delete-directory dir t))))
+
 (ert-deftest xl-jit-verify-accepts-native-and-rejects-garbage ()
   "Verification loads the eln and checks that the defun is native."
   (skip-unless (native-comp-available-p))
@@ -469,6 +485,124 @@
       (setq load-history (seq-remove (lambda (e) (equal (car e) "/tmp/xl-jit-rank-test-fake.el"))
                                      load-history))
       (fmakunbound name))))
+
+;;; Step 6: background compile, under stubs for the child process
+
+(defmacro xl-jit-test--with-tier2 (&rest body)
+  "Temporary state folder, and a temporary dotfiles tree with our lisp/."
+  (declare (indent 0))
+  `(xl-jit-test--with-state
+     (let* ((root (make-temp-file "xl-jit-tier2-" t))
+            (xl-dotfiles (file-name-as-directory root))
+            (xl-jit-crash-dir (expand-file-name "crashes/" root))
+            (lisp (expand-file-name "emacs/lisp" root)))
+       (make-directory lisp t)
+       (unwind-protect (progn ,@body)
+         (ignore-errors (delete-directory root t))))))
+
+(defun xl-jit-test--row (path ratio)
+  (list :file (file-name-sans-extension (file-name-nondirectory path))
+        :path path :ratio ratio :score 1.0 :size 1000 :top nil :trusted t))
+
+(defun xl-jit-test--src (dir name)
+  (let ((src (expand-file-name (concat name ".el") dir)))
+    (with-temp-file src (insert (format ";;; %s.el\n(defun %s-fn () 1)\n" name name)))
+    src))
+
+(ert-deftest xl-jit-timeout-kills-a-child-that-runs-too-long ()
+  "A child that outlives its time is killed and reported; a quick one is ok."
+  (skip-unless (file-executable-p (expand-file-name invocation-name invocation-directory)))
+  (should (eq (xl-jit--run-with-timeout '("-Q" "--batch" "--eval" "(princ 1)") 60) 'ok))
+  (let ((r (xl-jit--run-with-timeout '("-Q" "--batch" "--eval" "(sleep-for 30)") 1)))
+    (should (stringp r))
+    (should (string-match-p "timed out" r))))
+
+(ert-deftest xl-jit-candidate-refuses-untrusted-optout-big-and-low-ranked ()
+  "Each rule that keeps a file out of the compile list is enforced here."
+  (xl-jit-test--with-tier2
+    (let* ((good (xl-jit-test--src lisp "good"))
+           (outside (make-temp-file "xl-jit-out-" t))
+           (outside-src (xl-jit-test--src outside "escaped"))
+           (link (expand-file-name "link.el" lisp))
+           (optout (xl-jit-test--src lisp "optout"))
+           (big (expand-file-name "big.el" lisp)))
+      (make-symbolic-link outside-src link)
+      (with-temp-file optout (insert ";;; optout.el\n;; Local Variables:\n;; no-native-compile: t\n;; End:\n"))
+      (with-temp-file big (insert (make-string (+ 10 xl-jit-max-source-bytes) ?x)))
+      (should (xl-jit--candidate-p (xl-jit-test--row good 100.0)))
+      (should-not (xl-jit--candidate-p (xl-jit-test--row link 100.0)))
+      (should-not (xl-jit--candidate-p (xl-jit-test--row optout 100.0)))
+      (should-not (xl-jit--candidate-p (xl-jit-test--row big 100.0)))
+      (should-not (xl-jit--candidate-p (xl-jit-test--row good 1.0)))
+      (delete-directory outside t))))
+
+(ert-deftest xl-jit-work-compiles_budget_then_nothing_on_the_second_run ()
+  "Within the budget, verified elns are recorded; a second run compiles none."
+  (xl-jit-test--with-tier2
+    (let* ((srcs (mapcar (lambda (n) (xl-jit-test--src lisp n)) '("a1" "a2" "a3" "a4")))
+           (rows (mapcar (lambda (f) (xl-jit-test--row f 100.0)) srcs))
+           (children 0))
+      (cl-letf (((symbol-function 'xl-jit-rank--compute)
+                 (lambda (_) (list :rows rows)))
+                ((symbol-function 'xl-jit--child-compile)
+                 (lambda (src eln)
+                   (cl-incf children)
+                   (make-directory (file-name-directory eln) t)
+                   (with-temp-file eln (insert "fake eln"))
+                   'ok))
+                ((symbol-function 'xl-jit-verify) (lambda (_src _eln) nil)))
+        (let ((first (xl-jit--work)))
+          (should (= (plist-get first :compiled) 3))
+          (should (= children 3)))
+        (let ((second (xl-jit--work)))
+          (should (= (plist-get second :compiled) 0))
+          (should (= children 3)))))))
+
+(ert-deftest xl-jit-timeout-is-not-retried-within-the-day ()
+  "A compile that times out is counted failed, and is not attempted again soon."
+  (xl-jit-test--with-tier2
+    (let* ((src (xl-jit-test--src lisp "slow"))
+           (rows (list (xl-jit-test--row src 100.0)))
+           (children 0))
+      (cl-letf (((symbol-function 'xl-jit-rank--compute) (lambda (_) (list :rows rows)))
+                ((symbol-function 'xl-jit--child-compile)
+                 (lambda (_ _) (cl-incf children) "timed out after 180 s")))
+        (should (= (plist-get (xl-jit--work) :failed) 1))
+        (should (= (plist-get (xl-jit--work) :compiled) 0))
+        (should (= children 1))))))
+
+(ert-deftest xl-jit-crash-report-quarantines-the-named-eln ()
+  "An eln named in a fresh crash report is deleted and its key quarantined."
+  (xl-jit-test--with-tier2
+    (let* ((eln (expand-file-name "crashy-abc-def.eln" xl-jit-state-dir))
+           (key '("/src/crashy.el" "sha" (1)))
+           (report-dir xl-jit-crash-dir))
+      (make-directory xl-jit-state-dir t)
+      (with-temp-file eln (insert "eln"))
+      (xl-jit--ledger-set key (list :status 'done :eln eln :sha "s" :size 3))
+      (make-directory report-dir t)
+      (with-temp-file (expand-file-name "Emacs-2026-11-24.ips" report-dir)
+        (insert "{\"threads\": [{\"frames\": [\"crashy-abc-def.eln\"]}]}"))
+      (should (= (xl-jit--crash-scan 0) 1))
+      (should-not (file-exists-p eln))
+      (should (eq (plist-get (xl-jit--ledger-get key) :status) 'quarantined))
+      (should-not (xl-jit--may-attempt-p key (+ (xl-jit--now) (* 10 xl-jit-retry-interval)))))))
+
+(ert-deftest xl-jit-total-size-cap-stops_compiling ()
+  "Past the total eln size cap, a run compiles nothing and says so."
+  (xl-jit-test--with-tier2
+    (let* ((src (xl-jit-test--src lisp "capped"))
+           (children 0))
+      (xl-jit--ledger-set '("/src/old.el" "sha" (1))
+                          (list :status 'done :eln "/x" :sha "s" :size 100))
+      (cl-letf (((symbol-function 'xl-jit-rank--compute)
+                 (lambda (_) (list :rows (list (xl-jit-test--row src 100.0)))))
+                ((symbol-function 'xl-jit--child-compile)
+                 (lambda (_ _) (cl-incf children) 'ok)))
+        (let ((xl-jit-max-total-bytes 50))
+          (let ((r (xl-jit--work)))
+            (should (plist-get r :capped))
+            (should (= children 0))))))))
 
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

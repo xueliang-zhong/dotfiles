@@ -15,6 +15,7 @@
 #   bash emacs/install/emacs-setup.sh jit-run
 #   bash emacs/install/emacs-setup.sh jit-reset
 #   bash emacs/install/emacs-setup.sh jit-report
+#   bash emacs/install/emacs-setup.sh jit-status
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -278,6 +279,14 @@ cmd_jit_run() {
     emacs_batch --eval '(progn (require (quote xl-jit)) (princ (format "xl-jit run: %S\n" (xl-jit-run))))'
 }
 
+cmd_jit_status() {
+    require_emacs
+    "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
+        --eval '(setq load-prefer-newer t)' \
+        -L "$DOTFILES/emacs/lisp" -l xl-jit \
+        --eval '(pp (xl-jit-status))'
+}
+
 cmd_jit_report() {
     require_emacs
     require_profile
@@ -485,6 +494,7 @@ use / check:
   jit-run                one background xl-jit run (audit, then work when due)
   jit-reset              delete the elns xl-jit recorded, and its ledger
   jit-report             print the xl-jit ranking; compiles nothing
+  jit-status             ledger counts, eln bytes, and the last run's result
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -507,6 +517,7 @@ case "${1:-}" in
     jit-run) shift; cmd_jit_run "$@" ;;
     jit-reset) shift; cmd_jit_reset "$@" ;;
     jit-report) shift; cmd_jit_report "$@" ;;
+    jit-status) shift; cmd_jit_status "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;

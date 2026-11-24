@@ -106,7 +106,7 @@ canary is cached too, so a broken libgccjit is not retried on every run."
 
 (defconst xl-jit--redefiners '(advice-add fset)
   "Calls whose first argument, when it names a primitive, needs a trampoline.
-`defalias' is left out on purpose: (defalias 'x #'subr) only aliases.")
+`defalias\=' is left out on purpose: (defalias \='x #\='subr) only aliases.")
 
 (defun xl-jit--primitive-p (s)
   "Non-nil if S names a C primitive, looking through advice already on it."
@@ -326,10 +326,14 @@ Anything else (quarantined, unknown) is left alone."
 (defun xl-jit--child (form)
   "Evaluate FORM in a fresh batch Emacs without init.  Return (EXIT . OUTPUT).
 A fresh process is the only honest test of loading: this process may already
-hold a native version of the same function."
+hold a native version of the same function.  It gets this process's
+`load-path', because an eln can require its dependencies when it loads (winum
+requires dash), and those must be found."
   (with-temp-buffer
     (let ((status (call-process (expand-file-name invocation-name invocation-directory)
-                                nil t nil "-Q" "--batch" "--eval" (format "%S" form))))
+                                nil t nil "-Q" "--batch" "--eval"
+                                (format "%S" `(progn (setq load-path ',load-path)
+                                                     ,form)))))
       (cons status (buffer-string)))))
 
 (defun xl-jit--first-defun (src)
@@ -466,9 +470,185 @@ The state folder is left out: the run itself changes it."
             (setq best (if best (min best at) at))))))
     best))
 
+;;; ------------------------------------------------------------
+;;; Step 6: Tier 2, background native compilation
+;;; (xl-jit.md, "流水线" steps 5-6, "安全", "DoS")
+;;; ------------------------------------------------------------
+
+(defconst xl-jit-compile-budget 3
+  "Most files one run compiles.  Each costs a child Emacs with the profile.")
+
+(defconst xl-jit-min-ratio 20.0
+  "Lowest ranking ratio worth a compile.  Uncalibrated: set it from a profiler run.")
+
+(defconst xl-jit-max-source-bytes (* 200 1024)
+  "Largest source file xl-jit will compile.")
+
+(defconst xl-jit-max-total-bytes (* 200 1024 1024)
+  "Most eln bytes xl-jit keeps in total.  Past it, runs compile nothing.")
+
+(defconst xl-jit-compile-timeout 180
+  "Seconds one child compile may take before it is killed and counted failed.")
+
+(defvar xl-jit-crash-dir (expand-file-name "~/Library/Logs/DiagnosticReports/")
+  "Where macOS writes crash reports.  Tests rebind it.")
+
+(defconst xl-jit--crash-read-bytes (* 2 1024 1024)
+  "Most of each crash report that is read.")
+
+(defun xl-jit--profile-dir ()
+  "The profile this run belongs to: the batch's user-emacs-directory."
+  (file-name-as-directory user-emacs-directory))
+
+(defun xl-jit--run-with-timeout (args seconds)
+  "Run the Emacs binary with ARGS for at most SECONDS.
+Return `ok' on exit 0, otherwise a string saying why not.  A child that runs
+too long is killed, so a hung compile cannot hold the lock forever."
+  (let* ((exe (expand-file-name invocation-name invocation-directory))
+         (buf (generate-new-buffer " *xl-jit-child*"))
+         (proc (make-process :name "xl-jit-child" :buffer buf :noquery t
+                             :command (cons exe args)))
+         (deadline (+ (xl-jit--now) seconds)))
+    (unwind-protect
+        (progn
+          (while (and (process-live-p proc) (< (xl-jit--now) deadline))
+            (accept-process-output proc 0.5))
+          (cond
+           ((process-live-p proc)
+            (signal-process proc 'KILL)
+            (format "timed out after %d s" seconds))
+           ((zerop (process-exit-status proc)) 'ok)
+           (t (format "exit %d: %s" (process-exit-status proc)
+                      (with-current-buffer buf
+                        (string-trim
+                         (buffer-substring-no-properties
+                          (max (point-min) (- (point-max) 400)) (point-max))))))))
+      (when (buffer-live-p buf) (kill-buffer buf)))))
+
+(defun xl-jit--child-compile (src eln)
+  "Compile SRC to ELN in a child Emacs that loads the profile first.
+The profile is needed: without its packages, macros such as evil's would be
+compiled as calls.  `native-comp-speed' is capped at 2 (xl-jit.md, \"实测\")."
+  (let* ((profile (xl-jit--profile-dir))
+         (form `(progn (setq native-comp-speed (min 2 native-comp-speed))
+                       (native-compile ,src ,eln))))
+    (xl-jit--run-with-timeout
+     (list "--batch" "--init-directory" profile
+           "-l" (expand-file-name "early-init.el" profile)
+           "--eval" "(run-hooks (quote before-init-hook))"
+           "-l" (expand-file-name "init.el" profile)
+           "--eval" (format "%S" form))
+     xl-jit-compile-timeout)))
+
+(defun xl-jit--read-text (file max-bytes)
+  (when (file-readable-p file)
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file nil 0 max-bytes)
+      (buffer-string))))
+
+(defun xl-jit--eln-bytes ()
+  "Total size of the elns the ledger records as done."
+  (let ((sum 0))
+    (dolist (e (xl-jit--ledger-load))
+      (when (eq (plist-get (cdr e) :status) 'done)
+        (cl-incf sum (or (plist-get (cdr e) :size) 0))))
+    sum))
+
+(defun xl-jit--crash-scan (since)
+  "Quarantine done elns that a crash report newer than SINCE names.
+An eln named in a crash is deleted and its key quarantined for good: a
+crash is not retried.  Returns the number quarantined."
+  (let ((n 0))
+    (when (file-directory-p xl-jit-crash-dir)
+      (dolist (f (directory-files xl-jit-crash-dir t "\\`Emacs.*\\.ips\\'"))
+        (let ((mtime (xl-jit--mtime f)))
+          (when (and mtime (> (float-time mtime) since))
+            (let ((text (or (xl-jit--read-text f xl-jit--crash-read-bytes) "")))
+              (dolist (e (xl-jit--ledger-load))
+                (let ((eln (plist-get (cdr e) :eln)))
+                  (when (and eln (eq (plist-get (cdr e) :status) 'done)
+                             (string-match-p (regexp-quote (file-name-nondirectory eln))
+                                             text))
+                    (xl-jit--discard-eln eln)
+                    (xl-jit--ledger-set (car e)
+                                        (list :status 'quarantined
+                                              :reason "named in a crash report"
+                                              :time (xl-jit--now)))
+                    (cl-incf n)))))))))
+    n))
+
+(defun xl-jit--candidate-p (row)
+  "Non-nil if ranking ROW may be compiled.  Checked here again, not trusted
+from the ranking: the source is re-tested against the trusted roots and the
+opt-out cookie, and must be a reasonable size."
+  (let ((path (plist-get row :path)))
+    (and path
+         (>= (plist-get row :ratio) xl-jit-min-ratio)
+         (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" path)))
+           (and (file-readable-p src)
+                (xl-jit-trusted-file-p src)
+                (not (xl-jit-rank--no-native-p src))
+                (<= (or (xl-jit--file-size src) 0) xl-jit-max-source-bytes))))))
+
+(declare-function xl-jit-rank--compute "xl-jit-rank")
+(declare-function xl-jit-rank--no-native-p "xl-jit-rank")
+
+(defun xl-jit--compile-one (src)
+  "Compile and verify SRC.  Return `done', `skipped', or `failed'."
+  (let* ((true (file-truename src))
+         (key (xl-jit-source-key true))
+         (eln (comp-el-to-eln-filename true))
+         (now (xl-jit--now)))
+    (if (not (xl-jit--may-attempt-p key now))
+        'skipped
+      (let* ((built (xl-jit--child-compile true eln))
+             (reason (cond ((not (eq built 'ok)) built)
+                           ((not (file-exists-p eln)) "no eln written")
+                           (t (xl-jit-verify true eln)))))
+        (if reason
+            (progn
+              (xl-jit--discard-eln eln)
+              (xl-jit--record-failure key reason)
+              'failed)
+          (xl-jit--ledger-set key (list :status 'done :eln eln
+                                        :sha (xl-jit--file-sha eln)
+                                        :size (xl-jit--file-size eln)
+                                        :time now))
+          'done)))))
+
 (defun xl-jit--work ()
-  "The compiling work.  Step 6 replaces this; for now nothing is compiled."
-  (list :compiled 0))
+  "One compile round: crash scan, then up to `xl-jit-compile-budget' files
+from the ranking, if the total eln size allows it."
+  (require 'xl-jit-rank)
+  (let* ((last (xl-jit--read-eld (xl-jit--last-run-file)))
+         (since (or (plist-get last :time) 0))
+         (quarantined (xl-jit--crash-scan since))
+         (capped (>= (xl-jit--eln-bytes) xl-jit-max-total-bytes))
+         (compiled 0) (failed 0) (skipped 0))
+    (unless capped
+      (let* ((rows (plist-get (xl-jit-rank--compute (xl-jit--profile-dir)) :rows))
+             (cands (seq-take (seq-filter #'xl-jit--candidate-p rows)
+                              xl-jit-compile-budget)))
+        (dolist (row cands)
+          (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
+            (pcase (xl-jit--compile-one src)
+              ('done (cl-incf compiled))
+              ('failed (cl-incf failed))
+              (_ (cl-incf skipped)))))))
+    (list :compiled compiled :failed failed :skipped skipped
+          :quarantined quarantined :capped capped)))
+
+(defun xl-jit-status ()
+  "Counts by ledger status, eln bytes, and the last run's result."
+  (let ((counts nil))
+    (dolist (e (xl-jit--ledger-load))
+      (let ((st (plist-get (cdr e) :status)))
+        (setf (alist-get st counts 0) (1+ (alist-get st counts 0)))))
+    (list :ledger counts
+          :eln-bytes (xl-jit--eln-bytes)
+          :eln-cap xl-jit-max-total-bytes
+          :last-run (xl-jit--read-eld (xl-jit--last-run-file)))))
 
 (defun xl-jit--run-locked ()
   (let* ((now (xl-jit--now))
