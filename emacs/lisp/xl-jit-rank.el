@@ -430,6 +430,7 @@ numbers for the header."
                    rows))))
        scores)
       (list :rows (sort rows (lambda (a b) (> (plist-get a :ratio) (plist-get b :ratio))))
+            :built-rows (xl-jit-rank--built-rows)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
             :roots (length user-roots)
@@ -439,6 +440,28 @@ numbers for the header."
             :excluded (plist-get graph :excluded)
             :native-skipped (plist-get graph :native-skipped)
             :interpreted-skipped (plist-get graph :interpreted-skipped)))))
+
+(defun xl-jit-rank--built-rows ()
+  "One row per file xl-jit built and that is native now.
+These files drop out of the ranking, because their functions are native, so
+they are listed here with native \"xl-jit\".  Their KB is the eln size."
+  (let* ((info (xl-jit-native-list))
+         (natives (plist-get info :files))
+         rows)
+    (dolist (b (plist-get info :built))
+      (let* ((src (car b))
+             (eln (cdr b))
+             (stem (xl-jit--source-stem src))
+             (fns (cl-loop for (file . syms) in natives
+                           when (equal (xl-jit--source-stem file) stem)
+                           append syms)))
+        (push (list :file (xl-jit-rank--file-key src) :native "xl-jit"
+                    :path src :trusted t :ratio nil :score nil
+                    :size (or (xl-jit--file-size eln) 0)
+                    :count (length fns)
+                    :top (seq-take fns 3))
+              rows)))
+    (sort rows (lambda (a b) (string< (plist-get a :file) (plist-get b :file))))))
 
 (defun xl-jit-rank--format (result)
   "The report as a string."
@@ -455,14 +478,26 @@ numbers for the header."
                    (plist-get result :interpreted-skipped)))
     (princ (format "largest single savehist command share of the score: %.1f%%\n"
                    (* 100 (plist-get result :savehist-share))))
-    (princ "\nrank  ratio  score  KB  trusted  file  [top functions]\n")
-    (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
-             do (princ (format "%4d %6.1f %6.1f %4.1f  %-7s  %s  %S\n"
-                               i (plist-get row :ratio) (plist-get row :score)
-                               (/ (plist-get row :size) 1024.0)
-                               (if (plist-get row :trusted) "yes" "NO")
-                               (plist-get row :file)
-                               (plist-get row :top))))))
+    (let ((built (plist-get result :built-rows)))
+      (princ (format "native now: %d file(s) built by xl-jit, %d function(s); not yet native: ranked below\n"
+                     (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
+      (princ "\nrank  ratio  score  KB  trusted  native  file  [top functions]\n")
+      (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
+               do (princ (format "%4d %6.1f %6.1f %4.1f  %-7s  %-6s  %s  %S\n"
+                                 i (plist-get row :ratio) (plist-get row :score)
+                                 (/ (plist-get row :size) 1024.0)
+                                 (if (plist-get row :trusted) "yes" "NO")
+                                 "no"
+                                 (plist-get row :file)
+                                 (plist-get row :top))))
+      (when built
+        (princ "\nbuilt by xl-jit (already native):\n")
+        (princ "     -       -    eKB  trusted  native  file  [functions, count]\n")
+        (dolist (row built)
+          (princ (format "     -       -  %4.1f  %-7s  %-6s  %s  %d  %S\n"
+                         (/ (plist-get row :size) 1024.0)
+                         "yes" "xl-jit" (plist-get row :file)
+                         (plist-get row :count) (plist-get row :top))))))))
 
 (defun xl-jit-report ()
   "Show the ranking.  Interactive: a buffer.  Batch: printed to stdout."

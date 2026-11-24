@@ -610,6 +610,7 @@ from the ranking: the source is re-tested against the trusted roots and the
 opt-out cookie, and must be a reasonable size."
   (let ((path (plist-get row :path)))
     (and path
+         (plist-get row :ratio)
          (>= (plist-get row :ratio) xl-jit-min-ratio)
          (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" path)))
            (and (file-readable-p src)
