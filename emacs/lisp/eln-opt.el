@@ -1611,8 +1611,10 @@ A short-lived Emacs (a quick edit, `emacsclient -a \"\"') never starts one."
   "Seconds of idleness after which the background run starts."
   :type 'integer)
 
-(defcustom eln-opt-auto-interval (* 24 3600)
-  "Least time between two background runs, from the last run's record."
+(defcustom eln-opt-auto-interval 3600
+  "Least time between two background runs, from the last run's record.
+A pass with nothing changed returns at once, so this can be short.  It must
+stay above zero: a run that ends schedules the next check this far away."
   :type 'integer)
 
 (defcustom eln-opt-auto-retry (* 30 60)

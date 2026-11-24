@@ -651,7 +651,7 @@ power, native compilation available, and timers recorded instead of armed."
       (should (eq (eln-opt-auto--decision) 'too-early)))
     (cl-letf (((symbol-function 'eln-opt-auto--on-battery-p) (lambda () t)))
       (should (eq (eln-opt-auto--decision) 'battery)))
-    (eln-opt-test--touch-last-run 3600)
+    (eln-opt-test--touch-last-run 60)
     (should (eq (eln-opt-auto--decision) 'recent))
     (eln-opt-test--touch-last-run (+ eln-opt-auto-interval 60))
     (should (null (eln-opt-auto--decision)))))

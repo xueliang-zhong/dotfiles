@@ -45,7 +45,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 ```
 平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
-触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过一天、没在用电池（eln-opt.el，只用 timer）
+触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过 1 小时（`eln-opt-auto-interval`）、没在用电池（eln-opt.el，只用 timer）
   └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
        0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
        1. 复查账本里记录的 eln：哈希、dlopen；有问题的删掉
@@ -73,7 +73,7 @@ Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编�
 **不可用时主 Emacs 里连 timer 都不排**
 
 - `eln-opt.el` 每次检查都先看 `native-comp-available-p`。为 nil（例如 Windows 上没有 libgccjit）时，返回 `unavailable`，不再排下一个 timer，这个 session 里不会再有任何动作。
-- 金丝雀熔断（见下）在后台子进程里判断。熔断后子进程立刻返回 `unavailable`，主 Emacs 一天最多为此启动一次子进程。
+- 金丝雀熔断（见下）在后台子进程里判断。熔断后子进程立刻返回 `unavailable`，主 Emacs 之后不再为此启动子进程。
 
 **带了 native 编译但实际编不出来**
 
@@ -169,7 +169,7 @@ eln 的文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-c
    - "编译成功但验证失败"也算失败，并记录原因（比如没有源码、elc 一直比 eln 新）。
 3. **Tier 1 一定先于 Tier 2**，并且只在 `.el` 比 `.elc` 新时才重编 elc，所以 elc 的 mtime 保持稳定，不会让 eln 失效。
 4. **同一个二进制，同一个缓存目录**：子进程用 `(expand-file-name invocation-name invocation-directory)` 启动，加上同一个 `--init-directory`。开始前断言 `comp-native-version-dir` 和 `native-comp-eln-load-path` 的第一项与 GUI 一致，不一致就整次放弃。
-5. **触发有界**：每天最多一次；指纹（版本目录 + 各 load-path 目录的 mtime）没变就立即退出。savehist 每天都会变，不放进指纹，排名每周重算一次。
+5. **触发有界**：每小时最多一次（`eln-opt-auto-interval`，之前是每天一次）；指纹（版本目录 + 各 load-path 目录的 mtime）没变就立即退出。savehist 每天都会变，不放进指纹，排名每周重算一次。
 6. **锁**：用 `make-directory` 建锁目录（原子操作），里面记 pid 和启动时间。pid 不存在或者超过 1 小时就视为过期。抢不到锁就直接退出，不等待也不重试。
 7. **写入只走 comp**：只用 `native-compile` 和 `comp-delete-or-replace-file`，从不 `cp` 进 eln-cache，也从不原地覆盖。
 8. **清理**：同一路径的旧 eln 由 comp 自己删。源码路径已经不存在（比如包升级换了目录）、并且超过 7 天的 eln，在子进程里删除，只删账本里记录过的。超过 30 天的旧版本目录整体删除。
@@ -197,7 +197,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 | --- | --- |
 | 编译炸弹（文件很大、宏展开爆炸） | 单文件大小上限、编译超时（`xl-async` 的 `:timeout`）、每次运行的预算；超时记为失败，不再重试 |
 | 磁盘被占满 | eln-opt 产出的总体积上限（比如 200 MB），按账本统计 |
-| 进程风暴 | 同一时间只有一个子进程；每天最多触发一次；有锁 |
+| 进程风暴 | 同一时间只有一个子进程；每小时最多触发一次；有锁 |
 | 锁被长期占用 | 只是损失优化，功能不受影响 |
 | 账本被篡改 | 只用 `read`，限制大小，校验结构；不合格就丢弃重建 |
 | **eln 损坏导致 init 中途停下** | 编译后在子进程里加载并跑 smoke tests，不通过就删除；每天复查可以自愈；有应急开关 |
