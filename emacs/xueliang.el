@@ -326,17 +326,23 @@ line can be switched off without deleting it."
   "M-w"   #'embark-export
   "C-."   #'embark-act)
 
+;; Project search: ripgrep where it is installed, grep where it is not (on
+;; Windows, by default).  consult-grep is asynchronous too, so the same
+;; indicator animates.  `SPC p s', `SPC s p' and `SPC *' all go through it.
+(defun xueliang-search-project (&optional initial)
+  "Search the project with ripgrep, or with grep where ripgrep is not installed.
+INITIAL is the text the search starts with."
+  (interactive)
+  (if (executable-find "rg")
+      (consult-ripgrep nil initial)
+    (consult-grep nil initial)))
+
 ;; `SPC *': like vim/nvim's <leader>*, search the project for the symbol
 ;; under the cursor.  No symbol under point just opens an empty prompt.
-;; Without ripgrep (Windows, by default) it searches with grep: consult-grep
-;; is asynchronous too, so the same indicator animates.
 (defun xueliang-search-project-at-point ()
-  "Search the project for the symbol at point, with ripgrep or grep."
+  "Search the project for the symbol at point."
   (interactive)
-  (let ((symbol (thing-at-point 'symbol t)))
-    (if (executable-find "rg")
-        (consult-ripgrep nil symbol)
-      (consult-grep nil symbol))))
+  (xueliang-search-project (thing-at-point 'symbol t)))
 
 ;; ============================================================
 ;; Corfu + Cape - in-buffer completion popup

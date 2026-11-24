@@ -140,7 +140,7 @@
   "p b" "project buffer" #'project-switch-to-buffer  "p d" "project dired" #'project-dired
   "p k" "kill buffers" #'project-kill-buffers  "p c" "compile" #'project-compile
   "p '" "eshell" #'project-eshell
-  "p s" "search" #'consult-ripgrep
+  "p s" "search" #'xueliang-search-project
 
   "q" "quit" nil
   "q q" "quit" #'save-buffers-kill-terminal  "q Q" "kill emacs" #'kill-emacs
@@ -152,7 +152,7 @@
 
   "s" "search" nil
   "s s" "this buffer" #'consult-line
-  "s p" "project" #'consult-ripgrep
+  "s p" "project" #'xueliang-search-project
   "s j" "imenu" #'imenu
   "s c" "clear highlight" #'evil-ex-nohighlight
 
