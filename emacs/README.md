@@ -183,6 +183,10 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 
 `lisp/xl-async.el` 为此新增了 `:on-output`（每次有输出就回调一次）和 `:timeout`（超时后杀掉进程，退出码为 124，和 coreutils `timeout` 一致）。
 
+### `lisp/xl-consult-spinner.el`（consult 异步列表的 spinner）
+
+`consult-ripgrep`、`consult-find` 这类异步列表，原本在提示符前面用一个字符表示状态：运行中是 `*`，结束后是 `:`。这个文件把运行中的字符换成动画，用的是和其他 loader 相同的时钟和帧。帧是单宽字符（`·•●`），因为提示符前面的 overlay 只占一格，更宽的帧会把输入的文字推到右边。字体画不了这些点时，退回 `|/-\`。它包裹的是 `consult--async-indicator`，所以只影响异步列表。
+
 ### `lisp/xl-spinner.el`（共用 loader）
 
 目标是既好看、又醒目，但不让屏幕动。分两层。

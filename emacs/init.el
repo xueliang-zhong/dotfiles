@@ -163,6 +163,7 @@ session."
 (require 'xl-git-commands)
 (require 'xl-package-menu)
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
+(require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
 (load (expand-file-name "emacs/xueliang.el" xl-dotfiles))
 
 ;; ============================================================

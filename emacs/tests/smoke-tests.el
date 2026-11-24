@@ -1006,6 +1006,67 @@ HEADER is added to the block's header line.  Point is in the block."
             (should (string-match-p "later" (xl-test-org-text buffer))))
         (kill-buffer buffer)))))
 
+(ert-deftest xl-consult-spinner-keeps-consults-arity ()
+  "The real `consult--async-indicator' still takes no arguments and returns
+a pipeline element, which takes the sink.  Calling it both ways must work."
+  (require 'consult)
+  (require 'xl-consult-spinner)
+  (with-temp-buffer
+    (insert "Search: ")
+    (cl-letf (((symbol-function 'minibuffer-prompt-end) (lambda () 8)))
+      (let ((handler (funcall (funcall #'consult--async-indicator) #'ignore)))
+        (should (functionp handler))
+        (funcall handler 'setup)
+        (funcall handler 'destroy)))))
+
+(ert-deftest xl-consult-spinner-animates-the-running-indicator ()
+  "While consult's async list runs, its indicator animates at the pace of
+the other loaders, and a vertico update redraws the frame.  When the list ends, consult's
+own final character is drawn."
+  (require 'consult)
+  (require 'xl-consult-spinner)
+  (with-temp-buffer
+    (insert "Search: ")
+    (let* ((xl-spinner-show-delay 0)
+           (xl-spinner-min-duration 0)
+           (overlay (make-overlay 6 7))
+           ;; Stands in for consult's indicator: `*' while running, `:' when done.
+           (consult-side
+            (lambda (_sink)
+              (lambda (action)
+                (pcase action
+                  ('setup (overlay-put overlay 'category
+                                       'consult-async-indicator-overlay))
+                  (`[indicator running] (overlay-put overlay 'display "*"))
+                  (`[indicator finished] (overlay-put overlay 'display ":"))))))
+           ;; consult's constructor takes no arguments, like this stand-in.
+           (handler (funcall (xl-consult-spinner--around-indicator
+                              (lambda () consult-side))
+                             #'ignore)))
+      (cl-letf (((symbol-function 'minibuffer-prompt-end) (lambda () 8)))
+        (funcall handler 'setup)
+        (funcall handler [indicator running])
+        (should (xl-spinner-running-p))
+        (should (= xl-consult-spinner-interval
+                   (plist-get xl-spinner--state :interval)))
+        (should (member (substring-no-properties (overlay-get overlay 'display))
+                        xl-consult-spinner-frames))
+        ;; Same colour as the mode-line loaders: the frame keeps its face.
+        (should (eq 'xl-spinner
+                    (get-text-property 0 'face (overlay-get overlay 'display))))
+        (let ((first (overlay-get overlay 'display)))
+          (xl-spinner-tick (current-buffer))
+          (should-not (equal first (overlay-get overlay 'display))))
+        ;; A vertico update redraws the current frame at once.
+        (let ((frame (xl-spinner-current-frame)))
+          (xl-consult-spinner--after-vertico-update)
+          (should (equal frame (overlay-get overlay 'display))))
+        (funcall handler [indicator finished])
+        (should-not (xl-spinner-running-p))
+        ;; The spinner stopped first, so consult's final character shows.
+        (should (equal ":" (overlay-get overlay 'display)))
+        (funcall handler 'destroy)))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
