@@ -90,5 +90,120 @@
       (insert "#.(error \"must not run\")"))
     (should (null (xl-jit--read-eld (xl-jit--platform-file))))))
 
+;;; Step 2: trampoline prediction and build
+
+(defvar xl-jit-test--toy-loaded nil
+  "Set by the toy .elc's top-level code.  Stays nil when the file is only read.")
+
+(defun xl-jit-test--toy-elc (dir name source)
+  "Byte-compile SOURCE into DIR/NAME.el and return the .elc path."
+  (let* ((el (expand-file-name (concat name ".el") dir))
+         (elc (concat el "c")))
+    (with-temp-file el (insert source))
+    (let ((byte-compile-warnings nil))
+      (byte-compile-file el))
+    elc))
+
+(defconst xl-jit-test--toy-source
+  ";;; toy.el -*- lexical-binding: t; -*-
+(defvar xl-jit-test--toy-loaded nil)
+(setq xl-jit-test--toy-loaded t)
+(advice-add 'buffer-name :around (lambda (f &rest a) (apply f a)))
+(defun xl-jit-toy-cl-letf ()
+  (cl-letf (((symbol-function 'message) #'ignore)) 1))
+(defun xl-jit-toy-alias () (defalias 'xl-jit-toy-x #'car))
+")
+
+(defmacro xl-jit-test--with-toy (elc-var &rest body)
+  "Compile the toy into a temporary folder on `load-path', bind ELC-VAR, run BODY."
+  (declare (indent 1))
+  `(let* ((dir (make-temp-file "xl-jit-toy-" t))
+          (load-path (cons dir load-path))
+          (,elc-var (xl-jit-test--toy-elc dir "toy" xl-jit-test--toy-source)))
+     (unwind-protect (progn ,@body)
+       (ignore-errors (delete-directory dir t)))))
+
+(ert-deftest xl-jit-predict-finds-advice-and-letf-but-not-aliases ()
+  "The toy's advice-add and cl-letf targets are predicted; defalias is not."
+  (xl-jit-test--with-toy elc
+    (let ((only-toy (xl-jit--scan-elc elc)))
+      (should (memq 'buffer-name only-toy))
+      (should (memq 'message only-toy))
+      (should-not (memq 'car only-toy)))))
+
+(ert-deftest xl-jit-predict-never-loads-the-files ()
+  "Scanning reads .elc files as data: the toy's top-level code does not run."
+  (setq xl-jit-test--toy-loaded nil)
+  (xl-jit-test--with-toy elc
+    (xl-jit--scan-elc elc)
+    (xl-jit-trampolines-predict)
+    (should-not xl-jit-test--toy-loaded)
+    (should-not (fboundp 'xl-jit-toy-cl-letf))))
+
+(ert-deftest xl-jit-build-respects-the-limit-and-skips-cached ()
+  "At most the limit is built; cached ones are skipped; a second run builds 0."
+  (xl-jit-test--with-state
+    (let* ((cache (make-temp-file "xl-jit-tramp-cache-" t))
+           (native-comp-eln-load-path (list (file-name-as-directory cache)))
+           (names (cl-loop for i below 60 collect (intern (format "xl-jit-fake-%d" i))))
+           (compiled 0))
+      (unwind-protect
+          (cl-letf (((symbol-function 'xl-jit-platform-available-p) (lambda () t))
+                    ((symbol-function 'xl-jit-trampolines-predict) (lambda () names))
+                    ((symbol-function 'comp-trampoline-compile)
+                     (lambda (s)
+                       (cl-incf compiled)
+                       (let ((f (expand-file-name
+                                 (comp-trampoline-filename s)
+                                 (expand-file-name comp-native-version-dir cache))))
+                         (make-directory (file-name-directory f) t)
+                         (write-region "" nil f)))))
+            (should (equal (xl-jit-trampolines-build)
+                           (list :built 50 :failed 0 :left 10)))
+            (should (= compiled 50))
+            (should (equal (xl-jit-trampolines-build)
+                           (list :built 10 :failed 0 :left 0)))
+            (should (= compiled 60))
+            (should (equal (xl-jit-trampolines-build)
+                           (list :built 0 :failed 0 :left 0)))
+            (should (= compiled 60)))
+        (ignore-errors (delete-directory cache t))))))
+
+(ert-deftest xl-jit-build-counts-failures-and-does-not-retry ()
+  "A failing compile is counted once and skipped; the run goes on."
+  (xl-jit-test--with-state
+    (let ((native-comp-eln-load-path (list (make-temp-file "xl-jit-tc-" t)))
+          (calls 0))
+      (cl-letf (((symbol-function 'xl-jit-platform-available-p) (lambda () t))
+                ((symbol-function 'xl-jit-trampolines-predict)
+                 (lambda () '(xl-jit-bad-1 xl-jit-bad-2)))
+                ((symbol-function 'comp-trampoline-compile)
+                 (lambda (_) (cl-incf calls) (error "no libgccjit"))))
+        (should (equal (xl-jit-trampolines-build) (list :built 0 :failed 2 :left 0)))
+        (should (= calls 2))))))
+
+(ert-deftest xl-jit-build-does-nothing-when-unavailable ()
+  "Without the platform gate, no trampoline is compiled."
+  (xl-jit-test--with-state
+    (let ((calls 0))
+      (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil))
+                ((symbol-function 'comp-trampoline-compile)
+                 (lambda (_) (cl-incf calls))))
+        (should (eq (xl-jit-trampolines-build) 'unavailable))
+        (should (= calls 0))))))
+
+(ert-deftest xl-jit-real-trampoline-lands-in-cache ()
+  "On a native build, one real trampoline is compiled into a temporary cache."
+  (skip-unless (native-comp-available-p))
+  (xl-jit-test--with-state
+    (let* ((cache (make-temp-file "xl-jit-real-cache-" t))
+           (native-comp-eln-load-path (list (file-name-as-directory cache))))
+      (unwind-protect
+          (progn
+            (should-not (xl-jit--trampoline-cached-p 'buffer-name))
+            (comp-trampoline-compile 'buffer-name)
+            (should (xl-jit--trampoline-cached-p 'buffer-name)))
+        (ignore-errors (delete-directory cache t))))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

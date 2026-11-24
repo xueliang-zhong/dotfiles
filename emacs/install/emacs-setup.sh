@@ -276,6 +276,12 @@ cmd_trampolines() {
       (when (equal (getenv "XL_PROGRESS") "1")
         (princ (format "trampolines %d/%d\n" index total)))
       (ignore-errors (timer-event-handler timer)))
+    ;; xl-jit (step 2): build the trampolines the idle loads could not reach,
+    ;; for advice added while a command runs.  Gated by the platform check.
+    (require (quote xl-jit))
+    (let ((built (xl-jit-trampolines-build)))
+      (when (equal (getenv "XL_PROGRESS") "1")
+        (princ (format "xl-jit trampolines: %S\n" built))))
     (let ((count (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))
       (if (equal (getenv "XL_PROGRESS") "1")
           (princ (format "trampolines cached: %d\n" count))

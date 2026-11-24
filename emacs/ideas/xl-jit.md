@@ -129,7 +129,7 @@ Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编�
 
 ## Trampoline 预测
 
-- 把 .elc **当作数据读**，不加载。在 LAP 里匹配"`advice-add` 或 `fset` 常量后面紧跟着一个原语常量"。`cl-letf` 改 `symbol-function` 展开后也是这个形状。
+- 把 .elc **当作数据读**，不加载。在 LAP 里匹配"`advice-add` 常量后面紧跟着一个原语常量"。`cl-letf` 改 `symbol-function` 编译成的是 **`byte-fset` 操作码**，不是 `fset` 调用，所以实现时要单独处理：遇到 `byte-fset`，看它前面最近三个常量里的原语（实现时发现的，探针漏掉了这一种）。
   - 顶层代码在 .elc 里会被编译成 `(byte-code "..." [advice-add select-window ...])`，要对它做同样的匹配。
   - LAP 列表里夹着整数偏移量，匹配前要先过滤掉。
   - 已经被 advice 的原语要用 `advice--cd*r` 取出原始的 subr 再判断。
