@@ -723,5 +723,22 @@ power, native compilation available, and timers recorded instead of armed."
         (ignore-errors (fmakunbound 'native-toy-fn))
         (ignore-errors (delete-directory dir t))))))
 
+;;; The report view: same format, computed in a child, with a spinner
+
+(ert-deftest xl-jit-report-parses-the-child-output-after-the-marker ()
+  "Loading messages before the marker are dropped; without it, nothing is shown."
+  (should (equal (xl-jit-rank--report-from-output
+                  (concat "Loading x.el...\nnoise\n\n" xl-jit-rank--marker "\nreport line\n"))
+                 "report line\n"))
+  (should (null (xl-jit-rank--report-from-output "Loading x.el...\nno marker\n"))))
+
+(ert-deftest xl-jit-report-child-is-a-fresh-batch-with-the-profile ()
+  "The child loads this profile's init and prints the report with the marker."
+  (let ((cmd (xl-jit-rank--child-command)))
+    (should (member "--batch" cmd))
+    (should (member "--init-directory" cmd))
+    (should (cl-some (lambda (a) (and (stringp a) (string-suffix-p "init.el" a))) cmd))
+    (should (cl-some (lambda (a) (and (stringp a) (string-match-p "xl-jit-report" a))) cmd))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

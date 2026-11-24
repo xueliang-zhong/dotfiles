@@ -11,6 +11,7 @@
 
 ;; M-x entry points defined in xl-jit.el; autoloaded so startup does not load it.
 (autoload 'xl-jit-native-report "xl-jit" "Show the native-compiled functions." t)
+(autoload 'xl-jit-report "xl-jit-rank" "Show the xl-jit ranking." t)
 
 (defgroup xl-jit nil
   "Background native compilation of the hot files."

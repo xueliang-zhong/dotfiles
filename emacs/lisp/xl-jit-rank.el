@@ -7,6 +7,8 @@
 (require 'cl-lib)
 (require 'seq)
 (require 'xl-jit)
+(require 'xl-spinner)
+(require 'xl-async)
 
 ;;; ------------------------------------------------------------
 ;;; Settings.  The weights are starting values; calibrate them against a
@@ -499,21 +501,71 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
                          "yes" "xl-jit" (plist-get row :file)
                          (plist-get row :count) (plist-get row :top))))))))
 
+;;; The report as a buffer.  The ranking takes seconds, so it runs in a child
+;;; Emacs that loads the profile and prints this same text; the buffer shows a
+;;; spinner in its mode line until the child answers (as GBlame does).
+
+(defconst xl-jit-rank--marker "<<XL-JIT-REPORT>>"
+  "Printed on its own line before a child's report.  The child's own loading
+messages also go to its output, so the parent keeps only what follows it.")
+
+(defvar xl-jit-rank--with-marker nil
+  "Non-nil in the child: print `xl-jit-rank--marker' before the report.")
+
+(defun xl-jit-rank--report-from-output (output)
+  "The report in a child's OUTPUT: what follows the marker, or nil."
+  (let ((at (string-match (regexp-quote xl-jit-rank--marker) output)))
+    (and at (string-trim-left
+             (substring output (+ at (length xl-jit-rank--marker))) "\n+"))))
+
+(defun xl-jit-rank--child-command ()
+  "The child that prints the report: this binary, this profile, the same
+init, then `xl-jit-report' in batch."
+  (let* ((exe (expand-file-name invocation-name invocation-directory))
+         (profile (file-name-as-directory user-emacs-directory)))
+    (list exe "--batch" "--init-directory" profile
+          "-l" (expand-file-name "early-init.el" profile)
+          "--eval" "(run-hooks (quote before-init-hook))"
+          "-l" (expand-file-name "init.el" profile)
+          "--eval" "(progn (require (quote xl-jit-rank)) (setq xl-jit-rank--with-marker t) (xl-jit-report))")))
+
+(defun xl-jit-rank--show-async (buffer-name)
+  "Fill BUFFER-NAME with the report, computed in a child Emacs."
+  (let ((buf (get-buffer-create buffer-name)))
+    (with-current-buffer buf
+      (let ((inhibit-read-only t))
+        (erase-buffer)
+        (insert "Computing the ranking in a background Emacs...\n"))
+      (special-mode)
+      (xl-spinner-mode-line-start "xl-jit report")
+      (xl-async-run
+       :name "xl-jit-report"
+       :owner buf
+       :slot 'xl-jit-report
+       :command (xl-jit-rank--child-command)
+       :on-done
+       (lambda (output code)
+         (xl-spinner-mode-line-stop)
+         (let ((report (xl-jit-rank--report-from-output output))
+               (inhibit-read-only t))
+           (erase-buffer)
+           (if (and (eql code 0) report (not (string-empty-p (string-trim report))))
+               (insert report)
+             (insert "The report failed.\n\n" output))
+           (goto-char (point-min))))))
+    (display-buffer buf)
+    buf))
+
 (defun xl-jit-report ()
-  "Show the ranking.  Interactive: a buffer.  Batch: printed to stdout."
+  "Show the ranking.  Interactive: a buffer, filled in the background.
+Batch: printed to stdout, computed here."
   (interactive)
-  (let* ((profile (or (and (boundp 'user-emacs-directory) user-emacs-directory)
-                      default-directory))
-         (text (xl-jit-rank--format (xl-jit-rank--compute profile))))
-    (if noninteractive
-        (princ text)
-      (with-current-buffer (get-buffer-create "*xl-jit report*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert text))
-        (goto-char (point-min))
-        (special-mode)
-        (display-buffer (current-buffer))))))
+  (if noninteractive
+      (progn
+        (when xl-jit-rank--with-marker
+          (princ (format "\n%s\n" xl-jit-rank--marker)))
+        (princ (xl-jit-rank--format (xl-jit-rank--compute (xl-jit--profile-dir)))))
+    (xl-jit-rank--show-async "*xl-jit report*")))
 
 (provide 'xl-jit-rank)
 ;;; xl-jit-rank.el ends here

@@ -787,41 +787,12 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
             :total total))))
 
 (defun xl-jit-native-report ()
-  "Show which functions are native-compiled here, and which xl-jit built.
-Interactive: a buffer.  Batch: printed to stdout.  Compiles nothing."
+  "Show the report of native functions: `xl-jit-report', in its own buffer."
   (interactive)
-  (let* ((info (xl-jit-native-list))
-         (built (plist-get info :built))
-         (built-stems (mapcar (lambda (b) (xl-jit--source-stem (car b))) built))
-         (text
-          (with-output-to-string
-            (princ "xl-jit: natively compiled functions\n")
-            (princ (format "\nBuilt by xl-jit (%d file(s)):\n" (length built)))
-            (dolist (b built)
-              (princ (format "  %s\n      eln: %s\n"
-                             (car b) (cdr b))))
-            (princ (format "\nNative now, from xl-jit-built files (%d function(s)):\n"
-                           (apply #'+ (mapcar (lambda (f)
-                                                (if (member (xl-jit--source-stem (car f))
-                                                            built-stems)
-                                                    (length (cdr f)) 0))
-                                              (plist-get info :files)))))
-            (dolist (f (plist-get info :files))
-              (when (member (xl-jit--source-stem (car f)) built-stems)
-                (princ (format "  %s  (%d)\n      %s\n"
-                               (file-name-nondirectory (car f)) (length (cdr f))
-                               (mapconcat #'symbol-name (cdr f) " ")))))
-            (princ (format "\nAll native functions in this Emacs: %d (Emacs's own preloaded code included)\n"
-                           (plist-get info :total))))))
-    (if noninteractive
-        (princ text)
-      (with-current-buffer (get-buffer-create "*xl-jit native*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert text))
-        (goto-char (point-min))
-        (special-mode)
-        (display-buffer (current-buffer))))))
+  (require 'xl-jit-rank)
+  (if noninteractive
+      (xl-jit-report)
+    (xl-jit-rank--show-async "*xl-jit native*")))
 
 (provide 'xl-jit)
 ;;; xl-jit.el ends here
