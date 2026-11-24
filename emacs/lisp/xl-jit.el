@@ -1226,13 +1226,34 @@ Returns (ROOTS . FACTOR).  The baseline file names functions only."
      heat)
     scores))
 
+(defconst xl-jit-rank-load-min-weight 0.5
+  "A root this heavy that is still an autoload gets its package loaded, so its
+functions are in the graph.  Lazy packages (org, for one) are otherwise invisible.")
+
+(defun xl-jit-rank--load-lazy-roots (roots)
+  "Load the packages behind ROOTS that are still autoloads and heavy enough.
+Returns the feature or file names loaded, for the report."
+  (let (loaded)
+    (dolist (r roots)
+      (let ((s (car r)))
+        (when (and (>= (cdr r) xl-jit-rank-load-min-weight)
+                   (fboundp s)
+                   (autoloadp (symbol-function s)))
+          (let ((file (cadr (symbol-function s))))
+            (when (ignore-errors (autoload-do-load (symbol-function s) s) t)
+              (push (if (stringp file) (file-name-nondirectory file) (symbol-name s))
+                    loaded))))))
+    (delete-dups loaded)))
+
 (defun xl-jit-rank--compute (profile-dir)
   "Full analysis.  Returns a plist: :rows (sorted), :savehist-share, and the
-numbers for the header."
-  (let* ((graph (xl-jit-rank--graph profile-dir))
-         (edges (plist-get graph :edges))
-         (roots-info (xl-jit-rank--roots profile-dir))
+numbers for the header.  Roots are found first, so that lazy packages behind
+heavy roots can be loaded before the graph is built."
+  (let* ((roots-info (xl-jit-rank--roots profile-dir))
          (user-roots (plist-get roots-info :roots))
+         (lazy-loaded (xl-jit-rank--load-lazy-roots user-roots))
+         (graph (xl-jit-rank--graph profile-dir))
+         (edges (plist-get graph :edges))
          (user-count (plist-get roots-info :user-count))
          (baseline (car (xl-jit-rank--baseline profile-dir)))
          (base-factor (max 0.0 (- 1.0 (/ (float user-count) xl-jit-rank-baseline-users))))
@@ -1286,6 +1307,7 @@ numbers for the header."
                    rows))))
        scores)
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+            :lazy-loaded lazy-loaded
             :built-rows (xl-jit-rank--built-rows)
             :next (seq-take (seq-filter #'xl-jit--candidate-p
                                         (sort (copy-sequence rows)
@@ -1417,6 +1439,9 @@ altogether.  The ranking table comes last."
                          ""))))
       (princ (format "  interpreted, no .elc (Crafted's modules): %d function(s)\n"
                      (plist-get result :interpreted-skipped)))
+      (when (plist-get result :lazy-loaded)
+        (princ (format "  loaded for the analysis, because heavy roots need them: %s\n"
+                       (mapconcat #'identity (plist-get result :lazy-loaded) ", "))))
       (princ (format "  functions analysed: %d;  largest single savehist command share of the score: %.1f%%\n"
                      (plist-get result :functions)
                      (* 100 (plist-get result :savehist-share))))
