@@ -3251,48 +3251,5 @@ the exit status."
           (should (eq (and (or (byte-code-function-p f) (native-comp-function-p f)) t)
                       (and current t))))))))
 
-;; consult-list-packages (lisp/xl-packages.el)
-
-(ert-deftest xl-packages-candidate-carries-the-name-and-a-status-face ()
-  "A child line becomes a consult candidate whose name rides as a property."
-  (let* ((line "XLPKG\tfoo\tupgradable\t1.2\tmelpa\tA package.")
-         (cand (xl-packages--candidate line)))
-    (should (equal (get-text-property 0 'xl-package cand) "foo"))
-    (should (string-match-p "foo" cand))
-    (should (eq (get-text-property 0 'face cand) 'warning))))
-
-(ert-deftest xl-packages-filter-keeps-only-marked-lines ()
-  "Output from the child that is not a marked line is dropped."
-  (should (xl-packages--marked-p "XLPKG\tfoo\tinstalled\t1\tmelpa\tx"))
-  (should-not (xl-packages--marked-p "Loading /x/init.el (source)..."))
-  (should-not (xl-packages--marked-p "")))
-
-(ert-deftest xl-packages-child-prints-marked-rows ()
-  "The child, run for real, prints marked rows from the archive caches."
-  (let* ((cmd (xl-packages--command))
-         (out (with-temp-buffer
-                (apply #'call-process (car cmd) nil t nil (cdr cmd))
-                (buffer-string)))
-         (rows (seq-filter #'xl-packages--marked-p (split-string out "\n"))))
-    (should (> (length rows) 0))
-    (should (= (length (split-string (car rows) "\t")) 6))))
-
-;; embark on consult-list-packages: the target is the name, not the line
-
-(ert-deftest xl-packages-embark-target-is-the-name-alone ()
-  "In the minibuffer, the target of a list candidate is its package name."
-  (require 'embark)
-  (let ((cand (xl-packages--candidate "XLPKG\tfoo\tinstalled\t1.0\tmelpa\tA package.")))
-    (cl-letf (((symbol-function 'minibufferp) (lambda (&rest _) t))
-              ((symbol-function 'vertico--candidate) (lambda (&rest _) cand)))
-      (should (equal (xl-packages-embark-target) '(xl-package . "foo"))))))
-
-(ert-deftest xl-packages-embark-keymap-has-the-package-actions ()
-  "The keymap for package targets binds describe, install and delete."
-  (require 'embark)
-  (should (eq (keymap-lookup xl-packages-embark-map "RET") #'xl-packages-embark-describe))
-  (should (eq (keymap-lookup xl-packages-embark-map "i") #'xl-packages-embark-install))
-  (should (eq (keymap-lookup xl-packages-embark-map "d") #'xl-packages-embark-delete)))
-
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

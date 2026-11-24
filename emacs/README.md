@@ -11,7 +11,7 @@
 | 个人层是薄的 | `init.el`、`early-init.el`、`lisp/xl-key-bindings.el`、`xueliang.el` 合计约 1400 行 |
 | Git 不阻塞 UI | 读（status/diff/log、blame、commit 视图）与写（stage/unstage/discard/commit）全部走 `make-process`；测试在命令返回的瞬间断言 loader 已在、内容未到 |
 
-包列表不再用 `list-packages`：`M-x consult-list-packages`（`lisp/xl-packages.el`）用 consult 列出所有已安装和可安装的包，列表由子 Emacs 异步喂入，consult 的指示器转动着，直到全部到达。
+
 
 还没异步化的部分，如实写在这里，不假装已经完成：`list-packages` 里的安装/删除（package transaction）仍然同步，归档刷新除外。那是上游的限制，装上后还要在同一个 Emacs 里激活包，拆到子进程反而更糟。
 
@@ -29,7 +29,6 @@ emacs/
 │   ├── xl-async.el            异步进程（归属、槽位取消、串行队列）与共用 loader（帧、mode line 槽位、不抖屏）
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
-│   └── xl-packages.el         consult-list-packages：子 Emacs 异步喂入的包列表
 ├── xueliang.el            私有口味，不发布
 ├── tests/smoke-tests.el   ERT 测试
 └── frameworks.lock        Crafted 的仓库地址与提交号
@@ -92,7 +91,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `lisp/xl-key-bindings.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包）。缺包时先 `package-refresh-contents` 再装：这个配置关掉了启动时的自动刷新，而 `package-install-selected-packages` 只在缓存为空时才刷新；旧缓存会让新依赖（例如 2026 年的 transient 要求 compat 31.1）被误报为 unavailable。刷新只发生在确实缺包的那次启动，装完就恢复零网络。如果刷新后还缺包（典型是 GNU ELPA 的签名校验因 `package.el` 的 gnupg home 过期而失败，Denote 就属于 GNU ELPA），会重建 keyring 再刷新一次；仍失败才报错并列出哪些包根本不在任何归档里；gpg 完全不可用时，最后会临时关闭签名校验再试一次（只影响那次启动）。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
-- 把 `emacs/lisp/` 加入加载路径，用 `require` 依次载入 `xl-key-bindings.el`、`xl-git-status.el`、`xl-git-commands.el`、`xl-packages.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为其中可以单独安装的包走的是同一条路。
+- 把 `emacs/lisp/` 加入加载路径，用 `require` 依次载入 `xl-key-bindings.el`、`xl-git-status.el`、`xl-git-commands.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为其中可以单独安装的包走的是同一条路。
 - 最后把 `xl-packages` 补回安装名单，并在每次切换主题后再补一次：加载主题会恢复 `custom.el` 里保存的旧名单，不补回的话 `package-autoremove` 可能误删正在用的包。
 
 ### `lisp/xl-key-bindings.el`（适配层）
@@ -128,13 +127,6 @@ vim-fugitive 风格的命令，都定义在这个文件里：
 
 它依赖 `lisp/xl-git-status.el` 提供的 status buffer、faces 和 commit 窗口，所以在其后加载。
 
-### `lisp/xl-packages.el`（consult-list-packages）
-
-`M-x consult-list-packages` 列出所有已安装的包（标出已安装、可升级）和可安装的包，选中后用 `describe-package` 打开，安装和删除按钮在那里。
-
-列表不在主线程上算：一个子 Emacs 加载这份配置，只读 archive 缓存（不联网），每个包打印一行带标记的数据。consult 的异步流水线（`consult--async-process`、过滤、转换）把这些行陆续喂给候选列表，所以第一批候选大约 0.6 秒就出现，之后逐步增加。子进程加载配置时输出的其它信息没有标记，会被过滤掉。consult 的指示器（由 `xl-consult-spinner` 做成动画）在列表到达期间一直转动。
-
-这里不再有对 `list-packages` 的改动，那是 package.el 自己的界面。升级数量的消息和分块渲染都已删除，它们的作用由"可升级"这一状态取代。
 
 ### `lisp/xl-async.el`（共用异步进程层）
 
@@ -240,7 +232,6 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 10. 把 `emacs/lisp/` 加入加载路径，`require` `xl-key-bindings.el`，建立 `xl-leader-map` 和 SPC 键树。
 11. 加载 `emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
 12. 加载 `emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
-13. 加载 `emacs/lisp/xl-packages.el`，提供 `consult-list-packages`。
 14. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
 15. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
 16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。如果这次启动来自 `SPC q r`，`initial-buffer-choice` 改为打开上次的文件/dired 并恢复 point 和 window-start，这时不显示首页。
@@ -266,7 +257,6 @@ Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第
 | 升级 Crafted | 改 `frameworks.lock` 的提交号，再执行 `just emacs-crafted-install` |
 | 升级 Emacs、重建 profile 或新增包之后 | 执行 `just emacs-trampolines-cache-setup`，避免第一次启动白屏 |
 | 改启动期设置（GC、JIT、包目录） | `early-init.el` |
-| 改包列表（consult-list-packages） | `lisp/xl-packages.el` |
 
 修改后用下面这几条命令检查：
 
