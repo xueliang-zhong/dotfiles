@@ -555,11 +555,11 @@ may be built again.  It is not dropped silently."
                    'ok))
                 ((symbol-function 'eln-opt-verify) (lambda (_src _eln &optional _names) nil)))
         (let ((first (eln-opt--work)))
-          (should (= (plist-get first :compiled) 3))
-          (should (= children 3)))
+          (should (= (plist-get first :compiled) (min 4 eln-opt-compile-budget)))
+          (should (= children (min 4 eln-opt-compile-budget))))
         (let ((second (eln-opt--work)))
           (should (= (plist-get second :compiled) 0))
-          (should (= children 3)))))))
+          (should (= children (min 4 eln-opt-compile-budget))))))))
 
 (ert-deftest eln-opt-timeout-is-not-retried-within-the-day ()
   "A compile that times out is counted failed, and is not attempted again soon."
@@ -736,7 +736,7 @@ power, native compilation available, and timers recorded instead of armed."
 
 (ert-deftest eln-opt-report-child-is-a-fresh-batch-with-the-profile ()
   "The child loads this profile's init and prints the report with the marker."
-  (let ((cmd (eln-opt-rank--child-command)))
+  (let ((cmd (eln-opt-rank--child-command eln-opt-rank--report-form)))
     (should (member "--batch" cmd))
     (should (member "--init-directory" cmd))
     (should (cl-some (lambda (a) (and (stringp a) (string-suffix-p "init.el" a))) cmd))

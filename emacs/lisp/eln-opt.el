@@ -537,7 +537,7 @@ The state folder is left out: the run itself changes it."
 ;;; (eln-opt.md, "流水线" steps 5-6, "安全", "DoS")
 ;;; ------------------------------------------------------------
 
-(defconst eln-opt-compile-budget 3
+(defconst eln-opt-compile-budget 5
   "Most files one run compiles.  Each costs a child Emacs with the profile.")
 
 (defconst eln-opt-min-ratio 3.0
@@ -550,7 +550,7 @@ the candidates is by score.  Uncalibrated: set it from a profiler run.")
 (defconst eln-opt-max-total-bytes (* 200 1024 1024)
   "Most eln bytes eln-opt keeps in total.  Past it, runs compile nothing.")
 
-(defconst eln-opt-compile-timeout 180
+(defconst eln-opt-compile-timeout 300
   "Seconds one child compile may take before it is killed and counted failed.")
 
 (defvar eln-opt-crash-dir (expand-file-name "~/Library/Logs/DiagnosticReports/")
@@ -698,7 +698,7 @@ from the ranking, if the total eln size allows it."
          (since (or (plist-get last :time) 0))
          (quarantined (eln-opt--crash-scan since))
          (capped (>= (eln-opt--eln-bytes) eln-opt-max-total-bytes))
-         (compiled 0) (failed 0) (skipped 0))
+         (compiled 0) (failed 0) (skipped 0) (built nil))
     (unless capped
       (let* ((rows (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows))
              (cands (seq-take (seq-filter #'eln-opt--candidate-p rows)
@@ -706,11 +706,12 @@ from the ranking, if the total eln size allows it."
         (dolist (row cands)
           (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
             (pcase (eln-opt--compile-one src (plist-get row :defuns))
-              ('done (cl-incf compiled))
+              ('done (cl-incf compiled)
+                     (push (file-name-nondirectory src) built))
               ('failed (cl-incf failed))
               (_ (cl-incf skipped)))))))
     (list :compiled compiled :failed failed :skipped skipped
-          :quarantined quarantined :capped capped)))
+          :quarantined quarantined :capped capped :built (reverse built))))
 
 (defun eln-opt-status ()
   "Counts by ledger status, eln bytes, and the last run's result."
@@ -755,9 +756,14 @@ from the ranking, if the total eln size allows it."
        (format (concat "eln-opt: compiled %d file(s), failed %d, quarantined %d.\n"
                        "      %d candidate(s) were already built or waiting to retry.%s")
                compiled failed quarantined skipped
-               (if (plist-get r :capped)
-                   "\n      Stopped early: the total eln size is at its cap."
-                 ""))))
+               (concat
+                (if (plist-get r :capped)
+                    "\n      Stopped early: the total eln size is at its cap."
+                  "")
+                (if (plist-get r :built)
+                    (format "\n      Built now: %s."
+                            (mapconcat #'identity (plist-get r :built) ", "))
+                  "")))))
     (_ (format "eln-opt: %S" result))))
 
 (defun eln-opt-run ()
@@ -854,7 +860,7 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
   (interactive)
   (if noninteractive
       (eln-opt-report)
-    (eln-opt-rank--show-async "*eln-opt native*")))
+    (eln-opt-rank--show-async "*eln-opt native*" "eln-opt report" eln-opt-rank--report-form)))
 
 ;;; ---- Report: the ranking, the built files, the skips ----
 
@@ -1460,7 +1466,7 @@ altogether.  The ranking table comes last."
 ;;; Emacs that loads the profile and prints this same text; the buffer shows a
 ;;; spinner in its mode line until the child answers (as GBlame does).
 
-(defconst eln-opt-rank--marker "<<XL-JIT-REPORT>>"
+(defconst eln-opt-rank--marker "<<ELN-OPT-REPORT>>"
   "Printed on its own line before a child's report.  The child's own loading
 messages also go to its output, so the parent keeps only what follows it.")
 
@@ -1473,19 +1479,22 @@ messages also go to its output, so the parent keeps only what follows it.")
     (and at (string-trim-left
              (substring output (+ at (length eln-opt-rank--marker))) "\n+"))))
 
-(defun eln-opt-rank--child-command ()
-  "The child that prints the report: this binary, this profile, the same
-init, then `eln-opt-report' in batch."
+(defun eln-opt-rank--child-command (form)
+  "The child Emacs command that evaluates FORM (a string of Lisp) after the
+profile's init, so the child sees the same packages and load path."
   (let* ((exe (expand-file-name invocation-name invocation-directory))
          (profile (file-name-as-directory user-emacs-directory)))
     (list exe "--batch" "--init-directory" profile
           "-l" (expand-file-name "early-init.el" profile)
           "--eval" "(run-hooks (quote before-init-hook))"
           "-l" (expand-file-name "init.el" profile)
-          "--eval" "(progn (require (quote eln-opt)) (setq eln-opt-rank--with-marker t) (eln-opt-report))")))
+          "--eval" form)))
 
 (defvar-local eln-opt-rank--center nil
   "The overlay that shows the loader in the middle of the window, while waiting.")
+
+(defvar-local eln-opt-rank--busy-text "computing the ranking"
+  "What the loader in the middle of the window says while the child works.")
 
 (defun eln-opt-rank--draw-center (frame)
   "Draw FRAME in the middle of this buffer's window while the report is pending.
@@ -1496,7 +1505,7 @@ so no text is added and the window does not move, as in GBlame."
         (delete-overlay eln-opt-rank--center)
         (setq eln-opt-rank--center nil))
     (when-let* ((window (get-buffer-window (current-buffer) t)))
-      (let* ((text (concat frame "  computing the ranking"))
+      (let* ((text (concat frame "  " eln-opt-rank--busy-text))
              (pad (max 0 (/ (- (window-body-width window) (string-width text)) 2)))
              (pos (save-excursion
                     (goto-char (window-start window))
@@ -1508,10 +1517,12 @@ so no text is added and the window does not move, as in GBlame."
         (overlay-put eln-opt-rank--center 'before-string
                      (concat (make-string pad ?\s) text))))))
 
-(defun eln-opt-rank--show-async (buffer-name)
-  "Fill BUFFER-NAME with the report, computed in a child Emacs.
-While it computes, a loader turns in the mode line and in the middle of the
-window, on empty placeholder lines, as GBlame does."
+(defun eln-opt-rank--show-async (buffer-name label form &optional busy-text)
+  "Fill BUFFER-NAME with the text that the child Emacs prints for FORM.
+LABEL names the loader in the mode line.  While the child works, a loader
+turns in the mode line and in the middle of the window, on empty placeholder
+lines, as GBlame does.  FORM must print `eln-opt-rank--marker' before its
+text, so that the child's loading messages are dropped."
   (let ((buf (get-buffer-create buffer-name)))
     (with-current-buffer buf
       (let ((inhibit-read-only t))
@@ -1519,12 +1530,13 @@ window, on empty placeholder lines, as GBlame does."
         ;; Empty placeholder lines: the loader sits on one of them.
         (insert (make-string 400 ?\n)))
       (special-mode)
-      (xl-spinner-mode-line-start "eln-opt report" :also #'eln-opt-rank--draw-center)
+      (setq-local eln-opt-rank--busy-text (or busy-text "computing the ranking"))
+      (xl-spinner-mode-line-start label :also #'eln-opt-rank--draw-center)
       (xl-async-run
-       :name "eln-opt-report"
+       :name label
        :owner buf
-       :slot 'eln-opt-report
-       :command (eln-opt-rank--child-command)
+       :slot 'eln-opt-rank
+       :command (eln-opt-rank--child-command form)
        :on-done
        (lambda (output code)
          (xl-spinner-mode-line-stop)
@@ -1534,10 +1546,30 @@ window, on empty placeholder lines, as GBlame does."
            (erase-buffer)
            (if (and (eql code 0) report (not (string-empty-p (string-trim report))))
                (insert report)
-             (insert "The report failed.\n\n" output))
+             (insert "Failed.\n\n" output))
            (goto-char (point-min))))))
     (display-buffer buf)
     buf))
+
+(defconst eln-opt-rank--report-form
+  "(progn (require (quote eln-opt)) (setq eln-opt-rank--with-marker t) (eln-opt-report))"
+  "The child form that prints the ranking report.")
+
+(defun eln-opt-run-now ()
+  "Run one eln-opt pass now, in the background.  Interactive only.
+Compiles up to `eln-opt-compile-budget' files, as the daily pass does, but
+without waiting for the daily timer.  A buffer shows the summary when done,
+and a loader turns while it works.  Batch: runs it here and prints the summary."
+  (interactive)
+  (if noninteractive
+      (princ (concat (eln-opt-run-summary (eln-opt-run)) "\n"))
+    (eln-opt-rank--show-async
+     "*eln-opt run*" "eln-opt run"
+     (concat "(progn (require (quote eln-opt)) "
+             "(princ (format \"\\n%s\\n\" " (prin1-to-string eln-opt-rank--marker) ")) "
+             "(princ (concat (eln-opt-run-summary (eln-opt-run)) \"\\n\\n\")) "
+             "(eln-opt-report))")
+     "running an eln-opt pass")))
 
 (defun eln-opt-report ()
   "Show the ranking.  Interactive: a buffer, filled in the background.
@@ -1548,7 +1580,7 @@ Batch: printed to stdout, computed here."
         (when eln-opt-rank--with-marker
           (princ (format "\n%s\n" eln-opt-rank--marker)))
         (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
-    (eln-opt-rank--show-async "*eln-opt report*")))
+    (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report" eln-opt-rank--report-form)))
 
 ;;; ---- Trigger: when a background pass starts ----
 
