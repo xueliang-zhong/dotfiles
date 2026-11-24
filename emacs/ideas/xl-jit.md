@@ -369,7 +369,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 - **失败原因**只保存"Error:"开始的至多 300 字符，不保存整段回溯。
 - **Tier 1 的 `xueliang.el` 也会被 Tier 2 编译成 eln**（它在排名前列）。之后它的函数类型是 `subr`，不是 `byte-code-function`；冒烟测试据此改为"字节码或 native 都算已编译"。
 - **Crafted 的模块**没有 .elc，是解释执行的（报告里数量为 1120）。它们不在可信根里，也就不进入 Tier 2。要不要把 Crafted 纳入可信根，需要你决定。
-- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 200 KB**、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
+- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 500 KB**（最初 200 KB，consult 247 KB 因此被拒绝）、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
 - **总量超限时只停止编译，不做 LRU 淘汰**。设计里的按最近排名时间淘汰还没实现。
 
 ## 未验证的部分

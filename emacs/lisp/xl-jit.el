@@ -513,7 +513,7 @@ The state folder is left out: the run itself changes it."
   "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
 the candidates is by score.  Uncalibrated: set it from a profiler run.")
 
-(defconst xl-jit-max-source-bytes (* 200 1024)
+(defconst xl-jit-max-source-bytes (* 500 1024)
   "Largest source file xl-jit will compile.")
 
 (defconst xl-jit-max-total-bytes (* 200 1024 1024)
