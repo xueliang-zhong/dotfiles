@@ -381,6 +381,18 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 - `M-x xl-jit-report` 的交互路径（打开缓冲区）没有测；批处理路径（`jit-report`）测过。
 - Linux 和 Windows 上没有测试。
 
+## 搁置：内置库的 `.el.gz`（2026-11-24 实验记录）
+
+Emacs 自带的库（org、winner、which-key、savehist、repeat、delsel……）只有 `.el.gz`，候选过滤因此拒绝它们。这些文件分数很高，是目前最大的遗漏。已经实验过，结论如下：
+
+- **编译可以做。** `jka` 能解压 `.el.gz`（要用 `no-conversion` 保字节不变）。eln 名字的公式已确认：`<name>-<md5(file-truename 原 .el 路径)[:8]>-<md5(内容)[:8]>.eln`，其中路径是原来 `.el` 的路径，即使它不存在。按这个名字编译出来的 eln 也确实是 native 的。
+- **Emacs 不会自动使用它。** `org.elc` 被加载时，Emacs 要先根据对应的 `.el` 算 eln 名字；`.el` 不存在，查找直接失败。实验里 `org-mode` 仍是字节码（`native=nil`）。cape 能用上，是因为它的 `.el` 存在。
+- **两个可选方案**：
+  - **A：启动时显式加载。** init 在 `require` 之前，对账本中记录的内置库逐个 `load` eln。代价：文件会被加载两次，有副作用的顶层代码会执行两遍。
+  - **B：解压的 `.el` 放到 load-path 前面。** Emacs 看到真的 `.el`，eln 名字按副本路径计算。代价：改动 `load-path`，影响范围大，副本必须与 Emacs 自带版本一致，升级 Emacs 要重做。
+
+搁置的原因是两个方案都要改启动路径，需要先决定我们愿意为此付出多少复杂度。
+
 ## 未决问题
 
 - Tier 2 的门槛：实测 native 收益普遍不大，需要用离线 profile 确定最低分。
