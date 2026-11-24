@@ -433,6 +433,10 @@ numbers for the header."
        scores)
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :built-rows (xl-jit-rank--built-rows)
+            :next (seq-take (seq-filter #'xl-jit--candidate-p
+                                        (sort (copy-sequence rows)
+                                              (lambda (a b) (> (plist-get a :score) (plist-get b :score)))))
+                            xl-jit-compile-budget)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
             :roots (length user-roots)
@@ -471,26 +475,34 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
           rank score kb trusted native file top))
 
 (defun xl-jit-rank--format (result)
-  "The report as a string.  Ranked rows first, then files already native."
-  (with-output-to-string
-    (princ "xl-jit ranking (report only; nothing is compiled)\n")
-    (princ (format "functions analysed: %d   roots: %d (user data: %d, baseline: %d at weight x%.2f)\n"
-                   (plist-get result :functions) (plist-get result :roots)
-                   (plist-get result :user-count) (plist-get result :baseline-roots)
-                   (plist-get result :baseline-factor)))
-    (princ (format "already native, skipped: %d   opted out by a file cookie: %d\n"
-                   (plist-get result :native-skipped)
-                   (length (plist-get result :excluded))))
-    (princ (format "interpreted, skipped: %d   (Crafted's modules have no .elc; see xl-jit.md)\n"
-                   (plist-get result :interpreted-skipped)))
-    (princ (format "largest single savehist command share of the score: %.1f%%\n"
-                   (* 100 (plist-get result :savehist-share))))
-    (let ((built (plist-get result :built-rows)))
-      (princ (format "native now: %d file(s) built by xl-jit, %d function(s); not yet native: ranked below\n"
+  "The report as a string.  The answer first, then the built files, then the table."
+  (let* ((built (plist-get result :built-rows))
+         (next (plist-get result :next)))
+    (with-output-to-string
+      (princ "xl-jit report (report only; nothing is compiled here)\n\n")
+      (princ "Next background pass compiles: ")
+      (if (null next)
+          (princ "nothing.  No ranked file is a candidate: see the table below.\n")
+        (princ (format "%d file(s), in this order: %s\n" (length next)
+                       (mapconcat (lambda (r) (plist-get r :file)) next ", "))))
+      (princ (format "Built by xl-jit and native now: %d file(s), %d function(s)\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
+      (when built
+        (princ "\n")
+        (princ (xl-jit-rank--line "-" "-" "KB" "trusted" "native" "file" "[functions]"))
+        (dolist (row built)
+          (princ (xl-jit-rank--line
+                  "-" "-"
+                  (format "%.1f" (/ (plist-get row :size) 1024.0))
+                  "yes" "xl-jit" (plist-get row :file)
+                  (format "%d, e.g. %S" (plist-get row :count) (plist-get row :top))))))
+      (princ "\nRanking of files not yet native (score: expected gain; KB: bytecode size, the cost):\n")
+      (princ (format "functions analysed: %d   interpreted, skipped: %d (Crafted's modules have no .elc)\n"
+                     (plist-get result :functions) (plist-get result :interpreted-skipped)))
+      (princ (format "largest single savehist command share of the score: %.1f%%\n"
+                     (* 100 (plist-get result :savehist-share))))
       (princ "\n")
-      (princ (xl-jit-rank--line "rank" "score" "KB" "trusted" "native" "file"
-                                "[top functions]"))
+      (princ (xl-jit-rank--line "rank" "score" "KB" "trusted" "native" "file" "[top functions]"))
       (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
                do (princ (xl-jit-rank--line
                           i
@@ -498,16 +510,7 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
                           (format "%.1f" (/ (plist-get row :size) 1024.0))
                           (if (plist-get row :trusted) "yes" "NO")
                           "no" (plist-get row :file)
-                          (format "%S" (plist-get row :top)))))
-      (when built
-        (princ "\nalready native, built by xl-jit (no ratio: they left the ranking):\n")
-        (dolist (row built)
-          (princ (xl-jit-rank--line
-                  "-" "-"
-                  (format "%.1f" (/ (plist-get row :size) 1024.0))
-                  "yes" "xl-jit" (plist-get row :file)
-                  (format "%d functions, e.g. %S" (plist-get row :count)
-                          (plist-get row :top)))))))))
+                          (format "%S" (plist-get row :top))))))))
 
 ;;; The report as a buffer.  The ranking takes seconds, so it runs in a child
 ;;; Emacs that loads the profile and prints this same text; the buffer shows a
