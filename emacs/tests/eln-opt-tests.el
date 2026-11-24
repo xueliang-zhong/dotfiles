@@ -620,7 +620,6 @@ power, native compilation available, and timers recorded instead of armed."
           (eln-opt-auto--timer nil)
           (timers nil))
      (cl-letf (((symbol-function 'native-comp-available-p) (lambda () t))
-               ((symbol-function 'eln-opt-auto--on-battery-p) (lambda () nil))
                ((symbol-function 'run-with-timer)
                 (lambda (secs _repeat fn) (push (list 'timer secs fn) timers) 'fake-timer))
                ((symbol-function 'run-with-idle-timer)
@@ -649,8 +648,6 @@ power, native compilation available, and timers recorded instead of armed."
       (should (eq (eln-opt-auto--decision) 'disabled)))
     (let ((before-init-time (time-subtract nil 30)))
       (should (eq (eln-opt-auto--decision) 'too-early)))
-    (cl-letf (((symbol-function 'eln-opt-auto--on-battery-p) (lambda () t)))
-      (should (eq (eln-opt-auto--decision) 'battery)))
     (eln-opt-test--touch-last-run 60)
     (should (eq (eln-opt-auto--decision) 'recent))
     (eln-opt-test--touch-last-run (+ eln-opt-auto-interval 60))
@@ -682,14 +679,15 @@ power, native compilation available, and timers recorded instead of armed."
       (should (eq (car (car timers)) 'timer)))))
 
 (ert-deftest eln-opt-auto-start-rechecks-and-spawns-nothing-when-not-allowed ()
-  "If the user went on battery while idle, no process starts."
+  "If a run is not allowed when the idle timer fires, no process starts."
   (eln-opt-test--with-auto
     (let ((spawned 0))
-      (cl-letf (((symbol-function 'eln-opt-auto--on-battery-p) (lambda () t))
-                ((symbol-function 'make-process) (lambda (&rest _) (cl-incf spawned) nil)))
+      (eln-opt-test--touch-last-run 60)
+      (cl-letf (((symbol-function 'make-process) (lambda (&rest _) (cl-incf spawned) nil)))
         (eln-opt-auto--start)
         (should (= spawned 0))
-        (should (equal (car timers) (list 'timer eln-opt-auto-retry #'eln-opt-auto--tick)))))))
+        (should (eq (car (car timers)) 'timer))
+        (should (>= (nth 1 (car timers)) eln-opt-auto-retry))))))
 
 (ert-deftest eln-opt-auto-command-runs-at-background-priority ()
   "The background run uses taskpolicy -b when present, nice -n 19 otherwise."

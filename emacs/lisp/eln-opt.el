@@ -14,7 +14,7 @@
 ;; profiled or hooked except one timer (`eln-opt-auto-arm'):
 ;;
 ;; - `eln-opt-auto-arm' starts a background pass once Emacs has been open a
-;;   while and the user is idle, at most once a day, never on battery.
+;;   while and the user is idle, at most once an hour.
 ;; - A pass (`eln-opt-run') ranks the hot files from byte code and the usage
 ;;   records (savehist, recentf), compiles the best few in child Emacs
 ;;   processes, verifies each eln, and records what it did in a ledger.
@@ -1611,7 +1611,7 @@ stay above zero: a run that ends schedules the next check this far away."
   :type 'integer)
 
 (defcustom eln-opt-auto-retry (* 30 60)
-  "When a run is not allowed now (on battery, one still running), check again
+  "When a run is not allowed now (one still running, or too recent), check again
 after this many seconds."
   :type 'integer)
 
@@ -1633,15 +1633,6 @@ after this many seconds."
                     (file-attributes (eln-opt-auto--last-run-file)))))
     (and attrs (float-time (time-since (file-attribute-modification-time attrs))))))
 
-(defun eln-opt-auto--on-battery-p ()
-  "Non-nil when the machine runs on battery.  Unknown counts as not."
-  (require 'battery nil t)
-  (let* ((fn (bound-and-true-p battery-status-function))
-         (line (and fn (ignore-errors (cdr (assq ?L (funcall fn)))))))
-    (and (stringp line)
-         (string-match-p "\\`\\(bat\\|off-line\\)" (downcase line))
-         t)))
-
 (defun eln-opt-auto--uptime ()
   (float-time (time-since before-init-time)))
 
@@ -1656,7 +1647,6 @@ retried later."
           ((process-live-p eln-opt-auto--process) 'running)
           ((< (eln-opt-auto--uptime) eln-opt-auto-uptime) 'too-early)
           ((and since (< since eln-opt-auto-interval)) 'recent)
-          ((eln-opt-auto--on-battery-p) 'battery)
           (t nil))))
 
 (defun eln-opt-auto--delay (why)

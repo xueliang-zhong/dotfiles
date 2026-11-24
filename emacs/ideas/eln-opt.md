@@ -250,7 +250,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 
 **5. 触发条件（借鉴 bg-dexopt 的"空闲 + 接电源 + 每天一次"）**
 - 不用 launchd 这类 Emacs 之外的计划任务。主 Emacs 自己用 timer 判断：开了 `eln-opt-auto-uptime`（10 分钟）以上，说明它会长期开着；之后等用户空闲 `eln-opt-auto-idle`（60 秒）。
-- 条件：距上次运行超过 `eln-opt-auto-interval`（一天，看 `last-run.eld` 的 mtime）；没在用电池（`battery-status-function`）；没有正在跑的后台子进程。不满足就隔一段时间再检查。
+- 条件：距上次运行超过 `eln-opt-auto-interval`（看 `last-run.eld` 的 mtime）；没有正在跑的后台子进程。不满足就隔一段时间再检查。
 - 后台子进程在 macOS 上用 `taskpolicy -b`（后台 QoS、效率核心），其它系统用 `nice -n 19`。
 - batch 环境（`noninteractive`）里绝不触发：setup、测试，以及后台子进程自己加载 init 时，都不会再派生子进程。
 - 还没做：用户恢复操作时暂停子进程（SIGSTOP/SIGCONT）。那需要一个 hook，和"只用 timer"冲突，暂时不做。
