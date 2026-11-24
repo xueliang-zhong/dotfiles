@@ -27,7 +27,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 | 测量 | 结果 |
 | --- | --- |
-| `xl-git-status--entries`（20000 条 status） | 解释执行 0.244s → 字节码 0.084s（×2.9）→ native 0.076s（×1.1） |
+| `xl-git-status--entries`（20000 条 status） | 解释执行 0.244s → 字节码 0.084s（×2.9）→ native 0.076s（×1.1）；重跑一次是 ×2.7 和 ×0.9，native 和字节码的差别在测量噪声范围内 |
 | `xl-git-status--insert-diff`（1500 个 hunk） | 解释执行 0.152s → 字节码 0.088s（×1.7）→ native 0.087s（×1.0） |
 | Emacs.app 自带的 native 代码 | 只有 138 个预加载文件；`org`、`package`、`thingatpt`、`winner`、`savehist` 等在 JIT 关闭时跑字节码 |
 | 子进程跑完 init 并建调用图 | 5792 个函数，213 个根节点，约 2.4 秒 |
@@ -272,15 +272,87 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 **8. 多个 Emacs 并存**
 同一台机器上可能有 Emacs.app 和 Homebrew 的 Emacs，或者同一个版本号的两次构建。账本、锁和指纹都按 `comp-native-version-dir` 分开保存，互不干扰。
 
-## 落地顺序
+## 实现清单
 
-1. 平台门控和金丝雀熔断：后面所有步骤都以它为前提。
-2. trampoline 预测接进 `emacs-setup.sh` 的 `trampolines` 步骤。
-3. Tier 1：`emacs/lisp/*.el` 和 `xueliang.el` 生成 .elc（.elc 要加进 `.gitignore`），设置 `load-prefer-newer t`。
-4. 账本、锁、指纹、验证、应急开关、故障注入测试。这些要在 Tier 2 之前完成。
-5. 只输出报告的排名器（`xl-jit-report`）和基线热点表，先人工看一遍排名是否合理。
-6. Tier 2 后台编译，加上状态统计和崩溃隔离。
-7. launchd 调度（不支持 native 编译的平台不安装）。
+按顺序做，每一步单独提交。每一步都标了适合的实现方式：**可以直接实现**的，规格明确，并且有探针可以照着改；**需要仔细 review** 的，不变量很细，错了不会报错，只会悄悄地反复重编或者永远不生效。
+
+### 通用规则
+
+- 代码放在 `emacs/lisp/xl-jit.el`。**init.el 不 require 它**：它只在子 Emacs 里用 `-l` 加载。运行中的 Emacs 里唯一的改动是第 4 步的应急开关，只有一行 `setq`。
+- 状态放在 `user-emacs-directory` 下的 `xl-jit/`：`platform.eld`（平台判断缓存）、`<comp-native-version-dir>/ledger.eld`（账本）、`<comp-native-version-dir>/lock/`（锁目录）、`<comp-native-version-dir>/last-run.eld`（上次运行的报告）。
+- eln 只通过 comp 写入（`native-compile`、`comp-trampoline-compile`、`comp-delete-or-replace-file`），从不 `cp` 或原地覆盖。
+- 测试放在 `emacs/tests/xl-jit-tests.el`，用 `emacs --batch -Q` 就能跑，所有文件都写在 `make-temp-file` 建的临时目录里。需要模拟 native 编译失败等情况时，用 `cl-letf` 替换函数，并统计调用次数。
+- **每个测试都断言两件事**：最终状态正确；第二次运行时 `native-compile` 和 `byte-compile-file` 的调用次数为 0。
+- 提交前跑 `bash emacs/install/emacs-setup.sh check`，并更新这份文档和探针 README 里受影响的部分。
+
+### 1. 平台门控和金丝雀熔断（可以直接实现）
+
+- 函数：`xl-jit-platform-available-p`。按二进制的路径、大小、mtime 查 `platform.eld`；没有缓存时先看 `native-comp-available-p`，再在临时目录编译一个只有一个函数的金丝雀文件，把结果写进缓存。
+- `emacs-setup.sh` 新增子命令 `jit`，第一步就是这个判断。不可用时打印 `xl-jit: native compilation not available, skipped`，退出码为 0。
+- 验收：
+  - `native-comp-available-p` 被替换成返回 nil 时，`xl-jit-run` 返回 `unavailable`，状态目录里除了 `platform.eld` 没有其它文件；
+  - 金丝雀编译被替换成报错时，`platform.eld` 记为不可用；第二次运行不再编译金丝雀；
+  - 改变二进制 key（测试里改 mtime）后，会重新判断一次；
+  - 在这台 Mac 上，`bash emacs/install/emacs-setup.sh jit` 报告可用。
+
+### 2. Trampoline 预测和补齐（可以直接实现）
+
+- 从 `xl-jit-probes/xl-jit-probe-trampolines.el` 移植：`xl-jit-trampolines-predict` 返回预测的原语列表（静态扫描并上已经被 advice 的），`xl-jit-trampolines-build` 对缓存里没有的调用 `comp-trampoline-compile`，每次最多 50 个。
+- 接进 `cmd_trampolines`：在现有的 idle-timer 加载之后执行，受第 1 步的门控控制。
+- 验收：
+  - 跑完以后，`buffer-name`、`message`、`region-beginning`、`region-end` 的 trampoline 都在 eln-cache 里；
+  - 第二次运行编译 0 个；
+  - 测试：一个含 `(advice-add 'buffer-name ...)` 的玩具 .elc，以及一个在函数里用 `cl-letf` 改 `(symbol-function 'message)` 的玩具 .elc，都能被预测到；`(defalias 'x #'car)` 不会被预测；扫描期间这些玩具文件没有被加载（玩具文件里的顶层代码设置一个变量，断言它仍然未绑定）。
+
+### 3. Tier 1：自己的 lisp 编成字节码（可以直接实现）
+
+这一步不依赖 libgccjit，不属于 xl-jit 这条链，Windows 上也要做。
+
+- `emacs-setup.sh` 新增 `compile-lisp`，并在各平台的 setup 里调用：只重编 `.el` 比 `.elc` 新的 `emacs/lisp/*.el` 和 `emacs/xueliang.el`。
+- `.gitignore` 加上 `emacs/**/*.elc`。
+- `early-init.el` 加上 `(setq load-prefer-newer t)`，这样改了 `.el` 还没重编时，加载的是新的源码，而不是旧的 .elc。
+- **`init.el:167` 现在是 `(load ".../emacs/xueliang.el")`，带着扩展名，所以永远不会用 .elc**。要改成不带扩展名的 `emacs/xueliang`。
+- 验收：
+  - 启动后 `(byte-code-function-p (symbol-function 'xl-git-status--entries))` 为 t，`xueliang.el` 里的函数也是；
+  - 第二次运行 `compile-lisp` 编译 0 个文件；
+  - 改一个 `.el` 但不重编时，启动后用的是新源码（解释执行）；
+  - `bash emacs/install/emacs-setup.sh test` 通过。
+
+### 4. 账本、锁、指纹、验证、应急开关（需要仔细 review）
+
+- 账本 key：`(comp-native-version-dir, 源码 truename, 内容哈希, 编译参数)`。条目里记录状态（done / failed / quarantined）、失败次数、原因、时间，以及产出 eln 的 sha256 和大小。只用 `read` 读取，限制大小，校验结构；不合格就丢弃重建。
+- "完成"按加载结果判断：在子进程里 `require` 这个文件，检查其中一个 defun 是否 `native-comp-function-p`。
+- 锁：`make-directory` 建锁目录，里面写 pid 和启动时间；pid 不存在或者超过 1 小时视为过期。拿不到锁就退出，不等待。
+- 指纹：版本目录 + 各 load-path 目录的 mtime。没变就退出。
+- 每次运行开始时复查账本里的 eln：哈希不符或者 dlopen 失败，就删掉并记录原因。
+- 应急开关：`early-init.el` 里加 `(when (equal (getenv "XL_JIT") "0") (setq load-no-native t))`；`emacs-setup.sh jit-reset` 只删除账本里记录的 eln。
+- 验收：设计文档"用故障注入测试 xl-jit 本身"里列出的每一种情况各写一个 ERT 测试，全部通过，并且每个都满足"第二次运行什么都不做"。
+
+### 5. 排名报告和基线热点表（需要仔细 review）
+
+- 从 `xl-jit-probes/xl-jit-probe-rank.el` 移植，先补上探针 README 里列的缺口。
+- 只输出报告，不编译：`emacs-setup.sh jit-report` 和 `M-x xl-jit-report`。
+- 新建 `emacs/jit-baseline.eld`，只列文件名和原语名。
+- 验收：
+  - 报告里没有 `*-autoloads.el`；
+  - 单个 savehist 命令的贡献不超过总分的 20%；
+  - 前 10 名由你人工看过，觉得合理。
+
+### 6. Tier 2 后台编译（需要仔细 review）
+
+- 在预算内编译排名靠前的文件，要满足"安全"一节的全部要求：可信根目录（truename）、尊重 `no-native-compile` 和 deny list、`native-comp-speed` 不超过 2、单文件大小上限、编译超时、总体积上限。
+- 编译完立刻验证：在子进程里加载，并跑 `tests/smoke-tests.el`；不通过就删掉这一批。
+- 状态统计（`jit-status`）和崩溃隔离（读 DiagnosticReports）。
+- 验收：
+  - 测试：指向可信根目录之外的符号链接被拒绝；带 `no-native-compile: t` 的文件不编译；编译超时记为失败，第二次运行不重试；一份伪造的崩溃报告（调用栈里有某个 eln 的文件名）会让这个 eln 被删掉并隔离；
+  - 真实运行一次后，再运行一次，编译 0 个文件。
+
+### 7. launchd 调度（可以直接实现）
+
+- `emacs/install/` 下放 plist 模板：每天一次，`ProcessType` 为 `Background`，`LowPriorityIO` 为 true，`Nice` 为 19；执行 `emacs-setup.sh jit`。
+- `setup-macos` 安装它；第 1 步判断为不可用时不安装，已经装了就移除。Windows 和 Linux 不安装。
+- 运行时检查电源和温度，不满足就跳过，并写进 `last-run.eld`。
+- 验收：`plutil -lint` 通过；`launchctl print gui/$(id -u)/<label>` 能看到；把平台缓存改成不可用后再跑 setup，任务被移除。
 
 ## 未决问题
 
@@ -290,9 +362,9 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 
 ## 实验脚本
 
-实验用的探针不在仓库里，下面按功能列出，实现时可以作为起点：
+探针在 [`xl-jit-probes/`](xl-jit-probes/) 里，运行方法、每个脚本的结果和已知缺口见那里的 README：
 
-- 热点排名：子进程加载 init 后，读 LAP 特征、建图、按文件打分。
-- trampoline 预测：把 .elc 当作数据读，做 LAP 相邻匹配，再和缓存对比。
-- 性能对比：同一个文件在解释执行、字节码、native 三种状态下的耗时。
-- eln 规则：用一个玩具包测上面"版本和加载规则"表里的每一种情况。
+- `xl-jit-probe-rank.el`：热点排名；
+- `xl-jit-probe-trampolines.el`：trampoline 预测；
+- `xl-jit-probe-eln-rules.sh`：eln 版本和加载规则；
+- `xl-jit-probe-bench.el`：解释执行、字节码、native 三种状态下的耗时。
