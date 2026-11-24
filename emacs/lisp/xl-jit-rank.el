@@ -431,7 +431,7 @@ numbers for the header."
                                     (and p (xl-jit-trusted-file-p p))))
                    rows))))
        scores)
-      (list :rows (sort rows (lambda (a b) (> (plist-get a :ratio) (plist-get b :ratio))))
+      (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :built-rows (xl-jit-rank--built-rows)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))

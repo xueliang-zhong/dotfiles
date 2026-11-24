@@ -506,7 +506,8 @@ The state folder is left out: the run itself changes it."
   "Most files one run compiles.  Each costs a child Emacs with the profile.")
 
 (defconst xl-jit-min-ratio 5.0
-  "Lowest ranking ratio worth a compile.  Uncalibrated: set it from a profiler run.")
+  "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
+the candidates is by score.  Uncalibrated: set it from a profiler run.")
 
 (defconst xl-jit-max-source-bytes (* 200 1024)
   "Largest source file xl-jit will compile.")
