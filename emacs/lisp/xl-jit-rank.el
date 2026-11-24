@@ -465,10 +465,15 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
               rows)))
     (sort rows (lambda (a b) (string< (plist-get a :file) (plist-get b :file))))))
 
+(defun xl-jit-rank--line (rank ratio score kb trusted native file top)
+  "One report row.  Every row, ranked or built, uses this one layout."
+  (format "%4s  %6s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
+          rank ratio score kb trusted native file top))
+
 (defun xl-jit-rank--format (result)
-  "The report as a string."
+  "The report as a string.  Ranked rows first, then files already native."
   (with-output-to-string
-    (princ (format "xl-jit ranking (report only; nothing is compiled)\n"))
+    (princ "xl-jit ranking (report only; nothing is compiled)\n")
     (princ (format "functions analysed: %d   roots: %d (user data: %d, baseline: %d at weight x%.2f)\n"
                    (plist-get result :functions) (plist-get result :roots)
                    (plist-get result :user-count) (plist-get result :baseline-roots)
@@ -483,23 +488,26 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
     (let ((built (plist-get result :built-rows)))
       (princ (format "native now: %d file(s) built by xl-jit, %d function(s); not yet native: ranked below\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
-      (princ "\nrank  ratio  score  KB  trusted  native  file  [top functions]\n")
+      (princ "\n")
+      (princ (xl-jit-rank--line "rank" "ratio" "score" "KB" "trusted" "native" "file"
+                                "[top functions]"))
       (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
-               do (princ (format "%4d %6.1f %6.1f %4.1f  %-7s  %-6s  %s  %S\n"
-                                 i (plist-get row :ratio) (plist-get row :score)
-                                 (/ (plist-get row :size) 1024.0)
-                                 (if (plist-get row :trusted) "yes" "NO")
-                                 "no"
-                                 (plist-get row :file)
-                                 (plist-get row :top))))
+               do (princ (xl-jit-rank--line
+                          i (format "%.1f" (plist-get row :ratio))
+                          (format "%.1f" (plist-get row :score))
+                          (format "%.1f" (/ (plist-get row :size) 1024.0))
+                          (if (plist-get row :trusted) "yes" "NO")
+                          "no" (plist-get row :file)
+                          (format "%S" (plist-get row :top)))))
       (when built
-        (princ "\nbuilt by xl-jit (already native):\n")
-        (princ "     -       -    eKB  trusted  native  file  [functions, count]\n")
+        (princ "\nalready native, built by xl-jit (no ratio: they left the ranking):\n")
         (dolist (row built)
-          (princ (format "     -       -  %4.1f  %-7s  %-6s  %s  %d  %S\n"
-                         (/ (plist-get row :size) 1024.0)
-                         "yes" "xl-jit" (plist-get row :file)
-                         (plist-get row :count) (plist-get row :top))))))))
+          (princ (xl-jit-rank--line
+                  "-" "-" "-"
+                  (format "%.1f" (/ (plist-get row :size) 1024.0))
+                  "yes" "xl-jit" (plist-get row :file)
+                  (format "%d functions, e.g. %S" (plist-get row :count)
+                          (plist-get row :top)))))))))
 
 ;;; The report as a buffer.  The ranking takes seconds, so it runs in a child
 ;;; Emacs that loads the profile and prints this same text; the buffer shows a
