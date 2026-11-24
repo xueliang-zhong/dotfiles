@@ -1049,12 +1049,12 @@ own final character is drawn."
         (should (equal xl-consult-spinner-idle (overlay-get overlay 'display)))
         (funcall handler [indicator running])
         (should (xl-spinner-running-p))
-        (should (= xl-consult-spinner-interval
+        (should (= xl-spinner-two-dot-interval
                    (plist-get xl-spinner--state :interval)))
         (should (member (substring-no-properties (overlay-get overlay 'display))
-                        xl-consult-spinner-frames))
+                        xl-spinner-two-dot-frames))
         ;; Every frame and the idle text take the same two cells.
-        (dolist (frame xl-consult-spinner-frames)
+        (dolist (frame xl-spinner-two-dot-frames)
           (should (= 2 (string-width frame))))
         (should (= 2 (string-width xl-consult-spinner-idle)))
         ;; Same colour as the mode-line loaders: the frame keeps its face.

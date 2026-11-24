@@ -28,21 +28,6 @@
 
 (declare-function consult--async-indicator "consult")
 
-(defcustom xl-consult-spinner-interval 0.15
-  "Seconds per frame of the consult indicator.
-Two cells cannot carry the three-cell pace of the other loaders: at 0.15 s
-a three-frame cycle of two dots reads as a steady motion."
-  :type 'number
-  :group 'xl-spinner)
-
-(defvar xl-consult-spinner-frames
-  (if (seq-every-p #'xl-spinner--glyph-safe-p "·●")
-      '("··" "●·" "·●")
-    '(".." "*." ".*"))
-  "Frames drawn in the two cells reserved in front of the prompt.
-Dots when the font draws them, `..', `*.', `.*' otherwise.  Every frame,
-and the idle text, is exactly two cells wide, so the typed text never moves.")
-
 (defconst xl-consult-spinner-idle ": "
   "What the reserved cells show when no search runs: consult's colon, padded.")
 
@@ -92,8 +77,8 @@ the pipeline element, a function of SINK."
          (unless (xl-spinner-running-p)
            (xl-spinner-start (lambda (frame)
                                (xl-consult-spinner--draw overlay frame))
-                             :frames xl-consult-spinner-frames
-                             :interval xl-consult-spinner-interval)))
+                             :frames xl-spinner-two-dot-frames
+                             :interval xl-spinner-two-dot-interval)))
         (`[indicator ,(or 'finished 'killed 'failed)]
          (when (xl-spinner-running-p)
            (xl-spinner-stop))

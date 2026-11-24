@@ -128,6 +128,20 @@ See `xl-spinner-style'."
            xl-spinner-dot-frames
          xl-spinner-frames))))
 
+
+(defvar xl-spinner-two-dot-frames
+  (if (seq-every-p #'xl-spinner--glyph-safe-p "·●")
+      '("··" "●·" "·●")
+    '(".." "*." ".*"))
+  "Three frames of two dots, for a loader that has only two cells.
+Dots when the font draws them, `..', `*.', `.*' otherwise.  Every frame
+is exactly two cells wide, so text beside it never moves.")
+
+(defvar xl-spinner-two-dot-interval 0.15
+  "Seconds per frame of a two-dot loader.
+Three frames of two dots need a longer frame than the four-frame dot wave
+of `xl-spinner-interval' to read as steady motion.")
+
 ;; ============================================================
 ;; Core: clock and frame counter
 ;; ============================================================
