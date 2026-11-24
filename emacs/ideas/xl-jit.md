@@ -44,6 +44,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 ## 流水线
 
 ```
+平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
 触发（不进入运行中的 session）：emacs-setup.sh / launchd，每天最多一次
   └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
        0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
@@ -58,6 +59,35 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 ```
 
 Linux 上用 `nice -n 19 ionice -c3` 代替 `taskpolicy -b`。
+
+## 平台门控：没有 libgccjit 就整条链都不触发
+
+Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编译但找不到 libgccjit 的 DLL。这类平台上 trampoline 不存在，Tier 2 也无从谈起，所以 xl-jit **整条链都不启动**：不建计划任务，不起子进程，不读 savehist，不写账本。
+
+**怎么判断**
+
+- 唯一的依据是 `(native-comp-available-p)`。它在 Emacs 没有编进 native 编译时返回 nil，在 Windows 上找不到 libgccjit DLL 时也返回 nil。不按操作系统名判断：将来 Windows 上装了带 libgccjit 的构建，会自动启用。
+- 判断只做一次，结果缓存到 `xl-jit-platform.eld`，key 是 Emacs 二进制的路径、大小和 mtime。二进制不变就直接用缓存结果，连判断用的 batch 进程都不再启动。换了 Emacs，key 变化，重新判断一次。
+- 结果为 nil 时，emacs-setup.sh 打印一行说明（例如 `xl-jit: native compilation not available, skipped`），然后退出。不报错，也不影响 setup 的其它步骤。
+
+**安装时就不建调度**
+
+- Windows（`setup-windows`）和任何判断为不可用的平台，都不安装计划任务。
+- 已经装过的平台，如果后来判断变成不可用（比如 Homebrew 升级时删掉了 libgccjit），在下一次 setup 时移除调度。
+
+**带了 native 编译但实际编不出来**
+
+`native-comp-available-p` 返回 t，不代表一定能编译：libgccjit 版本不对、gcc 驱动不在、链接器出错，都会让每次编译失败。如果只靠按文件记账，每个文件都会各失败两次，白白消耗 CPU。所以加一个**平台熔断**：
+
+- 每次运行开始时，先编译一个只有一个函数的探针文件（放在临时目录，不进 eln-cache），把它当作金丝雀。
+- 金丝雀失败，就把平台标记为不可用，写进 `xl-jit-platform.eld`，key 同上。之后直到二进制变化之前，整条链都不再启动。
+- trampoline 的预编译同样受这个熔断控制。
+
+**没有 native 编译的平台还剩什么**
+
+- trampoline：不需要，因为没有 native 代码，advice 原语不需要它（现有的 `cmd_trampolines` 已经这样处理）。
+- 应急开关 `load-no-native`：不需要。
+- Tier 1（把自己的 lisp 编成 .elc）不依赖 libgccjit，但它不属于 xl-jit 这条链。要做的话，作为 setup 里一个独立的字节编译步骤，不复用这里的调度和账本。
 
 ## 热点排名（Tier 2 的输入）
 
@@ -234,7 +264,8 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 - `.elc` 比 `.eln` 新、没有 `.el`、只有 `.el.gz`、写进了错误的缓存目录；
 - eln 损坏（随机字节、截断、空文件）、名字对但内容来自别的源码；
 - 锁过期、锁被占用、磁盘写满、编译超时、账本被篡改；
-- 改了编译参数、版本目录变了。
+- 改了编译参数、版本目录变了；
+- `native-comp-available-p` 返回 nil（断言什么都没启动，也没写任何文件）、金丝雀编译失败（断言熔断以后不再启动）。
 
 每个测试都要断言两件事：最终状态正确，并且**第二次运行什么都不做**（没有重复编译）。
 
@@ -243,12 +274,13 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 
 ## 落地顺序
 
-1. trampoline 预测接进 `emacs-setup.sh` 的 `trampolines` 步骤。
-2. Tier 1：`emacs/lisp/*.el` 和 `xueliang.el` 生成 .elc（.elc 要加进 `.gitignore`），设置 `load-prefer-newer t`。
-3. 账本、锁、指纹、验证、应急开关、故障注入测试。这些要在 Tier 2 之前完成。
-4. 只输出报告的排名器（`xl-jit-report`）和基线热点表，先人工看一遍排名是否合理。
-5. Tier 2 后台编译，加上状态统计和崩溃隔离。
-6. launchd 调度。
+1. 平台门控和金丝雀熔断：后面所有步骤都以它为前提。
+2. trampoline 预测接进 `emacs-setup.sh` 的 `trampolines` 步骤。
+3. Tier 1：`emacs/lisp/*.el` 和 `xueliang.el` 生成 .elc（.elc 要加进 `.gitignore`），设置 `load-prefer-newer t`。
+4. 账本、锁、指纹、验证、应急开关、故障注入测试。这些要在 Tier 2 之前完成。
+5. 只输出报告的排名器（`xl-jit-report`）和基线热点表，先人工看一遍排名是否合理。
+6. Tier 2 后台编译，加上状态统计和崩溃隔离。
+7. launchd 调度（不支持 native 编译的平台不安装）。
 
 ## 未决问题
 
