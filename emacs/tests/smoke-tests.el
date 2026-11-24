@@ -1127,7 +1127,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "require 'xl-git-commands" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "emacs/xueliang\\.el" (cdr entry))
+      (when (string-match-p "emacs/xueliang\"" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -3448,6 +3448,19 @@ the exit status."
   (should (eq (indirect-function 'xueliang-what-face) (indirect-function 'describe-face)))
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
+
+;; xl-jit tier 1: our lisp runs as byte code exactly when a current .elc exists.
+(ert-deftest xl-own-lisp-is-bytecode-when-compiled ()
+  "Our lisp is byte code when its .elc is current, and interpreted otherwise."
+  (let ((root (expand-file-name "emacs" xl-dotfiles)))
+    (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")
+                    (xueliang-elisp-completion-setup "xueliang.el")))
+      (let* ((src (expand-file-name (cadr case) root))
+             (elc (concat src "c"))
+             (current (and (file-exists-p elc)
+                           (not (file-newer-than-file-p src elc)))))
+        (should (eq (and (byte-code-function-p (symbol-function (car case))) t)
+                    (and current t)))))))
 
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

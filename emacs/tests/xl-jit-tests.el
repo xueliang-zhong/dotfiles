@@ -205,5 +205,31 @@
             (should (xl-jit--trampoline-cached-p 'buffer-name)))
         (ignore-errors (delete-directory cache t))))))
 
+;;; Step 3: a stale .elc never shadows a newer .el
+
+(ert-deftest xl-jit-stale-elc-never-shadows-newer-el ()
+  "With `load-prefer-newer', a .el newer than its .elc is the one that loads."
+  (let* ((dir (make-temp-file "xl-jit-stale-" t))
+         (el (expand-file-name "xl-jit-stale-toy.el" dir))
+         (elc (concat el "c")))
+    (unwind-protect
+        (let ((load-prefer-newer t)
+              (byte-compile-verbose nil))
+          (with-temp-file el
+            (insert ";;; xl-jit-stale-toy.el -*- lexical-binding: t; -*-\n"
+                    "(defun xl-jit-stale-toy-value () 1)\n"))
+          (byte-compile-file el)
+          (with-temp-file el
+            (insert ";;; xl-jit-stale-toy.el -*- lexical-binding: t; -*-\n"
+                    "(defun xl-jit-stale-toy-value () 2)\n"))
+          ;; The .elc is older than the new source, as after an edit.
+          (set-file-times elc (time-subtract (current-time) 100))
+          (set-file-times el (current-time))
+          (load el nil t)
+          (should (= (xl-jit-stale-toy-value) 2))
+          (should-not (byte-code-function-p (symbol-function 'xl-jit-stale-toy-value))))
+      (ignore-errors (fmakunbound 'xl-jit-stale-toy-value))
+      (ignore-errors (delete-directory dir t)))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

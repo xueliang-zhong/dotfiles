@@ -11,6 +11,7 @@
 #   bash emacs/install/emacs-setup.sh smoke|test|check
 #   bash emacs/install/emacs-setup.sh trampolines
 #   bash emacs/install/emacs-setup.sh jit
+#   bash emacs/install/emacs-setup.sh compile-lisp
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -240,6 +241,31 @@ cmd_test() {
         -f ert-run-tests-batch-and-exit
 }
 
+# Tier 1 of xl-jit: byte-compile our own Lisp so it does not run interpreted.
+# Runs with the profile loaded, so macros from installed packages (evil, ...)
+# expand correctly; compiling in a bare batch Emacs would turn them into calls.
+# Only files whose .el is newer than their .elc are compiled, so a second run
+# compiles nothing.  Any failure makes the command fail.  No libgccjit needed.
+cmd_compile_lisp() {
+    require_emacs
+    require_profile
+    emacs_batch --eval "
+(let* ((dir (expand-file-name \"emacs\" \"$DOTFILES\"))
+       (files (append (directory-files (expand-file-name \"lisp\" dir) t \"\\\\.el\\\\'\")
+                      (list (expand-file-name \"xueliang.el\" dir))))
+       (done 0) (failed nil))
+  (dolist (f files)
+    (when (file-newer-than-file-p f (concat f \"c\"))
+      (let ((byte-compile-verbose nil))
+        (if (byte-compile-file f) (setq done (1+ done)) (push f failed)))))
+  (when (equal (getenv \"XL_PROGRESS\") \"1\")
+    (princ (format \"byte-compiled %d file(s)\\n\" done)))
+  (when failed
+    (message \"byte-compile failed: %S\" failed)
+    (kill-emacs 1)))
+"
+}
+
 # Background native-compilation gate (emacs/ideas/xl-jit.md, step 1).  Runs
 # in a bare batch Emacs whose state folder is the profile's, and never loads
 # the profile, so it stays quick.  Always exits 0: "not available" is an answer.
@@ -326,11 +352,12 @@ cmd_restore_spacemacs() {
 cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
-    progress_init 5
+    progress_init 6
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
     progress_step "Install Emacs packages" run_progress cmd_smoke
     progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
+    progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "macOS setup complete"
 }
@@ -342,11 +369,12 @@ cmd_setup_linux() {
         MINGW* | MSYS* | CYGWIN*) die "run this in Linux; on Windows use setup-windows" ;;
         *) die "no setup for $(uname -s)" ;;
     esac
-    progress_init 5
+    progress_init 6
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
     progress_step "Install Emacs packages" run_progress cmd_smoke
     progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
+    progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "Linux setup complete"
 }
@@ -392,13 +420,14 @@ cmd_setup_windows() {
         *) [ -n "${XL_FORCE_WINDOWS:-}" ] || die "run this from Git Bash on Windows" ;;
     esac
     local d
-    progress_init 5
+    progress_init 6
     progress_step "Check Emacs" cmd_windows_check
     progress_step "Pin HOME for Start-menu Emacs" cmd_windows_pin_home
     progress_step "Move old configurations aside" cmd_windows_move_old_configs
     d=$(winpath "$HOME/.emacs.d")
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$d"
     PROFILE_DIR="$d" progress_step "Install Emacs packages" run_progress cmd_smoke
+    PROFILE_DIR="$d" progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
     progress_finish "Done. Start Emacs from the Start menu or run: runemacs"
 }
 
@@ -425,6 +454,7 @@ use / check:
   check                  smoke + test; run this after a config change
   trampolines            pre-build advice trampolines so a GUI start is fast
   jit                    say whether xl-jit can run here (native compilation)
+  compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -443,6 +473,7 @@ case "${1:-}" in
     check) shift; cmd_check "$@" ;;
     trampolines) shift; cmd_trampolines "$@" ;;
     jit) shift; cmd_jit "$@" ;;
+    compile-lisp) shift; cmd_compile_lisp "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;

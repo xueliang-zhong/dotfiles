@@ -26,6 +26,7 @@
 ;; own Lisp stays native (it ships compiled).  Advising a C primitive still
 ;; needs a "trampoline", compiled once on the main thread and cached in
 ;; eln-cache; `just emacs-check' builds them in batch, before a GUI start.
+(setq load-prefer-newer t)   ; a stale .elc never shadows a newer .el (xl-jit tier 1)
 (setq native-comp-jit-compilation nil
       package-native-compile nil
       native-comp-async-report-warnings-errors 'silent)
