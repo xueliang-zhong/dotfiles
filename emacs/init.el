@@ -167,7 +167,7 @@ session."
 ;; xl-jit: once this Emacs has stayed open a while and goes idle, compile the
 ;; hot files to native code in a background batch Emacs (timers only, no hooks;
 ;; nothing at all without libgccjit).  See emacs/ideas/xl-jit.md.
-(require 'xl-jit-auto)
+(require 'xl-jit)
 (xl-jit-auto-arm)
 ;; No extension: `load' then prefers emacs/xueliang.elc when it is current
 ;; (see `compile-lisp' in emacs-setup.sh), and the .el otherwise.

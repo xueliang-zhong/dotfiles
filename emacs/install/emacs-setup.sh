@@ -290,7 +290,7 @@ cmd_jit_status() {
 cmd_jit_report() {
     require_emacs
     require_profile
-    emacs_batch --eval '(progn (require (quote xl-jit-rank)) (xl-jit-report))'
+    emacs_batch --eval '(progn (require (quote xl-jit)) (xl-jit-report))'
 }
 
 cmd_jit_reset() {

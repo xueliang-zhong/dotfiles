@@ -7,8 +7,7 @@
 (require 'ert)
 (require 'cl-lib)
 (require 'xl-jit)
-(require 'xl-jit-rank)
-(require 'xl-jit-auto)
+(require 'xl-jit)
 (defvar xl-dotfiles nil "Bound by the profile; tests bind it to a temporary folder.")
 
 (defmacro xl-jit-test--with-state (&rest body)
@@ -608,7 +607,7 @@ may be built again.  It is not dropped silently."
             (should (plist-get r :capped))
             (should (= children 0))))))))
 
-;;; The in-Emacs trigger (xl-jit-auto.el): timers only, and never in batch
+;;; The in-Emacs trigger (`xl-jit-auto-arm' and its timers), never in batch
 
 (defmacro xl-jit-test--with-auto (&rest body)
   "A temporary profile folder, an Emacs that has been open for an hour, on AC

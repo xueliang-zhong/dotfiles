@@ -7,7 +7,7 @@
 `early-init.el` 关掉了 `native-comp-jit-compilation`：全局 JIT 在第一次使用时就把所有东西放到后台编译，会拖慢整台机器。xl-jit 想保留 JIT 的好处，去掉"什么都编、马上就编"这两点：
 
 - 只编译真正值得编的文件，并且在后台低优先级地编，一次一个。
-- **对用户透明**：运行中的 Emacs 里不调用 `profiler-start`，不加 hook，不加 advice，只有一个 timer（`xl-jit-auto.el`）。所有分析和编译都在后台的子 Emacs 里完成。
+- **对用户透明**：运行中的 Emacs 里不调用 `profiler-start`，不加 hook，不加 advice，只有一个 timer（`xl-jit.el`）。所有分析和编译都在后台的子 Emacs 里完成。
 - 新的 eln **下次启动才生效**，不在当前 session 里热替换。
 - 不出现版本不匹配导致的反复检查、反复重编译，或者编好了却不生效的情况。
 - 不加载不安全的 eln，不留 DoS 的口子。
@@ -45,7 +45,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 ```
 平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
-触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过一天、没在用电池（xl-jit-auto.el，只用 timer）
+触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过一天、没在用电池（xl-jit.el，只用 timer）
   └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
        0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
        1. 复查账本里记录的 eln：哈希、dlopen；有问题的删掉
@@ -72,7 +72,7 @@ Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编�
 
 **不可用时主 Emacs 里连 timer 都不排**
 
-- `xl-jit-auto.el` 每次检查都先看 `native-comp-available-p`。为 nil（例如 Windows 上没有 libgccjit）时，返回 `unavailable`，不再排下一个 timer，这个 session 里不会再有任何动作。
+- `xl-jit.el` 每次检查都先看 `native-comp-available-p`。为 nil（例如 Windows 上没有 libgccjit）时，返回 `unavailable`，不再排下一个 timer，这个 session 里不会再有任何动作。
 - 金丝雀熔断（见下）在后台子进程里判断。熔断后子进程立刻返回 `unavailable`，主 Emacs 一天最多为此启动一次子进程。
 
 **带了 native 编译但实际编不出来**
@@ -354,7 +354,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 
 最初实现成了 launchd 计划任务，后来按你的要求换成主 Emacs 里的 timer：一个独立于 Emacs 的计划任务不合适。
 
-- `emacs/lisp/xl-jit-auto.el`，由 init.el `require` 并调用 `xl-jit-auto-arm`。只用 `run-with-timer` 和 `run-with-idle-timer`，不加 hook。
+- `emacs/lisp/xl-jit.el`（合并后的单个文件），由 init.el `require` 并调用 `xl-jit-auto-arm`。只用 `run-with-timer` 和 `run-with-idle-timer`，不加 hook。
 - 条件和优先级见上面"触发条件"。子进程结束后，按 `xl-jit-auto-interval` 重新排下一次检查，Emacs 连开几天也会每天跑一次。
 - 结果存在 `xl-jit-auto-last-result`，子进程输出在 ` *xl-jit*` 缓冲区；账本和统计仍然用 `jit-status` 看。
 - 验收：各个"不运行"的原因都有测试；batch 下不排 timer；空闲时条件变了（比如拔了电源）就不启动；后台命令带 `taskpolicy -b` 或 `nice -n 19`；用加载了 profile 的 batch 模拟一次完整运行。
