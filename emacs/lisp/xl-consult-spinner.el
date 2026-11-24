@@ -23,7 +23,7 @@
 ;;; Code:
 
 (require 'cl-lib)
-(require 'xl-spinner)
+(require 'xl-async)
 
 (declare-function consult--async-indicator "consult")
 

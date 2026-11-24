@@ -25,14 +25,13 @@
 ;; Without native compilation (no libgccjit), nothing is ever scheduled.
 ;; The design notes are in emacs/ideas/xl-jit.md of the dotfiles repository.
 ;;
-;; Requires xl-spinner and xl-async for the background views.
+;; Requires xl-async (which holds the loader too) for the background views.
 
 ;;; Code:
 
 (require 'cl-lib)
 (require 'seq)
 (require 'comp nil t)
-(require 'xl-spinner)
 (require 'xl-async)
 
 ;; Design: emacs/ideas/xl-jit.md.  This file is loaded only by a background

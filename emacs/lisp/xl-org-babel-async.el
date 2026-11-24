@@ -35,7 +35,6 @@
 (require 'subr-x)
 (require 'ansi-color)
 (require 'xl-async)
-(require 'xl-spinner)
 
 (declare-function org-babel-get-src-block-info "ob-core")
 (declare-function org-babel-where-is-src-block-head "ob-core")

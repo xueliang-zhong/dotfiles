@@ -26,8 +26,7 @@ emacs/
 ├── install/emacs-setup.sh 不依赖 just 的安装、检查和启动脚本
 ├── lisp/                  用 require 加载的模块
 │   ├── xl-key-bindings.el     Spacemacs 键位习惯（SPC 树等）
-│   ├── xl-async.el            异步进程：归属、槽位取消、串行队列
-│   ├── xl-spinner.el          共用 loader：帧、mode line 槽位、不抖屏
+│   ├── xl-async.el            异步进程（归属、槽位取消、串行队列）与共用 loader（帧、mode line 槽位、不抖屏）
 │   ├── xl-git-status.el       异步 Git status 摘要
 │   ├── xl-git-commands.el     Gstatus/Gblame/Gwrite/Gcommit
 │   ├── xl-package-menu.el     Package Menu 刷新时的 loader
@@ -62,7 +61,7 @@ just emacs-try
 | 运行时 | Emacs 31.1、elpa 包目录 | 系统与包管理 |
 | 框架 | Crafted 模块 | 上游项目，版本由 `frameworks.lock` 锁定 |
 | 适配 | `early-init.el`、`init.el`、`lisp/xl-key-bindings.el` | 把 Crafted 接到我的习惯上 |
-| 包 | `lisp/xl-async.el`、`lisp/xl-spinner.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git、共用 loader 与 Package Menu 动画，可脱离本配置单独安装 |
+| 包 | `lisp/xl-async.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el`、`lisp/xl-package-menu.el` | 异步 Git、共用 loader 与 Package Menu 动画，可脱离本配置单独安装 |
 | 个人 | `xueliang.el` | 我的全部口味，只用原生 Emacs 和包的接口，不发布 |
 
 ## 文件说明

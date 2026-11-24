@@ -28,8 +28,7 @@
 (require 'subr-x)    ; string-trim-right
 (require 'seq)       ; seq-find, seq-remove
 (require 'diff-mode) ; diff-added, diff-removed, diff-context, diff-hunk-header
-(require 'xl-spinner) ; the shared loading indicator
-(require 'xl-async)   ; owned, cancellable git processes and the job queue
+(require 'xl-async) ; the shared loading indicator
 (require 'filenotify) ; watch the work tree for changes
 
 (defgroup xl-git-status nil

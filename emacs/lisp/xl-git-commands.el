@@ -18,8 +18,7 @@
 
 (require 'subr-x)     ; truncate-string-to-width
 (require 'xl-git-status) ; status buffer, its faces and `--show-commit'
-(require 'xl-spinner)    ; the loader
-(require 'xl-async)      ; owned, cancellable git processes
+(require 'xl-async)    ; the loader
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
