@@ -1067,6 +1067,23 @@ own final character is drawn."
         (should (equal ":" (overlay-get overlay 'display)))
         (funcall handler 'destroy)))))
 
+(ert-deftest xl-search-project-at-point-uses-grep-without-ripgrep ()
+  "`SPC *' searches with ripgrep when it is installed, with grep when not."
+  (require 'consult)
+  (let (called)
+    (cl-letf (((symbol-function 'consult-ripgrep)
+               (lambda (_dir initial) (push (list 'rg initial) called)))
+              ((symbol-function 'consult-grep)
+               (lambda (_dir initial) (push (list 'grep initial) called)))
+              ((symbol-function 'thing-at-point)
+               (lambda (&rest _) "symbol-x")))
+      (cl-letf (((symbol-function 'executable-find)
+                 (lambda (program) (and (equal program "rg") "/usr/bin/rg"))))
+        (xueliang-search-project-at-point))
+      (cl-letf (((symbol-function 'executable-find) (lambda (_program) nil)))
+        (xueliang-search-project-at-point)))
+    (should (equal '((grep "symbol-x") (rg "symbol-x")) called))))
+
 (ert-deftest xl-personal-file-is-framework-neutral ()
   "`xueliang.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).

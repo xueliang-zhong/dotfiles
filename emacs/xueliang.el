@@ -328,10 +328,15 @@ line can be switched off without deleting it."
 
 ;; `SPC *': like vim/nvim's <leader>*, search the project for the symbol
 ;; under the cursor.  No symbol under point just opens an empty prompt.
+;; Without ripgrep (Windows, by default) it searches with grep: consult-grep
+;; is asynchronous too, so the same indicator animates.
 (defun xueliang-search-project-at-point ()
-  "Search the project for the symbol at point."
+  "Search the project for the symbol at point, with ripgrep or grep."
   (interactive)
-  (consult-ripgrep nil (thing-at-point 'symbol t)))
+  (let ((symbol (thing-at-point 'symbol t)))
+    (if (executable-find "rg")
+        (consult-ripgrep nil symbol)
+      (consult-grep nil symbol))))
 
 ;; ============================================================
 ;; Corfu + Cape - in-buffer completion popup
