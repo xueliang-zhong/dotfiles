@@ -57,34 +57,45 @@ the pipeline element, a function of SINK."
       (xl-consult-spinner--wrap-handler (funcall inner sink)))))
 
 (defun xl-consult-spinner--wrap-handler (next)
-  "Return the handler that animates the indicator, forwarding to NEXT."
-  (let (overlay)
+  "Return the handler that animates the indicator, forwarding to NEXT.
+Until NEXT has seen `setup', it has no indicator overlay, and consult's
+handler fails on `destroy' or on an indicator state (\"Wrong type argument:
+overlayp, nil\").  So those actions are not forwarded before setup, and
+are forwarded only once.  Other actions always pass through."
+  (let (overlay ready)
     (lambda (action)
       (pcase action
         ('setup
          (funcall next action)
+         (setq ready t)
          (setq overlay (xl-consult-spinner--overlay))
          (xl-consult-spinner--idle overlay))
         ('destroy
          (when (xl-spinner-running-p)
            (xl-spinner-stop))
-         (funcall next action))
+         (when ready
+           (setq ready nil)
+           (funcall next action)))
         (`[indicator running]
-         ;; consult draws its character first; the spinner, started after,
-         ;; draws its first frame over it.
-         (funcall next action)
-         (unless (xl-spinner-running-p)
-           (xl-spinner-start (lambda (frame)
-                               (xl-consult-spinner--draw overlay frame))
-                             :frames xl-spinner-one-dot-frames
-                             :interval xl-spinner-one-dot-interval)))
+         (when ready
+           ;; consult draws its character first; the spinner, started after,
+           ;; draws its first frame over it.
+           (funcall next action)
+           (unless (xl-spinner-running-p)
+             (xl-spinner-start (lambda (frame)
+                                 (xl-consult-spinner--draw overlay frame))
+                               :frames xl-spinner-one-dot-frames
+                               :interval xl-spinner-one-dot-interval))))
         (`[indicator ,(or 'finished 'killed 'failed)]
          (when (xl-spinner-running-p)
            (xl-spinner-stop))
-         ;; consult draws its one-cell character, which would shift the
-         ;; text; the idle text goes over it, at the same width.
-         (funcall next action)
-         (xl-consult-spinner--idle overlay))
+         (when ready
+           ;; consult draws its one-cell character, which would shift the
+           ;; text; the idle text goes over it, at the same width.
+           (funcall next action)
+           (xl-consult-spinner--idle overlay)))
+        (`[indicator ,_]
+         (when ready (funcall next action)))
         (_ (funcall next action))))))
 
 (defun xl-consult-spinner--after-vertico-update (&rest _)
