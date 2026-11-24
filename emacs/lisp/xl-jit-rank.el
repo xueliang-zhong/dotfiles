@@ -604,15 +604,42 @@ init, then `xl-jit-report' in batch."
           "-l" (expand-file-name "init.el" profile)
           "--eval" "(progn (require (quote xl-jit-rank)) (setq xl-jit-rank--with-marker t) (xl-jit-report))")))
 
+(defvar-local xl-jit-rank--center nil
+  "The overlay that shows the loader in the middle of the window, while waiting.")
+
+(defun xl-jit-rank--draw-center (frame)
+  "Draw FRAME in the middle of this buffer's window while the report is pending.
+nil removes it.  The loader is a `before-string' on an empty placeholder line,
+so no text is added and the window does not move, as in GBlame."
+  (if (null frame)
+      (when (overlayp xl-jit-rank--center)
+        (delete-overlay xl-jit-rank--center)
+        (setq xl-jit-rank--center nil))
+    (when-let* ((window (get-buffer-window (current-buffer) t)))
+      (let* ((text (concat frame "  computing the ranking"))
+             (pad (max 0 (/ (- (window-body-width window) (string-width text)) 2)))
+             (pos (save-excursion
+                    (goto-char (window-start window))
+                    (forward-line (/ (window-body-height window) 2))
+                    (line-beginning-position))))
+        (unless (overlayp xl-jit-rank--center)
+          (setq xl-jit-rank--center (make-overlay pos pos)))
+        (move-overlay xl-jit-rank--center pos pos)
+        (overlay-put xl-jit-rank--center 'before-string
+                     (concat (make-string pad ?\s) text))))))
+
 (defun xl-jit-rank--show-async (buffer-name)
-  "Fill BUFFER-NAME with the report, computed in a child Emacs."
+  "Fill BUFFER-NAME with the report, computed in a child Emacs.
+While it computes, a loader turns in the mode line and in the middle of the
+window, on empty placeholder lines, as GBlame does."
   (let ((buf (get-buffer-create buffer-name)))
     (with-current-buffer buf
       (let ((inhibit-read-only t))
         (erase-buffer)
-        (insert "Computing the ranking in a background Emacs...\n"))
+        ;; Empty placeholder lines: the loader sits on one of them.
+        (insert (make-string 400 ?\n)))
       (special-mode)
-      (xl-spinner-mode-line-start "xl-jit report")
+      (xl-spinner-mode-line-start "xl-jit report" :also #'xl-jit-rank--draw-center)
       (xl-async-run
        :name "xl-jit-report"
        :owner buf
@@ -621,6 +648,7 @@ init, then `xl-jit-report' in batch."
        :on-done
        (lambda (output code)
          (xl-spinner-mode-line-stop)
+         (xl-jit-rank--draw-center nil)
          (let ((report (xl-jit-rank--report-from-output output))
                (inhibit-read-only t))
            (erase-buffer)
