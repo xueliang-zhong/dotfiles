@@ -315,6 +315,7 @@ Anything else (quarantined, unknown) is left alone."
          (status (plist-get e :status))
          (eln (plist-get e :eln)))
     (cond ((null e) t)
+          ((eq status 'missing) t)
           ((eq status 'done) (not (and eln (file-exists-p eln))))
           ((eq status 'failed)
            (and (< (or (plist-get e :fails) 0) xl-jit-max-fails)
@@ -407,7 +408,10 @@ counted as a failure."
       (when (eq (plist-get p :status) 'done)
         (cond
          ((not (and eln (file-exists-p eln)))
-          (xl-jit--ledger-remove key))
+          ;; Recorded, not silently dropped: something outside xl-jit removed
+          ;; the eln.  The next pass may build it again.
+          (xl-jit--ledger-set key (list :status 'missing :time (xl-jit--now)
+                                        :reason "eln file gone; removed outside xl-jit?")))
          ((not (and (equal (xl-jit--file-sha eln) (plist-get p :sha))
                     (equal (xl-jit--file-size eln) (plist-get p :size))))
           (xl-jit--discard-eln eln)
@@ -505,7 +509,7 @@ The state folder is left out: the run itself changes it."
 (defconst xl-jit-compile-budget 3
   "Most files one run compiles.  Each costs a child Emacs with the profile.")
 
-(defconst xl-jit-min-ratio 5.0
+(defconst xl-jit-min-ratio 3.0
   "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
 the candidates is by score.  Uncalibrated: set it from a profiler run.")
 

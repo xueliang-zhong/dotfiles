@@ -327,13 +327,16 @@
         (should (= work 1))
         (should-not (file-exists-p (xl-jit--lock-dir)))))))
 
-(ert-deftest xl-jit-audit-drops-entries-whose-eln-is-missing ()
-  "A done entry whose eln is gone is removed, so the source can be built again."
+(ert-deftest xl-jit-audit-records-a-missing-eln-and-allows-a-rebuild ()
+  "A done entry whose eln is gone is recorded as missing, with a reason, and
+may be built again.  It is not dropped silently."
   (xl-jit-test--with-state
     (let ((key '("/src/gone.el" "sha" (1))))
       (xl-jit--ledger-set key (list :status 'done :eln "/no/such.eln" :sha "x" :size 1))
       (xl-jit--audit)
-      (should-not (xl-jit--ledger-get key)))))
+      (should (eq (plist-get (xl-jit--ledger-get key) :status) 'missing))
+      (should (string-match-p "gone" (plist-get (xl-jit--ledger-get key) :reason)))
+      (should (xl-jit--may-attempt-p key (xl-jit--now))))))
 
 (ert-deftest xl-jit-audit-discards-tampered-and-broken-eln ()
   "A changed or unloadable eln is deleted and counted as a failure."
