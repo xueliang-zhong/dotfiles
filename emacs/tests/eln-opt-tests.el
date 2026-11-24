@@ -721,7 +721,7 @@ power, native compilation available, and timers recorded instead of armed."
               (should (> (plist-get info :total) 0))
               (should (stringp (with-output-to-string
                                  (let ((noninteractive t))
-                                   (eln-opt-native-report)))))))
+                                   (eln-opt-report)))))))
         (ignore-errors (fmakunbound 'native-toy-fn))
         (ignore-errors (delete-directory dir t))))))
 

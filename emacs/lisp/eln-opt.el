@@ -19,7 +19,7 @@
 ;;   records (savehist, recentf), compiles the best few in child Emacs
 ;;   processes, verifies each eln, and records what it did in a ledger.
 ;; - New elns take effect on the next start.
-;; - `eln-opt-report' and `eln-opt-native-report' show the ranking, what was built,
+;; - `eln-opt-report' shows the ranking, what was built,
 ;;   and why each file was or was not compiled.
 ;;
 ;; Without native compilation (no libgccjit), nothing is ever scheduled.
@@ -854,13 +854,6 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
       (list :built built
             :files (sort files (lambda (a b) (string< (car a) (car b))))
             :total total))))
-
-(defun eln-opt-native-report ()
-  "Show the report of native functions: `eln-opt-report', in its own buffer."
-  (interactive)
-  (if noninteractive
-      (eln-opt-report)
-    (eln-opt-rank--show-async "*eln-opt native*" "eln-opt report" eln-opt-rank--report-form)))
 
 ;;; ---- Report: the ranking, the built files, the skips ----
 

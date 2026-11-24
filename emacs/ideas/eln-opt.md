@@ -374,7 +374,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 
 ## 未验证的部分
 
-- 查询 native 函数：`M-x eln-opt-native-report` 列出 eln-opt 编译过的文件和其中已是 native 的函数，并给出 Emacs 自身预加载的 native 函数总数。
+- 查询 native 函数：`M-x eln-opt-report` 列出 eln-opt 编译过的文件和其中已是 native 的函数，并给出 Emacs 自身预加载的 native 函数总数。
 - 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `eln-opt-auto--start`），还没有在 GUI 里等它自己在 10 分钟后触发。
 - 崩溃隔离只用伪造的崩溃报告测过。真实的 macOS 崩溃报告调用栈里是否会出现 eln 文件名，还没有确认。
 - 不再检查热限制（launchd 版本用 `pmset -g therm`，换成 timer 后去掉了）。
