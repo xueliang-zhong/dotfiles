@@ -513,5 +513,33 @@ Files xl-jit did not write are never touched.  Returns the number deleted."
     (ignore-errors (delete-file (xl-jit--last-run-file)))
     n))
 
+;;; Trusted roots: a file is compiled (or ranked for compiling) only if its
+;;; truename lies under one of these.  Used by the report and by step 6.
+
+(defun xl-jit-trusted-roots ()
+  "Folders and files whose lisp may be compiled: elpa, Emacs's own lisp,
+our lisp/ folder, and our xueliang.el.  A root ending in a slash is a folder."
+  (delq nil
+        (list (and (boundp 'package-user-dir) (file-name-as-directory package-user-dir))
+              (and (boundp 'lisp-directory) (file-name-as-directory lisp-directory))
+              (and (bound-and-true-p xl-dotfiles)
+                   (file-name-as-directory (expand-file-name "emacs/lisp" xl-dotfiles)))
+              (and (bound-and-true-p xl-dotfiles)
+                   (expand-file-name "emacs/xueliang.el" xl-dotfiles)))))
+
+(defun xl-jit-trusted-file-p (file)
+  "Non-nil if FILE's truename is under a trusted root.  A symlink that leaves
+the roots is refused, because its truename is what gets compiled."
+  (let ((true (ignore-errors (file-truename
+                              ;; load-history names the .elc once compiled.
+                              (replace-regexp-in-string "\\.elc\\'" ".el" file)))))
+    (and true
+         (cl-some (lambda (root)
+                    (let ((r (ignore-errors (file-truename root))))
+                      (and r (if (string-suffix-p "/" root)
+                                 (string-prefix-p r true)
+                               (string= r true)))))
+                  (xl-jit-trusted-roots)))))
+
 (provide 'xl-jit)
 ;;; xl-jit.el ends here

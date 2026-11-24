@@ -7,6 +7,8 @@
 (require 'ert)
 (require 'cl-lib)
 (require 'xl-jit)
+(require 'xl-jit-rank)
+(defvar xl-dotfiles nil "Bound by the profile; tests bind it to a temporary folder.")
 
 (defmacro xl-jit-test--with-state (&rest body)
   "Run BODY with `xl-jit-state-dir' in a fresh temporary folder."
@@ -379,6 +381,94 @@
       (should-not (file-exists-p (xl-jit--ledger-file)))
       (should (file-exists-p other))
       (should (= (xl-jit-reset) 0)))))
+
+;;; Step 5: the ranking report (no compiling)
+
+(ert-deftest xl-jit-rank-file-key-drops-autoloads ()
+  "Autoload stubs are not a place to compile; other names lose .el/.elc/.gz."
+  (should (null (xl-jit-rank--file-key "/x/cape-autoloads.el")))
+  (should (null (xl-jit-rank--file-key "/x/evil-autoloads.elc")))
+  (should (equal (xl-jit-rank--file-key "/x/winum.elc") "winum"))
+  (should (equal (xl-jit-rank--file-key "/x/org/org.el.gz") "org")))
+
+(ert-deftest xl-jit-rank-respects-no-native-cookie ()
+  "A file that opts out with a local variable is recognised."
+  (let ((dir (make-temp-file "xl-jit-cookie-" t)))
+    (unwind-protect
+        (let ((opt (expand-file-name "opt.el" dir))
+              (plain (expand-file-name "plain.el" dir)))
+          (with-temp-file opt
+            (insert ";;; opt.el -*- lexical-binding: t; -*-\n;; Local Variables:\n;; no-native-compile: t\n;; End:\n"))
+          (with-temp-file plain (insert ";;; plain.el -*- lexical-binding: t; -*-\n"))
+          (should (xl-jit-rank--no-native-p opt))
+          (should-not (xl-jit-rank--no-native-p plain)))
+      (delete-directory dir t))))
+
+(ert-deftest xl-jit-rank-heat-spreads-with-decay-and-stops-at-the-level-limit ()
+  "Heat falls along a call chain and stops after `xl-jit-rank-heat-levels' steps."
+  (let* ((edges (make-hash-table :test #'eq))
+         (chain '(c0 c1 c2 c3 c4 c5 c6)))
+    (cl-loop for (a b) on chain while b do (puthash a (list b) edges))
+    (let ((heat (xl-jit-rank--propagate '((c0 . 1.0)) edges)))
+      (should (> (gethash 'c1 heat) (gethash 'c2 heat)))
+      (should (> (gethash 'c2 heat) 0))
+      (should (= (gethash 'c6 heat 0.0) 0.0))
+      (should (= (gethash 'c5 heat 0.0) 0.0)))))
+
+(ert-deftest xl-jit-rank-savehist-is-capped-and-kill-ring-is-not-read ()
+  "Savehist commands weigh at most the cap; the kill ring is never parsed."
+  (let ((dir (make-temp-file "xl-jit-profile-" t)))
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name "history" dir)
+            (insert "(setq extended-command-history '(\"forward-char\" \"backward-char\"))\n"
+                    "(setq kill-ring '(\"text\" \"forward-word\"))\n"))
+          (with-temp-file (expand-file-name "recentf.eld" dir)
+            (insert "(setq recentf-list '(\"/a/b.el\"))\n"))
+          (let* ((info (xl-jit-rank--roots dir))
+                 (saved (plist-get info :savehist)))
+            (should (= (length saved) 2))
+            (dolist (r saved)
+              (should (<= (cdr r) xl-jit-rank-savehist-cap)))
+            (should-not (assq 'forward-word (plist-get info :roots)))))
+      (delete-directory dir t))))
+
+(ert-deftest xl-jit-trusted-file-refuses-symlink-out-of-the-roots ()
+  "A symlink inside our lisp/ that points outside is not trusted."
+  (let* ((root (make-temp-file "xl-jit-dot-" t))
+         (outside (make-temp-file "xl-jit-out-" t))
+         (lisp (expand-file-name "emacs/lisp" root))
+         (xl-dotfiles (file-name-as-directory root)))
+    (unwind-protect
+        (progn
+          (make-directory lisp t)
+          (with-temp-file (expand-file-name "inside.el" lisp) (insert ";;; inside\n"))
+          (with-temp-file (expand-file-name "outside.el" outside) (insert ";;; outside\n"))
+          (make-symbolic-link (expand-file-name "outside.el" outside)
+                              (expand-file-name "link.el" lisp))
+          (should (xl-jit-trusted-file-p (expand-file-name "inside.el" lisp)))
+          (should-not (xl-jit-trusted-file-p (expand-file-name "link.el" lisp)))
+          (should-not (xl-jit-trusted-file-p (expand-file-name "outside.el" outside))))
+      (delete-directory root t)
+      (delete-directory outside t))))
+
+(ert-deftest xl-jit-rank-graph-never-compiles-interpreted-code ()
+  "The report must have no side effects: an interpreted function stays interpreted."
+  (let* ((name (intern "xl-jit-rank-test-interpreted"))
+         (src (format "(defun %s (x) (+ x 1))" name)))
+    (unwind-protect
+        (progn
+          ;; Put a defun in load-history, interpreted, under a fake file name.
+          (let ((load-file-name "/tmp/xl-jit-rank-test-fake.el"))
+            (eval (read src) t))
+          (push (cons "/tmp/xl-jit-rank-test-fake.el"
+                      (list (cons 'defun name)))
+                load-history)
+          (xl-jit-rank--graph user-emacs-directory)
+          (should (interpreted-function-p (symbol-function name))))
+      (setq load-history (seq-remove (lambda (e) (equal (car e) "/tmp/xl-jit-rank-test-fake.el"))
+                                     load-history))
+      (fmakunbound name))))
 
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

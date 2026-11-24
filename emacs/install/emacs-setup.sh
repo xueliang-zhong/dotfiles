@@ -14,6 +14,7 @@
 #   bash emacs/install/emacs-setup.sh compile-lisp
 #   bash emacs/install/emacs-setup.sh jit-run
 #   bash emacs/install/emacs-setup.sh jit-reset
+#   bash emacs/install/emacs-setup.sh jit-report
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -277,6 +278,12 @@ cmd_jit_run() {
     emacs_batch --eval '(progn (require (quote xl-jit)) (princ (format "xl-jit run: %S\n" (xl-jit-run))))'
 }
 
+cmd_jit_report() {
+    require_emacs
+    require_profile
+    emacs_batch --eval '(progn (require (quote xl-jit-rank)) (xl-jit-report))'
+}
+
 cmd_jit_reset() {
     require_emacs
     "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
@@ -477,6 +484,7 @@ use / check:
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
   jit-run                one background xl-jit run (audit, then work when due)
   jit-reset              delete the elns xl-jit recorded, and its ledger
+  jit-report             print the xl-jit ranking; compiles nothing
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -498,6 +506,7 @@ case "${1:-}" in
     compile-lisp) shift; cmd_compile_lisp "$@" ;;
     jit-run) shift; cmd_jit_run "$@" ;;
     jit-reset) shift; cmd_jit_reset "$@" ;;
+    jit-report) shift; cmd_jit_report "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;

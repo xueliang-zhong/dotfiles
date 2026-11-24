@@ -1,0 +1,475 @@
+;;; xl-jit-rank.el --- which files are worth native compiling (report only) -*- lexical-binding: t; -*-
+;; Step 5 of emacs/ideas/xl-jit.md.  Nothing here compiles anything.  A child
+;; Emacs with the profile loaded reads the byte code, the call graph, and the
+;; usage records (savehist, recentf) as data, and prints a ranking.  Entry
+;; points: `xl-jit-report' (M-x), and `emacs-setup.sh jit-report'.
+
+(require 'cl-lib)
+(require 'seq)
+(require 'xl-jit)
+
+;;; ------------------------------------------------------------
+;;; Settings.  The weights are starting values; calibrate them against a
+;;; profiler run before trusting the order (xl-jit.md, "校准").
+;;; ------------------------------------------------------------
+
+(defconst xl-jit-rank-heat-levels 4
+  "How many call levels heat spreads through.")
+
+(defconst xl-jit-rank-spread 0.5
+  "Share of a caller's heat passed to each callee (divided by sqrt of callees).")
+
+(defconst xl-jit-rank-loop-factor 4.0
+  "Weight of code inside a loop, per nesting level.  A recursive function
+counts as one level deeper.")
+
+(defconst xl-jit-rank-savehist-cap 1.0
+  "Heat of the most recent savehist command.  Older commands decay, and no
+command can weigh more than this, so one habit cannot dominate.")
+
+(defconst xl-jit-rank-always-heat 5.0
+  "Heat of hooks that run on every keystroke or redisplay.")
+
+(defconst xl-jit-rank-baseline-users 50
+  "When this many savehist commands and recentf files exist, the baseline is
+gone.  Below it the baseline's weight falls in step with the user's data.")
+
+(defconst xl-jit-rank--inline-ops
+  '(byte-car byte-cdr byte-cons byte-eq byte-plus byte-diff byte-add1 byte-sub1
+    byte-lss byte-gtr byte-leq byte-geq byte-eqlsign byte-nth byte-nthcdr
+    byte-setcar byte-setcdr byte-aref byte-aset byte-car-safe byte-cdr-safe
+    byte-memq byte-consp byte-listp byte-not byte-mult byte-max byte-min
+    byte-symbolp byte-stringp byte-integerp byte-numberp byte-length byte-elt
+    byte-nreverse)
+  "Opcodes native code runs much faster than byte code.  Count them.")
+
+(defconst xl-jit-rank--buffer-ops
+  '(byte-insert byte-goto-char byte-forward-line byte-point byte-char-after
+    byte-following-char byte-preceding-char byte-buffer-substring
+    byte-delete-region byte-skip-chars-forward byte-skip-chars-backward
+    byte-forward-char byte-forward-word byte-insertN byte-point-max byte-point-min
+    byte-set-buffer byte-save-excursion byte-save-restriction byte-narrow-to-region)
+  "Opcodes whose time is spent in C.  Native code changes little.")
+
+(defconst xl-jit-rank--c-heavy
+  '(insert insert-before-markers re-search-forward re-search-backward
+    search-forward search-backward looking-at looking-back string-match
+    replace-match replace-regexp-in-string buffer-substring
+    buffer-substring-no-properties put-text-property add-text-properties
+    propertize all-completions try-completion completion-all-completions
+    sort json-parse-string json-parse-buffer read format message
+    call-process make-process process-send-string delete-region
+    overlay-put make-overlay font-lock-ensure)
+  "Functions called from Lisp whose time is spent in C.")
+
+(defconst xl-jit-rank--alloc-heavy
+  '(substring concat format split-string string-join string-trim
+    make-string number-to-string mapconcat)
+  "Calls that allocate.  Measured: native code gains little where they dominate
+(xl-jit.md, \"实测\"), because time goes to allocation and GC.")
+
+(defconst xl-jit-rank--dynamic-callers
+  '(funcall apply run-hooks run-hook-with-args run-hook-with-args-until-success
+    run-hook-with-args-until-failure run-hook-wrapped mapcar mapc mapcan
+    seq-map seq-filter seq-do cl-mapcar))
+
+;;; ------------------------------------------------------------
+;;; Byte-code features of one function (nested closures included)
+;;; ------------------------------------------------------------
+
+(defun xl-jit-rank--lap (fn)
+  (seq-filter #'consp
+              (byte-decompile-bytecode (aref fn 1) (aref fn 2))))
+
+(defun xl-jit-rank--closures (fn)
+  "FN and every byte-code closure nested in its constants."
+  (let ((out (list fn)))
+    (mapc (lambda (c)
+            (when (byte-code-function-p c)
+              (setq out (nconc out (xl-jit-rank--closures c)))))
+          (aref fn 2))
+    out))
+
+(defun xl-jit-rank--one (fn self)
+  "Benefit and call sites of one byte-code object FN, nested closures excluded.
+Returns (:benefit B :loops N :calls LIST :varrefs LIST :dynamic BOOL :size N)."
+  (let* ((ops (vconcat (xl-jit-rank--lap fn)))
+         (n (length ops))
+         (tag-pos (make-hash-table :test #'eq))
+         (depth (make-vector n 0))
+         (recursive (memq self (append (aref fn 2) nil)))
+         (benefit 0.0) (loops 0) (calls nil) (varrefs nil) (dynamic nil))
+    (dotimes (i n)
+      (when (eq (car (aref ops i)) 'TAG)
+        (puthash (aref ops i) i tag-pos)))
+    ;; A jump back to an earlier tag marks a loop body.
+    (dotimes (i n)
+      (let* ((op (aref ops i))
+             (j (and (memq (car op) '(byte-goto byte-goto-if-nil byte-goto-if-not-nil
+                                      byte-goto-if-nil-else-pop
+                                      byte-goto-if-not-nil-else-pop))
+                     (gethash (cdr op) tag-pos))))
+        (when (and j (< j i))
+          (cl-incf loops)
+          (cl-loop for k from j to i do (cl-incf (aref depth k))))))
+    (dotimes (i n)
+      (let* ((op (aref ops i))
+             (head (car op))
+             (w (expt xl-jit-rank-loop-factor
+                      (+ (aref depth i) (if recursive 1 0)))))
+        (cond
+         ((memq head xl-jit-rank--inline-ops) (cl-incf benefit w))
+         ((memq head xl-jit-rank--buffer-ops) (cl-decf benefit (* 2 w)))
+         ((eq head 'byte-varref)
+          (let ((v (car-safe (cdr op)))) (when (symbolp v) (push v varrefs))))
+         ((eq head 'byte-constant)
+          (let ((c (car-safe (cdr op))))
+            (when (and (symbolp c) c (fboundp c))
+              (push c calls)
+              (cond ((memq c xl-jit-rank--c-heavy) (cl-decf benefit (* 2 w)))
+                    ((memq c xl-jit-rank--alloc-heavy) (cl-decf benefit (* 2 w)))
+                    ((memq c xl-jit-rank--dynamic-callers)
+                     (setq dynamic t) (cl-incf benefit (* 0.5 w)))
+                    ((subrp (indirect-function c)) nil)
+                    (t (cl-incf benefit (* 0.5 w))))))))))
+    (list :benefit benefit :loops loops :calls calls :varrefs varrefs
+          :dynamic dynamic :size (length (aref fn 1)))))
+
+(defun xl-jit-rank--features (sym)
+  "Summed features of SYM's definition and its nested closures."
+  (let ((def (indirect-function sym))
+        (b 0.0) (loops 0) (size 0) calls vars dyn)
+    (when (byte-code-function-p def)
+      (dolist (f (xl-jit-rank--closures def))
+        (let ((r (xl-jit-rank--one f sym)))
+          (cl-incf b (plist-get r :benefit))
+          (cl-incf loops (plist-get r :loops))
+          (cl-incf size (plist-get r :size))
+          (setq calls (nconc (plist-get r :calls) calls)
+                vars (nconc (plist-get r :varrefs) vars)
+                dyn (or dyn (plist-get r :dynamic))))))
+    (list :benefit (max 0.0 b) :loops loops :size size
+          :calls (delete-dups calls) :varrefs (delete-dups vars) :dynamic dyn)))
+
+;;; ------------------------------------------------------------
+;;; Files: which source a function belongs to, and whether it may be compiled
+;;; ------------------------------------------------------------
+
+(defun xl-jit-rank--file-key (file)
+  "Name used in the ranking: basename without .elc, .el or .gz.
+Returns nil for autoload files, which only hold stubs."
+  (let ((base (file-name-nondirectory file)))
+    (unless (string-match-p "-autoloads\\.elc?\\'" base)
+      (replace-regexp-in-string "\\.\\(elc\\|el\\)\\(\\.gz\\)?\\'" "" base))))
+
+(defvar xl-jit-rank--no-native-cache (make-hash-table :test #'equal))
+
+(defun xl-jit-rank--no-native-p (file)
+  "Non-nil if FILE opts out of native or byte compilation with a local variable."
+  (let ((true (or (ignore-errors (file-truename file)) file)))
+    (let ((hit (gethash true xl-jit-rank--no-native-cache 'unknown)))
+      (if (not (eq hit 'unknown))
+          hit
+        (puthash true
+                 (and (file-readable-p true)
+                      (with-temp-buffer
+                        (insert-file-contents true)
+                        (let ((text (buffer-string)))
+                          (or (string-match-p "no-native-compile:[ \t]*t" text)
+                              (string-match-p "no-byte-compile:[ \t]*t" text)))))
+                 xl-jit-rank--no-native-cache)))))
+
+;;; ------------------------------------------------------------
+;;; Graph: functions, call edges, and roots with evidence weights
+;;; ------------------------------------------------------------
+
+(defun xl-jit-rank--fn-values (v)
+  "Functions named by the value of variable V: one function or a list of them."
+  (when (and (symbolp v) (boundp v))
+    (let ((val (symbol-value v)))
+      (cond ((and (symbolp val) val (fboundp val)) (list val))
+            ((and (consp val) (proper-list-p val))
+             (seq-filter (lambda (x) (and (symbolp x) x (not (eq x t)) (fboundp x)))
+                         val))))))
+
+(defun xl-jit-rank--read-file (file)
+  (when (file-readable-p file)
+    (with-temp-buffer (insert-file-contents file) (buffer-string))))
+
+(defun xl-jit-rank--graph (profile-dir)
+  "Build the graph from the loaded Emacs.  Returns a plist: :features (sym
+. feature-plist), :file (sym . file-key), :path (sym . full file), :edges
+ (sym . callees), :excluded (file-key . reason), :native-skipped N,
+:interpreted-skipped N."
+  (let ((features (make-hash-table :test #'eq))
+        (file-of (make-hash-table :test #'eq))
+        (path-of (make-hash-table :test #'eq))
+        (edges (make-hash-table :test #'eq))
+        (excluded nil)
+        (interpreted-skipped 0)
+        (native-skipped 0))
+    ;; Functions: every defun from load-history, keyed by its source file.
+    (dolist (entry load-history)
+      (let* ((file (car entry))
+             (key (and (stringp file) (xl-jit-rank--file-key file))))
+        (when key
+          (dolist (d (cdr entry))
+            (when (and (consp d) (eq (car d) 'defun) (symbolp (cdr d))
+                       (fboundp (cdr d)))
+              (let ((sym (cdr d)))
+                (cond
+                 ((native-comp-function-p (indirect-function sym))
+                  (cl-incf native-skipped))
+                 ((xl-jit-rank--no-native-p file)
+                  (cl-pushnew (cons key "no-native-compile or no-byte-compile") excluded
+                              :test #'equal))
+                 ;; Interpreted functions are skipped, not compiled here: the
+                 ;; report must have no side effects.  Our own lisp is byte
+                 ;; code once compile-lisp has run.
+                 ((byte-code-function-p (indirect-function sym))
+                  (puthash sym key file-of)
+                  (puthash sym file path-of)
+                  (puthash sym (xl-jit-rank--features sym) features))
+                 (t (cl-incf interpreted-skipped)))))))))
+    ;; Edges: constants, plus function-valued variables read by funcall/apply.
+    (maphash
+     (lambda (sym feat)
+       (dolist (c (plist-get feat :calls))
+         (unless (eq c sym) (puthash sym (cons c (gethash sym edges)) edges)))
+       (when (plist-get feat :dynamic)
+         (dolist (v (plist-get feat :varrefs))
+           (dolist (f (xl-jit-rank--fn-values v))
+             (unless (eq f sym) (puthash sym (cons f (gethash sym edges)) edges))))))
+     features)
+    ;; Advice: calling the original also runs its advice.
+    (mapatoms
+     (lambda (s)
+       (when (and (fboundp s) (advice--p (advice--symbol-function s)))
+         (advice-mapc (lambda (f _) (when (and (symbolp f) (not (eq f s)))
+                                      (puthash s (cons f (gethash s edges)) edges)))
+                      s))))
+    (list :features features :file file-of :path path-of :edges edges
+          :excluded excluded :native-skipped native-skipped
+          :interpreted-skipped interpreted-skipped
+          :profile profile-dir)))
+
+(defun xl-jit-rank--roots (profile-dir)
+  "Roots with evidence weights, as an alist (SYM . WEIGHT).
+Savehist commands are newest first, capped and decaying.  Recentf files map to
+modes through `auto-mode-alist', and a mode's hook and keymap commands follow
+it at a lower weight.  Hooks that run on every key are heavy."
+  (let ((roots (make-hash-table :test #'eq))
+        (savehist nil)
+        (user-count 0))
+    (cl-flet ((add (sym w)
+                (when (and sym (symbolp sym) (fboundp sym))
+                  (puthash sym (+ w (gethash sym roots 0.0)) roots))))
+      ;; 1. Commands the user ran: savehist keeps only the command history
+      ;;    here; the rest of that file (the kill ring) is never read.
+      (let* ((text (xl-jit-rank--read-file (expand-file-name "history" profile-dir)))
+             (cmds (and text (string-match "(setq extended-command-history '" text)
+                        (seq-filter #'stringp
+                                    (ignore-errors
+                                     (car (read-from-string text (match-end 0))))))))
+        (cl-loop for c in cmds for i from 0
+                 do (let ((sym (intern-soft c))
+                          (w (min xl-jit-rank-savehist-cap (/ 1.0 (+ 1 (* 0.05 i))))))
+                      (when (and sym (fboundp sym))
+                        (push (cons sym w) savehist))
+                      (add sym w)))
+        (cl-incf user-count (length cmds)))
+      ;; 2. Modes the user edits.  recentf.eld is data: read, never eval'd.
+      (let* ((text (xl-jit-rank--read-file (expand-file-name "recentf.eld" profile-dir)))
+             (form (and text (string-match "(setq recentf-list" text)
+                        (ignore-errors (car (read-from-string text (match-beginning 0))))))
+             (files (and (eq (car-safe form) 'setq) (eq (car-safe (nth 2 form)) 'quote)
+                         (seq-filter #'stringp (cadr (nth 2 form)))))
+             (modes (make-hash-table :test #'eq)))
+        (dolist (f files)
+          (let ((mode (assoc-default f auto-mode-alist #'string-match)))
+            (when (consp mode) (setq mode (car mode)))
+            (when (and mode (symbolp mode))
+              (puthash mode (1+ (gethash mode modes 0)) modes))))
+        (cl-incf user-count (length files))
+        (maphash
+         (lambda (mode count)
+           (let ((w (log (1+ count) 2)))
+             (add mode w)
+             (dolist (f (xl-jit-rank--fn-values (intern-soft (format "%s-hook" mode))))
+               (add f w))
+             (let ((map (intern-soft (format "%s-map" mode))))
+               (when (and map (boundp map) (keymapp (symbol-value map)))
+                 (map-keymap-internal
+                  (lambda (_ b) (when (symbolp b) (add b (* 0.1 w))))
+                  (symbol-value map))))))
+         modes))
+      ;; 3. Hooks that run on every key or redisplay.
+      (dolist (h '(pre-command-hook post-command-hook after-change-functions
+                   before-change-functions post-self-insert-hook
+                   window-configuration-change-hook window-scroll-functions
+                   window-buffer-change-functions window-state-change-functions
+                   jit-lock-functions completion-at-point-functions
+                   minibuffer-setup-hook))
+        (dolist (f (append (xl-jit-rank--fn-values h)
+                           (let ((d (and (boundp h) (default-value h))))
+                             (and (proper-list-p d) (seq-filter #'symbolp d)))))
+          (add f xl-jit-rank-always-heat)))
+      ;; 4. Global keymap commands: weak evidence.
+      (when (keymapp global-map)
+        (map-keymap (lambda (_ b) (when (symbolp b) (add b 0.05))) global-map)))
+    (list :roots (let (l) (maphash (lambda (k v) (push (cons k v) l)) roots) l)
+          :savehist savehist
+          :user-count user-count)))
+
+(defun xl-jit-rank--baseline (profile-dir)
+  "The shipped baseline roots, weighted down as the user's own data grows.
+Returns (ROOTS . FACTOR).  The baseline file names functions only."
+  (let* ((file (or (and (bound-and-true-p xl-dotfiles)
+                        (expand-file-name "emacs/jit-baseline.eld" xl-dotfiles))
+                   (expand-file-name "jit-baseline.eld" profile-dir)))
+         (form (xl-jit--read-eld file))
+         (names (plist-get form :functions)))
+    (cons (and names
+               (seq-filter (lambda (s) (and (symbolp s) (fboundp s))) names))
+          nil)))
+
+(defun xl-jit-rank--propagate (seeds edges)
+  "Heat per symbol after spreading SEEDS, an alist (SYM . WEIGHT), along EDGES."
+  (let ((heat (make-hash-table :test #'eq))
+        (frontier seeds))
+    (dolist (s seeds)
+      (puthash (car s) (+ (cdr s) (gethash (car s) heat 0.0)) heat))
+    (dotimes (_ xl-jit-rank-heat-levels)
+      (let ((next (make-hash-table :test #'eq)))
+        (dolist (fw frontier)
+          (let* ((outs (gethash (car fw) edges))
+                 (share (/ (* xl-jit-rank-spread (cdr fw))
+                           (max 1 (sqrt (length outs))))))
+            (dolist (g outs)
+              (puthash g (+ share (gethash g next 0.0)) next))))
+        (setq frontier nil)
+        (maphash (lambda (g w)
+                   (puthash g (+ w (gethash g heat 0.0)) heat)
+                   (push (cons g w) frontier))
+                 next)))
+    heat))
+
+;;; ------------------------------------------------------------
+;;; Ranking
+;;; ------------------------------------------------------------
+
+(defun xl-jit-rank--file-scores (heat graph)
+  "Per file key: score = sum of heat x benefit, and the file's total size."
+  (let ((scores (make-hash-table :test #'equal)))
+    (maphash
+     (lambda (sym h)
+       (let ((key (gethash sym (plist-get graph :file)))
+             (feat (gethash sym (plist-get graph :features))))
+         (when (and key feat (> h 0))
+           (cl-incf (gethash key scores 0.0) (* h (plist-get feat :benefit))))))
+     heat)
+    scores))
+
+(defun xl-jit-rank--compute (profile-dir)
+  "Full analysis.  Returns a plist: :rows (sorted), :savehist-share, and the
+numbers for the header."
+  (let* ((graph (xl-jit-rank--graph profile-dir))
+         (edges (plist-get graph :edges))
+         (roots-info (xl-jit-rank--roots profile-dir))
+         (user-roots (plist-get roots-info :roots))
+         (user-count (plist-get roots-info :user-count))
+         (baseline (car (xl-jit-rank--baseline profile-dir)))
+         (base-factor (max 0.0 (- 1.0 (/ (float user-count) xl-jit-rank-baseline-users))))
+         (base-roots (mapcar (lambda (s) (cons s (* base-factor 1.0))) baseline))
+         (seeds (append user-roots base-roots))
+         (heat (xl-jit-rank--propagate seeds edges))
+         (scores (xl-jit-rank--file-scores heat graph))
+         (total (let ((sum 0.0)) (maphash (lambda (_ v) (cl-incf sum v)) scores) sum))
+         ;; Each savehist command's share of the whole score.  Heat is linear,
+         ;; so one command's contribution is its own propagation.
+         (savehist-cmds (plist-get roots-info :savehist))
+         (max-share 0.0))
+    (when (> total 0)
+      (dolist (r savehist-cmds)
+        (let* ((h (xl-jit-rank--propagate (list r) edges))
+               (s (xl-jit-rank--file-scores h graph))
+               (part 0.0))
+          (maphash (lambda (_ v) (cl-incf part v)) s)
+          (setq max-share (max max-share (/ part total))))))
+    (let (rows)
+      (maphash
+       (lambda (key score)
+         (let ((size 0) (fns nil))
+           (maphash (lambda (sym k)
+                      (when (equal k key)
+                        (let ((feat (gethash sym (plist-get graph :features)))
+                              (h (gethash sym heat 0.0)))
+                          (cl-incf size (plist-get feat :size))
+                          (when (> h 0)
+                            (push (cons sym (* h (plist-get feat :benefit))) fns)))))
+                    (plist-get graph :file))
+           (when (> score 0)
+             (push (list :file key :score score :size size
+                         :ratio (/ score (max 0.1 (/ size 1024.0)))
+                         :top (mapcar #'car (seq-take (sort fns (lambda (a b) (> (cdr a) (cdr b))))
+                                                      3))
+                         :trusted (let ((p (cl-loop for s being the hash-keys of (plist-get graph :file)
+                                                    using (hash-values k)
+                                                    when (equal k key)
+                                                    return (gethash s (plist-get graph :path)))))
+                                    (and p (xl-jit-trusted-file-p p))))
+                   rows))))
+       scores)
+      (list :rows (sort rows (lambda (a b) (> (plist-get a :ratio) (plist-get b :ratio))))
+            :savehist-share max-share
+            :functions (hash-table-count (plist-get graph :features))
+            :roots (length user-roots)
+            :user-count user-count
+            :baseline-roots (length baseline)
+            :baseline-factor base-factor
+            :excluded (plist-get graph :excluded)
+            :native-skipped (plist-get graph :native-skipped)
+            :interpreted-skipped (plist-get graph :interpreted-skipped)))))
+
+(defun xl-jit-rank--format (result)
+  "The report as a string."
+  (with-output-to-string
+    (princ (format "xl-jit ranking (report only; nothing is compiled)\n"))
+    (princ (format "functions analysed: %d   roots: %d (user data: %d, baseline: %d at weight x%.2f)\n"
+                   (plist-get result :functions) (plist-get result :roots)
+                   (plist-get result :user-count) (plist-get result :baseline-roots)
+                   (plist-get result :baseline-factor)))
+    (princ (format "already native, skipped: %d   opted out by a file cookie: %d\n"
+                   (plist-get result :native-skipped)
+                   (length (plist-get result :excluded))))
+    (princ (format "interpreted, skipped: %d   (Crafted's modules have no .elc; see xl-jit.md)\n"
+                   (plist-get result :interpreted-skipped)))
+    (princ (format "largest single savehist command share of the score: %.1f%%\n"
+                   (* 100 (plist-get result :savehist-share))))
+    (princ "\nrank  ratio  score  KB  trusted  file  [top functions]\n")
+    (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
+             do (princ (format "%4d %6.1f %6.1f %4.1f  %-7s  %s  %S\n"
+                               i (plist-get row :ratio) (plist-get row :score)
+                               (/ (plist-get row :size) 1024.0)
+                               (if (plist-get row :trusted) "yes" "NO")
+                               (plist-get row :file)
+                               (plist-get row :top))))))
+
+(defun xl-jit-report ()
+  "Show the ranking.  Interactive: a buffer.  Batch: printed to stdout."
+  (interactive)
+  (let* ((profile (or (and (boundp 'user-emacs-directory) user-emacs-directory)
+                      default-directory))
+         (text (xl-jit-rank--format (xl-jit-rank--compute profile))))
+    (if noninteractive
+        (princ text)
+      (with-current-buffer (get-buffer-create "*xl-jit report*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert text))
+        (goto-char (point-min))
+        (special-mode)
+        (display-buffer (current-buffer))))))
+
+(provide 'xl-jit-rank)
+;;; xl-jit-rank.el ends here
