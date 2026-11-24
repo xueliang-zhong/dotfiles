@@ -10,10 +10,6 @@
 (require 'seq)
 (require 'cl-lib)
 
-(defconst xl-test-root
-  (expand-file-name "../.." (file-name-directory (or load-file-name buffer-file-name)))
-  "Repository root, so tests can read the config files themselves.")
-
 (defmacro xl-test-with-temp-dir (var &rest body)
   "Bind VAR to a fresh temporary directory and run BODY."
   (declare (indent 1))
@@ -252,50 +248,6 @@ one made transient's dependency compat 31.1 look unavailable."
 
 ;;; ============================================================
 ;;; Package Menu loader
-;;; ============================================================
-
-(ert-deftest xl-package-menu-has-a-loader ()
-  "The Package Menu shows the shared mode-line loader while archives refresh."
-  (require 'package)
-  (should (memq #'xl-package-menu--on-refresh package-refresh-contents-hook))
-  (should (memq #'xl-package-menu--on-done
-                package--post-download-archives-hook))
-  (with-temp-buffer
-    (package-menu-mode)
-    ;; The slot is at the left edge; the static ":Loading" is gone.
-    (should (equal '(:eval xl-spinner-mode-line) (car mode-line-format)))
-    (should (equal mode-line-process
-                   '(package-menu--transaction-status
-                     package-menu--transaction-status)))
-    (should-not (xl-spinner-mode-line-busy-p))
-    (let ((xl-spinner-show-delay 0))
-      (xl-package-menu--start))
-    (should (xl-spinner-running-p))
-    (should (string-match-p "Loading archives" xl-spinner-mode-line))
-    ;; The mode line string itself moves with the frames.
-    (let ((frame xl-spinner-mode-line))
-      (xl-spinner-tick (current-buffer))
-      (should-not (equal frame xl-spinner-mode-line)))
-    (let ((xl-spinner-min-duration 0))
-      (xl-package-menu--stop))
-    (should-not (xl-spinner-running-p))
-    (should-not xl-spinner-mode-line)))
-
-(ert-deftest xl-package-menu-loader-follows-a-refresh ()
-  "A refresh starts the loader and its completion hook stops it."
-  (require 'package)
-  (let ((buffer (get-buffer-create "*Packages*")))
-    (unwind-protect
-        (with-current-buffer buffer
-          (package-menu-mode)
-          (xl-package-menu--on-refresh t)
-          (should (xl-spinner-mode-line-busy-p))
-          ;; Done before the delay: the loader never appeared at all.
-          (xl-package-menu--on-done)
-          (should-not (xl-spinner-mode-line-busy-p))
-          (should-not xl-spinner-mode-line))
-      (kill-buffer buffer))))
-
 (ert-deftest xl-spinner-frames-ticks-and-stops ()
   "The shared loader draws a frame at once, advances, limits and clears."
   (with-temp-buffer
@@ -537,184 +489,12 @@ one made transient's dependency compat 31.1 look unavailable."
     (should (string-match-p "rename to new name\n\\'" (cdr (nth 1 files))))))
 
 ;;; ============================================================
-;;; xl-package-upgrades: the upgrade count, computed in a child Emacs
 ;;; ============================================================
-
-(defmacro xl-test-with-archive (&rest body)
-  "Run BODY with a temporary package dir holding one archive.
-The archive offers foo 2.0 and bar 1.0.  Installed: foo 1.0 and bar 1.0,
-so only foo can be upgraded."
-  (declare (indent 0))
-  `(let* ((dir (make-temp-file "xl-test-pkgs-" t))
-          (archive-dir (expand-file-name "archives/a" dir)))
-     (unwind-protect
-         (progn
-           (make-directory archive-dir t)
-           (with-temp-file (expand-file-name "archive-contents" archive-dir)
-             (prin1 '(1 (foo . [(2 0) nil "Foo" single nil])
-                        (bar . [(1 0) nil "Bar" single nil]))
-                    (current-buffer)))
-           (let ((package-user-dir dir)
-                 (package-archives '(("a" . "https://example.invalid/")))
-                 (package-archive-priorities nil)
-                 (package-pinned-packages nil)
-                 (package-archive-contents nil))
-             ,@body))
-       (delete-directory dir t))))
-
-(defun xl-test-installed ()
-  "Return foo 1.0 and bar 1.0 as installed packages."
-  (list (list 'foo (package-desc-create :name 'foo :version '(1 0)))
-        (list 'bar (package-desc-create :name 'bar :version '(1 0)))))
-
-(ert-deftest xl-package-upgrades-match-package-el ()
-  "The child's count is package.el's search: same names, same order."
-  (require 'package)
-  (xl-test-with-archive
-    (let ((package--initialized t)
-          (package-alist (xl-test-installed)))
-      (package-read-all-archive-contents)
-      (let ((expected (mapcar #'symbol-name (package--upgradeable-packages)))
-            (child (xl-package-upgrades-names
-                    (list :user-dir package-user-dir
-                          :archives package-archives
-                          :priorities package-archive-priorities
-                          :pinned package-pinned-packages
-                          :installed (xl-package-upgrades--installed)))))
-        (should (equal expected '("foo")))
-        (should (equal expected child))))))
-
-(ert-deftest xl-package-upgrades-parse-takes-the-last-line ()
-  "Messages before the answer are skipped; anything else is a failure."
-  (should (equal '("foo") (xl-package-upgrades--parse "Loading x...\n[\"foo\"]\n")))
-  (should (null (xl-package-upgrades--parse "Loading x...\n[]\n")))
-  (should (eq 'failed (xl-package-upgrades--parse "not json")))
-  (should (eq 'failed (xl-package-upgrades--parse "[1, 2]"))))
-
-(ert-deftest xl-package-upgrades-notify-says-the-count ()
-  "The message is package.el's, with the count from the child."
-  (let ((xl-package-upgrades--source "/nonexistent.el")
-        messages orig-called)
-    (cl-letf (((symbol-function 'xl-package-upgrades--spawn)
-               (lambda (on-done) (funcall on-done '("foo" "bar"))))
-              ((symbol-function 'message)
-               (lambda (fmt &rest args) (push (apply #'format fmt args) messages))))
-      (xl-package-upgrades--notify (lambda () (setq orig-called t)))
-      (should-not orig-called)
-      (should (equal messages
-                     (list (format "Packages that can be upgraded: 2; type `%s' to mark for upgrading."
-                                   (substitute-command-keys "\\[package-menu-mark-upgrades]"))))))))
-
-(ert-deftest xl-package-upgrades-fall-back-when-the-child-fails ()
-  "A failed child runs package.el's own search instead, so nothing is lost."
-  (let ((xl-package-upgrades--source "/nonexistent.el")
-        orig-called)
-    (cl-letf (((symbol-function 'xl-package-upgrades--spawn)
-               (lambda (on-done) (funcall on-done 'failed))))
-      (xl-package-upgrades--notify (lambda () (setq orig-called t))))
-    (should orig-called)))
-
-;;; ============================================================
-;;; xl-package-menu: the chunked listing matches package.el's
-;;; ============================================================
-
-(defun xl-test-wait-for-listing (buffer)
-  "Wait until BUFFER's chunked listing has printed every row."
-  (let ((end (+ (float-time) 10)))
-    (while (and (buffer-local-value 'xl-package-menu--listing-p buffer)
-                (< (float-time) end))
-      (sit-for 0.01)))
-  (should-not (buffer-local-value 'xl-package-menu--listing-p buffer)))
 
 (defun xl-test-menu-state (buffer)
   "Return what the Package Menu shows in BUFFER: text, rows and point."
   (with-current-buffer buffer
     (list (buffer-string) tabulated-list-entries (point))))
-
-(defun xl-test-listing-both-ways ()
-  "Return (ORIGINAL . CHUNKED) listing states of the archive fixture."
-  (let (original chunked)
-    (with-temp-buffer
-      (package-menu-mode)
-      ;; package.el's own path: refresh, then display.
-      (package-menu--refresh t nil)
-      (package-menu--display nil nil)
-      (setq original (xl-test-menu-state (current-buffer))))
-    (with-temp-buffer
-      (package-menu-mode)
-      (package-menu--generate nil t)
-      (xl-test-wait-for-listing (current-buffer))
-      (setq chunked (xl-test-menu-state (current-buffer))))
-    (cons original chunked)))
-
-(ert-deftest xl-package-menu-chunked-listing-matches-package-el ()
-  "The chunked listing shows the same text, rows and point as package.el."
-  (require 'package)
-  (xl-test-with-archive
-    (let ((package--initialized t)
-          (package-alist (xl-test-installed)))
-      (package-read-all-archive-contents)
-      (let ((both (xl-test-listing-both-ways)))
-        (should (equal (car both) (cdr both)))
-        ;; The menu also lists built-in packages, so only a lower bound.
-        (should (>= (length (cadr (car both))) 2))))))
-
-(ert-deftest xl-package-menu-chunked-listing-one-row-at-a-time ()
-  "Chunks of one package and one row still give package.el's listing."
-  (require 'package)
-  (xl-test-with-archive
-    (let ((package--initialized t)
-          (package-alist (xl-test-installed))
-          (xl-package-menu-status-chunk 1)
-          (xl-package-menu-row-chunk 1))
-      (package-read-all-archive-contents)
-      (let ((both (xl-test-listing-both-ways)))
-        (should (equal (car both) (cdr both)))))))
-
-(ert-deftest xl-package-menu-newer-listing-stops-the-older ()
-  "A second listing before the first finishes wins; the first never prints."
-  (require 'package)
-  (xl-test-with-archive
-    (let ((package--initialized t)
-          (package-alist (xl-test-installed))
-          (xl-package-menu-status-chunk 1)
-          (xl-package-menu-row-chunk 1))
-      (package-read-all-archive-contents)
-      (with-temp-buffer
-        (package-menu-mode)
-        (package-menu--generate nil t)
-        (package-menu--generate nil t)
-        (xl-test-wait-for-listing (current-buffer))
-        (let ((expected (xl-test-listing-both-ways)))
-          (should (equal (car expected) (xl-test-menu-state (current-buffer)))))))))
-
-(ert-deftest xl-package-menu-refresh-keeps-the-rows-on-screen ()
-  "A refresh appends the new rows and keeps point on its row, no duplicates."
-  (require 'package)
-  (xl-test-with-archive
-    (let ((package--initialized t)
-          (package-alist (xl-test-installed)))
-      (package-read-all-archive-contents)
-      (with-temp-buffer
-        (package-menu-mode)
-        (package-menu--generate nil t)
-        (xl-test-wait-for-listing (current-buffer))
-        (let ((count (count-lines (point-min) (point-max))))
-          (forward-line 3)
-          (let ((id (tabulated-list-get-id)))
-            (should id)
-            ;; The second listing starts while the first rows are on screen.
-            (package-menu--generate nil t)
-            (xl-test-wait-for-listing (current-buffer))
-            (should (equal id (tabulated-list-get-id)))
-            (should (= count (count-lines (point-min) (point-max))))
-            ;; The text is what a fresh listing shows.
-            (should (equal (car (car (xl-test-listing-both-ways)))
-                           (buffer-string)))))))))
-
-;;; ============================================================
-;;; xl-git-status: auto refresh on file changes
-;;; ============================================================
 
 (ert-deftest xl-git-status-reads-do-not-rewrite-the-index ()
   "Every status command carries --no-optional-locks, so a refresh does not
@@ -3470,6 +3250,32 @@ the exit status."
         (let ((f (symbol-function (car case))))
           (should (eq (and (or (byte-code-function-p f) (native-comp-function-p f)) t)
                       (and current t))))))))
+
+;; consult-list-packages (lisp/xl-packages.el)
+
+(ert-deftest xl-packages-candidate-carries-the-name-and-a-status-face ()
+  "A child line becomes a consult candidate whose name rides as a property."
+  (let* ((line "XLPKG\tfoo\tupgradable\t1.2\tmelpa\tA package.")
+         (cand (xl-packages--candidate line)))
+    (should (equal (get-text-property 0 'xl-package cand) "foo"))
+    (should (string-match-p "foo" cand))
+    (should (eq (get-text-property 0 'face cand) 'warning))))
+
+(ert-deftest xl-packages-filter-keeps-only-marked-lines ()
+  "Output from the child that is not a marked line is dropped."
+  (should (xl-packages--marked-p "XLPKG\tfoo\tinstalled\t1\tmelpa\tx"))
+  (should-not (xl-packages--marked-p "Loading /x/init.el (source)..."))
+  (should-not (xl-packages--marked-p "")))
+
+(ert-deftest xl-packages-child-prints-marked-rows ()
+  "The child, run for real, prints marked rows from the archive caches."
+  (let* ((cmd (xl-packages--command))
+         (out (with-temp-buffer
+                (apply #'call-process (car cmd) nil t nil (cdr cmd))
+                (buffer-string)))
+         (rows (seq-filter #'xl-packages--marked-p (split-string out "\n"))))
+    (should (> (length rows) 0))
+    (should (= (length (split-string (car rows) "\t")) 6))))
 
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

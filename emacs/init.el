@@ -161,7 +161,7 @@ session."
 (require 'xl-key-bindings)
 (require 'xl-git-status)
 (require 'xl-git-commands)
-(require 'xl-package-menu)
+(require 'xl-packages)   ; M-x consult-list-packages: every package, fed asynchronously
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
 ;; xl-jit: once this Emacs has stayed open a while and goes idle, compile the
