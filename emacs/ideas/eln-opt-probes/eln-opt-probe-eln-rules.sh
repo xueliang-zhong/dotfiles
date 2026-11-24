@@ -2,11 +2,11 @@
 # Probe, not part of the config: when does `load' use an .eln?
 # Builds a toy package and a private eln cache in a temporary folder, then
 # prints one line per case from the "eln 的版本和加载规则" table in
-# ../xl-jit.md.  Touches nothing outside that folder.
+# ../eln-opt.md.  Touches nothing outside that folder.
 set -e
 
 EMACS="${EMACS:-emacs}"
-LAB="$(mktemp -d -t xl-jit-eln-lab)"
+LAB="$(mktemp -d -t eln-opt-eln-lab)"
 trap 'rm -rf "$LAB"' EXIT
 mkdir -p "$LAB/real/pkg" "$LAB/cache"
 ln -s "$LAB/real" "$LAB/link"

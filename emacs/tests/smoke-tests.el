@@ -938,17 +938,17 @@ allowed."
   (should-not package-native-compile))
 
 (ert-deftest xl-packages-load-as-byte-code ()
-  "A package function is byte code, unless xl-jit built its file.  Emacs's own
-JIT never loads package .eln files; only the ones xl-jit recorded in its ledger."
+  "A package function is byte code, unless eln-opt built its file.  Emacs's own
+JIT never loads package .eln files; only the ones eln-opt recorded in its ledger."
   (require 'consult)
-  (require 'xl-jit nil t)
+  (require 'eln-opt nil t)
   (let* ((fn (symbol-function 'consult-line))
          (native (and (fboundp 'subr-native-elisp-p) (subr-native-elisp-p fn)))
-         (built (and (fboundp 'xl-jit--ledger-load)
+         (built (and (fboundp 'eln-opt--ledger-load)
                      (seq-some (lambda (e)
                                  (and (eq (plist-get (cdr e) :status) 'done)
                                       (string-match-p "consult\\.el\\'" (car (car e)))))
-                               (xl-jit--ledger-load)))))
+                               (eln-opt--ledger-load)))))
     (should (if native built (byte-code-function-p fn)))))
 
 (ert-deftest xl-frame-starts-maximized-from-early-init ()
@@ -3236,7 +3236,7 @@ the exit status."
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
 
-;; xl-jit tier 1: our lisp runs as byte code exactly when a current .elc exists.
+;; eln-opt tier 1: our lisp runs as byte code exactly when a current .elc exists.
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "emacs" xl-dotfiles)))

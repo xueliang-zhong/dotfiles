@@ -1,4 +1,4 @@
-;;; xl-jit-probe-trampolines.el --- predict subr trampolines -*- lexical-binding: t; -*-
+;;; eln-opt-probe-trampolines.el --- predict subr trampolines -*- lexical-binding: t; -*-
 ;; Probe, not part of the config.  Run after init in a batch Emacs (see
 ;; README.md in this folder); it reads .elc files as data and never loads them.
 ;;

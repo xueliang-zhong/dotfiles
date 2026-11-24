@@ -1,4 +1,4 @@
-;;; xl-jit-probe-bench.el --- interpreted vs byte code vs native -*- lexical-binding: t; -*-
+;;; eln-opt-probe-bench.el --- interpreted vs byte code vs native -*- lexical-binding: t; -*-
 ;; Probe, not part of the config.  Run with: emacs --batch -Q -l THIS-FILE
 ;; Copies emacs/lisp to a temporary folder first, so no .elc or .eln is
 ;; written into the repository, then times two xl-git-status functions in
@@ -6,7 +6,7 @@
 (setq byte-compile-warnings nil native-comp-async-report-warnings-errors 'silent)
 
 (defvar probe-src (expand-file-name "../../lisp" (file-name-directory load-file-name)))
-(defvar probe-tmp (make-temp-file "xl-jit-bench-" t))
+(defvar probe-tmp (make-temp-file "eln-opt-bench-" t))
 (copy-directory probe-src probe-tmp t t t)
 (add-to-list 'load-path probe-tmp)
 (require 'xl-spinner)

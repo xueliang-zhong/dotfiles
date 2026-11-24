@@ -1,4 +1,4 @@
-;;; xl-jit-probe-rank.el --- static hot-file ranking -*- lexical-binding: t; -*-
+;;; eln-opt-probe-rank.el --- static hot-file ranking -*- lexical-binding: t; -*-
 ;; Probe, not part of the config.  Run after init in a batch Emacs (see
 ;; README.md in this folder).  PROBE_PROFILE names the real profile folder,
 ;; which holds savehist's `history' and `recentf.eld'; both are read as data.

@@ -10,12 +10,12 @@
 #   bash emacs/install/emacs-setup.sh crafted-install [DIR]
 #   bash emacs/install/emacs-setup.sh smoke|test|check
 #   bash emacs/install/emacs-setup.sh trampolines
-#   bash emacs/install/emacs-setup.sh jit
+#   bash emacs/install/emacs-setup.sh eln-opt
 #   bash emacs/install/emacs-setup.sh compile-lisp
-#   bash emacs/install/emacs-setup.sh jit-run
-#   bash emacs/install/emacs-setup.sh jit-reset
-#   bash emacs/install/emacs-setup.sh jit-report
-#   bash emacs/install/emacs-setup.sh jit-status
+#   bash emacs/install/emacs-setup.sh eln-opt-run
+#   bash emacs/install/emacs-setup.sh eln-opt-reset
+#   bash emacs/install/emacs-setup.sh eln-opt-report
+#   bash emacs/install/emacs-setup.sh eln-opt-status
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -239,14 +239,14 @@ cmd_test() {
     require_profile
     emacs_batch -l "$DOTFILES/emacs/tests/smoke-tests.el" \
         -f ert-run-tests-batch-and-exit
-    # xl-jit runs in its own batch process, without the profile.
+    # eln-opt runs in its own batch process, without the profile.
     "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
         --eval '(setq load-prefer-newer t)' \
-        -l "$DOTFILES/emacs/tests/xl-jit-tests.el" \
+        -l "$DOTFILES/emacs/tests/eln-opt-tests.el" \
         -f ert-run-tests-batch-and-exit
 }
 
-# Tier 1 of xl-jit: byte-compile our own Lisp so it does not run interpreted.
+# Tier 1 of eln-opt: byte-compile our own Lisp so it does not run interpreted.
 # Runs with the profile loaded, so macros from installed packages (evil, ...)
 # expand correctly; compiling in a bare batch Emacs would turn them into calls.
 # Only files whose .el is newer than their .elc are compiled, so a second run
@@ -272,44 +272,44 @@ cmd_compile_lisp() {
 }
 
 # One background run: the profile is loaded so package macros and the load
-# path are the real ones.  Lock, fingerprint and audit live in xl-jit.el.
-cmd_jit_run() {
+# path are the real ones.  Lock, fingerprint and audit live in eln-opt.el.
+cmd_eln_opt_run() {
     require_emacs
     require_profile
-    emacs_batch --eval '(progn (require (quote xl-jit)) (princ (concat (xl-jit-run-summary (xl-jit-run)) "\n")))'
+    emacs_batch --eval '(progn (require (quote eln-opt)) (princ (concat (eln-opt-run-summary (eln-opt-run)) "\n")))'
 }
 
-cmd_jit_status() {
+cmd_eln_opt_status() {
     require_emacs
     "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
         --eval '(setq load-prefer-newer t)' \
-        -L "$DOTFILES/emacs/lisp" -l xl-jit \
-        --eval '(pp (xl-jit-status))'
+        -L "$DOTFILES/emacs/lisp" -l eln-opt \
+        --eval '(pp (eln-opt-status))'
 }
 
-cmd_jit_report() {
+cmd_eln_opt_report() {
     require_emacs
     require_profile
-    emacs_batch --eval '(progn (require (quote xl-jit)) (xl-jit-report))'
+    emacs_batch --eval '(progn (require (quote eln-opt)) (eln-opt-report))'
 }
 
-cmd_jit_reset() {
+cmd_eln_opt_reset() {
     require_emacs
     "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
         --eval '(setq load-prefer-newer t)' \
-        -L "$DOTFILES/emacs/lisp" -l xl-jit \
-        --eval '(princ (format "xl-jit reset: %d eln file(s) removed\n" (xl-jit-reset)))'
+        -L "$DOTFILES/emacs/lisp" -l eln-opt \
+        --eval '(princ (format "eln-opt reset: %d eln file(s) removed\n" (eln-opt-reset)))'
 }
 
-# Background native-compilation gate (emacs/ideas/xl-jit.md, step 1).  Runs
+# Background native-compilation gate (emacs/ideas/eln-opt.md, step 1).  Runs
 # in a bare batch Emacs whose state folder is the profile's, and never loads
 # the profile, so it stays quick.  Always exits 0: "not available" is an answer.
-cmd_jit() {
+cmd_eln_opt() {
     require_emacs
     "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
         --eval '(setq load-prefer-newer t)' \
-        -L "$DOTFILES/emacs/lisp" -l xl-jit \
-        -f xl-jit-platform-report
+        -L "$DOTFILES/emacs/lisp" -l eln-opt \
+        -f eln-opt-platform-report
 }
 
 cmd_check() {
@@ -338,12 +338,12 @@ cmd_trampolines() {
       (when (equal (getenv "XL_PROGRESS") "1")
         (princ (format "trampolines %d/%d\n" index total)))
       (ignore-errors (timer-event-handler timer)))
-    ;; xl-jit (step 2): build the trampolines the idle loads could not reach,
+    ;; eln-opt (step 2): build the trampolines the idle loads could not reach,
     ;; for advice added while a command runs.  Gated by the platform check.
-    (require (quote xl-jit))
-    (let ((built (xl-jit-trampolines-build)))
+    (require (quote eln-opt))
+    (let ((built (eln-opt-trampolines-build)))
       (when (equal (getenv "XL_PROGRESS") "1")
-        (princ (format "xl-jit trampolines: %S\n" built))))
+        (princ (format "eln-opt trampolines: %S\n" built))))
     (let ((count (length (directory-files (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)) nil "\\`subr--trampoline-"))))
       (if (equal (getenv "XL_PROGRESS") "1")
           (princ (format "trampolines cached: %d\n" count))
@@ -489,12 +489,12 @@ use / check:
   test                   run the ERT suite against the loaded profile
   check                  smoke + test; run this after a config change
   trampolines            pre-build advice trampolines so a GUI start is fast
-  jit                    say whether xl-jit can run here (native compilation)
+  eln-opt                    say whether eln-opt can run here (native compilation)
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
-  jit-run                one background xl-jit run (audit, then work when due)
-  jit-reset              delete the elns xl-jit recorded, and its ledger
-  jit-report             print the xl-jit ranking; compiles nothing
-  jit-status             ledger counts, eln bytes, and the last run's result
+  eln-opt-run                one background eln-opt run (audit, then work when due)
+  eln-opt-reset              delete the elns eln-opt recorded, and its ledger
+  eln-opt-report             print the eln-opt ranking; compiles nothing
+  eln-opt-status             ledger counts, eln bytes, and the last run's result
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -512,12 +512,12 @@ case "${1:-}" in
     test) shift; cmd_test "$@" ;;
     check) shift; cmd_check "$@" ;;
     trampolines) shift; cmd_trampolines "$@" ;;
-    jit) shift; cmd_jit "$@" ;;
+    eln-opt) shift; cmd_eln_opt "$@" ;;
     compile-lisp) shift; cmd_compile_lisp "$@" ;;
-    jit-run) shift; cmd_jit_run "$@" ;;
-    jit-reset) shift; cmd_jit_reset "$@" ;;
-    jit-report) shift; cmd_jit_report "$@" ;;
-    jit-status) shift; cmd_jit_status "$@" ;;
+    eln-opt-run) shift; cmd_eln_opt_run "$@" ;;
+    eln-opt-reset) shift; cmd_eln_opt_reset "$@" ;;
+    eln-opt-report) shift; cmd_eln_opt_report "$@" ;;
+    eln-opt-status) shift; cmd_eln_opt_status "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;

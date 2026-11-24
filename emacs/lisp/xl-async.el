@@ -34,7 +34,7 @@
 ;;; Code:
 
 ;; This file holds two layers, used together by the Git views, the Package
-;; Menu, the Babel async blocks and xl-jit: the process layer (`xl-async-run',
+;; Menu, the Babel async blocks and eln-opt: the process layer (`xl-async-run',
 ;; `xl-async-enqueue') and the loader (`xl-spinner-start' and its mode-line
 ;; slot).  The loader is in the second half of the file.
 
