@@ -126,8 +126,9 @@ shown while it comes in."
   (interactive)
   (let* ((command (xl-packages--command))
          (name (consult--read
+                ;; consult--read wraps this with its own default pipeline, which
+                ;; already adds the indicator; adding one here shows it twice.
                 (consult--async-pipeline
-                 (consult--async-indicator)
                  (consult--async-process (lambda (_input) command))
                  (consult--async-filter #'xl-packages--marked-p)
                  (consult--async-map #'xl-packages--candidate))
