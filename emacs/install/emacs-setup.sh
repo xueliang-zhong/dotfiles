@@ -10,6 +10,7 @@
 #   bash emacs/install/emacs-setup.sh crafted-install [DIR]
 #   bash emacs/install/emacs-setup.sh smoke|test|check
 #   bash emacs/install/emacs-setup.sh trampolines
+#   bash emacs/install/emacs-setup.sh jit
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -233,6 +234,20 @@ cmd_test() {
     require_profile
     emacs_batch -l "$DOTFILES/emacs/tests/smoke-tests.el" \
         -f ert-run-tests-batch-and-exit
+    # xl-jit runs in its own batch process, without the profile.
+    "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
+        -l "$DOTFILES/emacs/tests/xl-jit-tests.el" \
+        -f ert-run-tests-batch-and-exit
+}
+
+# Background native-compilation gate (emacs/ideas/xl-jit.md, step 1).  Runs
+# in a bare batch Emacs whose state folder is the profile's, and never loads
+# the profile, so it stays quick.  Always exits 0: "not available" is an answer.
+cmd_jit() {
+    require_emacs
+    "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
+        -L "$DOTFILES/emacs/lisp" -l xl-jit \
+        -f xl-jit-platform-report
 }
 
 cmd_check() {
@@ -403,6 +418,7 @@ use / check:
   test                   run the ERT suite against the loaded profile
   check                  smoke + test; run this after a config change
   trampolines            pre-build advice trampolines so a GUI start is fast
+  jit                    say whether xl-jit can run here (native compilation)
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -420,6 +436,7 @@ case "${1:-}" in
     test) shift; cmd_test "$@" ;;
     check) shift; cmd_check "$@" ;;
     trampolines) shift; cmd_trampolines "$@" ;;
+    jit) shift; cmd_jit "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;
