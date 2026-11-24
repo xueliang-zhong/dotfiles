@@ -24,6 +24,7 @@
 (require 'package)
 (require 'consult)
 (require 'xl-consult-spinner)
+(require 'embark nil t)
 
 (defconst xl-packages--marker "XLPKG"
   "First field of every line the child prints.  Other output from the child
@@ -140,6 +141,45 @@ shown while it comes in."
                           (get-text-property 0 'xl-package cand)))))
     (when (and name (not (string-empty-p name)))
       (describe-package (intern name)))))
+
+;;; Embark: act on the package named in the list
+
+(defun xl-packages-embark-target ()
+  "The package named by the current consult candidate, as an embark target.
+The target is the name alone, not the whole line, and has its own type,
+`xl-package', so embark's package-menu actions (which expect a package
+description) are left as they are."
+  (when-let* (((minibufferp))
+              ((fboundp 'vertico--candidate))
+              (cand (vertico--candidate))
+              (name (get-text-property 0 'xl-package cand)))
+    (cons 'xl-package name)))
+
+(defun xl-packages-embark-describe (name)
+  "Describe the package NAME."
+  (describe-package (intern name)))
+
+(defun xl-packages-embark-install (name)
+  "Install the package NAME from its archive."
+  (package-install (intern name)))
+
+(defun xl-packages-embark-delete (name)
+  "Delete the installed package NAME, after package.el's own confirmation."
+  (if-let* ((desc (cadr (assq (intern name) package-alist))))
+      (package-delete desc)
+    (user-error "%s is not installed" name)))
+
+(defvar-keymap xl-packages-embark-map
+  :doc "Embark actions on a package named in `consult-list-packages'."
+  :parent embark-general-map
+  "RET" #'xl-packages-embark-describe
+  "i" #'xl-packages-embark-install
+  "d" #'xl-packages-embark-delete)
+
+(with-eval-after-load 'embark
+  ;; First, so that the whole-line target of the default finder never wins.
+  (add-to-list 'embark-target-finders #'xl-packages-embark-target nil)
+  (add-to-list 'embark-keymap-alist '(xl-package . xl-packages-embark-map)))
 
 (provide 'xl-packages)
 ;;; xl-packages.el ends here

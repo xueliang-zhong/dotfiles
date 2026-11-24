@@ -3277,5 +3277,22 @@ the exit status."
     (should (> (length rows) 0))
     (should (= (length (split-string (car rows) "\t")) 6))))
 
+;; embark on consult-list-packages: the target is the name, not the line
+
+(ert-deftest xl-packages-embark-target-is-the-name-alone ()
+  "In the minibuffer, the target of a list candidate is its package name."
+  (require 'embark)
+  (let ((cand (xl-packages--candidate "XLPKG\tfoo\tinstalled\t1.0\tmelpa\tA package.")))
+    (cl-letf (((symbol-function 'minibufferp) (lambda (&rest _) t))
+              ((symbol-function 'vertico--candidate) (lambda (&rest _) cand)))
+      (should (equal (xl-packages-embark-target) '(xl-package . "foo"))))))
+
+(ert-deftest xl-packages-embark-keymap-has-the-package-actions ()
+  "The keymap for package targets binds describe, install and delete."
+  (require 'embark)
+  (should (eq (keymap-lookup xl-packages-embark-map "RET") #'xl-packages-embark-describe))
+  (should (eq (keymap-lookup xl-packages-embark-map "i") #'xl-packages-embark-install))
+  (should (eq (keymap-lookup xl-packages-embark-map "d") #'xl-packages-embark-delete)))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here
