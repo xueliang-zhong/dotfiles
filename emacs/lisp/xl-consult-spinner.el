@@ -28,18 +28,23 @@
 
 (declare-function consult--async-indicator "consult")
 
-(defcustom xl-consult-spinner-interval 0.1
-  "Seconds per frame of the consult indicator: the pace of the other loaders.
-That is `xl-spinner-interval', the default of the shared spinner."
+(defcustom xl-consult-spinner-interval 0.15
+  "Seconds per frame of the consult indicator.
+Two cells cannot carry the three-cell pace of the other loaders: at 0.15 s
+a three-frame cycle of two dots reads as a steady motion."
   :type 'number
   :group 'xl-spinner)
 
-(defvar xl-consult-spinner-frames (xl-spinner-default-frames)
-  "Frames drawn in place of consult's running character.
-They are the frames of the other loaders of this config: three cells of
-dots when the font draws them, ASCII otherwise.  Being wider than the one
-character they replace, they push the typed text right while the search
-runs, and it moves back when the search ends.")
+(defvar xl-consult-spinner-frames
+  (if (seq-every-p #'xl-spinner--glyph-safe-p "·●")
+      '("··" "●·" "·●")
+    '(".." "*." ".*"))
+  "Frames drawn in the two cells reserved in front of the prompt.
+Dots when the font draws them, `..', `*.', `.*' otherwise.  Every frame,
+and the idle text, is exactly two cells wide, so the typed text never moves.")
+
+(defconst xl-consult-spinner-idle ": "
+  "What the reserved cells show when no search runs: consult's colon, padded.")
 
 (defun xl-consult-spinner--overlay ()
   "Return the indicator overlay consult put in front of the minibuffer prompt."
@@ -50,10 +55,14 @@ runs, and it moves back when the search ends.")
 (defun xl-consult-spinner--draw (overlay frame)
   "Show FRAME on OVERLAY; nil leaves it alone.
 FRAME keeps the `xl-spinner' face, so it is the colour of the mode-line
-loaders.  The static character is consult's: it is drawn after the
-spinner stops."
+loaders."
   (when (and frame (overlayp overlay) (overlay-buffer overlay))
     (overlay-put overlay 'display frame)))
+
+(defun xl-consult-spinner--idle (overlay)
+  "Show the idle text on OVERLAY, two cells wide like the frames."
+  (when (and (overlayp overlay) (overlay-buffer overlay))
+    (overlay-put overlay 'display xl-consult-spinner-idle)))
 
 (defun xl-consult-spinner--around-indicator (orig)
   "Return ORIG's indicator, with its running state animated.
@@ -70,7 +79,8 @@ the pipeline element, a function of SINK."
       (pcase action
         ('setup
          (funcall next action)
-         (setq overlay (xl-consult-spinner--overlay)))
+         (setq overlay (xl-consult-spinner--overlay))
+         (xl-consult-spinner--idle overlay))
         ('destroy
          (when (xl-spinner-running-p)
            (xl-spinner-stop))
@@ -87,7 +97,10 @@ the pipeline element, a function of SINK."
         (`[indicator ,(or 'finished 'killed 'failed)]
          (when (xl-spinner-running-p)
            (xl-spinner-stop))
-         (funcall next action))
+         ;; consult draws its one-cell character, which would shift the
+         ;; text; the idle text goes over it, at the same width.
+         (funcall next action)
+         (xl-consult-spinner--idle overlay))
         (_ (funcall next action))))))
 
 (defun xl-consult-spinner--after-vertico-update (&rest _)

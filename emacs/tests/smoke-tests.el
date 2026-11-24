@@ -1045,12 +1045,18 @@ own final character is drawn."
                              #'ignore)))
       (cl-letf (((symbol-function 'minibuffer-prompt-end) (lambda () 8)))
         (funcall handler 'setup)
+        ;; Idle from the start: the reserved cells are never empty.
+        (should (equal xl-consult-spinner-idle (overlay-get overlay 'display)))
         (funcall handler [indicator running])
         (should (xl-spinner-running-p))
         (should (= xl-consult-spinner-interval
                    (plist-get xl-spinner--state :interval)))
         (should (member (substring-no-properties (overlay-get overlay 'display))
                         xl-consult-spinner-frames))
+        ;; Every frame and the idle text take the same two cells.
+        (dolist (frame xl-consult-spinner-frames)
+          (should (= 2 (string-width frame))))
+        (should (= 2 (string-width xl-consult-spinner-idle)))
         ;; Same colour as the mode-line loaders: the frame keeps its face.
         (should (eq 'xl-spinner
                     (get-text-property 0 'face (overlay-get overlay 'display))))
@@ -1063,8 +1069,9 @@ own final character is drawn."
           (should (equal frame (overlay-get overlay 'display))))
         (funcall handler [indicator finished])
         (should-not (xl-spinner-running-p))
-        ;; The spinner stopped first, so consult's final character shows.
-        (should (equal ":" (overlay-get overlay 'display)))
+        ;; The spinner stopped, and the idle text is back, at the same width.
+        (should (equal xl-consult-spinner-idle (overlay-get overlay 'display)))
+        (should (= 2 (string-width (overlay-get overlay 'display))))
         (funcall handler 'destroy)))))
 
 (ert-deftest xl-search-project-at-point-uses-grep-without-ripgrep ()

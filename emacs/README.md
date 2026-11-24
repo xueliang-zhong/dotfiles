@@ -185,7 +185,7 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 
 ### `lisp/xl-consult-spinner.el`（consult 异步列表的 spinner）
 
-`consult-ripgrep`、`consult-find` 这类异步列表，原本在提示符前面用一个字符表示状态：运行中是 `*`，结束后是 `:`。这个文件把运行中的字符换成动画，用的是和其他 loader 相同的时钟和帧。帧是单宽字符（`·•●`），因为提示符前面的 overlay 只占一格，更宽的帧会把输入的文字推到右边。字体画不了这些点时，退回 `|/-\`。它包裹的是 `consult--async-indicator`，所以只影响异步列表。
+`consult-ripgrep`、`consult-find` 这类异步列表，原本在提示符前面用一个字符表示状态：运行中是 `*`，结束后是 `:`。这个文件把运行中的字符换成动画，用的是和其他 loader 相同的时钟和颜色，间隔单独设为 0.15 秒。提示符前面预留两格固定空间：运行时是两格的三帧点阵动画（`··` `●·` `·●`，每帧 0.15 秒；三格的 loader 是 0.1 秒一帧），空闲时是 `: `，所以输入的文字在开始、运行、结束时都不移动；字体画不了点时，退回 `..` `*.` `.*`。它包裹的是 `consult--async-indicator`，所以只影响异步列表。
 
 ### `lisp/xl-spinner.el`（共用 loader）
 
