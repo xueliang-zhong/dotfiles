@@ -605,19 +605,32 @@ crash is not retried.  Returns the number quarantined."
                     (cl-incf n)))))))))
     n))
 
+(defun xl-jit--candidate-reason (row)
+  "Why ranking ROW is not a candidate, as a string; nil if it is one.
+Checked again here, not trusted from the ranking: the source is re-tested
+against the trusted roots and the opt-out cookie, and must be a reasonable size."
+  (let* ((path (plist-get row :path))
+         (src (and path (replace-regexp-in-string "\\.elc\\'" ".el" path))))
+    (cond
+     ((null path) "no source path recorded")
+     ((null (plist-get row :ratio)) "no ratio")
+     ((< (plist-get row :ratio) xl-jit-min-ratio)
+      (format "ratio %.1f is below %.1f" (plist-get row :ratio) xl-jit-min-ratio))
+     ((not (file-readable-p src))
+      (cond ((file-exists-p (concat src ".gz"))
+             "Emacs ships only .el.gz for this library: not supported yet")
+            ((string-suffix-p ".elc" path) "no .el source next to the .elc")
+            (t "source not readable")))
+     ((not (xl-jit-trusted-file-p src)) "outside the trusted roots")
+     ((xl-jit-rank--no-native-p src) "opts out with no-native-compile")
+     ((> (or (xl-jit--file-size src) 0) xl-jit-max-source-bytes)
+      (format "source is %d KB, over the %d KB limit"
+              (/ (xl-jit--file-size src) 1024) (/ xl-jit-max-source-bytes 1024)))
+     (t nil))))
+
 (defun xl-jit--candidate-p (row)
-  "Non-nil if ranking ROW may be compiled.  Checked here again, not trusted
-from the ranking: the source is re-tested against the trusted roots and the
-opt-out cookie, and must be a reasonable size."
-  (let ((path (plist-get row :path)))
-    (and path
-         (plist-get row :ratio)
-         (>= (plist-get row :ratio) xl-jit-min-ratio)
-         (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" path)))
-           (and (file-readable-p src)
-                (xl-jit-trusted-file-p src)
-                (not (xl-jit-rank--no-native-p src))
-                (<= (or (xl-jit--file-size src) 0) xl-jit-max-source-bytes))))))
+  "Non-nil if ranking ROW may be compiled."
+  (null (xl-jit--candidate-reason row)))
 
 (declare-function xl-jit-rank--compute "xl-jit-rank")
 (declare-function xl-jit-rank--no-native-p "xl-jit-rank")

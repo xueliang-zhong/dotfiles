@@ -437,6 +437,7 @@ numbers for the header."
                                         (sort (copy-sequence rows)
                                               (lambda (a b) (> (plist-get a :score) (plist-get b :score)))))
                             xl-jit-compile-budget)
+            :ledger (xl-jit-rank--ledger-summary)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
             :roots (length user-roots)
@@ -474,21 +475,45 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
   (format "%4s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
           rank score kb trusted native file top))
 
+(defun xl-jit-rank--ledger-summary ()
+  "Every ledger entry as a plist, newest first, with the source name."
+  (let (out)
+    (dolist (e (xl-jit--ledger-load))
+      (let ((p (cdr e)))
+        (push (list :file (file-name-nondirectory (car (car e)))
+                    :status (plist-get p :status)
+                    :time (plist-get p :time)
+                    :fails (or (plist-get p :fails) 0)
+                    :reason (plist-get p :reason)
+                    :kb (and (plist-get p :size) (/ (plist-get p :size) 1024.0)))
+              out)))
+    (sort out (lambda (a b) (> (or (plist-get a :time) 0) (or (plist-get b :time) 0))))))
+
+(defun xl-jit-rank--when (time)
+  (if time (format-time-string "%Y-%m-%d %H:%M" (seconds-to-time time)) "-"))
+
 (defun xl-jit-rank--format (result)
-  "The report as a string.  The answer first, then the built files, then the table."
+  "The report as a string.  Sections, in order: what the next pass does, what
+was compiled, what failed, why each ranked file was skipped, what is left out
+altogether.  The ranking table comes last."
   (let* ((built (plist-get result :built-rows))
-         (next (plist-get result :next)))
+         (next (plist-get result :next))
+         (ledger (plist-get result :ledger))
+         (done (seq-filter (lambda (e) (eq (plist-get e :status) 'done)) ledger))
+         (bad (seq-filter (lambda (e) (not (eq (plist-get e :status) 'done))) ledger))
+         (rows (plist-get result :rows)))
     (with-output-to-string
+      ;; 1. The answer
       (princ "xl-jit report (report only; nothing is compiled here)\n\n")
       (princ "Next background pass compiles: ")
       (if (null next)
-          (princ "nothing.  No ranked file is a candidate: see the table below.\n")
+          (princ "nothing.\n")
         (princ (format "%d file(s), in this order: %s\n" (length next)
                        (mapconcat (lambda (r) (plist-get r :file)) next ", "))))
-      (princ (format "Built by xl-jit and native now: %d file(s), %d function(s)\n"
+      ;; 2. What was compiled
+      (princ (format "\nCompiled by xl-jit and native now: %d file(s), %d function(s)\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
       (when built
-        (princ "\n")
         (princ (xl-jit-rank--line "-" "-" "KB" "trusted" "native" "file" "[functions]"))
         (dolist (row built)
           (princ (xl-jit-rank--line
@@ -496,14 +521,53 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
                   (format "%.1f" (/ (plist-get row :size) 1024.0))
                   "yes" "yes" (plist-get row :file)
                   (format "%d, e.g. %S" (plist-get row :count) (plist-get row :top))))))
-      (princ "\nRanking of files not yet native (score: expected gain; KB: bytecode size, the cost):\n")
-      (princ (format "functions analysed: %d   interpreted, skipped: %d (Crafted's modules have no .elc)\n"
-                     (plist-get result :functions) (plist-get result :interpreted-skipped)))
-      (princ (format "largest single savehist command share of the score: %.1f%%\n"
+      (when done
+        (princ "\nEntries in the ledger, status done (time of the build):\n")
+        (dolist (e done)
+          (princ (format "  %-30s %s  %5.1f KB\n" (plist-get e :file)
+                         (xl-jit-rank--when (plist-get e :time))
+                         (or (plist-get e :kb) 0)))))
+      ;; 3. What failed or was held back
+      (when bad
+        (princ "\nFailed or quarantined (not retried until the key changes, or for a day):\n")
+        (dolist (e bad)
+          (princ (format "  %-30s %-11s %s  fails %d\n    %s\n"
+                         (plist-get e :file) (plist-get e :status)
+                         (xl-jit-rank--when (plist-get e :time))
+                         (plist-get e :fails)
+                         (or (plist-get e :reason) "")))))
+      ;; 4. Why each ranked file is or is not compiled
+      (princ "\nRanked files not yet native, and what happens to each:\n")
+      (let ((n 0))
+        (dolist (row rows)
+          (let ((why (if (memq row next)
+                         "compile in the next pass"
+                       (or (xl-jit--candidate-reason row)
+                           "candidate, but past the budget of 3 per pass"))))
+            (when (< n 40)
+              (princ (format "  %-28s score %6.1f  %s\n"
+                             (plist-get row :file) (plist-get row :score) why)))
+            (cl-incf n)))
+        (when (> n 40) (princ (format "  ... and %d more\n" (- n 40)))))
+      ;; 5. What is left out altogether
+      (princ "\nLeft out before ranking:\n")
+      (princ (format "  already native in this Emacs (after init): %d function(s)\n"
+                     (plist-get result :native-skipped)))
+      (let ((excl (plist-get result :excluded)))
+        (princ (format "  opted out with no-native-compile: %d file(s)%s\n"
+                       (length excl)
+                       (if excl (format ": %s"
+                                        (mapconcat (lambda (e) (car e)) excl ", "))
+                         ""))))
+      (princ (format "  interpreted, no .elc (Crafted's modules): %d function(s)\n"
+                     (plist-get result :interpreted-skipped)))
+      (princ (format "  functions analysed: %d;  largest single savehist command share of the score: %.1f%%\n"
+                     (plist-get result :functions)
                      (* 100 (plist-get result :savehist-share))))
-      (princ "\n")
+      ;; 6. The table
+      (princ "\nRanking (score: expected gain; KB: bytecode size, the cost):\n")
       (princ (xl-jit-rank--line "rank" "score" "KB" "trusted" "native" "file" "[top functions]"))
-      (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
+      (cl-loop for row in (seq-take rows 25) for i from 1
                do (princ (xl-jit-rank--line
                           i
                           (format "%.1f" (plist-get row :score))
