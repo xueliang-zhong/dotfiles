@@ -494,7 +494,7 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
           (princ (xl-jit-rank--line
                   "-" "-"
                   (format "%.1f" (/ (plist-get row :size) 1024.0))
-                  "yes" "xl-jit" (plist-get row :file)
+                  "yes" "yes" (plist-get row :file)
                   (format "%d, e.g. %S" (plist-get row :count) (plist-get row :top))))))
       (princ "\nRanking of files not yet native (score: expected gain; KB: bytecode size, the cost):\n")
       (princ (format "functions analysed: %d   interpreted, skipped: %d (Crafted's modules have no .elc)\n"
