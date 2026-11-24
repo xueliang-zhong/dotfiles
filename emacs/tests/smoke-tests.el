@@ -1158,11 +1158,18 @@ allowed."
   (should-not package-native-compile))
 
 (ert-deftest xl-packages-load-as-byte-code ()
-  "A package function is byte code, not native: no package .eln is loaded."
+  "A package function is byte code, unless xl-jit built its file.  Emacs's own
+JIT never loads package .eln files; only the ones xl-jit recorded in its ledger."
   (require 'consult)
-  (when (fboundp 'subr-native-elisp-p)
-    (should-not (subr-native-elisp-p (symbol-function 'consult-line))))
-  (should (byte-code-function-p (symbol-function 'consult-line))))
+  (require 'xl-jit nil t)
+  (let* ((fn (symbol-function 'consult-line))
+         (native (and (fboundp 'subr-native-elisp-p) (subr-native-elisp-p fn)))
+         (built (and (fboundp 'xl-jit--ledger-load)
+                     (seq-some (lambda (e)
+                                 (and (eq (plist-get (cdr e) :status) 'done)
+                                      (string-match-p "consult\\.el\\'" (car (car e)))))
+                               (xl-jit--ledger-load)))))
+    (should (if native built (byte-code-function-p fn)))))
 
 (ert-deftest xl-frame-starts-maximized-from-early-init ()
   "The maximized size is a frame parameter from `early-init.el', so the first
