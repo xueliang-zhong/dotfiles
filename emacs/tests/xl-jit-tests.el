@@ -231,5 +231,154 @@
       (ignore-errors (fmakunbound 'xl-jit-stale-toy-value))
       (ignore-errors (delete-directory dir t)))))
 
+;;; Step 4: ledger, lock, fingerprint, verification, audit
+
+(defun xl-jit-test--dead-pid ()
+  "A pid that no process has right now."
+  (let ((p 999999))
+    (while (process-attributes p) (setq p (1- p)))
+    p))
+
+(defun xl-jit-test--toy-src (dir name)
+  (let ((src (expand-file-name (concat name ".el") dir)))
+    (with-temp-file src
+      (insert (format ";;; %s.el -*- lexical-binding: t; -*-\n(defun %s-fn () 1)\n"
+                      name name)))
+    src))
+
+(ert-deftest xl-jit-ledger-failure-policy ()
+  "A failure waits a day; two failures end it until the key changes."
+  (xl-jit-test--with-state
+    (let* ((key '("/src/a.el" "sha" (1)))
+           (now (xl-jit--now)))
+      (should (xl-jit--may-attempt-p key now))
+      (xl-jit--ledger-set key (list :status 'failed :fails 1 :time now))
+      (should-not (xl-jit--may-attempt-p key now))
+      (should (xl-jit--may-attempt-p key (+ now xl-jit-retry-interval 1)))
+      (xl-jit--ledger-set key (list :status 'failed :fails 2 :time now))
+      (should-not (xl-jit--may-attempt-p key (+ now (* 10 xl-jit-retry-interval))))
+      (xl-jit--ledger-set key (list :status 'quarantined))
+      (should-not (xl-jit--may-attempt-p key (+ now (* 10 xl-jit-retry-interval)))))))
+
+(ert-deftest xl-jit-source-key-changes-with-compile-settings ()
+  "Changing a setting that does not show in the eln name still changes the key."
+  (xl-jit-test--with-state
+    (let* ((dir (make-temp-file "xl-jit-key-" t))
+           (src (xl-jit-test--toy-src dir "keyed"))
+           (k1 (xl-jit-source-key src))
+           (k2 (let ((native-comp-speed 1)) (xl-jit-source-key src))))
+      (should-not (equal k1 k2))
+      (should (equal k1 (xl-jit-source-key src))))))
+
+(ert-deftest xl-jit-lock-is-exclusive-and-takes-over-stale ()
+  "A live owner keeps the lock; a dead owner's lock is taken over once."
+  (xl-jit-test--with-state
+    (should (xl-jit--lock-acquire))
+    (should-not (xl-jit--lock-acquire))
+    (xl-jit--lock-release)
+    (should-not (file-exists-p (xl-jit--lock-dir)))
+    ;; Simulate a crashed run: its lock names a process that does not exist.
+    (make-directory (xl-jit--lock-dir) t)
+    (xl-jit--write-eld (xl-jit--owner-file (xl-jit--lock-dir))
+                       (list :pid (xl-jit-test--dead-pid) :time (xl-jit--now)))
+    (should (xl-jit--lock-acquire))
+    (should (= (plist-get (xl-jit--read-eld (xl-jit--owner-file (xl-jit--lock-dir))) :pid)
+               (emacs-pid)))
+    (xl-jit--lock-release)))
+
+(ert-deftest xl-jit-lock-old-owner-counts-as-stale ()
+  "A lock older than `xl-jit-lock-max-age' is stale even if its pid lives."
+  (xl-jit-test--with-state
+    (make-directory (xl-jit--lock-dir) t)
+    (xl-jit--write-eld (xl-jit--owner-file (xl-jit--lock-dir))
+                       (list :pid (emacs-pid)
+                             :time (- (xl-jit--now) xl-jit-lock-max-age 10)))
+    (should (xl-jit--lock-stale-p (xl-jit--lock-dir)))
+    (should (xl-jit--lock-acquire))
+    (xl-jit--lock-release)))
+
+(ert-deftest xl-jit-run-busy-when-locked ()
+  "A run that cannot get the lock does nothing."
+  (xl-jit-test--with-state
+    (let ((work 0))
+      (cl-letf (((symbol-function 'xl-jit-platform-available-p) (lambda () t))
+                ((symbol-function 'xl-jit--work) (lambda () (cl-incf work) (list))))
+        (should (xl-jit--lock-acquire))
+        (should (eq (xl-jit-run) 'busy))
+        (xl-jit--lock-release)
+        (should (= work 0))))))
+
+(ert-deftest xl-jit-second-run-does-no-work ()
+  "With nothing changed, the second run skips the work entirely."
+  (xl-jit-test--with-state
+    (let ((work 0))
+      (cl-letf (((symbol-function 'xl-jit-platform-available-p) (lambda () t))
+                ((symbol-function 'xl-jit--work) (lambda () (cl-incf work) (list :compiled 0))))
+        (should (eq (car (xl-jit-run)) 'ran))
+        (should (= work 1))
+        (should (eq (xl-jit-run) 'unchanged))
+        (should (= work 1))
+        (should-not (file-exists-p (xl-jit--lock-dir)))))))
+
+(ert-deftest xl-jit-audit-drops-entries-whose-eln-is-missing ()
+  "A done entry whose eln is gone is removed, so the source can be built again."
+  (xl-jit-test--with-state
+    (let ((key '("/src/gone.el" "sha" (1))))
+      (xl-jit--ledger-set key (list :status 'done :eln "/no/such.eln" :sha "x" :size 1))
+      (xl-jit--audit)
+      (should-not (xl-jit--ledger-get key)))))
+
+(ert-deftest xl-jit-audit-discards-tampered-and-broken-eln ()
+  "A changed or unloadable eln is deleted and counted as a failure."
+  (xl-jit-test--with-state
+    (let* ((eln (expand-file-name "bad.eln" xl-jit-state-dir))
+           (key '("/src/bad.el" "sha" (1))))
+      (make-directory xl-jit-state-dir t)
+      ;; Recorded hash does not match the file: deleted at once.
+      (with-temp-file eln (insert "not an eln"))
+      (xl-jit--ledger-set key (list :status 'done :eln eln :sha "wrong" :size 1))
+      (xl-jit--audit)
+      (should-not (file-exists-p eln))
+      (should (= (plist-get (xl-jit--ledger-get key) :fails) 1))
+      (should (eq (plist-get (xl-jit--ledger-get key) :status) 'failed))
+      ;; Recorded hash matches but the file cannot be loaded: deleted too.
+      (with-temp-file eln (insert "not an eln either"))
+      (xl-jit--ledger-set key (list :status 'done :eln eln
+                                    :sha (xl-jit--file-sha eln)
+                                    :size (xl-jit--file-size eln)))
+      (xl-jit--audit)
+      (should-not (file-exists-p eln))
+      (should (eq (plist-get (xl-jit--ledger-get key) :status) 'failed)))))
+
+(ert-deftest xl-jit-verify-accepts-native-and-rejects-garbage ()
+  "Verification loads the eln and checks that the defun is native."
+  (skip-unless (native-comp-available-p))
+  (xl-jit-test--with-state
+    (let* ((dir (make-temp-file "xl-jit-verify-" t))
+           (src (xl-jit-test--toy-src dir "verified"))
+           (eln (expand-file-name "verified.eln" dir)))
+      (native-compile src eln)
+      (should (null (xl-jit-verify src eln)))
+      (with-temp-file eln (insert "garbage"))
+      (should (stringp (xl-jit-verify src eln))))))
+
+;; Step 4: reset removes only what the ledger recorded
+
+(ert-deftest xl-jit-reset-removes-only-recorded-elns ()
+  "Reset deletes recorded elns and the ledger, and leaves other files alone."
+  (xl-jit-test--with-state
+    (let* ((recorded (expand-file-name "recorded.eln" xl-jit-state-dir))
+           (other (expand-file-name "not-ours.eln" xl-jit-state-dir)))
+      (make-directory xl-jit-state-dir t)
+      (with-temp-file recorded (insert "x"))
+      (with-temp-file other (insert "y"))
+      (xl-jit--ledger-set '("/src/r.el" "sha" (1))
+                          (list :status 'done :eln recorded :sha "s" :size 1))
+      (should (= (xl-jit-reset) 1))
+      (should-not (file-exists-p recorded))
+      (should-not (file-exists-p (xl-jit--ledger-file)))
+      (should (file-exists-p other))
+      (should (= (xl-jit-reset) 0)))))
+
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

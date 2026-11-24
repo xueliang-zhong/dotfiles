@@ -12,6 +12,8 @@
 #   bash emacs/install/emacs-setup.sh trampolines
 #   bash emacs/install/emacs-setup.sh jit
 #   bash emacs/install/emacs-setup.sh compile-lisp
+#   bash emacs/install/emacs-setup.sh jit-run
+#   bash emacs/install/emacs-setup.sh jit-reset
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -237,6 +239,7 @@ cmd_test() {
         -f ert-run-tests-batch-and-exit
     # xl-jit runs in its own batch process, without the profile.
     "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
+        --eval '(setq load-prefer-newer t)' \
         -l "$DOTFILES/emacs/tests/xl-jit-tests.el" \
         -f ert-run-tests-batch-and-exit
 }
@@ -266,12 +269,29 @@ cmd_compile_lisp() {
 "
 }
 
+# One background run: the profile is loaded so package macros and the load
+# path are the real ones.  Lock, fingerprint and audit live in xl-jit.el.
+cmd_jit_run() {
+    require_emacs
+    require_profile
+    emacs_batch --eval '(progn (require (quote xl-jit)) (princ (format "xl-jit run: %S\n" (xl-jit-run))))'
+}
+
+cmd_jit_reset() {
+    require_emacs
+    "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
+        --eval '(setq load-prefer-newer t)' \
+        -L "$DOTFILES/emacs/lisp" -l xl-jit \
+        --eval '(princ (format "xl-jit reset: %d eln file(s) removed\n" (xl-jit-reset)))'
+}
+
 # Background native-compilation gate (emacs/ideas/xl-jit.md, step 1).  Runs
 # in a bare batch Emacs whose state folder is the profile's, and never loads
 # the profile, so it stays quick.  Always exits 0: "not available" is an answer.
 cmd_jit() {
     require_emacs
     "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" \
+        --eval '(setq load-prefer-newer t)' \
         -L "$DOTFILES/emacs/lisp" -l xl-jit \
         -f xl-jit-platform-report
 }
@@ -455,6 +475,8 @@ use / check:
   trampolines            pre-build advice trampolines so a GUI start is fast
   jit                    say whether xl-jit can run here (native compilation)
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
+  jit-run                one background xl-jit run (audit, then work when due)
+  jit-reset              delete the elns xl-jit recorded, and its ledger
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -474,6 +496,8 @@ case "${1:-}" in
     trampolines) shift; cmd_trampolines "$@" ;;
     jit) shift; cmd_jit "$@" ;;
     compile-lisp) shift; cmd_compile_lisp "$@" ;;
+    jit-run) shift; cmd_jit_run "$@" ;;
+    jit-reset) shift; cmd_jit_reset "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;
