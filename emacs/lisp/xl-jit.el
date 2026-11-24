@@ -748,16 +748,5 @@ the roots is refused, because its truename is what gets compiled."
                                (string= r true)))))
                   (xl-jit-trusted-roots)))))
 
-;;; Step 7: a scheduled run that was skipped (battery, heat) is recorded here,
-;;; so `jit-status' shows why nothing happened.
-
-(defun xl-jit-record-skip (reason)
-  "Record that a scheduled run was skipped for REASON.  Other fields stay."
-  (let ((last (or (xl-jit--read-eld (xl-jit--last-run-file)) nil)))
-    (xl-jit--write-eld (xl-jit--last-run-file)
-                       (plist-put (plist-put (copy-sequence last) :skipped reason)
-                                  :time (xl-jit--now)))
-    reason))
-
 (provide 'xl-jit)
 ;;; xl-jit.el ends here

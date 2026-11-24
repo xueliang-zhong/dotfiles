@@ -7,7 +7,7 @@
 `early-init.el` 关掉了 `native-comp-jit-compilation`：全局 JIT 在第一次使用时就把所有东西放到后台编译，会拖慢整台机器。xl-jit 想保留 JIT 的好处，去掉"什么都编、马上就编"这两点：
 
 - 只编译真正值得编的文件，并且在后台低优先级地编，一次一个。
-- **对用户透明**：运行中的 Emacs 里不调用 `profiler-start`，不加 hook，不加 advice。所有分析都在子 Emacs 里完成。
+- **对用户透明**：运行中的 Emacs 里不调用 `profiler-start`，不加 hook，不加 advice，只有一个 timer（`xl-jit-auto.el`）。所有分析和编译都在后台的子 Emacs 里完成。
 - 新的 eln **下次启动才生效**，不在当前 session 里热替换。
 - 不出现版本不匹配导致的反复检查、反复重编译，或者编好了却不生效的情况。
 - 不加载不安全的 eln，不留 DoS 的口子。
@@ -45,7 +45,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 ```
 平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
-触发（不进入运行中的 session）：emacs-setup.sh / launchd，每天最多一次
+触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过一天、没在用电池（xl-jit-auto.el，只用 timer）
   └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
        0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
        1. 复查账本里记录的 eln：哈希、dlopen；有问题的删掉
@@ -70,10 +70,10 @@ Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编�
 - 判断只做一次，结果缓存到 `xl-jit-platform.eld`，key 是 Emacs 二进制的路径、大小和 mtime。二进制不变就直接用缓存结果，连判断用的 batch 进程都不再启动。换了 Emacs，key 变化，重新判断一次。
 - 结果为 nil 时，emacs-setup.sh 打印一行说明（例如 `xl-jit: native compilation not available, skipped`），然后退出。不报错，也不影响 setup 的其它步骤。
 
-**安装时就不建调度**
+**不可用时主 Emacs 里连 timer 都不排**
 
-- Windows（`setup-windows`）和任何判断为不可用的平台，都不安装计划任务。
-- 已经装过的平台，如果后来判断变成不可用（比如 Homebrew 升级时删掉了 libgccjit），在下一次 setup 时移除调度。
+- `xl-jit-auto.el` 每次检查都先看 `native-comp-available-p`。为 nil（例如 Windows 上没有 libgccjit）时，返回 `unavailable`，不再排下一个 timer，这个 session 里不会再有任何动作。
+- 金丝雀熔断（见下）在后台子进程里判断。熔断后子进程立刻返回 `unavailable`，主 Emacs 一天最多为此启动一次子进程。
 
 **带了 native 编译但实际编不出来**
 
@@ -87,7 +87,7 @@ Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编�
 
 - trampoline：不需要，因为没有 native 代码，advice 原语不需要它（现有的 `cmd_trampolines` 已经这样处理）。
 - 应急开关 `load-no-native`：不需要。
-- Tier 1（把自己的 lisp 编成 .elc）不依赖 libgccjit，但它不属于 xl-jit 这条链。要做的话，作为 setup 里一个独立的字节编译步骤，不复用这里的调度和账本。
+- Tier 1（把自己的 lisp 编成 .elc）不依赖 libgccjit，但它不属于 xl-jit 这条链。它是 setup 里一个独立的字节编译步骤（`compile-lisp`），不复用这里的触发器和账本。
 
 ## 热点排名（Tier 2 的输入）
 
@@ -235,7 +235,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 - `native-comp-speed` 最高为 2。speed 3 会假设同一编译单元里的函数不会被重新定义，这会让 advice 失效。
 
 **3. 崩溃隔离（借鉴去优化）**
-父进程里不加 hook，所以没法在 Emacs 里捕获崩溃。但 macOS 会把崩溃报告写到 `~/Library/Logs/DiagnosticReports/Emacs-*.ips`，子进程可以读：
+主 Emacs 里不加 hook，所以没法在 Emacs 里捕获崩溃。但 macOS 会把崩溃报告写到 `~/Library/Logs/DiagnosticReports/Emacs-*.ips`，子进程可以读：
 - 如果某个崩溃报告的时间晚于某批 eln 的生效时间，并且调用栈里出现了 xl-jit 产出的 eln 文件名，就删掉这个 eln，并把它的 key 永久列入账本。
 - 有崩溃但找不到对应的 eln 时，只在报告里提示，不做任何操作。
 - Linux 上对应的是 `coredumpctl` 的输出，可用时同样处理。
@@ -248,9 +248,12 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 
 总体积超过上限时，按"最近一次在排名中出现"的时间淘汰最旧的 eln。
 
-**5. 调度条件（借鉴 bg-dexopt）**
-- macOS 用 launchd：`StartCalendarInterval` 每天一次，`ProcessType` 设为 `Background`，`LowPriorityIO` 设为 true，`Nice` 设为 19。
-- 运行前检查：接着电源（`pmset -g batt`），并且没有过热（`pmset -g therm`）；不满足就跳过，第二天再试。
+**5. 触发条件（借鉴 bg-dexopt 的"空闲 + 接电源 + 每天一次"）**
+- 不用 launchd 这类 Emacs 之外的计划任务。主 Emacs 自己用 timer 判断：开了 `xl-jit-auto-uptime`（10 分钟）以上，说明它会长期开着；之后等用户空闲 `xl-jit-auto-idle`（60 秒）。
+- 条件：距上次运行超过 `xl-jit-auto-interval`（一天，看 `last-run.eld` 的 mtime）；没在用电池（`battery-status-function`）；没有正在跑的后台子进程。不满足就隔一段时间再检查。
+- 后台子进程在 macOS 上用 `taskpolicy -b`（后台 QoS、效率核心），其它系统用 `nice -n 19`。
+- batch 环境（`noninteractive`）里绝不触发：setup、测试，以及后台子进程自己加载 init 时，都不会再派生子进程。
+- 还没做：用户恢复操作时暂停子进程（SIGSTOP/SIGCONT）。那需要一个 hook，和"只用 timer"冲突，暂时不做。
 - 仍然遵守"每天最多一次"和指纹检查。
 
 **6. 隐私**
@@ -347,12 +350,14 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
   - 测试：指向可信根目录之外的符号链接被拒绝；带 `no-native-compile: t` 的文件不编译；编译超时记为失败，第二次运行不重试；一份伪造的崩溃报告（调用栈里有某个 eln 的文件名）会让这个 eln 被删掉并隔离；
   - 真实运行一次后，再运行一次，编译 0 个文件。
 
-### 7. launchd 调度（可以直接实现）
+### 7. 主 Emacs 里的触发器（已改，原先是 launchd）
 
-- `emacs/install/` 下放 plist 模板：每天一次，`ProcessType` 为 `Background`，`LowPriorityIO` 为 true，`Nice` 为 19；执行 `emacs-setup.sh jit`。
-- `setup-macos` 安装它；第 1 步判断为不可用时不安装，已经装了就移除。Windows 和 Linux 不安装。
-- 运行时检查电源和温度，不满足就跳过，并写进 `last-run.eld`。
-- 验收：`plutil -lint` 通过；`launchctl print gui/$(id -u)/<label>` 能看到；把平台缓存改成不可用后再跑 setup，任务被移除。
+最初实现成了 launchd 计划任务，后来按你的要求换成主 Emacs 里的 timer：一个独立于 Emacs 的计划任务不合适。
+
+- `emacs/lisp/xl-jit-auto.el`，由 init.el `require` 并调用 `xl-jit-auto-arm`。只用 `run-with-timer` 和 `run-with-idle-timer`，不加 hook。
+- 条件和优先级见上面"触发条件"。子进程结束后，按 `xl-jit-auto-interval` 重新排下一次检查，Emacs 连开几天也会每天跑一次。
+- 结果存在 `xl-jit-auto-last-result`，子进程输出在 ` *xl-jit*` 缓冲区；账本和统计仍然用 `jit-status` 看。
+- 验收：各个"不运行"的原因都有测试；batch 下不排 timer；空闲时条件变了（比如拔了电源）就不启动；后台命令带 `taskpolicy -b` 或 `nice -n 19`；用加载了 profile 的 batch 模拟一次完整运行。
 
 ## 实现记录（2026-11-24）
 
@@ -369,9 +374,9 @@ Emacs 只按文件名信任 eln，不验证内容。所以 xl-jit 必须保证�
 
 ## 未验证的部分
 
-- 没有在你的机器上安装 launchd 任务。`jit-schedule --dry-run` 和临时目录里的安装/移除都测过，但没有 `launchctl bootstrap`。
+- 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `xl-jit-auto--start`），还没有在 GUI 里等它自己在 10 分钟后触发。
 - 崩溃隔离只用伪造的崩溃报告测过。真实的 macOS 崩溃报告调用栈里是否会出现 eln 文件名，还没有确认。
-- 热限制时 `pmset -g therm` 的输出格式（`CPU_Speed_Limit`）只在没有限速时看过。
+- 不再检查热限制（launchd 版本用 `pmset -g therm`，换成 timer 后去掉了）。
 - `M-x xl-jit-report` 的交互路径（打开缓冲区）没有测；批处理路径（`jit-report`）测过。
 - Linux 和 Windows 上没有测试。
 

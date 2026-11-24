@@ -16,8 +16,6 @@
 #   bash emacs/install/emacs-setup.sh jit-reset
 #   bash emacs/install/emacs-setup.sh jit-report
 #   bash emacs/install/emacs-setup.sh jit-status
-#   bash emacs/install/emacs-setup.sh jit-schedule [--dry-run]
-#   bash emacs/install/emacs-setup.sh jit-scheduled
 #   bash emacs/install/emacs-setup.sh make-default|restore-spacemacs
 #   bash emacs/install/emacs-setup.sh try [EMACS-ARGS...]
 #
@@ -289,77 +287,6 @@ cmd_jit_status() {
         --eval '(pp (xl-jit-status))'
 }
 
-# Scheduled runs skip on battery and under thermal throttling (xl-jit.md, "调度条件").
-cmd_jit_scheduled() {
-    require_emacs
-    require_profile
-    local why=""
-    if command -v pmset >/dev/null 2>&1; then
-        if ! pmset -g batt 2>/dev/null | grep -q "AC Power"; then
-            why="on battery"
-        else
-            local limit
-            limit=$(pmset -g therm 2>/dev/null | awk '/CPU_Speed_Limit/ {print $NF}' | tail -1)
-            if [ -n "$limit" ] && [ "$limit" -lt 100 ] 2>/dev/null; then
-                why="thermal limit $limit%"
-            fi
-        fi
-    fi
-    if [ -n "$why" ]; then
-        "$EMACS" --batch -Q --init-directory "$PROFILE_DIR" -L "$DOTFILES/emacs/lisp" \
-            -l xl-jit --eval "(xl-jit-record-skip \"$why\")" >/dev/null 2>&1 || true
-        say "xl-jit: skipped ($why)"
-        return 0
-    fi
-    cmd_jit_run
-}
-
-# Install the daily launchd job on macOS when native compilation works here,
-# and remove it when it does not.  --dry-run prints the plist instead.
-# XL_LAUNCH_AGENTS_DIR and XL_NO_LAUNCHCTL=1 exist for tests.
-cmd_jit_schedule() {
-    local dry=0
-    [ "${1:-}" = --dry-run ] && dry=1
-    if [ "$(uname -s)" != Darwin ]; then
-        say "xl-jit schedule: macOS only, nothing to do here"
-        return 0
-    fi
-    local agents="${XL_LAUNCH_AGENTS_DIR:-$HOME/Library/LaunchAgents}"
-    local plist="$agents/local.xl-jit.plist"
-    local gate
-    gate=$("$EMACS" --batch -Q --init-directory "$PROFILE_DIR" -L "$DOTFILES/emacs/lisp" \
-        -l xl-jit -f xl-jit-platform-report 2>/dev/null | tail -1 || true)
-    case "$gate" in
-        *"not available"*)
-            say "xl-jit schedule: native compilation not available, no job installed"
-            if [ -f "$plist" ]; then
-                [ -n "${XL_NO_LAUNCHCTL:-}" ] || launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
-                rm -f "$plist"
-                say "xl-jit schedule: removed $plist"
-            fi
-            return 0
-            ;;
-    esac
-    mkdir -p "$PROFILE_DIR/xl-jit"
-    local text
-    text=$(sed -e "s|@DOTFILES@|$DOTFILES|g" \
-               -e "s|@EMACS@|$(command -v "$EMACS" || echo "$EMACS")|g" \
-               -e "s|@PROFILE_DIR@|$PROFILE_DIR|g" \
-               "$DOTFILES/emacs/install/xl-jit.plist.in")
-    if [ "$dry" = 1 ]; then
-        printf '%s\n' "$text"
-        return 0
-    fi
-    mkdir -p "$agents"
-    printf '%s\n' "$text" > "$plist"
-    plutil -lint "$plist" >/dev/null || die "plist does not lint: $plist"
-    if [ -z "${XL_NO_LAUNCHCTL:-}" ]; then
-        launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
-        launchctl bootstrap "gui/$(id -u)" "$plist"
-    fi
-    say "xl-jit schedule: installed $plist (daily at 04:17, background priority)"
-}
-
 cmd_jit_report() {
     require_emacs
     require_profile
@@ -461,13 +388,12 @@ cmd_restore_spacemacs() {
 cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
-    progress_init 7
+    progress_init 6
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
     progress_step "Install Emacs packages" run_progress cmd_smoke
     progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
     progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
-    progress_step "Schedule background xl-jit" run_quiet cmd_jit_schedule
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "macOS setup complete"
 }
@@ -569,8 +495,6 @@ use / check:
   jit-reset              delete the elns xl-jit recorded, and its ledger
   jit-report             print the xl-jit ranking; compiles nothing
   jit-status             ledger counts, eln bytes, and the last run's result
-  jit-schedule [--dry-run]  install (or remove) the daily launchd job, macOS only
-  jit-scheduled          what the daily job runs: skip on battery or heat, else jit-run
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)
@@ -594,8 +518,6 @@ case "${1:-}" in
     jit-reset) shift; cmd_jit_reset "$@" ;;
     jit-report) shift; cmd_jit_report "$@" ;;
     jit-status) shift; cmd_jit_status "$@" ;;
-    jit-schedule) shift; cmd_jit_schedule "$@" ;;
-    jit-scheduled) shift; cmd_jit_scheduled "$@" ;;
     make-default) shift; cmd_make_default "$@" ;;
     restore-spacemacs) shift; cmd_restore_spacemacs "$@" ;;
     setup-macos) shift; cmd_setup_macos "$@" ;;

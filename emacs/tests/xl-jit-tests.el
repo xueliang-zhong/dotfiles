@@ -8,6 +8,7 @@
 (require 'cl-lib)
 (require 'xl-jit)
 (require 'xl-jit-rank)
+(require 'xl-jit-auto)
 (defvar xl-dotfiles nil "Bound by the profile; tests bind it to a temporary folder.")
 
 (defmacro xl-jit-test--with-state (&rest body)
@@ -604,31 +605,100 @@
             (should (plist-get r :capped))
             (should (= children 0))))))))
 
-;;; Step 7: skipped runs are recorded; the launchd template has what the design asks
+;;; The in-Emacs trigger (xl-jit-auto.el): timers only, and never in batch
 
-(ert-deftest xl-jit-record-skip-keeps-the-other-fields ()
-  "Recording a skip adds the reason and time, and keeps the fingerprint."
-  (xl-jit-test--with-state
-    (xl-jit--write-eld (xl-jit--last-run-file) (list :fingerprint "fp" :next 5))
-    (xl-jit-record-skip "on battery")
-    (let ((last (xl-jit--read-eld (xl-jit--last-run-file))))
-      (should (equal (plist-get last :skipped) "on battery"))
-      (should (equal (plist-get last :fingerprint) "fp"))
-      (should (= (plist-get last :next) 5))
-      (should (numberp (plist-get last :time))))))
+(defmacro xl-jit-test--with-auto (&rest body)
+  "A temporary profile folder, an Emacs that has been open for an hour, on AC
+power, native compilation available, and timers recorded instead of armed."
+  (declare (indent 0))
+  `(let* ((user-emacs-directory (file-name-as-directory (make-temp-file "xl-jit-auto-" t)))
+          (before-init-time (time-subtract nil 3600))
+          (xl-jit-auto-enable t)
+          (xl-jit-auto--process nil)
+          (xl-jit-auto--timer nil)
+          (timers nil))
+     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () t))
+               ((symbol-function 'xl-jit-auto--on-battery-p) (lambda () nil))
+               ((symbol-function 'run-with-timer)
+                (lambda (secs _repeat fn) (push (list 'timer secs fn) timers) 'fake-timer))
+               ((symbol-function 'run-with-idle-timer)
+                (lambda (secs _repeat fn) (push (list 'idle secs fn) timers) 'fake-idle))
+               ((symbol-function 'xl-jit-auto--cancel)
+                (lambda () (setq xl-jit-auto--timer nil))))
+       (unwind-protect (progn ,@body)
+         (ignore-errors (delete-directory user-emacs-directory t))))))
 
-(ert-deftest xl-jit-launchd-template-has-the-required-settings ()
-  "The daily job runs in the background with low I/O and nice 19, at 04:17."
-  (let* ((lisp-dir (file-name-directory (locate-library "xl-jit")))
-         (template (expand-file-name "../install/xl-jit.plist.in" lisp-dir))
-         (text (with-temp-buffer
-                 (insert-file-contents template)
-                 (buffer-string))))
-    (should (string-match-p "<string>Background</string>" text))
-    (should (string-match-p "<key>LowPriorityIO</key>\\s-*<true/>" text))
-    (should (string-match-p "<key>Nice</key>\\s-*<integer>19</integer>" text))
-    (should (string-match-p "<key>Hour</key>\\s-*<integer>4</integer>" text))
-    (should (string-match-p "<key>Minute</key>\\s-*<integer>17</integer>" text))))
+(defun xl-jit-test--touch-last-run (age)
+  "Write a last-run record that is AGE seconds old."
+  (let ((f (xl-jit-auto--last-run-file)))
+    (make-directory (file-name-directory f) t)
+    (with-temp-file f (insert "(:time 0)\n"))
+    (set-file-times f (time-subtract nil age))))
+
+(ert-deftest xl-jit-auto-decides-when-to-run ()
+  "Each reason not to run is reported; with none left, it may run."
+  (xl-jit-test--with-auto
+    (should (null (xl-jit-auto--decision)))
+    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
+      (should (eq (xl-jit-auto--decision) 'unavailable)))
+    (let ((xl-jit-auto-enable nil))
+      (should (eq (xl-jit-auto--decision) 'disabled)))
+    (let ((process-environment (cons "XL_JIT=0" process-environment)))
+      (should (eq (xl-jit-auto--decision) 'disabled)))
+    (let ((before-init-time (time-subtract nil 30)))
+      (should (eq (xl-jit-auto--decision) 'too-early)))
+    (cl-letf (((symbol-function 'xl-jit-auto--on-battery-p) (lambda () t)))
+      (should (eq (xl-jit-auto--decision) 'battery)))
+    (xl-jit-test--touch-last-run 3600)
+    (should (eq (xl-jit-auto--decision) 'recent))
+    (xl-jit-test--touch-last-run (+ xl-jit-auto-interval 60))
+    (should (null (xl-jit-auto--decision)))))
+
+(ert-deftest xl-jit-auto-tick-waits-for-idle-or-checks-again-later ()
+  "Allowed: an idle timer.  Too early: a timer for the rest.  Unavailable: none."
+  (xl-jit-test--with-auto
+    (xl-jit-auto--tick)
+    (should (equal (car timers) (list 'idle xl-jit-auto-idle #'xl-jit-auto--start)))
+    (setq timers nil)
+    (let ((before-init-time (time-subtract nil 60)))
+      (xl-jit-auto--tick)
+      (should (eq (car (car timers)) 'timer))
+      (should (<= (abs (- (nth 1 (car timers)) (- xl-jit-auto-uptime 60))) 2)))
+    (setq timers nil)
+    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
+      (xl-jit-auto--tick)
+      (should (null timers)))))
+
+(ert-deftest xl-jit-auto-never-arms-in-batch ()
+  "Setup, tests, and the background run itself load init in batch: no timer."
+  (xl-jit-test--with-auto
+    (let ((noninteractive t))
+      (xl-jit-auto-arm)
+      (should (null timers)))
+    (let ((noninteractive nil))
+      (xl-jit-auto-arm)
+      (should (eq (car (car timers)) 'timer)))))
+
+(ert-deftest xl-jit-auto-start-rechecks-and-spawns-nothing-when-not-allowed ()
+  "If the user went on battery while idle, no process starts."
+  (xl-jit-test--with-auto
+    (let ((spawned 0))
+      (cl-letf (((symbol-function 'xl-jit-auto--on-battery-p) (lambda () t))
+                ((symbol-function 'make-process) (lambda (&rest _) (cl-incf spawned) nil)))
+        (xl-jit-auto--start)
+        (should (= spawned 0))
+        (should (equal (car timers) (list 'timer xl-jit-auto-retry #'xl-jit-auto--tick)))))))
+
+(ert-deftest xl-jit-auto-command-runs-at-background-priority ()
+  "The background run uses taskpolicy -b when present, nice -n 19 otherwise."
+  (xl-jit-test--with-auto
+    (cl-letf (((symbol-function 'executable-find)
+               (lambda (p) (and (equal p "taskpolicy") "/usr/sbin/taskpolicy"))))
+      (should (equal (seq-take (xl-jit-auto--command) 2) '("taskpolicy" "-b"))))
+    (cl-letf (((symbol-function 'executable-find)
+               (lambda (p) (and (equal p "nice") "/usr/bin/nice"))))
+      (should (equal (seq-take (xl-jit-auto--command) 3) '("nice" "-n" "19"))))
+    (should (member "--batch" (xl-jit-auto--command)))))
 
 (provide 'xl-jit-tests)
 ;;; xl-jit-tests.el ends here

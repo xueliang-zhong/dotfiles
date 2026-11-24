@@ -164,6 +164,11 @@ session."
 (require 'xl-package-menu)
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
+;; xl-jit: once this Emacs has stayed open a while and goes idle, compile the
+;; hot files to native code in a background batch Emacs (timers only, no hooks;
+;; nothing at all without libgccjit).  See emacs/ideas/xl-jit.md.
+(require 'xl-jit-auto)
+(xl-jit-auto-arm)
 ;; No extension: `load' then prefers emacs/xueliang.elc when it is current
 ;; (see `compile-lisp' in emacs-setup.sh), and the .el otherwise.
 (load (expand-file-name "emacs/xueliang" xl-dotfiles))
