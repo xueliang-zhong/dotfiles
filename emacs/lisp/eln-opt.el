@@ -1595,7 +1595,7 @@ Batch: printed to stdout, computed here."
   "Non-nil means the running Emacs starts eln-opt in the background."
   :type 'boolean)
 
-(defcustom eln-opt-auto-uptime (* 10 60)
+(defcustom eln-opt-auto-uptime (* 1 60)
   "Seconds Emacs must have been open before a background run is considered.
 A short-lived Emacs (a quick edit, `emacsclient -a \"\"') never starts one."
   :type 'integer)
@@ -1639,7 +1639,8 @@ after this many seconds."
   (let* ((fn (bound-and-true-p battery-status-function))
          (line (and fn (ignore-errors (cdr (assq ?L (funcall fn)))))))
     (and (stringp line)
-         (string-match-p "\\`\\(bat\\|off-line\\)" (downcase line)))))
+         (string-match-p "\\`\\(bat\\|off-line\\)" (downcase line))
+         t)))
 
 (defun eln-opt-auto--uptime ()
   (float-time (time-since before-init-time)))
