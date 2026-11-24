@@ -465,10 +465,10 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
               rows)))
     (sort rows (lambda (a b) (string< (plist-get a :file) (plist-get b :file))))))
 
-(defun xl-jit-rank--line (rank ratio score kb trusted native file top)
+(defun xl-jit-rank--line (rank score kb trusted native file top)
   "One report row.  Every row, ranked or built, uses this one layout."
-  (format "%4s  %6s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
-          rank ratio score kb trusted native file top))
+  (format "%4s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
+          rank score kb trusted native file top))
 
 (defun xl-jit-rank--format (result)
   "The report as a string.  Ranked rows first, then files already native."
@@ -489,11 +489,11 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
       (princ (format "native now: %d file(s) built by xl-jit, %d function(s); not yet native: ranked below\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
       (princ "\n")
-      (princ (xl-jit-rank--line "rank" "ratio" "score" "KB" "trusted" "native" "file"
+      (princ (xl-jit-rank--line "rank" "score" "KB" "trusted" "native" "file"
                                 "[top functions]"))
       (cl-loop for row in (seq-take (plist-get result :rows) 25) for i from 1
                do (princ (xl-jit-rank--line
-                          i (format "%.1f" (plist-get row :ratio))
+                          i
                           (format "%.1f" (plist-get row :score))
                           (format "%.1f" (/ (plist-get row :size) 1024.0))
                           (if (plist-get row :trusted) "yes" "NO")
@@ -503,7 +503,7 @@ they are listed here with native \"xl-jit\".  Their KB is the eln size."
         (princ "\nalready native, built by xl-jit (no ratio: they left the ranking):\n")
         (dolist (row built)
           (princ (xl-jit-rank--line
-                  "-" "-" "-"
+                  "-" "-"
                   (format "%.1f" (/ (plist-get row :size) 1024.0))
                   "yes" "xl-jit" (plist-get row :file)
                   (format "%d functions, e.g. %S" (plist-get row :count)
