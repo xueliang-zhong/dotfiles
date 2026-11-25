@@ -921,26 +921,12 @@ Return the file name.  Does nothing but report when no recording runs."
                  file xl-perfetto--last-count xl-perfetto--last-dropped))
       file)))
 
-(defun xl-perfetto-trace-toggle ()
-  "Start a recording, or stop the one that runs."
-  (interactive)
-  (if xl-perfetto--recording
-      (xl-perfetto-trace-stop)
-    (xl-perfetto-trace-start)))
-
 (defun xl-perfetto-trace-function (function)
   "Trace FUNCTION during this and every later recording.
-The function gets an `:around' advice while recording.  C primitives are
-refused unless native compilation is unavailable or eln-opt has already
-cached their trampoline."
-  (interactive
-   (list (intern
-          (completing-read
-           "Trace function: " obarray
-           (lambda (symbol)
-             (and (fboundp symbol)
-                  (not (xl-perfetto--own-function-p symbol))))
-           t nil nil (thing-at-point 'symbol)))))
+A Lisp API, not a command: call it from your own code or config.  The
+function gets an `:around' advice while recording.  C primitives are refused
+unless native compilation is unavailable or eln-opt has already cached their
+trampoline."
   (xl-perfetto--check-traceable function)
   (add-to-list 'xl-perfetto--traced-functions function)
   (if (not xl-perfetto--recording)
@@ -954,12 +940,7 @@ cached their trampoline."
       (message "xl-perfetto: tracing %s" function))))
 
 (defun xl-perfetto-untrace-function (function)
-  "Stop tracing FUNCTION, now and in later recordings."
-  (interactive
-   (list (intern
-          (completing-read "Untrace function: "
-                           (or xl-perfetto--traced-functions obarray)
-                           nil t nil nil (thing-at-point 'symbol)))))
+  "Stop tracing FUNCTION, now and in later recordings.  A Lisp API."
   (setq xl-perfetto--traced-functions
         (delq function xl-perfetto--traced-functions))
   (xl-perfetto--remove-function-advice function)
@@ -1001,57 +982,6 @@ Drag the file from the Dired buffer into the page."
         (xl-perfetto--reveal-file file)
         (message "xl-perfetto: drag %s into ui.perfetto.dev" file))
     (message "xl-perfetto: no trace file yet; record one first")))
-
-;;; ============================================================
-;;; Benchmark
-;;; ============================================================
-
-(defun xl-perfetto--benchmark-target ()
-  "Empty function used by `xl-perfetto-trace-benchmark'.")
-
-(defun xl-perfetto--benchmark-run (iterations)
-  "Call `xl-perfetto--benchmark-target' ITERATIONS times, return seconds."
-  (let ((start (float-time)))
-    (dotimes (_ iterations)
-      (xl-perfetto--benchmark-target))
-    (- (float-time) start)))
-
-(defun xl-perfetto-trace-benchmark (&optional iterations)
-  "Measure the per-call cost of tracing a function.
-Call an empty function ITERATIONS times (default 100000) with and without
-the tracing advice and report the difference in microseconds per call.
-It only reports a number; no test asserts a speed, because slow machines
-would make such a test flaky."
-  (interactive
-   (list (if current-prefix-arg
-             (prefix-numeric-value current-prefix-arg)
-           100000)))
-  (let* ((iterations (or iterations 100000))
-         (baseline (xl-perfetto--benchmark-run iterations))
-         (started nil)
-         (was-traced (advice-member-p #'xl-perfetto--function-advice
-                                      'xl-perfetto--benchmark-target))
-         traced)
-    (unless xl-perfetto--recording
-      (let ((xl-perfetto-trace-categories '(functions))
-            (xl-perfetto-trace-ring-size 1000)
-            (xl-perfetto-trace-max-seconds 3600))
-        (xl-perfetto--start 3600)
-        (setq started t)))
-    (unless was-traced
-      (xl-perfetto--install-function-advice 'xl-perfetto--benchmark-target))
-    (unwind-protect
-        (setq traced (xl-perfetto--benchmark-run iterations))
-      (unless was-traced
-        (xl-perfetto--remove-function-advice 'xl-perfetto--benchmark-target))
-      (when started
-        (let ((file (xl-perfetto--stop)))
-          (when (and file (file-exists-p file))
-            (ignore-errors (delete-file file))))))
-    (let ((microseconds (* 1000000.0 (/ (- traced baseline) iterations))))
-      (message "xl-perfetto: %.2f µs extra per traced call (%d calls)"
-               microseconds iterations)
-      microseconds)))
 
 (provide 'xl-perfetto-trace)
 ;;; xl-perfetto-trace.el ends here

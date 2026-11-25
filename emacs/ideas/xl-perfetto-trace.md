@@ -43,9 +43,8 @@
 |---|---|
 | `xl-perfetto-trace-start` | 开始录制。带前缀参数时询问最长秒数。已经在录制就提示一下，不重新开始。 |
 | `xl-perfetto-trace-stop` | 停止录制，移除全部插桩，写出文件，在回显区显示路径，返回路径。没在录制就提示。 |
-| `xl-perfetto-trace-toggle` | 在开始和停止之间切换。 |
-| `xl-perfetto-trace-function` | 询问一个函数名，在本次录制中追踪它（`:around` advice）。没在录制时也可以先登记，开始录制时才生效。 |
-| `xl-perfetto-untrace-function` | 取消追踪一个函数。 |
+| `xl-perfetto-trace-function`（Lisp 函数，不是命令） | 在本次录制中追踪一个函数（`:around` advice）。没在录制时也可以先登记，开始录制时才生效。命令面板里不出现。 |
+| `xl-perfetto-untrace-function`（Lisp 函数） | 取消追踪一个函数。 |
 | `xl-perfetto-trace-mark` | 询问一段文字，在时间线上插一个瞬时标记，比如"开始打中文"。 |
 | `xl-perfetto-trace-open` | 用 `browse-url` 打开 ui.perfetto.dev，并在系统文件管理器里显示最近一次的 trace 文件，方便拖进去。 |
 
@@ -205,7 +204,7 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 ## 性能预算
 
 - 目标：每个事件的记录开销不超过 5 微秒（Apple Silicon）。打字时感觉不到差别。
-- 提供一个命令 `xl-perfetto-trace-benchmark`：对一个空函数加追踪，调用 10 万次，报告每次调用多出的微秒数。它只报告数字，测试里不断言耗时（避免在慢机器上不稳定）。
+- 测量方法：对一个空函数加追踪，调用 10 万次，比较有无追踪的时间差。命令 `xl-perfetto-trace-benchmark` 已删除（只为一次性测量而存在，不值得常驻）；测试里不断言耗时（避免在慢机器上不稳定）。
 - 实测（2026-11-25，Emacs 31.1 `aarch64-apple-darwin23.6.0`，`emacs --batch`，10 万次调用，三次运行）：**字节编译后每次约 3.2 微秒**，达到 5 微秒的目标；直接加载 `.el` 源码时每次约 7.1 微秒，因为记录路径本身在解释执行。正常安装会经过 `compile-lisp` 生成 `.elc`，所以运行时按 3.2 微秒算。命令和定时器事件每次只记一次，不受这个数字放大，打字时察觉不到。测试只打印这个数字，不断言它。
 
 ## 隐私与安全
@@ -247,7 +246,6 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 - `bash emacs/install/emacs-setup.sh test` 全部通过，包括新测试。
 - 在真实的 GUI Emacs 里录制 10 秒，期间打字、切换 buffer、打开 xl-dired 预览，生成的文件能在 ui.perfetto.dev 打开，看得到命令、定时器、GC、xl-async 和字体着色的轨道。
 - 不录制时：`pre-command-hook` 等全局 hook 里没有追踪器的函数，`advice-member-p` 都为 nil。
-- `xl-perfetto-trace-benchmark` 报告的每次调用开销写进本文档。
 
 ## 以后可以做的
 
