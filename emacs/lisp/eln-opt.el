@@ -1513,12 +1513,29 @@ string.  Success means Emacs will load the result on the next start."
   "Print one line for the main Emacs, which reads lines starting with ELN-OPT."
   (princ (concat "ELN-OPT " (apply #'format fmt args) "\n")))
 
-(defun eln-opt-worker ()
+(defun eln-opt-forced-plan (sources native)
+  "The plan for an explicit request: byte-compile each trusted source, then
+native-compile it when NATIVE.  Sources outside the trusted roots are refused
+and reported; the failed list is not consulted, since the user asked."
+  (let (plan)
+    (dolist (src sources)
+      (if (eln-opt-trusted-file-p src)
+          (progn
+            (push (cons 'byte src) plan)
+            (when native (push (cons 'native src) plan)))
+        (eln-opt--say "refused %s: not in a trusted folder" src)))
+    (nreverse plan)))
+
+(defun eln-opt-worker (&optional sources)
   "Compile the plan one file at a time, sleeping between files.
 Runs in a batch Emacs with the profile loaded, so package macros expand as
 they should.  Without native compilation it only byte-compiles.  The first
 error stops it, after putting that file on the failed list.  Returns the
-number of files compiled, or `busy'."
+number of files compiled, or `busy'.
+
+With SOURCES, a list of .el files, compiles exactly those (byte, then
+native), ignoring the failed list and the quiet state; the in-progress
+marker and the trusted-root check still apply."
   (cond
    ((not (eln-opt--lock-acquire)) (eln-opt--say "busy") 'busy)
    (t
@@ -1526,15 +1543,21 @@ number of files compiled, or `busy'."
         (let* ((native (eln-opt-platform-available-p))
                (refused (eln-opt--symlinked-p (eln-opt--marker-file)))
                (carry (and (not refused) (eln-opt--settle-interrupted)))
-               (plan (and (not refused) (eln-opt-worker-plan native)))
+               (forced (and sources t))
+               (plan (and (not refused)
+                          (if forced
+                              (eln-opt-forced-plan sources native)
+                            (eln-opt-worker-plan native))))
                (done 0)
                (first t))
           (when refused
             (eln-opt--say "stopped: %s is a symbolic link; remove it and run again"
                           (eln-opt--marker-file)))
           ;; Nothing planned: quiet until something changes.  Anything planned
-          ;; clears a quiet state from an earlier run.
-          (if plan (eln-opt--clear-quiet) (eln-opt--mark-quiet))
+          ;; clears a quiet state from an earlier run.  A forced request says
+          ;; nothing about the quiet state.
+          (unless forced
+            (if plan (eln-opt--clear-quiet) (eln-opt--mark-quiet)))
           (unless native (eln-opt--say "native compilation not available; byte-compile only"))
           (eln-opt--say "plan %d %s" (length plan)
                         (mapconcat (lambda (item)
@@ -1672,23 +1695,29 @@ A manual run is not held back.")
 
 (defun eln-opt-auto--decision (&optional force)
   "Nil when the worker may start now, otherwise a symbol saying why not.
-FORCE (a manual run) ignores the processor count and the quiet state."
-  (cond ((or (not eln-opt-auto-enable) (equal (getenv "ELN_OPT") "0")) 'disabled)
+FORCE (a manual run) ignores `eln-opt-auto-enable', the processor count and
+the quiet state.  ELN_OPT=0 is the kill switch and always wins."
+  (cond ((equal (getenv "ELN_OPT") "0") 'disabled)
+        ((and (not force) (not eln-opt-auto-enable)) 'disabled)
         ((process-live-p eln-opt-auto--process) 'running)
         ((and (not force) (< (num-processors) eln-opt-min-processors)) 'single-core)
         ((and (not force) (eln-opt-auto--quiet-p)) 'quiet)
         (t nil)))
 
-(defun eln-opt-auto--command ()
+(defun eln-opt-auto--command (&optional sources)
   "The worker's command line: this binary and profile, at background priority
-\(macOS `taskpolicy -b' puts it on the efficiency cores)."
+\(macOS `taskpolicy -b' puts it on the efficiency cores).  With SOURCES,
+the worker compiles exactly those files."
   (let* ((exe (expand-file-name invocation-name invocation-directory))
          (profile (file-name-as-directory user-emacs-directory))
+         (form (if sources
+                   (format "(progn (require 'eln-opt) (eln-opt-worker '%S))" sources)
+                 "(progn (require 'eln-opt) (eln-opt-worker))"))
          (emacs (list exe "--batch" "--init-directory" profile
                       "-l" (expand-file-name "early-init.el" profile)
                       "--eval" "(run-hooks (quote before-init-hook))"
                       "-l" (expand-file-name "init.el" profile)
-                      "--eval" "(progn (require 'eln-opt) (eln-opt-worker))")))
+                      "--eval" form)))
     (cond ((executable-find "taskpolicy") (append '("taskpolicy" "-b") emacs))
           ((executable-find "nice") (append '("nice" "-n" "19") emacs))
           (t emacs))))
@@ -1757,9 +1786,10 @@ and put the file it was compiling on the failed list."
                                (format "stalled for %d s; killed" eln-opt-worker-stall)))
     (delete-process eln-opt-auto--process)))
 
-(defun eln-opt-auto--start (&optional force)
+(defun eln-opt-auto--start (&optional force sources)
   "Start the worker, unless eln-opt is off, runs already, or was quiet last
-time (FORCE overrides the quiet state).  Returns the process, or nil."
+time (FORCE overrides those).  With SOURCES, the worker compiles exactly
+those files.  Returns the process, or nil."
   (setq eln-opt-auto--timer nil)
   (unless (eln-opt-auto--decision force)
     (let ((buf (get-buffer-create eln-opt-log-buffer)))
@@ -1772,7 +1802,7 @@ time (FORCE overrides the quiet state).  Returns the process, or nil."
             eln-opt-auto--process
             (make-process :name "eln-opt-worker" :buffer buf :noquery t
                           :connection-type 'pipe
-                          :command (eln-opt-auto--command)
+                          :command (eln-opt-auto--command sources)
                           :filter #'eln-opt-auto--filter
                           :sentinel #'eln-opt-auto--sentinel))
       (eln-opt-auto--stop-watchdog)
@@ -1801,6 +1831,52 @@ Batch: runs the worker here."
       (if proc
           (display-buffer (process-buffer proc))
         (message "eln-opt: %s" (eln-opt-auto--decision t))))))
+
+;;; ---- An explicit request: compile the file of one function now ----
+
+(defun eln-opt-function-source (function)
+  "The .el source of the Lisp file that defines FUNCTION, or nil.
+Errors name the reason: a C primitive has no Lisp file, and a function
+with no file (defined in the scratch buffer, say) cannot be compiled."
+  (let* ((fn (indirect-function function))
+         (file (and fn (not (subrp fn)) (symbol-file function 'defun))))
+    (cond
+     ((null fn) (user-error "%s is not a function" function))
+     ((subrp fn) (user-error "%s is a C primitive: it lives in the Emacs binary, not in a Lisp file" function))
+     ((null file) (user-error "%s has no file to compile" function))
+     (t (let ((src (eln-opt--source-for file)))
+          (unless (and (stringp src) (file-exists-p src))
+            (user-error "No source for %s: %s" function file))
+          src)))))
+
+(defun eln-opt-compile-function (function)
+  "Compile now, in the background, the Lisp file that defines FUNCTION.
+The file is byte-compiled and, where native compilation is available,
+native-compiled, by the same worker as the automatic runs; it is watched
+in the *eln-opt* buffer.  The result is used from the next start.  The
+trusted-folder rule and the kill switch ELN_OPT=0 still apply.  The
+failed list and the quiet state are ignored: the user asked for it."
+  (interactive
+   (list (intern (completing-read
+                  "Compile the file of function: "
+                  (let (names)
+                    (mapatoms (lambda (s) (when (fboundp s) (push (symbol-name s) names))))
+                    names)
+                  nil t nil nil
+                  (let ((here (or (function-called-at-point) (symbol-at-point))))
+                    (and here (symbol-name here)))))))
+  (let ((src (eln-opt-function-source function)))
+    (cond
+     ((process-live-p eln-opt-auto--process)
+      (message "eln-opt: a worker is already running; see %s" eln-opt-log-buffer)
+      (display-buffer (process-buffer eln-opt-auto--process)))
+     (t
+      (let ((proc (eln-opt-auto--start t (list src))))
+        (if proc
+            (progn
+              (display-buffer (process-buffer proc))
+              (message "eln-opt: compiling %s in the background" (file-name-nondirectory src)))
+          (message "eln-opt: %s" (eln-opt-auto--decision t))))))))
 
 (provide 'eln-opt)
 (provide 'eln-opt-rank)

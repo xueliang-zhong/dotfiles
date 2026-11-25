@@ -696,6 +696,48 @@ is recorded for that path."
         (eln-opt-reset)))
     (should-not (file-exists-p (eln-opt--marker-file)))))
 
+;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
+
+(defun eln-opt-test--forced (sources)
+  "Run the worker on SOURCES quietly and return its result."
+  (let (result)
+    (with-output-to-string (setq result (eln-opt-worker sources)))
+    result))
+
+(ert-deftest eln-opt-forced-compile-ignores-the-failed-list ()
+  "A file that failed before is still compiled when the user asks for it."
+  (eln-opt-test--with-tier2
+    (let ((src (eln-opt-test--src lisp "forced1")))
+      (eln-opt--record-failure src "an old failure")
+      (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () nil))
+                ((symbol-function 'sleep-for) #'ignore))
+        (should (= 1 (eln-opt-test--forced (list src)))))
+      (should (eln-opt--elc-current-p src)))))
+
+(ert-deftest eln-opt-forced-compile-refuses-an-untrusted-file ()
+  "A file outside the trusted folders is not compiled, and the reason is printed."
+  (eln-opt-test--with-tier2
+    (let* ((outside (file-name-as-directory (make-temp-file "eln-opt-outside-" t)))
+           (src (eln-opt-test--src outside "forced2"))
+           (text nil))
+      (unwind-protect
+          (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () nil)))
+            (setq text (with-output-to-string
+                         (should (= 0 (eln-opt-worker (list src))))))
+            (should (string-match-p "refused .*not in a trusted folder" text))
+            (should-not (file-exists-p (concat src "c"))))
+        (delete-directory outside t)))))
+
+(ert-deftest eln-opt-function-source-finds-the-lisp-file-or-says-why ()
+  "A Lisp function resolves to its source file; a C primitive is refused."
+  (eln-opt-test--with-tier2
+    (let ((src (eln-opt-test--src lisp "forced-fn")))
+      (with-temp-buffer
+        (insert-file-contents src)
+        (eval-buffer nil nil src))
+      (should (equal (eln-opt-function-source 'forced-fn-fn) src)))
+    (should-error (eln-opt-function-source 'car) :type 'user-error)))
+
 ;;; Processors: automatic workers need a second core; a manual run does not
 
 (ert-deftest eln-opt-auto-needs-two-processors-but-manual-runs-do-not ()
