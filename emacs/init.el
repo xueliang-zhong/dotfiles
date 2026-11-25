@@ -163,9 +163,10 @@ session."
 (require 'xl-git-commands)
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
-;; eln-opt: once this Emacs has stayed open a while and goes idle, compile the
-;; hot files to native code in a background batch Emacs (timers only, no hooks;
-;; nothing at all without libgccjit).  See emacs/ideas/eln-opt.md.
+;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
+;; background batch Emacs (timers only, no hooks): byte-compile what runs
+;; interpreted, then the hot files to native code (byte only without
+;; libgccjit).  See emacs/ideas/eln-opt.md.
 (require 'eln-opt)
 (eln-opt-auto-arm)
 ;; No extension: `load' then prefers emacs/xueliang.elc when it is current

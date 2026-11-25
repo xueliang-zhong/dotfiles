@@ -25,7 +25,9 @@
 ;; - `eln-opt-report' shows the ranking, what is native, and why each file
 ;;   is or is not compiled; `eln-opt-run-now' starts the worker at once.
 ;;
-;; Without native compilation (no libgccjit), nothing is ever scheduled.
+;; Files that run interpreted (loaded from .el: no .elc, or a stale one) are
+;; byte-compiled first, on every platform.  Without native compilation (no
+;; libgccjit, as on most Windows builds) that is all the worker does.
 ;; The design notes are in emacs/ideas/eln-opt.md of the dotfiles repository.
 ;;
 ;; Requires xl-async (which holds the loader too) for the views.
@@ -128,7 +130,7 @@ canary is cached too, so a broken libgccjit is not retried on every run."
   (if (eln-opt-platform-available-p)
       (princ "eln-opt: native compilation available\n")
     (let ((reason (plist-get (eln-opt--read-eld (eln-opt--platform-file)) :reason)))
-      (princ (format "eln-opt: native compilation not available, skipped (%s)\n"
+      (princ (format "eln-opt: native compilation not available, byte-compile only (%s)\n"
                      (or reason "unknown"))))))
 
 ;;; ------------------------------------------------------------
@@ -382,11 +384,36 @@ renamed away first, so two runners cannot both take over the same one."
 (defun eln-opt--eln-for (src)
   (ignore-errors (comp-el-to-eln-filename src)))
 
+(defun eln-opt--source-for (file)
+  "The source Emacs pairs with FILE, an .elc or a source: the .el if it
+exists, else the .el.gz (Emacs ships only that for its own libraries), else
+the .el path.  Loading an .elc without an .el, Emacs also names the eln after
+the .el.gz, so compiling the .el.gz gives the eln Emacs looks for."
+  (let ((el (replace-regexp-in-string
+             "\\.elc\\'" ".el" (string-remove-suffix ".gz" file))))
+    (cond ((file-exists-p el) el)
+          ((file-exists-p (concat el ".gz")) (concat el ".gz"))
+          (t el))))
+
+(defun eln-opt--elc-for (src)
+  "The .elc next to SRC, an .el or .el.gz."
+  (concat (string-remove-suffix ".gz" src) "c"))
+
+(defun eln-opt--source-bytes (src)
+  "SRC's size in bytes, uncompressed when SRC is an .el.gz."
+  (if (string-suffix-p ".gz" src)
+      (with-temp-buffer
+        (set-buffer-multibyte nil)
+        (let ((coding-system-for-read 'no-conversion))
+          (insert-file-contents src))
+        (buffer-size))
+    (eln-opt--file-size src)))
+
 (defun eln-opt--built-p (src)
   "Non-nil if SRC has an eln that Emacs will use: present, and not older than
 the .elc next to SRC."
   (let ((eln (eln-opt--eln-for src))
-        (elc (concat src "c")))
+        (elc (eln-opt--elc-for src)))
     (and eln (file-exists-p eln)
          (not (and (file-exists-p elc) (file-newer-than-file-p elc eln))))))
 
@@ -398,7 +425,7 @@ Emacs will use.  Emacs's own preloaded native code is not in that folder."
     (dolist (entry load-history)
       (let ((file (car entry)))
         (when (and (stringp file) (string-suffix-p ".elc" file))
-          (let* ((src (substring file 0 -1))
+          (let* ((src (eln-opt--source-for file))
                  (eln (and (file-exists-p src) (eln-opt--eln-for src))))
             (when (and eln (string-prefix-p dir eln) (eln-opt--built-p src))
               (push (cons src eln) out))))))
@@ -419,8 +446,9 @@ Emacs will use.  Emacs's own preloaded native code is not in that folder."
   "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
 the candidates is by score.  Uncalibrated: set it from a profiler run.")
 
-(defconst eln-opt-max-source-bytes (* 500 1024)
-  "Largest source file eln-opt will compile.")
+(defconst eln-opt-max-source-bytes (* 1024 1024)
+  "Largest source file eln-opt will compile, uncompressed.  1 MB lets in
+org.el (about 870 KB), which compiles in about a minute.")
 
 (defconst eln-opt-worker-max 30
   "Most files one worker run compiles.")
@@ -441,22 +469,20 @@ the file it was compiling on the failed list.")
 Checked again here, not trusted from the ranking: the source is re-tested
 against the trusted roots and the opt-out cookie, and must be a reasonable size."
   (let* ((path (plist-get row :path))
-         (src (and path (replace-regexp-in-string "\\.elc\\'" ".el" path))))
+         (src (and path (eln-opt--source-for path))))
     (cond
      ((null path) "no source path recorded")
      ((null (plist-get row :ratio)) "no ratio")
      ((< (plist-get row :ratio) eln-opt-min-ratio)
       (format "ratio %.1f is below %.1f" (plist-get row :ratio) eln-opt-min-ratio))
      ((not (file-readable-p src))
-      (cond ((file-exists-p (concat src ".gz"))
-             "Emacs ships only .el.gz for this library: not supported yet")
-            ((string-suffix-p ".elc" path) "no .el source next to the .elc")
-            (t "source not readable")))
+      (if (string-suffix-p ".elc" path) "no .el or .el.gz source next to the .elc"
+        "source not readable"))
      ((not (eln-opt-trusted-file-p src)) "outside the trusted roots")
      ((eln-opt-rank--no-native-p src) "opts out with no-native-compile")
-     ((> (or (eln-opt--file-size src) 0) eln-opt-max-source-bytes)
+     ((> (or (eln-opt--source-bytes src) 0) eln-opt-max-source-bytes)
       (format "source is %d KB, over the %d KB limit"
-              (/ (eln-opt--file-size src) 1024) (/ eln-opt-max-source-bytes 1024)))
+              (/ (eln-opt--source-bytes src) 1024) (/ eln-opt-max-source-bytes 1024)))
      (t nil))))
 
 (defun eln-opt--candidate-p (row)
@@ -482,7 +508,7 @@ our lisp/ folder, and our xueliang.el.  A root ending in a slash is a folder."
 the roots is refused, because its truename is what gets compiled."
   (let ((true (ignore-errors (file-truename
                               ;; load-history names the .elc once compiled.
-                              (replace-regexp-in-string "\\.elc\\'" ".el" file)))))
+                              (eln-opt--source-for file)))))
     (and true
          (cl-some (lambda (root)
                     (let ((r (ignore-errors (file-truename root))))
@@ -494,9 +520,10 @@ the roots is refused, because its truename is what gets compiled."
 ;;; Query: which functions are native-compiled in this Emacs
 
 (defun eln-opt--source-stem (file)
-  "FILE's truename without .elc or .el, for matching a loaded file to a source."
+  "FILE's truename without .elc, .el or .el.gz, for matching a loaded file to
+a source."
   (file-name-sans-extension
-   (or (ignore-errors (file-truename file)) file)))
+   (string-remove-suffix ".gz" (or (ignore-errors (file-truename file)) file))))
 
 (defun eln-opt-native-list ()
   "Natively compiled functions in this Emacs, grouped by source file.
@@ -678,9 +705,9 @@ Returns (:benefit B :loops N :calls LIST :varrefs LIST :dynamic BOOL :size N)."
 
 (defun eln-opt-rank--file-key (file)
   "Name used in the ranking: basename without .elc, .el or .gz.
-Returns nil for autoload files, which only hold stubs."
+Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
   (let ((base (file-name-nondirectory file)))
-    (unless (string-match-p "-autoloads\\.elc?\\'" base)
+    (unless (string-match-p "-\\(autoloads\\|loaddefs\\)\\.el\\(c\\|\\.gz\\)?\\'" base)
       (replace-regexp-in-string "\\.\\(elc\\|el\\)\\(\\.gz\\)?\\'" "" base))))
 
 (defvar eln-opt-rank--no-native-cache (make-hash-table :test #'equal))
@@ -974,9 +1001,12 @@ heavy roots can be loaded before the graph is built."
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :lazy-loaded lazy-loaded
             :built-rows (eln-opt-rank--built-rows)
+            :byte (eln-opt--byte-candidates)
             :next (eln-opt--plan-from-rows
                    (sort (copy-sequence rows)
-                         (lambda (a b) (> (plist-get a :score) (plist-get b :score)))))
+                         (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+                   (- eln-opt-worker-max
+                      (min eln-opt-worker-max (length (eln-opt--byte-candidates)))))
             :failed (eln-opt--failed-load)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
@@ -1030,7 +1060,8 @@ altogether.  The ranking table comes last."
     (with-output-to-string
       ;; 1. The answer
       (princ "eln-opt report (report only; nothing is compiled here)\n\n")
-      (princ "Next worker compiles: ")
+      (princ (eln-opt-rank--byte-line (plist-get result :byte)))
+      (princ "Next worker native-compiles: ")
       (if (null next)
           (princ "nothing.\n")
         (princ (format "%d file(s), in this order: %s\n" (length next)
@@ -1061,7 +1092,7 @@ altogether.  The ranking table comes last."
       (let ((n 0))
         (dolist (row rows)
           (let* ((src (and (plist-get row :path)
-                           (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
+                           (eln-opt--source-for (plist-get row :path))))
                  (why (cond ((and src (member src next)) "compile in the next worker run")
                             ((eln-opt--candidate-reason row))
                             ((and src (eln-opt--failed-p src)) "failed before; see above")
@@ -1195,20 +1226,28 @@ text, so that the child's loading messages are dropped."
   "(progn (require (quote eln-opt)) (setq eln-opt-rank--with-marker t) (eln-opt-report))"
   "The child form that prints the ranking report.")
 
+(defun eln-opt-rank--byte-line (byte)
+  "The report line for BYTE, the files the next worker byte-compiles."
+  (if (null byte)
+      "Next worker byte-compiles: nothing; no loaded file runs interpreted.\n"
+    (format "Next worker byte-compiles first (they run interpreted now): %d file(s): %s\n"
+            (length byte) (mapconcat #'file-name-nondirectory byte ", "))))
+
 (defun eln-opt-rank--unavailable-text ()
   "The report's whole text when this Emacs cannot compile native code, else nil.
-Nothing would be compiled here, so the ranking is not shown."
+Only byte-compiling happens here, so the native ranking is not shown."
   (unless (eln-opt-platform-available-p)
-    (format (concat "eln-opt report (report only; nothing is compiled here)\n\n"
-                    "Native compilation is not available in this Emacs, so eln-opt\n"
-                    "compiles nothing here.\nReason: %s\n")
-            (or (plist-get (eln-opt--read-eld (eln-opt--platform-file)) :reason)
-                "unknown"))))
+    (concat "eln-opt report (report only; nothing is compiled here)\n\n"
+            (format (concat "Native compilation is not available in this Emacs (%s),\n"
+                            "so eln-opt only byte-compiles here.\n\n")
+                    (or (plist-get (eln-opt--read-eld (eln-opt--platform-file)) :reason)
+                        "unknown"))
+            (eln-opt-rank--byte-line (eln-opt--byte-plan)))))
 
 (defun eln-opt-report ()
   "Show the ranking.  Interactive: a buffer, filled in the background.
 Batch: printed to stdout, computed here.  On a platform without native
-compilation it says so and stops."
+compilation it says so and lists only what will be byte-compiled."
   (interactive)
   (let ((unavailable (eln-opt-rank--unavailable-text)))
     (cond
@@ -1230,21 +1269,96 @@ compilation it says so and stops."
 
 ;;; ---- The worker: one batch Emacs that compiles the candidates in turn ----
 
-(defun eln-opt--plan-from-rows (rows)
-  "Sources of ROWS (best first) to compile: candidates without a usable eln
-that have not failed before, at most `eln-opt-worker-max'."
+(defun eln-opt--plan-from-rows (rows &optional max)
+  "Sources of ROWS (best first) to native-compile: candidates without a usable
+eln that have not failed before, at most MAX (`eln-opt-worker-max')."
   (let (out)
     (dolist (row rows)
       (when (eln-opt--candidate-p row)
-        (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
+        (let ((src (eln-opt--source-for (plist-get row :path))))
           (unless (or (member src out) (eln-opt--built-p src) (eln-opt--failed-p src))
             (push src out)))))
-    (seq-take (nreverse out) eln-opt-worker-max)))
+    (seq-take (nreverse out) (max 0 (or max eln-opt-worker-max)))))
 
-(defun eln-opt-worker-plan ()
-  "The worker's plan: ranked candidates, best first."
-  (eln-opt--plan-from-rows
-   (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows)))
+;;; Byte-compiling: files that run interpreted.  Needs no libgccjit, so it is
+;;; the whole job where native compilation is not available (Windows), and it
+;;; catches an .elc gone stale after an edit everywhere: with
+;;; `load-prefer-newer', Emacs then loads the .el and runs it interpreted.
+
+(defun eln-opt--init-file-p (file)
+  "Non-nil if FILE is an init or custom file, which is never byte-compiled:
+a stale init.elc is a well-known trap."
+  (or (member (file-name-nondirectory file) '("init.el" "early-init.el" "custom.el"))
+      (and (bound-and-true-p custom-file)
+           (equal (ignore-errors (file-truename file))
+                  (ignore-errors (file-truename custom-file))))))
+
+(defun eln-opt--no-byte-compile-p (file)
+  "Non-nil if FILE opts out of byte compilation with a local variable."
+  (with-temp-buffer
+    (insert-file-contents file)
+    (string-match-p "no-byte-compile:[ \t]*t" (buffer-string))))
+
+(defun eln-opt--elc-current-p (src)
+  "Non-nil if the .elc next to SRC exists and is not older than SRC."
+  (let ((elc (eln-opt--elc-for src)))
+    (and (file-exists-p elc) (not (file-newer-than-file-p src elc)))))
+
+(defun eln-opt--byte-candidates ()
+  "Loaded .el files to byte-compile, most functions first: loaded from source
+\(no .elc, or a stale one), under the trusted roots, defining functions, not
+autoloads or init files, not opted out, and not failed before."
+  (let (out)
+    (dolist (entry load-history)
+      (let* ((file (car entry))
+             (defuns (and (stringp file) (string-suffix-p ".el" file)
+                          (cl-count-if (lambda (x) (eq (car-safe x) 'defun)) (cdr entry)))))
+        (when (and defuns (> defuns 0)
+                   (file-readable-p file)
+                   (eln-opt-rank--file-key file)
+                   (not (eln-opt--init-file-p file))
+                   (not (eln-opt--elc-current-p file))
+                   (eln-opt-trusted-file-p file)
+                   (not (eln-opt--no-byte-compile-p file))
+                   (not (eln-opt--failed-p file))
+                   (not (assoc file out)))
+          (push (cons file defuns) out))))
+    (mapcar #'car (sort out (lambda (a b) (> (cdr a) (cdr b)))))))
+
+(defun eln-opt--byte-plan ()
+  "The byte-compile candidates, after the lazy roots are loaded, so that files
+behind a lazy package are seen.  The report and the worker both use this, so
+they agree; without the load, a lazy package's files were missed."
+  (eln-opt-rank--load-lazy-roots
+   (plist-get (eln-opt-rank--roots (eln-opt--profile-dir)) :roots))
+  (eln-opt--byte-candidates))
+
+(defun eln-opt-worker-plan (&optional native)
+  "The worker's plan, as (KIND . SOURCE) with KIND `byte' or `native'.
+Byte-compiles come first: they are cheap, and interpreted code gains the most.
+Native candidates, best first, follow only when NATIVE is non-nil.  At most
+`eln-opt-worker-max' in all."
+  (let ((bytes (seq-take (eln-opt--byte-plan) eln-opt-worker-max)))
+    (append
+     (mapcar (lambda (src) (cons 'byte src)) bytes)
+     (and native
+          (mapcar (lambda (src) (cons 'native src))
+                  (eln-opt--plan-from-rows
+                   (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows)
+                   (- eln-opt-worker-max (length bytes))))))))
+
+(defun eln-opt--compile-one (kind src)
+  "Compile SRC the KIND way, `byte' or `native'.  Returns nil, or an error
+string.  Success means Emacs will load the result on the next start."
+  (condition-case e
+      (if (eq kind 'byte)
+          (let ((r (let ((byte-compile-verbose nil)) (byte-compile-file src))))
+            (cond ((eq r 'no-byte-compile) "opts out with no-byte-compile")
+                  ((not r) "byte-compile-file reported errors")
+                  ((not (eln-opt--elc-current-p src)) "compiled, but no current .elc")))
+        (native-compile (file-truename src))
+        (unless (eln-opt--built-p src) "compiled, but no eln that Emacs will use"))
+    (error (format "%S" e))))
 
 (defun eln-opt--say (fmt &rest args)
   "Print one line for the main Emacs, which reads lines starting with ELN-OPT."
@@ -1253,28 +1367,30 @@ that have not failed before, at most `eln-opt-worker-max'."
 (defun eln-opt-worker ()
   "Compile the plan one file at a time, sleeping between files.
 Runs in a batch Emacs with the profile loaded, so package macros expand as
-they should.  The first error stops it, after putting that file on the failed
-list.  Returns the number of files compiled, or `unavailable' or `busy'."
+they should.  Without native compilation it only byte-compiles.  The first
+error stops it, after putting that file on the failed list.  Returns the
+number of files compiled, or `busy'."
   (cond
-   ((not (eln-opt-platform-available-p)) (eln-opt--say "unavailable") 'unavailable)
    ((not (eln-opt--lock-acquire)) (eln-opt--say "busy") 'busy)
    (t
     (unwind-protect
-        (let ((plan (eln-opt-worker-plan))
-              (done 0)
-              (first t))
+        (let* ((native (eln-opt-platform-available-p))
+               (plan (eln-opt-worker-plan native))
+               (done 0)
+               (first t))
+          (unless native (eln-opt--say "native compilation not available; byte-compile only"))
           (eln-opt--say "plan %d %s" (length plan)
-                        (mapconcat #'file-name-nondirectory plan " "))
+                        (mapconcat (lambda (item)
+                                     (concat (file-name-nondirectory (cdr item))
+                                             (if (eq (car item) 'byte) "(byte)" "")))
+                                   plan " "))
           (catch 'stop
-            (dolist (src plan)
+            (dolist (item plan)
               (unless first (sleep-for eln-opt-worker-sleep))
               (setq first nil)
-              (eln-opt--say "start %s" src)
-              (let ((err (condition-case e
-                             (progn (native-compile (file-truename src)) nil)
-                           (error (format "%S" e)))))
-                (when (and (null err) (not (eln-opt--built-p src)))
-                  (setq err "compiled, but no eln that Emacs will use"))
+              (let ((src (cdr item)) err)
+                (eln-opt--say "start %s" src)
+                (setq err (eln-opt--compile-one (car item) src))
                 (if err
                     (progn
                       (eln-opt--record-failure src err)
@@ -1331,8 +1447,6 @@ number of elns deleted."
 (defun eln-opt-auto--decision ()
   "Nil when the worker may start now, otherwise a symbol saying why not."
   (cond ((or (not eln-opt-auto-enable) (equal (getenv "ELN_OPT") "0")) 'disabled)
-        ((not (and (fboundp 'native-comp-available-p) (native-comp-available-p)))
-         'unavailable)
         ((process-live-p eln-opt-auto--process) 'running)
         (t nil)))
 
@@ -1373,9 +1487,7 @@ number of elns deleted."
   (let ((done (eln-opt--count-matches "^ELN-OPT done " text))
         (failed (and (string-match "^ELN-OPT failed \\(.+\\)$" text)
                      (match-string 1 text))))
-    (cond ((string-match-p "^ELN-OPT unavailable" text)
-           "eln-opt: native compilation is not available here")
-          ((string-match-p "^ELN-OPT busy" text)
+    (cond ((string-match-p "^ELN-OPT busy" text)
            "eln-opt: another worker holds the lock")
           (failed (format "eln-opt: compiled %d file(s), then failed: %s (see %s)"
                           done failed eln-opt-log-buffer))
@@ -1417,7 +1529,7 @@ and put the file it was compiling on the failed list."
     (delete-process eln-opt-auto--process)))
 
 (defun eln-opt-auto--start ()
-  "Start the worker, unless eln-opt is off, cannot compile here, or runs already.
+  "Start the worker, unless eln-opt is off or runs already.
 Returns the process, or nil."
   (setq eln-opt-auto--timer nil)
   (unless (eln-opt-auto--decision)
@@ -1441,13 +1553,11 @@ Returns the process, or nil."
 (defun eln-opt-auto-arm ()
   "Once per session: when Emacs has been idle for `eln-opt-auto-idle' seconds,
 start the worker.  Does nothing in batch, so setup, tests and the worker
-itself (which loads this init too) never start one.  Does nothing without
-native compilation."
+itself (which loads this init too) never start one.  Without native
+compilation the worker still byte-compiles."
   (when (timerp eln-opt-auto--timer) (cancel-timer eln-opt-auto--timer))
   (setq eln-opt-auto--timer nil)
-  (when (and (not noninteractive)
-             eln-opt-auto-enable
-             (fboundp 'native-comp-available-p) (native-comp-available-p))
+  (when (and (not noninteractive) eln-opt-auto-enable)
     (setq eln-opt-auto--timer
           (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))))
 

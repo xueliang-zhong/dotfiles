@@ -301,7 +301,8 @@ cmd_eln_opt_reset() {
         --eval '(princ (format "eln-opt reset: %d eln file(s) removed\n" (eln-opt-reset)))'
 }
 
-# Background native-compilation gate (emacs/ideas/eln-opt.md, step 1).  Runs
+# Background native-compilation gate (emacs/ideas/eln-opt.md, step 1); without
+# it, eln-opt only byte-compiles.  Runs
 # in a bare batch Emacs whose state folder is the profile's, and never loads
 # the profile, so it stays quick.  Always exits 0: "not available" is an answer.
 cmd_eln_opt() {
@@ -489,9 +490,9 @@ use / check:
   test                   run the ERT suite against the loaded profile
   check                  smoke + test; run this after a config change
   trampolines            pre-build advice trampolines so a GUI start is fast
-  eln-opt                    say whether eln-opt can run here (native compilation)
+  eln-opt                    say whether eln-opt can native-compile here (else byte only)
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
-  eln-opt-run                run the eln-opt worker here: compile the candidates in turn
+  eln-opt-run                run the eln-opt worker here: byte-compile, then native-compile
   eln-opt-reset              delete the user's elns (not trampolines) and the failed list
   eln-opt-report             print the eln-opt ranking; compiles nothing
   eln-opt-status             how many user elns, and the failed list

@@ -939,16 +939,19 @@ allowed."
 
 (ert-deftest xl-packages-load-as-byte-code ()
   "A package function is byte code, unless eln-opt built its file.  Emacs's own
-JIT never loads package .eln files; only the ones eln-opt recorded in its ledger."
+JIT is off, so a native package function must come from the eln for consult's
+current source.  Names are compared, not folders: `ert-run-tests-batch-and-exit'
+points the first eln folder at a temporary cache."
   (require 'consult)
   (require 'eln-opt nil t)
   (let* ((fn (symbol-function 'consult-line))
-         (native (and (fboundp 'subr-native-elisp-p) (subr-native-elisp-p fn)))
-         (built (and (fboundp 'eln-opt--ledger-load)
-                     (seq-some (lambda (e)
-                                 (and (eq (plist-get (cdr e) :status) 'done)
-                                      (string-match-p "consult\\.el\\'" (car (car e)))))
-                               (eln-opt--ledger-load)))))
+         (native (and (fboundp 'native-comp-function-p) (native-comp-function-p fn)))
+         (built (and native (fboundp 'eln-opt--eln-for)
+                     (equal (file-name-nondirectory
+                             (native-comp-unit-file (subr-native-comp-unit fn)))
+                            (file-name-nondirectory
+                             (eln-opt--eln-for
+                              (eln-opt--source-for (locate-library "consult"))))))))
     (should (if native built (byte-code-function-p fn)))))
 
 (ert-deftest xl-frame-starts-maximized-from-early-init ()

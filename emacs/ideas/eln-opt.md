@@ -9,10 +9,13 @@
 **流程**
 1. 主 Emacs 启动后排一个**一次性**的 idle timer（`eln-opt-auto-idle`，60 秒）。整个会话只触发一次。
 2. 触发后启动**一个** worker：同一个 Emacs 二进制，加载同一份 profile，以后台优先级运行（macOS `taskpolicy -b`，其它系统 `nice -n 19`）。
-3. worker 做一次可达性分析，得到候选列表：排名靠前、通过候选过滤（可信根、有 `.el` 源码、ratio 达到阈值、源码不超过 500 KB、没有 `no-native-compile`），**还没有可用 eln**，并且**不在失败列表里**的文件，最多 `eln-opt-worker-max`（30）个。
-4. 按顺序逐个 `native-compile`，每两个文件之间睡 `eln-opt-worker-sleep`（10 秒）。
-5. **任何一个文件出错就停止**：把它记进失败列表，然后退出。
-6. 下次启动 Emacs 时，Emacs 自己加载新 eln。
+3. worker 先列出 **byte-compile 候选**：以 `.el` 源码加载（没有 `.elc`，或 `.elc` 已过期）、在可信根下、定义了函数、不是 autoloads/loaddefs 或 init/custom 文件、没有 `no-byte-compile`、不在失败列表里的文件。这一步不需要 libgccjit，所有平台都做。
+4. 平台支持 native 时，再做一次可达性分析，得到 **native 候选**：排名靠前、通过候选过滤（可信根、有 `.el` 或 `.el.gz` 源码、ratio 达到阈值、源码解压后不超过 1 MB、没有 `no-native-compile`），**还没有可用 eln**，并且**不在失败列表里**的文件。两类合计最多 `eln-opt-worker-max`（30）个，byte 在前。
+5. 按顺序逐个编译（`byte-compile-file` 或 `native-compile`），每两个文件之间睡 `eln-opt-worker-sleep`（10 秒）。
+6. **任何一个文件出错就停止**：把它记进失败列表，然后退出。
+7. 下次启动 Emacs 时，Emacs 自己加载新的 `.elc` 和 eln。
+
+**没有 native 编译的平台（如 Windows）**：worker 照常启动，只做第 3 步的 byte-compile，不跑 canary 之外的任何 native 相关代码，报告也只列 byte 候选。byte-compile 的价值不只在 Windows：改完代码或 `git pull` 之后 `.el` 比 `.elc` 新，`load-prefer-newer` 会让 Emacs 加载源码、解释执行，直到重新编译。这种情况在所有平台上都会发生。实测（2026-11-25，Mac）：worker 编译了 `eln-opt.el`、`xueliang.el` 和过期的 `xl-async.el`。Crafted 的 modules 不在可信根下，所以不会往别人的 git checkout 里写 `.elc`。
 
 **状态只剩两样**
 - **eln-cache 本身**：一个文件"编过了"，就是 `comp-el-to-eln-filename` 算出的 eln 存在，并且不比 `.elc` 旧（`.elc` 更新时 Emacs 会忽略 eln）。不再需要账本。
@@ -87,7 +90,9 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 Linux 上用 `nice -n 19 ionice -c3` 代替 `taskpolicy -b`。
 
-## 平台门控：没有 libgccjit 就整条链都不触发
+## 平台门控：没有 libgccjit 就不做 native 部分
+
+> 2026-11-25 起：没有 native 编译时 worker 仍然启动，只做 byte-compile（见"当前设计"）。下面"整条链都不启动"是之前的设计。
 
 Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编译但找不到 libgccjit 的 DLL。这类平台上 trampoline 不存在，Tier 2 也无从谈起，所以 eln-opt **整条链都不启动**：不建计划任务，不起子进程，不读 savehist，不写账本。
 
@@ -396,7 +401,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 - **失败原因**只保存"Error:"开始的至多 300 字符，不保存整段回溯。
 - **Tier 1 的 `xueliang.el` 也会被 Tier 2 编译成 eln**（它在排名前列）。之后它的函数类型是 `subr`，不是 `byte-code-function`；冒烟测试据此改为"字节码或 native 都算已编译"。
 - **Crafted 的模块**没有 .elc，是解释执行的（报告里数量为 1120）。它们不在可信根里，也就不进入 Tier 2。要不要把 Crafted 纳入可信根，需要你决定。
-- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 500 KB**（最初 200 KB，consult 247 KB 因此被拒绝）、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
+- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 1 MB，按解压后算**（最初 200 KB，consult 247 KB 因此被拒绝；后改 500 KB；支持 `.el.gz` 后改 1 MB，让 org 进入候选）、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
 - **总量超限时只停止编译，不做 LRU 淘汰**。设计里的按最近排名时间淘汰还没实现。
 
 ## 未验证的部分
@@ -408,17 +413,14 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 - `M-x eln-opt-report` 的交互路径（打开缓冲区）没有测；批处理路径（`eln-opt-report`）测过。
 - Linux 和 Windows 上没有测试。
 
-## 搁置：内置库的 `.el.gz`（2026-11-24 实验记录）
+## 内置库的 `.el.gz`（2026-11-25 已支持）
 
-Emacs 自带的库（org、winner、which-key、savehist、repeat、delsel……）只有 `.el.gz`，候选过滤因此拒绝它们。这些文件分数很高，是目前最大的遗漏。已经实验过，结论如下：
+Emacs 自带的库（org、winner、which-key、savehist、repeat、delsel……）只带 `.elc` 和 `.el.gz`，没有 `.el`。它们分数很高，2026-11-24 一度搁置，当时的结论“Emacs 不会使用编译出的 eln”是错的。2026-11-25 重新实验，结论如下：
 
-- **编译可以做。** `jka` 能解压 `.el.gz`（要用 `no-conversion` 保字节不变）。eln 名字的公式已确认：`<name>-<md5(file-truename 原 .el 路径)[:8]>-<md5(内容)[:8]>.eln`，其中路径是原来 `.el` 的路径，即使它不存在。按这个名字编译出来的 eln 也确实是 native 的。
-- **Emacs 不会自动使用它。** `org.elc` 被加载时，Emacs 要先根据对应的 `.el` 算 eln 名字；`.el` 不存在，查找直接失败。实验里 `org-mode` 仍是字节码（`native=nil`）。cape 能用上，是因为它的 `.el` 存在。
-- **两个可选方案**：
-  - **A：启动时显式加载。** init 在 `require` 之前，对账本中记录的内置库逐个 `load` eln。代价：文件会被加载两次，有副作用的顶层代码会执行两遍。
-  - **B：解压的 `.el` 放到 load-path 前面。** Emacs 看到真的 `.el`，eln 名字按副本路径计算。代价：改动 `load-path`，影响范围大，副本必须与 Emacs 自带版本一致，升级 Emacs 要重做。
-
-搁置的原因是两个方案都要改启动路径，需要先决定我们愿意为此付出多少复杂度。
+- **直接编译 `.el.gz` 就行。** Emacs 加载 `org.elc` 时，如果旁边没有 `org.el`，会改用 `org.el.gz` 计算 eln 名字。`native-compile` 对 `.el.gz` 用的是同一个公式（`comp-el-to-eln-filename`），所以编译结果就是 Emacs 要找的那个 eln。不需要改启动流程，也不需要动 `load-path`。之前失败，是因为 eln 名字是手动拼出来的。
+- **eln-opt 的做法**：`eln-opt--source-for` 由 `.elc` 找源码，先找 `.el`，没有再找 `.el.gz`；`eln-opt--elc-for` 去掉 `.gz` 再推出 `.elc`。大小限制按解压后的大小算，上限 1 MB（org.el 解压后约 870 KB）。`-loaddefs` 和 `-autoloads` 一样只有桩函数，不参与排名。
+- **实测**：一次 worker 编译了 14 个 `.el.gz`（org、org-element、org-element-ast、winner、org-persist、which-key、sh-script、savehist、org-fold-core、repeat、delsel、org-fold、pcomplete、org-macro），用时约 8 分钟，其中 org 约 1 分钟。重启后 `org-mode`、`org-element-parse-buffer`、`winner-mode`、`which-key-mode` 都是 native。
+- **测试时注意**：只有不带后缀地 `load`（`require` 就是这样）时，Emacs 才会去找 eln；用完整路径 `load` 一个 `.elc` 永远加载字节码。
 
 ## 未决问题
 

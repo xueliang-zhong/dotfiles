@@ -31,17 +31,21 @@
                 (lambda () (cl-incf ,counter) (funcall orig))))
        ,@body)))
 
-(ert-deftest eln-opt-unavailable-writes-only-platform-file ()
-  "Without native compilation, a run stops at the gate and writes one file."
+(ert-deftest eln-opt-unavailable-only-byte-compiles ()
+  "Without native compilation the worker plans no native compile and never
+runs the canary; it still byte-compiles."
   (eln-opt-test--with-state
-    (let ((canary-calls 0))
+    (let ((canary-calls 0) (native-asked nil))
       (eln-opt-test--count-canary canary-calls
-        (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-          (should (eq (eln-opt-test--worker-result) 'unavailable))
-          (should (eq (eln-opt-test--worker-result) 'unavailable))))
+        (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil))
+                  ((symbol-function 'eln-opt--byte-candidates) (lambda () nil))
+                  ((symbol-function 'eln-opt-rank--compute)
+                   (lambda (&rest _) (setq native-asked t) nil)))
+          (should (eql (eln-opt-test--worker-result) 0))
+          (should (eql (eln-opt-test--worker-result) 0))))
       (should (= canary-calls 0))
-      (should (equal (directory-files eln-opt-state-dir nil "\\`[^.]")
-                     '("platform.eld"))))))
+      (should-not native-asked)
+      (should (file-exists-p (eln-opt--platform-file))))))
 
 (ert-deftest eln-opt-canary-failure-trips-breaker ()
   "A canary that fails is cached as unavailable and not retried."
@@ -51,7 +55,8 @@
                 ((symbol-function 'native-compile)
                  (lambda (&rest _) (cl-incf compile-calls) (error "libgccjit missing"))))
         (should-not (eln-opt-platform-available-p))
-        (should (eq (eln-opt-test--worker-result) 'unavailable))
+        (cl-letf (((symbol-function 'eln-opt--byte-candidates) (lambda () nil)))
+          (should (eql (eln-opt-test--worker-result) 0)))
         (should-not (eln-opt-platform-available-p)))
       (should (= compile-calls 1))
       (let ((cached (eln-opt--read-eld (eln-opt--platform-file))))
@@ -292,7 +297,9 @@
   (should (null (eln-opt-rank--file-key "/x/cape-autoloads.el")))
   (should (null (eln-opt-rank--file-key "/x/evil-autoloads.elc")))
   (should (equal (eln-opt-rank--file-key "/x/winum.elc") "winum"))
-  (should (equal (eln-opt-rank--file-key "/x/org/org.el.gz") "org")))
+  (should (equal (eln-opt-rank--file-key "/x/org/org.el.gz") "org"))
+  (should (null (eln-opt-rank--file-key "/x/org/org-loaddefs.elc")))
+  (should (null (eln-opt-rank--file-key "/x/org/org-loaddefs.el.gz"))))
 
 (ert-deftest eln-opt-rank-respects-no-native-cookie ()
   "A file that opts out with a local variable is recognised."
@@ -439,15 +446,95 @@
         (ignore-errors (delete-directory dir t))))))
 
 (ert-deftest eln-opt-report-says-when-this-emacs-cannot-compile ()
-  "On a platform without native compilation the report says so and ranks nothing."
+  "On a platform without native compilation the report says so, lists what
+will be byte-compiled, and ranks nothing for native code."
   (eln-opt-test--with-state
-    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
+    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil))
+              ((symbol-function 'eln-opt--byte-candidates) (lambda () '("/x/a.el"))))
       (let ((text (with-output-to-string
                     (let ((noninteractive t))
                       (eln-opt-report)))))
         (should (string-match-p "Native compilation is not available" text))
-        (should-not (string-match-p "Next worker compiles" text))
+        (should (string-match-p "byte-compiles first .*: 1 file(s): a.el" text))
+        (should-not (string-match-p "native-compiles" text))
         (should-not (string-match-p "ranking" text))))))
+
+;;; Byte-compiling what runs interpreted
+
+(ert-deftest eln-opt-byte-candidates-are-trusted-interpreted-files ()
+  "Candidates: loaded from .el with functions, under the roots, no current
+.elc; not autoloads, init files, opted-out files or past failures.  Most
+functions first."
+  (eln-opt-test--with-state
+    (let* ((dir (file-name-as-directory (make-temp-file "eln-opt-byte-" t)))
+           (out (file-name-as-directory (make-temp-file "eln-opt-out-" t)))
+           (f (lambda (d name &optional text)
+                (let ((file (expand-file-name name d)))
+                  (write-region (or text ";; -*- lexical-binding: t; -*-\n") nil file)
+                  file)))
+           (a (funcall f dir "a.el"))
+           (stale (funcall f dir "stale.el"))
+           (current (funcall f dir "current.el"))
+           (opted (funcall f dir "opted.el" ";; -*- no-byte-compile: t; -*-\n"))
+           (autoloads (funcall f dir "x-autoloads.el"))
+           (init (funcall f dir "init.el"))
+           (data (funcall f dir "data.el"))
+           (outside (funcall f out "outside.el"))
+           (failed (funcall f dir "failed.el"))
+           (defuns (lambda (n) (cl-loop for i below n collect (cons 'defun (intern (format "f%d" i))))))
+           (load-history
+            (list (cons a (funcall defuns 1)) (cons stale (funcall defuns 3))
+                  (cons current (funcall defuns 1)) (cons opted (funcall defuns 1))
+                  (cons autoloads (funcall defuns 1)) (cons init (funcall defuns 1))
+                  (cons data '((defvar . v))) (cons outside (funcall defuns 1))
+                  (cons failed (funcall defuns 1)))))
+      (unwind-protect
+          (progn
+            (write-region "" nil (concat stale "c"))
+            (set-file-times (concat stale "c") (time-subtract nil 100))
+            (write-region "" nil (concat current "c"))
+            (set-file-times (concat current "c") (time-add nil 100))
+            (eln-opt--record-failure failed "boom")
+            (cl-letf (((symbol-function 'eln-opt-trusted-roots) (lambda () (list dir))))
+              (should (equal (eln-opt--byte-candidates) (list stale a)))))
+        (delete-directory dir t)
+        (delete-directory out t)))))
+
+(ert-deftest eln-opt-worker-byte-compiles-and-stops-at-a-broken-file ()
+  "Byte items compile to a current .elc; a file that does not compile stops
+the worker and goes on the failed list."
+  (eln-opt-test--with-state
+    (let* ((dir (make-temp-file "eln-opt-bw-" t))
+           (good (eln-opt-test--toy-src dir "bw-good"))
+           (bad (expand-file-name "bw-bad.el" dir))
+           (after (eln-opt-test--toy-src dir "bw-after")))
+      (write-region ";; -*- lexical-binding: t; -*-\n(defun bw-bad-fn (\n" nil bad)
+      (unwind-protect
+          (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () nil))
+                    ((symbol-function 'eln-opt-worker-plan)
+                     (lambda (&rest _) (list (cons 'byte good) (cons 'byte bad) (cons 'byte after))))
+                    ((symbol-function 'sleep-for) #'ignore))
+            (let ((byte-compile-log-warning-function #'ignore))
+              (should (eql (eln-opt-test--worker-result) 1)))
+            (should (eln-opt--elc-current-p good))
+            (should-not (file-exists-p (concat bad "c")))
+            (should-not (file-exists-p (concat after "c")))
+            (should (eln-opt--failed-p bad)))
+        (delete-directory dir t)))))
+
+;; The report and the worker must see the same byte candidates: the lazy
+;; roots are loaded first, or files behind a lazy package are missed.
+(ert-deftest eln-opt-byte-plan-loads-lazy-roots-before-candidates ()
+  "Both the worker and the report take byte candidates after the lazy roots load."
+  (let ((order nil))
+    (cl-letf (((symbol-function 'eln-opt-rank--roots)
+               (lambda (&rest _) (list :roots '((lazy-pkg . 1.0)))))
+              ((symbol-function 'eln-opt-rank--load-lazy-roots)
+               (lambda (roots) (push (cons 'load roots) order) nil))
+              ((symbol-function 'eln-opt--byte-candidates)
+               (lambda () (push 'candidates order) nil)))
+      (should (null (eln-opt--byte-plan)))
+      (should (equal (reverse order) '((load (lazy-pkg . 1.0)) candidates))))))
 
 ;;; The report view: same format, computed in a child, with a spinner
 
@@ -490,6 +577,55 @@
       (ignore-errors (fmakunbound 'built-toy-fn))
       (delete-directory dir t))))
 
+;; Emacs ships its own libraries as .elc plus .el.gz, with no .el.
+(ert-deftest eln-opt-gz-source-compiles-to-the-eln-emacs-loads ()
+  "With only an .el.gz next to the .elc, the .el.gz is the source: its size is
+counted uncompressed, compiling it gives the eln Emacs looks for, and loading
+the .elc then runs native code."
+  (skip-unless (and (native-comp-available-p) (executable-find "gzip")))
+  (let* ((dir (make-temp-file "eln-opt-gz-" t))
+         (cache (file-name-as-directory (expand-file-name "cache" dir)))
+         (native-comp-eln-load-path (list cache (car (last native-comp-eln-load-path))))
+         (el (eln-opt-test--toy-src dir "gz-toy"))
+         (elc (concat el "c"))
+         (gz (concat el ".gz"))
+         (bytes (eln-opt--file-size el))
+         (byte-compile-verbose nil))
+    (unwind-protect
+        (progn
+          (byte-compile-file el)
+          (set-file-times elc (time-subtract nil 100))
+          (should (zerop (call-process "gzip" nil nil nil el)))
+          (should-not (file-exists-p el))
+          ;; Older than the .elc, as in an Emacs install, so `load-prefer-newer'
+          ;; still picks the .elc.
+          (set-file-times gz (time-subtract nil 200))
+          (should (equal (eln-opt--source-for elc) gz))
+          (should (equal (eln-opt--source-for gz) gz))
+          (should (equal (eln-opt--elc-for gz) elc))
+          (should (= (eln-opt--source-bytes gz) bytes))
+          (should-not (eln-opt--built-p gz))
+          (native-compile gz)
+          (should (eln-opt--built-p gz))
+          ;; Without a suffix, as `require' loads: only then does Emacs look
+          ;; for an eln.  Loading the .elc by its full name never swaps.
+          (load (file-name-sans-extension el) nil t)
+          (should (native-comp-function-p (symbol-function 'gz-toy-fn))))
+      (ignore-errors (fmakunbound 'gz-toy-fn))
+      (delete-directory dir t))))
+
+(ert-deftest eln-opt-source-for-prefers-the-el ()
+  "An .el next to the .elc wins over an .el.gz; with neither, the .el path."
+  (let ((dir (make-temp-file "eln-opt-src-" t)))
+    (unwind-protect
+        (let ((el (expand-file-name "a.el" dir)))
+          (should (equal (eln-opt--source-for (concat el "c")) el))
+          (write-region "" nil (concat el ".gz"))
+          (should (equal (eln-opt--source-for (concat el "c")) (concat el ".gz")))
+          (write-region "" nil el)
+          (should (equal (eln-opt--source-for (concat el "c")) el)))
+      (delete-directory dir t))))
+
 (ert-deftest eln-opt-failed-list-holds-until-the-source-changes ()
   "A failed source is skipped until its content changes; one entry per source."
   (eln-opt-test--with-state
@@ -524,7 +660,8 @@ available, the plan is those sources, and the worker does not sleep."
   `(eln-opt-test--with-tier2
      (let ((,srcs-var (mapcar (lambda (n) (eln-opt-test--src lisp n)) ,names)))
        (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () t))
-                 ((symbol-function 'eln-opt-worker-plan) (lambda () ,srcs-var))
+                 ((symbol-function 'eln-opt-worker-plan)
+                  (lambda (&rest _) (mapcar (lambda (s) (cons 'native s)) ,srcs-var)))
                  ((symbol-function 'sleep-for) #'ignore))
          ,@body))))
 
@@ -598,8 +735,9 @@ which goes on the failed list.  The files after it are not started."
       (should (eq (eln-opt-auto--decision) 'disabled)))
     (let ((process-environment (cons "ELN_OPT=0" process-environment)))
       (should (eq (eln-opt-auto--decision) 'disabled)))
+    ;; No native compilation is no reason: the worker still byte-compiles.
     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-      (should (eq (eln-opt-auto--decision) 'unavailable)))
+      (should (null (eln-opt-auto--decision))))
     (let ((eln-opt-auto--process (start-process "eln-opt-test" nil "sleep" "5")))
       (unwind-protect
           (should (eq (eln-opt-auto--decision) 'running))
