@@ -239,12 +239,14 @@ trampoline costs one batch compile, a missing one freezes the UI."
     (sort hits (lambda (a b) (string< (symbol-name a) (symbol-name b))))))
 
 (defun eln-opt--trampoline-cached-p (s)
-  "Non-nil if a trampoline for S is already in one of the eln-cache folders."
-  (let ((name (comp-trampoline-filename s)))
-    (cl-some (lambda (dir)
-               (file-exists-p
-                (expand-file-name name (expand-file-name comp-native-version-dir dir))))
-             native-comp-eln-load-path)))
+  "Non-nil if a trampoline for S is already in one of the eln-cache folders.
+Without comp (no native compilation), nothing is cached: there are no elns."
+  (and (fboundp 'comp-trampoline-filename) (eln-opt--eln-dir-p)
+       (let ((name (comp-trampoline-filename s)))
+         (cl-some (lambda (dir)
+                    (file-exists-p
+                     (expand-file-name name (expand-file-name (eln-opt--version-name) dir))))
+                  native-comp-eln-load-path))))
 
 (defun eln-opt-trampolines-missing ()
   "Predicted primitives whose trampoline is not cached yet."
@@ -276,9 +278,19 @@ not retried within the same run."
 
 (defun eln-opt--now () (float-time))
 
+(defun eln-opt--version-name ()
+  "This build's version folder name: `comp-native-version-dir' when comp is
+loaded.  Without comp (no native compilation, as on many Windows builds) the
+variable is void, so the name is made from the binary's key instead; it only
+needs to be stable for one binary."
+  (if (boundp 'comp-native-version-dir)
+      comp-native-version-dir
+    (format "%d_%d-%s" emacs-major-version emacs-minor-version
+            (substring (md5 (format "%S" (eln-opt--binary-key))) 0 8))))
+
 (defun eln-opt--version-dir ()
   "State folder for this Emacs build.  Ledgers never mix builds."
-  (expand-file-name comp-native-version-dir eln-opt-state-dir))
+  (expand-file-name (eln-opt--version-name) eln-opt-state-dir))
 (defun eln-opt--lock-dir () (expand-file-name "lock" (eln-opt--version-dir)))
 
 (defun eln-opt--file-size (file)
@@ -377,9 +389,16 @@ renamed away first, so two runners cannot both take over the same one."
 ;;; Built: the eln Emacs will load for a source.  Emacs looks the eln up by
 ;;; the source's path and content, and ignores it when the .elc is newer.
 
+(defun eln-opt--eln-dir-p ()
+  "Non-nil when this Emacs has an eln folder: comp is loaded."
+  (and (boundp 'native-comp-eln-load-path) native-comp-eln-load-path
+       (boundp 'comp-native-version-dir)))
+
 (defun eln-opt--eln-dir ()
-  "The folder where this Emacs writes and finds the user's elns."
-  (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)))
+  "The folder where this Emacs writes and finds the user's elns, or nil when
+this Emacs has no eln folder (no comp)."
+  (when (eln-opt--eln-dir-p)
+    (expand-file-name (eln-opt--version-name) (car native-comp-eln-load-path))))
 
 (defun eln-opt--eln-for (src)
   (ignore-errors (comp-el-to-eln-filename src)))
@@ -420,11 +439,11 @@ the .elc next to SRC."
 (defun eln-opt--built-sources ()
   "(SOURCE . ELN) for every loaded file whose eln, in the user's eln folder,
 Emacs will use.  Emacs's own preloaded native code is not in that folder."
-  (let ((dir (file-name-as-directory (eln-opt--eln-dir)))
+  (let ((dir (let ((d (eln-opt--eln-dir))) (and d (file-name-as-directory d))))
         out)
     (dolist (entry load-history)
       (let ((file (car entry)))
-        (when (and (stringp file) (string-suffix-p ".elc" file))
+        (when (and dir (stringp file) (string-suffix-p ".elc" file))
           (let* ((src (eln-opt--source-for file))
                  (eln (and (file-exists-p src) (eln-opt--eln-for src))))
             (when (and eln (string-prefix-p dir eln) (eln-opt--built-p src))
@@ -434,7 +453,7 @@ Emacs will use.  Emacs's own preloaded native code is not in that folder."
 (defun eln-opt--user-elns ()
   "Every eln in the user's eln folder, except the subr trampolines."
   (let ((dir (eln-opt--eln-dir)))
-    (and (file-directory-p dir)
+    (and dir (file-directory-p dir)
          (seq-remove (lambda (f) (string-prefix-p "subr--trampoline-" (file-name-nondirectory f)))
                      (directory-files dir t "\\.eln\\'")))))
 
