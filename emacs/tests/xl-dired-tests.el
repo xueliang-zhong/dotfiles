@@ -154,34 +154,6 @@
         (when (get-buffer xl-dired-preview-buffer-name)
           (kill-buffer xl-dired-preview-buffer-name))))))
 
-(ert-deftest xl-dired-entering-a-directory-preview-opens-xl-dired ()
-  "Selecting a directory preview opens that directory in `xl-dired-mode'."
-  (xl-dired-test--with-folder dir
-    (let ((buf (xl-dired-noselect dir))
-          (sub (file-name-as-directory (expand-file-name "sub" dir))))
-      (unwind-protect
-          (progn
-            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
-            (with-current-buffer buf
-              (switch-to-buffer buf)
-              (xl-dired-test--goto "sub")
-              (xl-dired-preview))
-            (should (xl-dired-test--wait
-                     (lambda ()
-                       (string-match-p "inner" (xl-dired-test--preview-text)))))
-            (let ((preview-window (get-buffer-window xl-dired-preview-buffer-name t)))
-              (should (window-live-p preview-window))
-              (select-window preview-window)
-              (xl-dired-preview--enter preview-window)
-              (with-current-buffer (window-buffer preview-window)
-                (should (derived-mode-p 'xl-dired-mode))
-                (should (equal (xl-dired--directory) sub)))))
-        (kill-buffer buf)
-        (when (get-buffer xl-dired-preview-buffer-name)
-          (kill-buffer xl-dired-preview-buffer-name))
-        (when-let* ((sub-buffer (get-buffer (xl-dired--buffer-name sub))))
-          (kill-buffer sub-buffer))))))
-
 (ert-deftest xl-dired-idle-preview-does-not-replace-the-entered-file ()
   "Once a preview window holds the file, resting on that entry does not replace it."
   (xl-dired-test--with-folder dir
@@ -243,23 +215,6 @@
         (when (get-buffer xl-dired-preview-buffer-name)
           (kill-buffer xl-dired-preview-buffer-name))))))
 
-(ert-deftest xl-dired-directory-preview-lists-its-entries ()
-  "Previewing a folder shows its `ls' listing in the same preview buffer."
-  (xl-dired-test--with-folder dir
-    (let ((buf (xl-dired-noselect dir)))
-      (unwind-protect
-          (progn
-            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
-            (with-current-buffer buf
-              (switch-to-buffer buf)
-              (xl-dired-test--goto "sub")
-              (xl-dired-preview))
-            (should (xl-dired-test--wait
-                     (lambda () (string-match-p "inner" (xl-dired-test--preview-text))))))
-        (kill-buffer buf)
-        (when (get-buffer xl-dired-preview-buffer-name)
-          (kill-buffer xl-dired-preview-buffer-name))))))
-
 (ert-deftest xl-dired-open-folder-reuses-the-window ()
   "Entering a folder keeps the same buffer and window; only its folder changes."
   (xl-dired-test--with-folder dir
@@ -293,6 +248,28 @@
     (should (equal (xl-dired-preview--clip "a\nb\nc") "a\nb…")))
   (let ((xl-dired-preview-lines 0))
     (should (equal (xl-dired-preview--clip "a\nb") ""))))
+
+;; Folders, `.' and `..' have no preview: TAB starts nothing and opens nothing.
+(ert-deftest xl-dired-folders-have-no-preview ()
+  "A folder, `.' or `..' is never previewed; no preview process starts."
+  (xl-dired-test--with-folder dir
+    (let ((buf (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
+            (when (get-buffer xl-dired-preview-buffer-name)
+              (kill-buffer xl-dired-preview-buffer-name))
+            (with-current-buffer buf
+              (switch-to-buffer buf)
+              (dolist (name '("sub" "." ".."))
+                (xl-dired-test--goto name)
+                (xl-dired-preview)
+                (should-not (get-buffer xl-dired-preview-buffer-name)))
+              (should-not (xl-dired-preview--maybe-load
+                           (expand-file-name "sub" dir)))))
+        (kill-buffer buf)
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))))))
 
 ;; Windows has none of head, hexdump, od or ls by default.  These tests
 ;; make `executable-find' miss those programs, as on such a machine.

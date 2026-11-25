@@ -2666,29 +2666,23 @@ that shows blame has the mode-line loader only."
           (when (get-buffer xl-dired-preview-buffer-name)
             (kill-buffer xl-dired-preview-buffer-name)))))))
 
-(ert-deftest xl-dired-preview-loads-a-directory-asynchronously ()
-  "TAB also previews a directory's `ls' listing in the background."
+(ert-deftest xl-dired-folders-have-no-preview ()
+  "TAB on a folder shows no preview: the windows stay as they are."
   (xl-test-with-temp-dir dir
     (let ((sub (expand-file-name "sub" dir)))
       (make-directory sub)
-      (with-temp-file (expand-file-name "inside.txt" sub)
-        (insert "inside\n"))
       (let ((buffer (xl-dired-noselect dir)))
         (unwind-protect
             (progn
               (switch-to-buffer buffer)
               (xl-test--wait-for-xl-dired buffer)
+              (when (get-buffer xl-dired-preview-buffer-name)
+                (kill-buffer xl-dired-preview-buffer-name))
               (goto-char (point-min))
               (should (re-search-forward " sub$" nil t))
               (goto-char (match-beginning 0))
-              (cl-letf (((symbol-function 'display-buffer)
-                         (lambda (candidate &rest _) candidate)))
-                (xl-dired-preview))
-              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
-                (xl-test--wait-for-xl-preview preview)
-                (with-current-buffer preview
-                  (should (string-match-p "total" (buffer-string)))
-                  (should (string-match-p "inside.txt" (buffer-string))))))
+              (xl-dired-preview)
+              (should-not (get-buffer xl-dired-preview-buffer-name)))
           (when (buffer-live-p buffer) (kill-buffer buffer))
           (when (get-buffer xl-dired-preview-buffer-name)
             (kill-buffer xl-dired-preview-buffer-name)))))))

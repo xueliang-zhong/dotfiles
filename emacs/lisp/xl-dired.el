@@ -23,11 +23,12 @@
 ;;   l / RET     open the file in the other window, or cd here for a directory
 ;;   TAB         preview the entry at point in the other window
 ;;
-;; Pointing at a file or directory for `xl-dired-preview-idle' seconds
-;; (0.1 s by default) starts the same preview.  File previews run `file' and
-;; then `head' in the background, so they are bounded work even for a huge
-;; file; directory previews run `ls' in the same background slot.  The preview
-;; buffer carries the GBlame spinner while either loads.  A byte-compiled
+;; Pointing at a file for `xl-dired-preview-idle' seconds (0.1 s by default)
+;; starts the same preview.  File previews run `file' and then `head' in the
+;; background, so they are bounded work even for a huge file.  Folders, `.'
+;; and `..' have no preview: there is nothing to show, and entering them is
+;; what RET and `l' do.  The preview buffer carries the GBlame spinner while a
+;; file loads.  A byte-compiled
 ;; `.elc' file is shown as text, because its comments and docstrings are still
 ;; readable.  A binary file or a special file says "No preview available"
 ;; instead of dumping bytes into the buffer.  The preview is a view, never a
@@ -394,11 +395,8 @@ is cancelled, so it cannot fill the buffer again after this."
   (xl-dired-preview--stop-spinner))
 
 (defun xl-dired-preview--entry-buffer (entry)
-  "Return the buffer visiting ENTRY.
-A directory gets an `xl-dired' buffer, as opening it from Dired would."
-  (if (file-directory-p entry)
-      (xl-dired-noselect entry)
-    (find-file-noselect entry)))
+  "Return the buffer visiting the file ENTRY.  Folders are never previewed."
+  (find-file-noselect entry))
 
 (defun xl-dired-preview--enter (&optional window)
   "Show this preview's entry in WINDOW once WINDOW is selected.
@@ -413,8 +411,7 @@ the preview is emptied rather than left showing stale text."
                (derived-mode-p 'xl-dired-preview-mode))
       (let ((target (and xl-dired-preview--file
                          (file-exists-p xl-dired-preview--file)
-                         (or (file-directory-p xl-dired-preview--file)
-                             (file-regular-p xl-dired-preview--file))
+                         (file-regular-p xl-dired-preview--file)
                          (condition-case nil
                              (xl-dired-preview--entry-buffer
                               xl-dired-preview--file)
@@ -561,33 +558,6 @@ Return the preview buffer, current and visible in the other window."
                       (inhibit-same-window . t)))
     buffer))
 
-(defun xl-dired-preview--load-directory (directory)
-  "Preview DIRECTORY's entries asynchronously.
-`ls' runs in the same `xl-async' slot as file previews, so a newer
-preview cancels this one.  The output is clipped like a file preview."
-  (xl-dired-preview--prepare directory)
-  (when (xl-dired--ls-missing-p)
-    (xl-dired-preview--no-preview "no ls program to list the folder"))
-  (unless (xl-dired--ls-missing-p)
-  (with-current-buffer (xl-dired-preview--buffer)
-    (xl-async-run
-     :name "xl-dired-preview-directory"
-     :command (append (list (or insert-directory-program "ls"))
-                      (split-string-and-unquote xl-dired-listing-switches)
-                      (list "--" directory))
-     :directory directory
-     :slot 'preview
-     :timeout xl-dired-preview-timeout
-     :on-done (lambda (output code)
-                (cond
-                 ((not (zerop code))
-                  (xl-dired-preview--no-preview "unreadable directory"))
-                 ((string-empty-p output)
-                  (xl-dired-preview--show "(empty directory)" t))
-                 (t
-                  (xl-dired-preview--show
-                   (xl-dired-preview--clip output)))))))))
-
 (defun xl-dired-preview--hex-command (file)
   "The command for a hex dump of the first bytes of FILE, or nil.
 `hexdump -C' gives an ASCII column too; `od' is the fallback, hex only.
@@ -674,12 +644,11 @@ the older one."
         (xl-dired-preview--load-text file))))))
 
 (defun xl-dired-preview--load (entry)
-  "Start loading a preview of ENTRY in the preview buffer.
-A directory shows its `ls' listing; a file first has its MIME type
-named, then a bounded `head'.  A byte-compiled `.elc' file skips the
-MIME test and is read as text.  All of it is asynchronous."
-  (if (file-directory-p entry)
-      (xl-dired-preview--load-directory entry)
+  "Start loading a preview of the file ENTRY in the preview buffer.
+A file first has its MIME type named, then a bounded `head'.  A
+byte-compiled `.elc' file skips the MIME test and is read as text.  All
+of it is asynchronous.  A folder has no preview, so nothing is loaded."
+  (unless (file-directory-p entry)
     (xl-dired-preview--load-file entry)))
 
 (defun xl-dired-preview--revert (&optional _arg _noconfirm)
@@ -704,25 +673,29 @@ MIME test and is read as text.  All of it is asynchronous."
       (kill-buffer (current-buffer)))))
 
 (defun xl-dired-preview--maybe-load (entry &optional force)
-  "Preview ENTRY, unless this Dired buffer already previewed it.
-With FORCE, start a fresh preview even for the same ENTRY.  After the
-preview window has been turned into the entry's own window, the idle
-timer must not replace that file with another preview, so this check
-does not depend on the preview window still being visible."
-  (unless (and (not force) (equal entry xl-dired--preview-file))
+  "Preview the file ENTRY, unless this Dired buffer already previewed it.
+A folder is never previewed.  With FORCE, start a fresh preview even for
+the same ENTRY.  After the preview window has been turned into the
+entry's own window, the idle timer must not replace that file with
+another preview, so this check does not depend on the preview window
+still being visible."
+  (unless (or (file-directory-p entry)
+              (and (not force) (equal entry xl-dired--preview-file)))
     (setq xl-dired--preview-file entry)
     (xl-dired-preview--load entry)))
 
 (defun xl-dired-preview ()
-  "Preview the entry at point in the other window, asynchronously.
-This is the TAB command.  A file shows its first lines; a directory
-shows its `ls' listing.  Both render in the preview buffer with the
-GBlame loader while they load."
+  "Preview the file at point in the other window, asynchronously.
+This is the TAB command.  A file shows its first lines in the preview
+buffer, with the GBlame loader while it loads.  A folder, `.' and `..'
+have no preview; TAB says so and leaves the windows alone."
   (interactive)
   (let ((entry (xl-dired--entry-at-point)))
-    (if entry
-        (xl-dired-preview--maybe-load entry t)
-      (user-error "No file or directory on this line"))))
+    (cond
+     ((null entry) (user-error "No file or directory on this line"))
+     ((file-directory-p entry)
+      (message "No preview for a folder (RET opens it)"))
+     (t (xl-dired-preview--maybe-load entry t)))))
 
 (defun xl-dired--idle-preview (buffer)
   "Preview the entry at point in BUFFER after the idle delay."
