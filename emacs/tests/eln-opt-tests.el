@@ -806,6 +806,55 @@ child is not restarted."
         (eln-opt-compile-now)
         (should (= started 1))))))
 
+;; macOS checks each new native file on its first load; the worker pays that.
+(ert-deftest eln-opt-warm-loads-new-files-in-a-throwaway-emacs ()
+  "On macOS, existing files go to one `emacs -Q' child with no load path;
+elsewhere, or with no existing file, no child starts."
+  (let* ((f (make-temp-file "eln-opt-warm" nil ".eln"))
+         (real (symbol-function 'make-process))
+         (calls nil))
+    (unwind-protect
+        (cl-letf (((symbol-function 'make-process)
+                   (lambda (&rest args)
+                     (push (plist-get args :command) calls)
+                     (funcall real :name "eln-opt-test-true" :command '("true")))))
+          (let ((system-type 'gnu/linux))
+            (should (= (eln-opt--warm (list f)) 0)))
+          (should-not calls)
+          (let ((system-type 'darwin))
+            (should (= (eln-opt--warm (list "/no/such/file.eln" nil)) 0))
+            (should-not calls)
+            (should (= (eln-opt--warm (list f "/no/such/file.eln")) 1)))
+          (should (= (length calls) 1))
+          (let ((cmd (car calls)))
+            (should (member "-Q" cmd))
+            (should (member "--batch" cmd))
+            (should (string-match-p "load-path nil" (car (last cmd))))
+            (should (string-match-p (regexp-quote f) (car (last cmd))))
+            (should-not (string-match-p "no/such" (car (last cmd))))))
+      (delete-file f))))
+
+(ert-deftest eln-opt-worker-warms-what-it-builds-then-the-whole-folder ()
+  "Each native build is warmed right away; byte builds are not; the run ends
+with one warm-up of every eln in the folder."
+  (eln-opt-test--with-worker srcs '("v1" "v2")
+    (let ((warmed nil))
+      (cl-letf (((symbol-function 'eln-opt-worker-plan)
+                 (lambda (&rest _) (list (cons 'byte (nth 0 srcs)) (cons 'native (nth 1 srcs)))))
+                ((symbol-function 'byte-compile-file) (lambda (&rest _) t))
+                ((symbol-function 'eln-opt--elc-current-p) (lambda (_) t))
+                ((symbol-function 'native-compile) #'ignore)
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t))
+                ((symbol-function 'eln-opt--eln-for) (lambda (src) (concat src ".eln")))
+                ((symbol-function 'eln-opt--eln-files) (lambda () '("all-1.eln" "all-2.eln")))
+                ((symbol-function 'eln-opt--warm)
+                 (lambda (files) (push files warmed) (length files))))
+        (let ((out (with-output-to-string (eln-opt-worker))))
+          (should (equal (reverse warmed)
+                         (list (list (concat (nth 1 srcs) ".eln"))
+                               '("all-1.eln" "all-2.eln"))))
+          (should (string-match-p "warmed 2 eln file" out)))))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)

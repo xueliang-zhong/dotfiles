@@ -63,7 +63,8 @@ worker（后台批处理 Emacs）：
    - 字节码候选：以源码加载、没有最新 `.elc` 的文件（先加载懒加载的根，比如 `org`，再计算）；
    - native 候选：平台支持时，做完整分析（Pi 上约 6 秒），按性价比（ratio = 分数 ÷ 大小 KB）从高到低，取 ratio ≥ 3 且没有 eln 的文件；
    - 合计最多 30 个，字节码在前。计划为空就记为安静状态，然后退出。
-10. 逐个处理，每两个文件之间睡 5 秒（`eln-opt-worker-sleep`）：写进行中标记 → 编译 → 删除标记 → 输出 `done` 或 `failed` 并记入失败列表。失败的文件记入失败列表，worker 继续编下一个，所以一个坏文件不会挡住其他文件。
+10. 逐个处理，每两个文件之间睡 5 秒（`eln-opt-worker-sleep`）：写进行中标记 → 编译 → 删除标记 →（native 成功时）预热新 eln → 输出 `done` 或 `failed` 并记入失败列表。失败的文件记入失败列表，worker 继续编下一个，所以一个坏文件不会挡住其他文件。
+10b. 平台支持 native 时，把整个 eln 目录预热一遍（见"首次加载检查"），覆盖别的途径生成的文件，以及 worker 在编译和预热之间被停掉的文件。已经检查过的文件每个约 3 毫秒，77 个约 0.6 秒。
 11. 结束：输出 `finished N`（有失败时 `finished N, failed M`），释放锁。主 Emacs 在回显区显示 `compiled N file(s); they load on the next start`。
 12. 下次启动：Emacs 自己加载新的 `.elc` 和 eln。
 
@@ -124,6 +125,24 @@ eln 文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-cach
 `eln-opt` 只通过 comp 写入（`native-compile`、`comp-trampoline-compile`、`comp-delete-or-replace-file`），从不 `cp` 或原地覆盖。
 
 **内置库的 `.el.gz`**：Emacs 自带的 org、winner、which-key、savehist、repeat、delsel 等只有 `.el.gz`。直接对 `.el.gz` 调用 `native-compile` 就能得到 Emacs 要找的 eln，不需要改启动流程。用完整路径 `load` 一个 `.elc` 永远加载字节码，只有不带后缀的 `load`（`require` 就是这样）才会去找 eln。
+
+## 首次加载检查（macOS）
+
+macOS 在任何进程第一次映射一个新的原生文件时检查它：每个新 `.eln` 约 0.22 秒，跟大小关系不大（37 KB 和 410 KB 都是这样），结果按文件缓存，跨进程有效；再加载只要约 3 毫秒。缓存按文件而不是按内容：把一个检查过的 eln 复制到新路径，第一次加载又是 0.22 秒。
+
+后果：worker 编完一批 eln 后，下一次 GUI 启动是第一个加载它们的进程，这笔开销就落在主线程上。改了我们自己的 lisp 文件会改变指纹，worker 随之编出新 eln，所以"改完文件重启就慢、但不是每次"。
+
+实测（MacBook Air，正常启动加载用户 eln 目录里的 31 个文件）：
+
+| 情况 | GUI init |
+|---|---|
+| 都已检查过 | 1.19 秒 |
+| 31 个都是新文件（内容相同的新副本） | 7.48 秒（用户看到过 13 秒，当时 worker 也在跑） |
+| 新文件，先在后台 `emacs -Q` 加载一遍 | 0.90 秒 |
+
+做法（`eln-opt--warm`）：worker 每编出一个 eln，就用一个一次性的 `emacs -Q --batch` 加载它一次；运行结束时再对整个目录做一次。子进程里 `load-path` 是 nil，文件的顶层代码在第一个 `require` 就停下，目的只是触发系统检查，不是运行代码；stdin 立即关闭，超过 `eln-opt-warm-timeout`（120 秒）就停掉。只在 macOS 上做。worker 在 `taskpolicy -b` 下运行，后台优先级下系统检查慢很多（31 个文件约 8 秒，前台约 0.4 秒），但不占主线程。
+
+Trampoline 由 `comp-trampoline-compile` 编译后当场加载，已经在编译它的进程里检查过，不需要另外预热。
 
 ## Trampoline
 

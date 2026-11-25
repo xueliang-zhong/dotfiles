@@ -1615,6 +1615,44 @@ first: small hot files before big ones.  At most
                                           (or (plist-get b :ratio) 0))))
                    (- eln-opt-worker-max (length bytes))))))))
 
+;;; ---- First load: macOS checks each new native file once ----
+;; macOS checks a native file the first time any process maps it: about 0.22 s
+;; per new .eln, whatever its size, and the result is kept per file.  A GUI
+;; start that is the first to load the files a worker just built pays it on
+;; the main thread: 31 fresh .eln files took init from 0.9 s to 7.5 s.  So the
+;; worker loads each new file once itself, in a throwaway `emacs -Q', and the
+;; next start finds them checked.  A checked file costs 3 ms to load again.
+
+(defconst eln-opt-warm-timeout 120
+  "Seconds a warm-up child may run before it is stopped.")
+
+(defun eln-opt--eln-files ()
+  "Every .eln in the user's eln folder, trampolines included."
+  (let ((dir (eln-opt--eln-dir)))
+    (and dir (file-directory-p dir) (directory-files dir t "\\.eln\\'"))))
+
+(defun eln-opt--warm (files)
+  "Load each eln in FILES once in a throwaway `emacs -Q', on macOS only.
+The point is the system's one-time check of a new native file, not the code:
+`load-path' is nil, so a file's top level stops at its first `require', and
+the child exits.  Its stdin is closed and it is stopped after
+`eln-opt-warm-timeout' seconds.  Returns the number of files given to it."
+  (let ((files (and (eq system-type 'darwin)
+                    (seq-filter (lambda (f) (and f (file-exists-p f))) files))))
+    (when files
+      (let ((proc (make-process
+                   :name "eln-opt-warm" :buffer nil :noquery t :connection-type 'pipe
+                   :command (list (expand-file-name invocation-name invocation-directory)
+                                  "-Q" "--batch" "--eval"
+                                  (format "(let ((load-path nil)) (dolist (f '%S) (ignore-errors (load f nil t t))))"
+                                          files))))
+            (deadline (+ (float-time) eln-opt-warm-timeout)))
+        (process-send-eof proc)
+        (while (and (process-live-p proc) (< (float-time) deadline))
+          (accept-process-output proc 0.2))
+        (when (process-live-p proc) (delete-process proc))))
+    (length files)))
+
 (defun eln-opt--compile-one (kind src)
   "Compile SRC the KIND way, `byte' or `native'.  Returns nil, or an error
 string.  Success means Emacs will load the result on the next start."
@@ -1705,7 +1743,15 @@ marker and the trusted-root check still apply."
                       (eln-opt--say "failed %s %s" src (eln-opt--short err))
                       (cl-incf failures))
                   (cl-incf done)
+                  ;; Check the new file now, so the next start does not pay.
+                  (when (eq (car item) 'native)
+                    (eln-opt--warm (list (eln-opt--eln-for src))))
                   (eln-opt--say "done %s" src)))))
+          ;; Also files built some other way, or before a worker was stopped
+          ;; between the build and its warm-up.  Checked files cost 3 ms each.
+          (when native
+            (let ((n (eln-opt--warm (eln-opt--eln-files))))
+              (when (> n 0) (eln-opt--say "warmed %d eln file(s)" n))))
           (eln-opt--say "finished %d%s" done
                         (if (> failures 0) (format ", failed %d" failures) ""))
           done)
