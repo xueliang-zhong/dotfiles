@@ -170,7 +170,8 @@ harmless: a spare trampoline costs one batch compile.  `byte-decompile-bytecode'
 mixes integer offsets into its list, so only conses are kept."
   (let ((prev nil) (recent nil))
     (dolist (op (seq-filter #'consp
-                            (ignore-errors (byte-decompile-bytecode code consts))))
+                            (progn (require 'byte-opt)
+                                   (ignore-errors (byte-decompile-bytecode code consts)))))
       (let* ((head (car op))
              (c (and (eq head 'byte-constant) (car-safe (cdr op)))))
         (when (and (memq prev eln-opt--redefiners) (eln-opt--primitive-p c))
@@ -720,6 +721,9 @@ gone.  Below it the baseline's weight falls in step with the user's data.")
     (expt eln-opt-rank-loop-factor level)))
 
 (defun eln-opt-rank--lap (fn)
+  ;; `byte-decompile-bytecode' lives in byte-opt.el, which Emacs does not
+  ;; always preload (it was missing on a Windows build).
+  (require 'byte-opt)
   (seq-filter #'consp
               (byte-decompile-bytecode (aref fn 1) (aref fn 2))))
 
