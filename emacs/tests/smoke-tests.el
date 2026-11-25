@@ -1063,7 +1063,7 @@ keypress.  Prefix keymaps are walked recursively."
 
 (ert-deftest xl-function-keys ()
   "F2-F12 keep the vim/Neovim habits from `vimrc'."
-  (dolist (spec '(("<f2>" . imenu)
+  (dolist (spec '(("<f2>" . consult-imenu)
                   ("<f4>" . evil-window-delete)
                   ("<f5>" . xueliang-eshell-popup)
                   ("<f6>" . consult-yank-pop)
