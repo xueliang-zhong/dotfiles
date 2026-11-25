@@ -714,6 +714,36 @@ is recorded for that path."
         (should (> checked 100))
         (should (= bad 0))))))
 
+;; Taking over a stale lock must not leave lock.stale-* folders behind, and
+;; folders left by earlier takeovers are swept once the lock is ours.
+(ert-deftest eln-opt-lock-takeover-leaves-no-stale-folders ()
+  "A stale lock is taken over, and no lock.stale-* folder remains afterwards."
+  (eln-opt-test--with-state
+    (let ((dir (eln-opt--lock-dir)))
+      (make-directory (eln-opt--version-dir) t)
+      (dolist (old '("lock.stale-old1" "lock.stale-old2"))
+        (make-directory (expand-file-name old (eln-opt--version-dir)) t))
+      (make-directory dir)
+      (eln-opt--write-eld (eln-opt--owner-file dir) (list :pid 999999999 :time 0))
+      (should (eln-opt--lock-acquire))
+      (should (equal (directory-files (eln-opt--version-dir) nil "\\`lock\\.stale-")
+                     nil))
+      (eln-opt--lock-release))))
+
+;; A zombie owner (exited, not yet reaped) must not keep the lock alive.
+(ert-deftest eln-opt-zombie-owner-does-not-hold-the-lock ()
+  "A lock whose owner is a zombie is stale, and can be taken over."
+  (eln-opt-test--with-state
+    (let ((dir (eln-opt--lock-dir)))
+      (make-directory dir t)
+      (eln-opt--write-eld (eln-opt--owner-file dir) (list :pid 4242 :time (eln-opt--now)))
+      (cl-letf (((symbol-function 'process-attributes)
+                 (lambda (pid) (and (= pid 4242) '((state . "Z"))))))
+        (should-not (eln-opt--process-alive-p 4242))
+        (should (eln-opt--lock-stale-p dir))
+        (should (eln-opt--lock-acquire)))
+      (eln-opt--lock-release))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)

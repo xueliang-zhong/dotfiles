@@ -317,12 +317,20 @@ needs to be stable for one binary."
 
 (defun eln-opt--owner-file (dir) (expand-file-name "owner.eld" dir))
 
+(defun eln-opt--process-alive-p (pid)
+  "Non-nil if PID is a running process.  A zombie (state Z) has exited: its
+parent has not reaped it yet, but it no longer holds anything, so it does not
+keep a lock alive."
+  (let* ((attrs (process-attributes pid))
+         (state (cdr (assq 'state attrs))))
+    (and attrs (not (string-prefix-p "Z" (format "%s" state))))))
+
 (defun eln-opt--lock-stale-p (dir)
   (let* ((owner (eln-opt--read-eld (eln-opt--owner-file dir)))
          (pid (plist-get owner :pid))
          (time (plist-get owner :time)))
     (or (null owner)
-        (not (and (integerp pid) (process-attributes pid)))
+        (not (and (integerp pid) (eln-opt--process-alive-p pid)))
         (and time (> (- (eln-opt--now) time) eln-opt-lock-max-age)))))
 
 (defun eln-opt--lock-take (dir)
@@ -335,17 +343,28 @@ needs to be stable for one binary."
         t)
     (file-already-exists nil)))
 
+(defun eln-opt--sweep-stale-locks ()
+  "Delete the lock.stale-* folders left by earlier takeovers.  Only call this
+while holding the lock: a renamed stale lock is in use by nobody then."
+  (dolist (d (directory-files (eln-opt--version-dir) t "\\`lock\\.stale-" t))
+    (ignore-errors (delete-directory d t))))
+
 (defun eln-opt--lock-acquire ()
   "Return non-nil if this process now holds the lock.  A stale lock is
-renamed away first, so two runners cannot both take over the same one."
-  (let ((dir (eln-opt--lock-dir)))
-    (make-directory (eln-opt--version-dir) t)
-    (or (eln-opt--lock-take dir)
-        (and (eln-opt--lock-stale-p dir)
-             (condition-case nil
-                 (progn (rename-file dir (make-temp-name (concat dir ".stale-")))
-                        (eln-opt--lock-take dir))
-               (file-error nil))))))
+renamed away first, so two runners cannot both take over the same one.
+Once the lock is ours, the renamed folders are swept away."
+  (let* ((dir (eln-opt--lock-dir))
+         (got
+          (progn
+            (make-directory (eln-opt--version-dir) t)
+            (or (eln-opt--lock-take dir)
+                (and (eln-opt--lock-stale-p dir)
+                     (condition-case nil
+                         (progn (rename-file dir (make-temp-name (concat dir ".stale-")))
+                                (eln-opt--lock-take dir))
+                       (file-error nil)))))))
+    (when got (eln-opt--sweep-stale-locks))
+    got))
 
 (defun eln-opt--lock-release ()
   "Remove the lock, but only if this process owns it."
