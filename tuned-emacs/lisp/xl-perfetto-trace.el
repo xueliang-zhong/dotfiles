@@ -86,7 +86,7 @@ trace metadata as a dropped event."
   :type 'natnum
   :group 'xl-perfetto)
 
-(defcustom xl-perfetto-trace-max-seconds 60
+(defcustom xl-perfetto-trace-max-seconds 120
   "Longest recording, in seconds.
 When it is reached, the recording stops and its file is written as if
 `xl-perfetto-trace-stop' had been called."

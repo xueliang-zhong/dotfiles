@@ -62,7 +62,7 @@
 |---|---|---|
 | `xl-perfetto-trace-categories` | 全部 | 要录制的类别：`commands`、`timers`、`processes`、`xl-async`、`gc`、`redisplay`、`functions`、`counters`。 |
 | `xl-perfetto-trace-ring-size` | 100000 | 环形缓冲区能放的事件数。 |
-| `xl-perfetto-trace-max-seconds` | 60 | 最长录制时间，到点自动停止并写文件。 |
+| `xl-perfetto-trace-max-seconds` | 120 | 最长录制时间，到点自动停止并写文件。 |
 | `xl-perfetto-trace-directory` | `traces/` 放在 `user-emacs-directory` 下 | 输出目录，不存在就创建。 |
 | `xl-perfetto-trace-record-names` | t | 是否记录 buffer 名和文件名。nil 时只记录 buffer 的 major mode。 |
 | `xl-perfetto-trace-process-scan-interval` | 0.5 | 录制期间扫描新进程的间隔秒数（见"进程"）。 |
