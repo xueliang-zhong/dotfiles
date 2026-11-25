@@ -744,6 +744,27 @@ is recorded for that path."
         (should (eln-opt--lock-acquire)))
       (eln-opt--lock-release))))
 
+;; Stopping the worker ends its process and its watchdog, and arms nothing.
+(ert-deftest eln-opt-stop-worker-ends-the-run-and-arms-nothing ()
+  "A running worker is stopped, its timers are cancelled, and the stop says so."
+  (eln-opt-test--with-auto
+    (let* ((buf (get-buffer-create eln-opt-log-buffer))
+           (proc (make-process :name "eln-opt-test-stop" :buffer buf :noquery t
+                               :command (list "sleep" "100"))))
+      (setq eln-opt-auto--process proc
+            eln-opt-auto--watchdog (run-with-timer 60 60 #'ignore)
+            eln-opt-auto--timer (run-with-idle-timer 5 nil #'ignore))
+      (eln-opt-stop-worker)
+      (should-not (process-live-p proc))
+      (should-not eln-opt-auto--process)
+      (should-not eln-opt-auto--watchdog)
+      (should-not eln-opt-auto--timer)
+      (let (msg)
+        (cl-letf (((symbol-function 'message)
+                   (lambda (fmt &rest args) (setq msg (apply #'format fmt args)))))
+          (eln-opt-stop-worker))
+        (should (string-match-p "no worker is running" msg))))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)

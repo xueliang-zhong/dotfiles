@@ -1920,6 +1920,30 @@ compilation the worker still byte-compiles."
     (setq eln-opt-auto--timer
           (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))))
 
+;;;###autoload
+(defun eln-opt-stop-worker ()
+  "Stop the background eln-opt worker now.
+The file it was compiling keeps its in-progress marker, so the next run counts
+that attempt as interrupted, as it would after a quit.  No automatic worker
+starts again this session; `eln-opt-compile-now' still does."
+  (interactive)
+  (let ((proc eln-opt-auto--process))
+    (cond
+     ((process-live-p proc)
+      (eln-opt-auto--stop-watchdog)
+      (when (timerp eln-opt-auto--timer) (cancel-timer eln-opt-auto--timer))
+      (setq eln-opt-auto--timer nil
+            eln-opt-auto--process nil
+            eln-opt-auto--current nil)
+      ;; Deleting the process runs no sentinel, so the loader and the
+      ;; summary are ended here.
+      (when (buffer-live-p (process-buffer proc))
+        (with-current-buffer (process-buffer proc)
+          (xl-spinner-mode-line-stop)))
+      (delete-process proc)
+      (message "eln-opt: worker stopped; the file it was compiling is retried next time"))
+     (t (message "eln-opt: no worker is running")))))
+
 (defun eln-opt-compile-now ()
   "Start the worker now, or show the one that runs, with a loader in its log.
 Batch: runs the worker here."

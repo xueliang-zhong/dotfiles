@@ -32,6 +32,7 @@ Tier 2 的门槛应按实测收益定，而不只看热不热。循环密集的�
 | `M-x eln-opt-compile-now` | 立刻启动 worker（绕过空闲和安静状态），显示 `*eln-opt*` |
 | `M-x eln-opt-compile-function` | 编译某个函数所在的源文件（字节码，然后 native），不受安静状态和失败列表影响 |
 | `M-x eln-opt-report` | 显示排名、下一次要编的文件、已经是 Tier 1/2 的文件、为什么某些文件没编 |
+| `M-x eln-opt-stop-worker` | 立刻停止正在跑的后台 worker；正在编译的文件保留进行中标记（下次当作被打断的尝试），本次会话不再自动启动，`eln-opt-compile-now` 仍然可用 |
 | `M-x eln-opt-reset` | 删除 eln-opt 生成的 eln、失败列表、进行中标记、安静状态。先要求输入 `yes` |
 
 命令行：`bash emacs/install/emacs-setup.sh eln-opt`（平台是否可用）、`eln-opt-compile`、`eln-opt-report`、`eln-opt-status`、`eln-opt-reset`、`compile-lisp`（我们自己的 lisp 编成字节码，不依赖 libgccjit）。
