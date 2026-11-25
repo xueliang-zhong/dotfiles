@@ -610,7 +610,8 @@ mode-line loader of `xl-spinner' names the running operation and how
 many wait behind it; fast local operations end before it appears.  It
 has no frame limit, because a push may take a while."
   (let ((action (plist-get job :action))
-        (progress (or (plist-get job :progress) (plist-get job :action))))
+        (progress (or (plist-get job :progress) (plist-get job :action)))
+        (status-buffer (current-buffer)))
     (xl-async-enqueue
      'queue
      (list :directory (plist-get job :root)
@@ -624,7 +625,7 @@ has no frame limit, because a push may take a while."
                       (if (zerop code)
                           (message "%s" action)
                         (message "%s failed: %s" action (string-trim output)))))
-     #'xl-git-status--queue-drained))
+     (lambda () (xl-git-status--queue-drained status-buffer))))
   (xl-spinner-mode-line-start (xl-git-status--queue-label)))
 
 (defun xl-git-status--queue-label ()
@@ -634,12 +635,19 @@ It names the running operation and, after it, how many wait."
     (concat (or xl-git-status--queue-action "git")
             (if (> waiting 0) (format " +%d" waiting) ""))))
 
-(defun xl-git-status--queue-drained ()
-  "Refresh the status once the operation queue has run out of jobs.
-The refresh relabels the running loader \"Refreshing\" instead of
-ending it, so the mode line stays put until the new status is drawn."
-  (setq xl-git-status--queue-action nil)
-  (xl-git-status))
+(defun xl-git-status--queue-drained (buffer)
+  "Refresh BUFFER's status once its operation queue has run out of jobs.
+Only a status on screen is refreshed: a background push that finishes
+while the status window is closed must not open it again.  The refresh
+relabels the running loader \"Refreshing\" instead of ending it, so the
+mode line stays put until the new status is drawn.  A hidden status
+ends its loader here; opening it later refreshes it anyway."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (setq xl-git-status--queue-action nil)
+      (if (get-buffer-window buffer t)
+          (save-selected-window (xl-git-status))
+        (xl-spinner-mode-line-stop)))))
 
 (defun xl-git-status--git-string (root &rest args)
   "Return the trimmed output of git ARGS run in ROOT, or nil.

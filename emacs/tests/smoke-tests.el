@@ -1267,7 +1267,7 @@ The other TAB command would insert two spaces, so it delegates to
             (should (zerop (call-process "git" nil nil nil
                                          "-C" repo "update-ref" ref "HEAD"))))
           (cl-letf (((symbol-function 'display-buffer)
-                     (lambda (b &rest _) (setq buffer b) b)))
+                     (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
             (xl-git-status)
             (should (buffer-live-p buffer))
             (with-current-buffer buffer
@@ -1377,7 +1377,7 @@ Both go when the status is rendered."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1401,7 +1401,7 @@ Both go when the status is rendered."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1483,7 +1483,7 @@ Both go when the status is rendered."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1516,7 +1516,7 @@ Both go when the status is rendered."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1547,7 +1547,7 @@ The staged file diff is unfolded so the restored line is visible."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1570,6 +1570,36 @@ The staged file diff is unfolded so the restored line is visible."
       (delete-directory repo t))))
 
 
+;; A background push that ends while its status window is closed must not
+;; open the window again; one that ends while the window is on screen refreshes it.
+(ert-deftest xl-git-status-drain-does-not-reopen-a-closed-status ()
+  "The queue draining refreshes a status only when it is on screen."
+  (let ((buffer (generate-new-buffer " *git-status-drain-test*"))
+        (refreshed 0)
+        (popped 0))
+    (unwind-protect
+        (cl-letf (((symbol-function 'xl-git-status)
+                   (lambda (&rest _) (cl-incf refreshed)))
+                  ((symbol-function 'pop-to-buffer)
+                   (lambda (&rest _) (cl-incf popped)))
+                  ((symbol-function 'display-buffer)
+                   (lambda (&rest _) (cl-incf popped))))
+          (with-current-buffer buffer
+            (xl-spinner-mode-line-start "Pushing"))
+          ;; Closed: no refresh, no window, and the loader ends.
+          (xl-git-status--queue-drained buffer)
+          (should (= refreshed 0))
+          (should (= popped 0))
+          (with-current-buffer buffer
+            (should-not xl-git-status--queue-action))
+          ;; On screen: the status refreshes in place.
+          (cl-letf (((symbol-function 'get-buffer-window)
+                     (lambda (&rest _) 'window)))
+            (xl-git-status--queue-drained buffer))
+          (should (= refreshed 1))
+          (should (= popped 0)))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-git-status-queues-operations-in-order ()
   "Rapid `s' presses run one git command at a time, then refresh once.
 The loader is visible while the queue runs."
@@ -1578,7 +1608,7 @@ The loader is visible while the queue runs."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1633,7 +1663,7 @@ The loader is visible while the queue runs."
                                        "push" "-q" "-u" "origin" branch)))
           (let ((default-directory (file-name-as-directory repo)))
             (cl-letf (((symbol-function 'display-buffer)
-                       (lambda (b &rest _) (setq buffer b) b)))
+                       (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
               (xl-git-status)
               (xl-test--wait-for-git-status buffer)
               ;; The render remembers what the push menu offers.
@@ -1724,7 +1754,7 @@ The loader is visible while the queue runs."
                                        "push" "-q" "-u" "origin" branch)))
           (let ((default-directory (file-name-as-directory repo)))
             (cl-letf (((symbol-function 'display-buffer)
-                       (lambda (b &rest _) (setq buffer b) b)))
+                       (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
               (xl-git-status)
               (xl-test--wait-for-git-status buffer)
               (with-temp-file (expand-file-name "file-0.txt" repo)
@@ -1758,7 +1788,7 @@ The loader is visible while the queue runs."
         (commit nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b))
                   ((symbol-function 'find-file)
                    (lambda (file) (setq opened file)))
                   ((symbol-function 'xl-git-status--show-commit)
@@ -1791,7 +1821,7 @@ The loader is visible while the queue runs."
           ;; Stub only the status window: the visits below use `find-file',
           ;; which itself goes through `display-buffer'.
           (cl-letf (((symbol-function 'display-buffer)
-                     (lambda (b &rest _) (setq buffer b) b)))
+                     (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
             (xl-git-status))
           (xl-test--wait-for-git-status buffer)
           (with-current-buffer buffer
@@ -1919,7 +1949,7 @@ The loader is visible while the queue runs."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -1983,7 +2013,7 @@ The loader is visible while the queue runs."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -2043,7 +2073,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
          (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -2067,7 +2097,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
          (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -2090,7 +2120,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
@@ -2118,7 +2148,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
             (run "commit" "-qm" "initial")
             (with-temp-file (expand-file-name "a b.txt" repo) (insert "two\n")))
           (cl-letf (((symbol-function 'display-buffer)
-                     (lambda (b &rest _) (setq buffer b) b)))
+                     (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
             (let ((default-directory (file-name-as-directory repo)))
               (xl-git-status)
               (xl-test--wait-for-git-status buffer)
@@ -2150,7 +2180,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
           (should (zerop (call-process "git" nil nil nil
                                        "-C" repo "add" "file.txt")))
           (cl-letf (((symbol-function 'display-buffer)
-                     (lambda (b &rest _) (setq buffer b) b)))
+                     (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
             (let ((default-directory (file-name-as-directory repo)))
               (xl-git-status)
               (xl-test--wait-for-git-status buffer)
@@ -2182,7 +2212,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b))
                   ((symbol-function 'y-or-n-p)
                    (lambda (&rest _) t)))
           (let ((default-directory (file-name-as-directory repo)))
@@ -2220,7 +2250,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
          asked)
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b))
                   ((symbol-function 'y-or-n-p)
                    (lambda (prompt) (setq asked prompt) t))
                   ((symbol-function 'yes-or-no-p)
@@ -2249,7 +2279,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
         (buffer nil))
     (unwind-protect
         (cl-letf (((symbol-function 'display-buffer)
-                   (lambda (b &rest _) (setq buffer b) b)))
+                   (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b)))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
             (xl-test--wait-for-git-status buffer)
