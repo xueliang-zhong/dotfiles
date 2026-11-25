@@ -35,8 +35,11 @@
 ;;; Code:
 
 (require 'cl-lib)
+(require 'subr-x)
+(declare-function comp-delete-or-replace-file "comp" (file))
 (require 'seq)
-(require 'comp nil t)
+;; comp.el is loaded only where it is used (see `eln-opt--require-comp'): at
+;; startup it costs about 170 ms on a Raspberry Pi, and the timer path never needs it.
 (require 'xl-async)
 
 ;; Design: emacs/ideas/eln-opt.md.  This file is loaded only by a background
@@ -82,6 +85,11 @@ Files larger than MAX-BYTES (default `eln-opt--max-state-bytes') are ignored."
         (prin1 form (current-buffer))
         (insert "\n")))
     (rename-file tmp file t)))
+
+(defun eln-opt--require-comp ()
+  "Load comp.el, for the functions that need it.  Without it, the startup path
+stays cheap; the variables and `comp-el-to-eln-filename' are preloaded anyway."
+  (require 'comp nil t))
 
 (defun eln-opt--canary ()
   "Native-compile and load a one-function file in a temporary folder.
@@ -148,7 +156,7 @@ canary is cached too, so a broken libgccjit is not retried on every run."
   "Non-nil if S names a C primitive, looking through advice already on it."
   (and (symbolp s) s (fboundp s)
        (subr-primitive-p (advice--cd*r (indirect-function s)))
-       (not (memq s native-comp-never-optimize-functions))))
+       (not (memq s (bound-and-true-p native-comp-never-optimize-functions)))))
 
 (defun eln-opt--scan-lap (code consts hits)
   "Add to HITS (a cons whose car is a list) the primitives redefined in LAP.
@@ -250,6 +258,7 @@ Without comp (no native compilation), nothing is cached: there are no elns."
 
 (defun eln-opt-trampolines-missing ()
   "Predicted primitives whose trampoline is not cached yet."
+  (eln-opt--require-comp)
   (cl-remove-if #'eln-opt--trampoline-cached-p (eln-opt-trampolines-predict)))
 
 (defun eln-opt-trampolines-build ()
@@ -257,6 +266,7 @@ Without comp (no native compilation), nothing is cached: there are no elns."
 Returns `unavailable' on a platform without native compilation, otherwise a
 plist (:built N :failed N :left N).  A failure is counted and skipped; it is
 not retried within the same run."
+  (eln-opt--require-comp)
   (if (not (eln-opt-platform-available-p))
       'unavailable
     (let* ((missing (eln-opt-trampolines-missing))
@@ -1583,6 +1593,7 @@ number of files compiled, or `busy'.
 With SOURCES, a list of .el files, compiles exactly those (byte, then
 native), ignoring the failed list and the quiet state; the in-progress
 marker and the trusted-root check still apply."
+  (eln-opt--require-comp)
   (cond
    ((not (eln-opt--lock-acquire)) (eln-opt--say "busy") 'busy)
    (t
@@ -1650,6 +1661,7 @@ Interactive: asks first, and the answer must be the word yes.  Batch (the
 emacs-setup.sh command) does not ask: running that command is the
 confirmation.  Returns the number of elns deleted, or nil when cancelled."
   (interactive)
+  (eln-opt--require-comp)
   (if (and (not noninteractive)
            (not (yes-or-no-p
                  (format "Delete %d eln file(s) built by eln-opt, and the failed list? "
