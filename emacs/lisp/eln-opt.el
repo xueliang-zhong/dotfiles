@@ -726,7 +726,7 @@ Returns (:benefit B :loops N :calls LIST :varrefs LIST :dynamic BOOL :size N)."
   "Name used in the ranking: basename without .elc, .el or .gz.
 Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
   (let ((base (file-name-nondirectory file)))
-    (unless (string-match-p "-\\(autoloads\\|loaddefs\\)\\.el\\(c\\|\\.gz\\)?\\'" base)
+    (unless (string-match-p "\\(\\`\\|-\\)\\(autoloads\\|loaddefs\\)\\.el\\(c\\|\\.gz\\)?\\'" base)
       (replace-regexp-in-string "\\.\\(elc\\|el\\)\\(\\.gz\\)?\\'" "" base))))
 
 (defvar eln-opt-rank--no-native-cache (make-hash-table :test #'equal))
@@ -1075,18 +1075,13 @@ their files with a current .elc are listed too, as byte-compiled."
                      (string< (plist-get a :file) (plist-get b :file))
                    (plist-get a :eln))))))
 
-(defun eln-opt-rank--line (rank score kb trusted native file top)
-  "One report row.  Every row, ranked or built, uses this one layout."
-  (format "%4s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
-          rank score kb trusted native file top))
-
 (defun eln-opt-rank--when (time)
   (if time (format-time-string "%Y-%m-%d %H:%M" (seconds-to-time time)) "-"))
 
 (defun eln-opt-rank--format (result)
-  "The report as a string.  Sections, in order: what the next pass does, what
-was compiled, what failed, why each ranked file was skipped, what is left out
-altogether.  The ranking table comes last."
+  "The report as a string.  Sections, in order: what the next pass does, the
+files at Tier 1 and 2, what failed, what happens to each ranked file (with its
+score and cost), and what is left out altogether."
   (let* ((built (plist-get result :built-rows))
          (next (plist-get result :next))
          (failed (plist-get result :failed))
@@ -1103,7 +1098,7 @@ altogether.  The ranking table comes last."
                        (mapconcat #'identity next-names ", "))))
       ;; 2. What was compiled
       (let ((elns (seq-filter (lambda (r) (plist-get r :eln)) built)))
-        (princ (format "\nTiers now: %d file(s) native (eln), %d function(s); %d file(s) byte-compiled only\n"
+        (princ (format "\nStatus: %d file(s) at Tier 2 (native, %d function(s)); %d file(s) at Tier 1 (byte-compiled)\n"
                        (length elns)
                        (apply #'+ (mapcar (lambda (r) (plist-get r :count)) elns))
                        (- (length built) (length elns)))))
@@ -1127,7 +1122,8 @@ altogether.  The ranking table comes last."
                          (eln-opt-rank--when (plist-get e :time))
                          (or (plist-get e :reason) "")))))
       ;; 4. Why each ranked file is or is not compiled
-      (princ "\nRanked files not yet native, and what happens to each:\n")
+      (princ "\nRanked files not yet native, and what happens to each\n")
+      (princ "(score: expected gain; KB: bytecode size, the cost):\n")
       (let ((n 0))
         (dolist (row rows)
           (let* ((src (and (plist-get row :path)
@@ -1138,8 +1134,9 @@ altogether.  The ranking table comes last."
                             (t (format "candidate, but past the limit of %d per worker run"
                                        eln-opt-worker-max)))))
             (when (< n 40)
-              (princ (format "  %-28s score %6.1f  %s\n"
-                             (plist-get row :file) (plist-get row :score) why)))
+              (princ (format "  %-28s score %6.1f  KB %6.1f  %s\n"
+                             (plist-get row :file) (plist-get row :score)
+                             (/ (or (plist-get row :size) 0) 1024.0) why)))
             (cl-incf n)))
         (when (> n 40) (princ (format "  ... and %d more\n" (- n 40)))))
       ;; 5. What is left out altogether
@@ -1159,18 +1156,7 @@ altogether.  The ranking table comes last."
                        (mapconcat #'identity (plist-get result :lazy-loaded) ", "))))
       (princ (format "  functions analysed: %d;  largest single savehist command share of the score: %.1f%%\n"
                      (plist-get result :functions)
-                     (* 100 (plist-get result :savehist-share))))
-      ;; 6. The table
-      (princ "\nRanking (score: expected gain; KB: bytecode size, the cost):\n")
-      (princ (eln-opt-rank--line "rank" "score" "KB" "trusted" "native" "file" "[top functions]"))
-      (cl-loop for row in (seq-take rows 25) for i from 1
-               do (princ (eln-opt-rank--line
-                          i
-                          (format "%.1f" (plist-get row :score))
-                          (format "%.1f" (/ (plist-get row :size) 1024.0))
-                          (if (plist-get row :trusted) "yes" "NO")
-                          "no" (plist-get row :file)
-                          (format "%S" (plist-get row :top))))))))
+                     (* 100 (plist-get result :savehist-share)))))))
 
 ;;; The report as a buffer.  The ranking takes seconds, so it runs in a child
 ;;; Emacs that loads the profile and prints this same text; the buffer shows a
@@ -1235,7 +1221,7 @@ the width of the text, so the columns still line up."
   (with-temp-buffer
     (insert text)
     (goto-char (point-min))
-    (let ((in-table nil) (table-end 0))
+    (let ((in-table nil) (in-left nil) (table-end 0))
       (while (not (eobp))
         (let* ((bol (line-beginning-position))
                (eol (line-end-position))
@@ -1243,12 +1229,30 @@ the width of the text, so the columns still line up."
           (cond
            ((string-match-p "\\`eln-opt report" line)
             (add-face-text-property bol eol 'bold))
+           ((string-match-p "\\`Left out before ranking:" line)
+            (setq in-left t)
+            (add-face-text-property bol eol 'bold))
+           ((and in-left (string-match-p "\\`  " line))
+            ;; Counts are numbers; the lists of files are file names.
+            (save-excursion
+              (goto-char bol)
+              (while (re-search-forward "[0-9]+\\(?:\\.[0-9]+\\)?%?" eol t)
+                (add-face-text-property (match-beginning 0) (match-end 0)
+                                        'font-lock-constant-face)))
+            (when (and (string-match ": \\(.+\\)\\'" line)
+                       (string-match-p "opted out\\|loaded for the analysis" line))
+              (let ((start (+ bol (match-beginning 1))))
+                (save-excursion
+                  (goto-char start)
+                  (while (re-search-forward "[^, \n]+" eol t)
+                    (add-face-text-property (match-beginning 0) (match-end 0)
+                                            'font-lock-type-face))))))
+           ((string= line "")
+            (setq in-left nil in-table nil))
            ((string-match-p "\\`file +KB +elc +eln" line)
             (setq in-table t
                   table-end (or (string-match "examples" line) (length line)))
             (add-face-text-property bol eol 'bold))
-           ((string= line "")
-            (setq in-table nil))
            (in-table
             ;; The file name is the first column; the examples are the
             ;; function names from the examples column on.

@@ -299,7 +299,9 @@ runs the canary; it still byte-compiles."
   (should (equal (eln-opt-rank--file-key "/x/winum.elc") "winum"))
   (should (equal (eln-opt-rank--file-key "/x/org/org.el.gz") "org"))
   (should (null (eln-opt-rank--file-key "/x/org/org-loaddefs.elc")))
-  (should (null (eln-opt-rank--file-key "/x/org/org-loaddefs.el.gz"))))
+  (should (null (eln-opt-rank--file-key "/x/org/org-loaddefs.el.gz")))
+  (should (null (eln-opt-rank--file-key "/x/loaddefs.elc")))
+  (should (null (eln-opt-rank--file-key "/x/loaddefs.el.gz"))))
 
 (ert-deftest eln-opt-rank-respects-no-native-cookie ()
   "A file that opts out with a local variable is recognised."
@@ -577,7 +579,7 @@ the worker and goes on the failed list."
 (ert-deftest eln-opt-report-buffer-is-colored-batch-is-not ()
   "yes is green and no dimmed in the table; the title is bold; the text itself
 is unchanged."
-  (let* ((plain "eln-opt report (report only)\n\nTiers now: 1 file(s)\n\nfile                 KB  elc   eln   functions  examples\nzeta                2.0  yes   no            3  (z-a)\nalpha               1.0  yes   yes           5  (a-b)\n\nLeft out before ranking:\n")
+  (let* ((plain "eln-opt report (report only)\n\nStatus: 1 file(s) at Tier 2 (native, 5 function(s)); 0 file(s) at Tier 1 (byte-compiled)\n\nfile                 KB  elc   eln   functions  examples\nzeta                2.0  yes   no            3  (z-a)\nalpha               1.0  yes   yes           5  (a-b)\n\nLeft out before ranking:\n")
          (out (eln-opt-rank--colorize plain)))
     (should (equal (substring-no-properties out) plain))
     (let ((yes (string-match "yes   yes" out)))
@@ -585,6 +587,13 @@ is unchanged."
     (should (memq 'shadow (ensure-list (get-text-property (string-match "no  " out) 'face out))))
     (should (memq 'bold (ensure-list (get-text-property 0 'face out))))
     (should (memq 'bold (ensure-list (get-text-property (string-match "Left out" out) 'face out))))
+    ;; The left-out counts and file lists in their own section.
+    (let* ((left "Left out before ranking:\n  opted out with no-native-compile: 2 file(s): package, cus-load\n")
+           (lout (eln-opt-rank--colorize left)))
+      (should (memq 'font-lock-type-face
+                    (ensure-list (get-text-property (string-match "cus-load" lout) 'face lout))))
+      (should (memq 'font-lock-constant-face
+                    (ensure-list (get-text-property (string-match "2 file" lout) 'face lout)))))
     ;; File names and function names get their faces too.
     (should (memq 'font-lock-type-face
                   (ensure-list (get-text-property (string-match "zeta" out) 'face out))))
