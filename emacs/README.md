@@ -80,6 +80,8 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 抑制 Emacs 31 对没有 `lexical-binding` 声明的第三方文件的警告。
 - evil 系列固定从 MELPA 安装（NonGNU 的 1.15.0 在 Emacs 30 以上会报错）。
 - 最后加载 `crafted-early-init-config`，设置包源和优先级。
+- **ffap 不在启动时运行编译器**。ffap（find file at point）是 Emacs 自带的库：根据光标下的文字猜出文件名、URL 或 C 代码里的 `#include <stdio.h>`，并打开它。embark 判断光标下的目标时用到 ffap 的函数，所以 `embark.el` 开头有 `(require 'ffap)`，而 Crafted 的 completion 模块在启动时加载 embark，ffap 也就跟着在启动时加载。ffap 用 `(defvar ffap-c-path (ffap--c-path))` 定义 C 头文件目录（`ffap-c++-path` 同理），初始值在**加载文件时**就计算：依次执行 `gcc --version`、`clang -v -E -`、`g++ -v`，从编译器的输出里读出头文件搜索路径（macOS 上真正的路径在 Xcode 的 SDK 里）。Emacs 源码在这两行旁边自己就写着 `FIXME: Delay initialization?`。macOS 上这几个命令都是 Xcode 的 `xcrun` 转发程序，平时合计约 0.1 秒，偶尔会卡住：一次启动用了 13.3 秒，其中 12.1 秒就卡在 ffap 的加载里。`defvar` 只在变量还没有值时计算初始值，所以这里先把两个变量设成 `/usr/include` 和 `/usr/local/include`，ffap 加载时就跳过那三次调用，现在 1 毫秒就加载完。代价只有一点：用 ffap 跳转 `#include <...>` 时，只搜这两个目录。
+- **慢启动记录器**。每个文件加载完时记一次时间（每个文件一个 cons）。启动超过 `xl-slow-start-seconds`（3 秒）时，把最长的 15 个耗时段、最近一天生成的 `.eln`、从源码加载的我们自己的文件，以及完整的加载顺序写进 `~/.emacs.d/startup-slow.log`，回显区提示一行；启动不慢就什么都不写，记录也随之丢弃。偶发、无法按需复现的慢启动也能留下证据：上面 ffap 的问题就是靠它找到的。
 
 ### `init.el`（适配层）
 
