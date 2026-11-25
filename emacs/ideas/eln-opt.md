@@ -1,441 +1,201 @@
-# eln-opt：不开全局 JIT 的分层编译（设计稿）
+# eln-opt：后台的分层编译
 
-状态：设计稿，未实现。所有数字来自 2026-11-24 在 Emacs 31.1（Emacs.app，`31_1-032f33bc`）上的实验。
+状态：已实现并在使用。实现在 `emacs/lisp/eln-opt.el`，测试在 `emacs/tests/eln-opt-tests.el`。
+数字来自 Emacs 31.1（Mac，Emacs.app）和 Emacs 30.1（Raspberry Pi 4，4 核 3.8 GB）。
 
-## 当前设计：一个 worker（2026-11-25 起）
+## 目标
 
-下面"流水线""不会死循环的规则"等章节描述的是第一版（账本、指纹、审计、每轮子进程编译），已经被这一节取代，保留作为历史记录。
+Emacs 的代码有三种运行状态：源码解释执行、字节码、native（eln）。eln-opt 在后台把用得多的代码提升到更快的状态，而不让用户感觉到：
 
-**流程**
-1. 主 Emacs 启动后排一个**一次性**的 idle timer（`eln-opt-auto-idle`，60 秒）。整个会话只触发一次。只在至少有 2 个逻辑核时才启动（`eln-opt-min-processors`）：单核上 worker 和会话抢同一个核。如果你的电脑只有单核 CPU，自动触发不会启动，可以考虑在需要时手动运行 `M-x eln-opt-compile-now`。手动运行不受这个门槛影响。
-2. 触发后启动**一个** worker：同一个 Emacs 二进制，加载同一份 profile，以后台优先级运行（macOS `taskpolicy -b`，其它系统 `nice -n 19`）。
-3. worker 先列出 **byte-compile 候选**：以 `.el` 源码加载（没有 `.elc`，或 `.elc` 已过期）、在可信根下、定义了函数、不是 autoloads/loaddefs 或 init/custom 文件、没有 `no-byte-compile`、不在失败列表里的文件。这一步不需要 libgccjit，所有平台都做。
-4. 平台支持 native 时，再做一次可达性分析，得到 **native 候选**：排名靠前、通过候选过滤（可信根、有 `.el` 或 `.el.gz` 源码、ratio 达到阈值、源码解压后不超过 1 MB、没有 `no-native-compile`），**还没有可用 eln**，并且**不在失败列表里**的文件。两类合计最多 `eln-opt-worker-max`（30）个，byte 在前。
-5. 按顺序逐个编译（`byte-compile-file` 或 `native-compile`），每两个文件之间睡 `eln-opt-worker-sleep`（10 秒）。
-6. **任何一个文件出错就停止**：把它记进失败列表，然后退出。
-7. 下次启动 Emacs 时，Emacs 自己加载新的 `.elc` 和 eln。
+- **透明**：运行中的 Emacs 不加 hook、不加 advice、不做分析，只有一个一次性的 idle timer。分析和编译都在后台子进程里做。
+- **轻**：启动时的开销很小，空闲时只做一次指纹比对；真正的工作只在指纹变化时发生。
+- **只在后台、低优先级地编**，一次一个文件，每个文件之间休息。
+- **安全**：不加载不可信的代码，不因为版本不匹配反复编译，中断能恢复，出问题能关掉。
+- **新结果下次启动生效**，不在当前会话里热替换。
 
-**没有 native 编译的平台（如 Windows）**：worker 照常启动，只做第 3 步的 byte-compile，不跑 canary 之外的任何 native 相关代码，报告也只列 byte 候选。byte-compile 的价值不只在 Windows：改完代码或 `git pull` 之后 `.el` 比 `.elc` 新，`load-prefer-newer` 会让 Emacs 加载源码、解释执行，直到重新编译。这种情况在所有平台上都会发生。实测（2026-11-25，Mac）：worker 编译了 `eln-opt.el`、`xueliang.el` 和过期的 `xl-async.el`。Crafted 的 modules 不在可信根下，所以不会往别人的 git checkout 里写 `.elc`。
-
-**状态只剩两样**
-- **eln-cache 本身**：一个文件"编过了"，就是 `comp-el-to-eln-filename` 算出的 eln 存在，并且不比 `.elc` 旧（`.elc` 更新时 Emacs 会忽略 eln）。不再需要账本。
-- **失败列表** `failed.eld`：每条记录源码 truename 和内容 md5。失败的文件一直跳过，直到源码改变。没有它，同一个坏文件会让每次运行都在同一处停下。
-
-**保护**
-- **锁**：同时开两个 Emacs 时只会有一个 worker。
-- **进行中标记** `in-progress.eld`：编译前写下文件、尝试次数和时间，编完删除。下次持锁启动时如果还在，说明上次的编译被打断（退出、崩溃、断电）：尝试次数没到 `eln-opt-interrupt-limit`（2）就重试，到了就记入失败列表。标记只在持锁时读取；它的路径先过可信检查，只用来记录失败，不决定编译或删除什么；写不进去就不编译；标记或它所在的版本目录是符号链接就拒绝运行，不读也不删。用户主动退出也算一次尝试（没有 hook）。
-- **看门狗**：worker 每开始一个文件就打印一行。主 Emacs 如果 `eln-opt-worker-stall`（600 秒）内没有收到任何输出，就杀掉 worker，并把当时正在编的文件记进失败列表。
-
-**主 Emacs 看到什么**
-- worker 的输出写进 `*eln-opt*` 缓冲区，mode line 有 spinner；结束时回显区显示一句总结。
-- `M-x eln-opt-compile-now`：立刻启动 worker，并显示 `*eln-opt*`。
-- `M-x eln-opt-report`：排名、已编译的文件、失败列表、每个文件的去向。
-
-**删掉的东西**：账本、审计、指纹、`last-run.eld`、每轮编译预算、崩溃报告扫描、每轮子进程验证、重复的 idle timer 和次数上限、电池判断。
-
-## 目标与约束
-
-`early-init.el` 关掉了 `native-comp-jit-compilation`：全局 JIT 在第一次使用时就把所有东西放到后台编译，会拖慢整台机器。eln-opt 想保留 JIT 的好处，去掉"什么都编、马上就编"这两点：
-
-- 只编译真正值得编的文件，并且在后台低优先级地编，一次一个。
-- **对用户透明**：运行中的 Emacs 里不调用 `profiler-start`，不加 hook，不加 advice，只有一个 timer（`eln-opt.el`）。所有分析和编译都在后台的子 Emacs 里完成。
-- 新的 eln **下次启动才生效**，不在当前 session 里热替换。
-- 不出现版本不匹配导致的反复检查、反复重编译，或者编好了却不生效的情况。
-- 不加载不安全的 eln，不留 DoS 的口子。
-- 只用 Emacs Lisp 和 Emacs 自带的工具。
+不做的事：不改 Emacs 的 C 代码；不依赖外部程序；不替代 Emacs 自带的编译机制，只补它没覆盖的部分。
 
 ## 三层
 
-| Tier | 状态 | 谁负责提升 |
+| 层 | 状态 | 谁负责提升 |
 |---|---|---|
-| 0 | 源码解释执行（没有 `.elc`，或 `.elc` 过期） | 目标是离开这一层 |
+| 0 | 源码解释执行（没有 `.elc`，或 `.elc` 比源码旧） | 目标是离开这一层 |
 | 1 | 字节码 `.elc` | worker 的 byte-compile，所有平台 |
-| 2 | native `.eln` | worker 的 native-compile，仅限支持的平台和热文件 |
+| 2 | native `.eln` | worker 的 native-compile，只在支持的平台，只给热文件 |
 
-Tier 2 的门槛应按实测收益定，而不只看热不热：循环密集的纯 Lisp 代码 native 通常快 1 到 3 倍，大量调用 C 原语或操作 buffer 的代码差距很小。这对应"未决问题"里的 `eln-opt-min-ratio` 校准。
+Tier 2 的门槛应按实测收益定，而不只看热不热。循环密集的纯 Lisp 代码 native 通常快 1 到 3 倍；大量调用 C 原语或分配内存的代码几乎没有差别（`xl-git-status--entries` 字节码比解释快 2.9 倍，native 只比字节码再快 1.1 倍）。所以分数低、分配多的文件不值得 native。
 
-另外单独处理 **trampoline**：advice 或重定义 C 原语时需要它。它和 Tier 2 无关，但缓存里没有的话，第一次会在主线程同步编译约 1 秒。
+## 用户能做什么
 
-## 实测数据
+| 命令 | 作用 |
+|---|---|
+| `M-x eln-opt-compile-now` | 立刻启动 worker（绕过空闲和安静状态），显示 `*eln-opt*` |
+| `M-x eln-opt-compile-function` | 编译某个函数所在的源文件（字节码，然后 native），不受安静状态和失败列表影响 |
+| `M-x eln-opt-report` | 显示排名、下一次要编的文件、已经是 Tier 1/2 的文件、为什么某些文件没编 |
+| `M-x eln-opt-reset` | 删除 eln-opt 生成的 eln、失败列表、进行中标记、安静状态。先要求输入 `yes` |
 
-| 测量 | 结果 |
-| --- | --- |
-| `xl-git-status--entries`（20000 条 status） | 解释执行 0.244s → 字节码 0.084s（×2.9）→ native 0.076s（×1.1）；重跑一次是 ×2.7 和 ×0.9，native 和字节码的差别在测量噪声范围内 |
-| `xl-git-status--insert-diff`（1500 个 hunk） | 解释执行 0.152s → 字节码 0.088s（×1.7）→ native 0.087s（×1.0） |
-| Emacs.app 自带的 native 代码 | 只有 138 个预加载文件；`org`、`package`、`thingatpt`、`winner`、`savehist` 等在 JIT 关闭时跑字节码 |
-| 子进程跑完 init 并建调用图 | 5792 个函数，213 个根节点，约 2.4 秒 |
-| trampoline 静态预测 | 扫 1543 个 .elc 约 10 秒；缓存里的 11 个命中 9 个，另外预测出 6 个缓存里没有的 |
+命令行：`bash emacs/install/emacs-setup.sh eln-opt`（平台是否可用）、`eln-opt-compile`、`eln-opt-report`、`eln-opt-status`、`eln-opt-reset`、`compile-lisp`（我们自己的 lisp 编成字节码，不依赖 libgccjit）。
 
-由此得出的优先级：
+## 启动到编译：时间线
 
-1. **trampoline 预测**：消除的是约 1 秒的界面冻结，收益最确定。
-2. **Tier 1**：自己的 lisp 编成字节码，×1.7 到 ×2.9，成本几乎为零。
-3. **Tier 2**：只给少数函数带来可测的收益，门槛要高。
+启动时（`init.el` 里 `require` 之后）：
 
-`early-init.el` 和 README 里"Emacs 自带的 Lisp 仍是 native"的说法，在这个构建上只对预加载的文件成立。
+1. 加载 `eln-opt.el`：约 20 毫秒（字节码，Pi）。comp.el **不在这里加载**，只在需要时（worker、trampoline、reset）才加载。
+2. `eln-opt-auto-arm` 挂一个一次性的 idle timer，时长 `eln-opt-auto-idle`（默认 5 秒）。没有轮询，也不做分析。batch 运行时（setup、测试、worker 自己）什么都不挂。
 
-## 流水线
+idle timer 触发时（只在 Emacs 连续空闲满那么久之后；一个会话只触发一次）：
 
-```
-平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
-触发：用户每空闲满 3 分钟（`eln-opt-auto-idle`），主 Emacs 就做一次后台尝试，每次只编译一个文件；一个会话最多 60 次（`eln-opt-auto-max-attempts`）。只用一个重复的 idle timer。
-  └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
-       0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
-       1. 复查账本里记录的 eln：哈希、dlopen；有问题的删掉
-       2. 加载 init，建调用图，算出热点排名
-       3. 预测 trampoline，补齐缓存里没有的
-       4. Tier 1：重编 .el 比 .elc 新的文件
-       5. Tier 2：在预算内编译排名靠前的文件
-       6. 验证：在子进程里加载，并跑 tests/smoke-tests.el；不通过就删掉这一批
-       7. 写账本和本次运行的报告
-下次启动：load 找到匹配的 .eln，自动用它
-```
+3. 决定是否启动（`eln-opt-auto--decision`，约 0.1 毫秒）：`ELN_OPT=0` 直接禁用；`eln-opt-auto-enable` 为 nil 禁用；已有 worker 在跑；逻辑核少于 `eln-opt-min-processors`（2）就不自动启动（单核上 worker 和会话抢同一个核，单核用户可以手动运行 `eln-opt-compile-now`）；**安静状态**：上次 worker 没有找到任何事要做，并且指纹没变。
+4. 指纹（`eln-opt--quiet-fingerprint`，约 1.5 毫秒）：Emacs 二进制、`load-path`、我们自己的 lisp 文件的修改时间。它不包含用法数据（savehist、recentf）。
+5. 启动 worker：同一个 Emacs 二进制，同一个 profile，`taskpolicy -b`（macOS）或 `nice -n 19`。一个 watchdog 每 60 秒检查一次输出。
 
-Linux 上用 `nice -n 19 ionice -c3` 代替 `taskpolicy -b`。
+worker（后台批处理 Emacs）：
 
-## 平台门控：没有 libgccjit 就不做 native 部分
+6. 拿锁（`owner.eld` 记 pid 和时间；pid 不存在或超过 1 小时就视为过期，接管）。拿不到锁就输出 `busy` 退出。
+7. 读取残留的进行中标记（见"保护"）。
+8. 平台判断（缓存在 `platform.eld`，key 是二进制的路径、大小和 mtime）。
+9. 排计划：
+   - 字节码候选：以源码加载、没有最新 `.elc` 的文件（先加载懒加载的根，比如 `org`，再计算）；
+   - native 候选：平台支持时，做完整分析（Pi 上约 6 秒），按分数从高到低，取 ratio ≥ 3 且没有 eln 的文件；
+   - 合计最多 30 个，字节码在前。计划为空就记为安静状态，然后退出。
+10. 逐个处理，每两个文件之间睡 10 秒（`eln-opt-worker-sleep`）：写进行中标记 → 编译 → 删除标记 → 输出 `done` 或 `failed` 并记入失败列表。**任何一个失败就停止整个 worker。**
+11. 结束：输出 `finished N`，释放锁。主 Emacs 在回显区显示 `compiled N file(s); they load on the next start`。
+12. 下次启动：Emacs 自己加载新的 `.elc` 和 eln。
 
-> 2026-11-25 起：没有 native 编译时 worker 仍然启动，只做 byte-compile（见"当前设计"）。下面"整条链都不启动"是之前的设计。
+Pi 上的大致耗时：每个文件的编译（小文件几秒，org 约 1 分钟）加上 10 秒间隔，30 个文件大约 5 分钟以上。
 
-Windows 上常见的 Emacs 构建没有 native 编译，或者带了 native 编译但找不到 libgccjit 的 DLL。这类平台上 trampoline 不存在，Tier 2 也无从谈起，所以 eln-opt **整条链都不启动**：不建计划任务，不起子进程，不读 savehist，不写账本。
+## 候选规则
 
-**怎么判断**
+一个文件要进入计划，必须同时满足：
 
-- 唯一的依据是 `(native-comp-available-p)`。它在 Emacs 没有编进 native 编译时返回 nil，在 Windows 上找不到 libgccjit DLL 时也返回 nil。不按操作系统名判断：将来 Windows 上装了带 libgccjit 的构建，会自动启用。
-- 判断只做一次，结果缓存到 `eln-opt-platform.eld`，key 是 Emacs 二进制的路径、大小和 mtime。二进制不变就直接用缓存结果，连判断用的 batch 进程都不再启动。换了 Emacs，key 变化，重新判断一次。
-- 结果为 nil 时，emacs-setup.sh 打印一行说明（例如 `eln-opt: native compilation not available, skipped`），然后退出。不报错，也不影响 setup 的其它步骤。
+- **可信**：`file-truename` 在可信根下（elpa、Emacs 的 `lisp-directory`、dotfiles 的 `emacs/lisp`、`emacs/xueliang.el`）；指向根外的符号链接被拒绝。
+- **有源码**：`.el`，或者 Emacs 自带库的 `.el.gz`（Tier 2）。
+- **定义了函数**，不是 autoloads、loaddefs（只有桩函数），也不是 init.el、early-init.el、custom.el（过期的 `init.elc` 是常见的坑）。
+- **没有 opt-out**：文件里没有 `no-native-compile: t` 或 `no-byte-compile: t`。
+- **不在失败列表里**（强制编译除外）。
+- Tier 2 额外要求：分数与成本的比（ratio）≥ `eln-opt-min-ratio`（3.0），源码解压后 ≤ `eln-opt-max-source-bytes`（1 MB）。
 
-**不可用时主 Emacs 里连 timer 都不排**
+## 排名（可达性分析）
 
-- `eln-opt.el` 每次检查都先看 `native-comp-available-p`。为 nil（例如 Windows 上没有 libgccjit）时，返回 `unavailable`，不再排下一个 timer，这个 session 里不会再有任何动作。
-- 金丝雀熔断（见下）在后台子进程里判断。熔断后子进程立刻返回 `unavailable`，主 Emacs 之后不再为此启动子进程。
+分析只读数据，不执行任何代码，也不编译任何东西。
 
-**带了 native 编译但实际编不出来**
+**根**：用户实际用过的命令（savehist，单个命令的权重有上限）、常用 major mode（recentf 的文件经 `auto-mode-alist` 映射）、常用 mode 的 hook 和 keymap、每次按键或重绘都会跑的 hook（`post-command-hook` 等，权重最高）、全局和 leader keymap（权重很低）。某个 mode 的 keymap 和 hook 只有在 mode 出现在常用集合里时才算根，这样大量很少用的 mode 设置会被剪掉。懒加载的重要根（权重 ≥ 0.5）会先加载，否则它们的函数不在图里。
 
-`native-comp-available-p` 返回 t，不代表一定能编译：libgccjit 版本不对、gcc 驱动不在、链接器出错，都会让每次编译失败。如果只靠按文件记账，每个文件都会各失败两次，白白消耗 CPU。所以加一个**平台熔断**：
+**冷启动的基线**：新机器上 savehist 和 recentf 还是空的，排名没有依据。`emacs/data/eln-opt-baseline.eld` 列出一般都值得处理的函数名（每次按键都会跑的 evil、winum hook，completion 栈，以及已知的 trampoline 原语），每个作为权重 1.0 的根。随着用户自己的数据增长，它的权重按比例下降，用户的命令和文件数达到 `eln-opt-rank-baseline-users`（50）时完全不再起作用。文件只含函数名和原语名，不含代码或路径。
 
-- 每次运行开始时，先编译一个只有一个函数的探针文件（放在临时目录，不进 eln-cache），把它当作金丝雀。
-- 金丝雀失败，就把平台标记为不可用，写进 `eln-opt-platform.eld`，key 同上。之后直到二进制变化之前，整条链都不再启动。
-- trampoline 的预编译同样受这个熔断控制。
+**边**：函数常量向量里的函数符号（嵌套闭包递归）；读取了变量并且调用 `funcall`/`apply` 时，变量的值如果是函数（比如 `completion-at-point-functions`），连边；有 advice 的函数双向连边。看不到的部分（运行时才创建的 lambda 和 timer、进程的 filter 和 sentinel）不计入。
 
-**没有 native 编译的平台还剩什么**
+**打分**：
+- 热度沿边传播：`R(被调用者) += 0.5 · R(调用者) / sqrt(出边数)`，最多 3 层（`eln-opt-rank-heat-levels`）；
+- 收益 B：从字节码（LAP）里算。先用向后跳转找出循环体，循环体里的指令按 `4^嵌套深度` 加权（递归视为多一层）；内联运算（`car`、`cdr`、算术、`eq`、`aref` 等）加分；buffer 操作、C 重活（`insert`、`re-search-*`、`string-match`……）和分配类调用（`substring`、`concat`、`format`、`split-string`……）扣分；
+- 文件分 = Σ R·B；ratio = 分 ÷ 字节码大小（KB）；
+- 已经是 native 的函数跳过；函数归属用 `eln-opt--defun-files`（一次扫描 `load-history` 建的表，与 `symbol-file` 对全部 native 函数一致）。
 
-- trampoline：不需要，因为没有 native 代码，advice 原语不需要它（现有的 `cmd_trampolines` 已经这样处理）。
-- 应急开关 `load-no-native`：不需要。
-- Tier 1（把自己的 lisp 编成 .elc）不依赖 libgccjit，但它不属于 eln-opt 这条链。它是 setup 里一个独立的字节编译步骤（`compile-lisp`），不复用这里的触发器和账本。
+系数（4.0、0.5、各操作码的分值）是经验值，没有离线校准。校准需要离线跑 profiler，用户那边不运行 profiler。
 
-## 热点排名（Tier 2 的输入）
+## 平台
 
-### 根节点：都是磁盘上已有的数据
+- 唯一的判断依据是 `native-comp-available-p`，不按操作系统名。不可用时（没有 libgccjit 的 Windows 构建等），worker 仍然启动，但只做字节码编译，报告里仍然显示同样的 Status 表（Tier 2 为 0）。
+- 带了 native 编译但编不出来（libgccjit 版本不对、驱动或链接器出错）：用一个单函数的金丝雀文件判断一次，结果缓存；失败就记为不可用，直到二进制变化。
+- comp.el 只在需要时加载。`comp-native-version-dir`、`native-comp-eln-load-path`、`comp-el-to-eln-filename` 在 `-Q` 下本来就是预加载的，所以启动路径不需要它。
+- 没有 comp 时（比如某些 Windows 构建），状态目录名用二进制的 key 生成，而不是 `comp-native-version-dir`，因为后者这时未定义。
 
-| 根 | 来源 | 权重 |
-| --- | --- | --- |
-| 用户实际执行过的命令 | savehist 的 `extended-command-history` | 按频次和新旧加权，单个命令封顶 |
-| 常用的 major mode | recentf 的路径经 `auto-mode-alist` 映射 | log(文件数) |
-| 常用 mode 的 hook 和 keymap | `<mode>-hook`、`<mode>-map` | 跟随 mode；keymap 里的命令权重较低 |
-| 每次按键或重绘都会运行的 hook | `post-command-hook`、`after-change-functions` 等 | 最高 |
-| 全局和 leader keymap 里的命令 | `global-map`、`xl-leader-map` | 很低 |
-
-**按 mode 剪枝**：某个 mode 的 keymap 和 hook，只有在这个 mode 出现在 recentf 推出的常用集合里时才算根。evil-collection 给几百个 mode 做的设置，大部分会因此被剪掉。
-
-### 边：从字节码里读，再在子进程里读值补上动态调用
-
-- 每个函数常量向量里的函数符号，嵌套的闭包要递归进去。
-- 函数里读取了某个变量（`byte-varref`）并且调用了 `funcall`/`apply` 时，如果这个变量的值是函数或函数列表，就连边（比如 `completion-at-point-functions`）。
-- 已有 advice 的函数：原函数和 advice 函数双向连边。
-- 间接注册表：`completion-styles` → `completion-styles-alist`、`auto-mode-alist`、`major-mode-remap-alist`、`cl-defgeneric` 的方法表、init 结束时的 timer 列表。
-- 看不到的部分：命令执行时才创建的 lambda 和 timer、进程的 filter 和 sentinel。对这部分保守处理：离使用过的根只有一跳的文件，给一个最低热度。
-
-### 打分
-
-- 热度 R：`R(被调用者) += α · R(调用者) / sqrt(出边数)`，α 取 0.5，最多 4 层。
-- 收益 B：从 LAP 里读。先用向后跳转找出循环体，循环体里的指令按 4^嵌套深度 加权（递归视为多一层）：
-  - 加分：内联运算（`car`/`cdr`/算术/`eq`/`aref` 等）、调用其他 Lisp 函数；
-  - 扣分：buffer 操作码、C 重活（`insert`、`re-search-*`、`string-match`、`propertize`……），以及**内存分配类调用**（`substring`、`concat`、`format`、`split-string`）。上面 ×1.1 的结果说明，时间大多花在分配和 GC 上。
-- 函数按 `symbol-file` 归属到文件（第一版用 `load-history`，`*-autoloads.el` 被误排上榜）。
-- 文件分 = Σ R·B；成本 ≈ 字节码总长度。在预算内按"分 ÷ 成本"挑选，并设一个下限。
-- 已经是 native 的函数（`native-comp-function-p`）跳过。
-
-第一版排名靠前的大多是每次按键都会运行的 hook（evil-jumps、winum、winner、evil-repeat、delsel）。`package.elc` 排第一，是因为最近的 savehist 里有很多 package menu 命令，所以需要对单个命令的频次封顶。
-
-### 校准
-
-α、各类根的权重、各操作码的分值，由开发者在自己的 session 里离线跑一次 profiler 来校准（算 recall@N）。用户那边不运行 profiler。
-
-## Trampoline 预测
-
-- 把 .elc **当作数据读**，不加载。在 LAP 里匹配"`advice-add` 常量后面紧跟着一个原语常量"。`cl-letf` 改 `symbol-function` 编译成的是 **`byte-fset` 操作码**，不是 `fset` 调用，所以实现时要单独处理：遇到 `byte-fset`，看它前面最近三个常量里的原语（实现时发现的，探针漏掉了这一种）。
-  - 顶层代码在 .elc 里会被编译成 `(byte-code "..." [advice-add select-window ...])`，要对它做同样的匹配。
-  - LAP 列表里夹着整数偏移量，匹配前要先过滤掉。
-  - 已经被 advice 的原语要用 `advice--cd*r` 取出原始的 subr 再判断。
-- 再并上 init 之后已经被 advice 的原语（静态扫描漏了 `set-window-buffer`）。
-- 对缺失的，在 batch 里调用 `comp-trampoline-compile`。
-- **宁可多编**：漏掉一个就是一次冻结，多编一个只花一次 batch 编译。数量设上限，比如 50 个。
-
-现有的 `cmd_trampolines` 靠执行 idle-timer 里的加载来覆盖，覆盖不到在**命令执行过程中**才加的 advice。这次实验找到了三个：
-
-- `magit-files.el:207`：`magit--blob-normal-mode` 里临时 advice `buffer-name`；
-- `magit-git.el:3233`：运行时 `advice-add 'message :override`；
-- `rect.el`：`rectangle-mark-mode` advice `region-beginning` 和 `region-end`。
-
-## eln 的版本和加载规则（实测）
+## eln 的加载规则（实测）
 
 | 情况 | 会用 eln 吗 |
-| --- | --- |
+|---|---|
 | eln 存在，经真实路径或符号链接加载 | 会 |
-| 源码内容改了（文件名里的内容哈希变了） | 不会；下次编译时 comp 会自己删掉同一路径的旧 eln |
-| **`.elc` 比 `.eln` 新** | **不会，而且没有任何提示** |
-| 只有 `.elc`，没有 `.el` | 不会 |
-| 只有 `.el.gz`（Emacs 自带库） | 会 |
+| 源码内容改了（文件名里的内容哈希变了） | 不会；下次编译时 comp 会删掉同一路径的旧 eln |
+| `.elc` 比 `.eln` 新 | **不会，也没有任何提示** |
+| 只有 `.elc`，没有 `.el` | 不会（`.el.gz` 例外，见下） |
+| 只有 `.el.gz`（Emacs 自带库） | 会：`native-compile` 对 `.el.gz` 算出的 eln 名字就是 Emacs 要找的那个 |
 | eln 写进了别的 eln-cache（`-Q` 默认写 `~/.emacs.d/eln-cache`） | 永远不会 |
-| `load-prefer-newer t` 并且 `.el` 比 `.elc` 新 | 加载 `.el` |
-| eln 损坏（随机字节、截断、空文件） | **`require` 报 `native-lisp-load-failed`，不会退回 .elc** |
-| 名字对、内容来自别的源码 | **静默加载** |
-| 设置了 `load-no-native` | 跳过所有 eln，回到 .elc；预加载的核心代码仍然是 native |
+| eln 损坏（随机字节、截断、空文件） | `require` 报 `native-lisp-load-failed`，不会退回 `.elc` |
+| 名字对、内容来自别的源码 | 静默加载 |
+| 设置了 `load-no-native` | 跳过所有 eln，回到 `.elc`；预加载的核心代码仍是 native |
 
-eln 的文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-cache/<comp-native-version-dir>/` 下。版本目录随二进制构建变化：Emacs.app 里已经有 `31_1-032f33bc` 和 `31_1-38fe94a6` 两个，版本号同样是 31.1。comp 写 eln 时先写临时文件再 `rename`，会得到新 inode，正在运行的 Emacs 不会崩溃。
+eln 文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-cache/<comp-native-version-dir>/` 下。版本目录随二进制构建变化（Emacs.app 里有 `31_1-032f33bc` 和 `31_1-38fe94a6` 两个）。comp 写 eln 时先写临时文件再 `rename`，正在运行的 Emacs 不会崩溃。
 
-## 不会死循环的规则
+`eln-opt` 只通过 comp 写入（`native-compile`、`comp-trampoline-compile`、`comp-delete-or-replace-file`），从不 `cp` 或原地覆盖。
 
-1. **"完成"由加载结果判断**：编译完后，在子进程里 `require` 这个文件，检查其中一个 defun 是否 `native-comp-function-p`。不靠"eln 文件存在"来判断，因为上表里有三种情况文件存在却不会被使用。
-2. **只保存一份状态：失败账本**。key 是 `(comp-native-version-dir, 源码 truename, 内容哈希, 编译参数)`。编译参数指 `native-comp-speed`、`native-comp-compiler-options`、`native-comp-driver-options`、`native-comp-debug`：实测它们**不在 eln 文件名里**，改了以后旧的 eln 仍会被复用，所以要由账本来发现并重编。
-   - 第一次失败，隔一天重试；第二次失败，在 key 变化前不再尝试；
-   - 源码改了，或者 Emacs 重新构建，key 就变了，自动解除。
-   - "编译成功但验证失败"也算失败，并记录原因（比如没有源码、elc 一直比 eln 新）。
-3. **Tier 1 一定先于 Tier 2**，并且只在 `.el` 比 `.elc` 新时才重编 elc，所以 elc 的 mtime 保持稳定，不会让 eln 失效。
-4. **同一个二进制，同一个缓存目录**：子进程用 `(expand-file-name invocation-name invocation-directory)` 启动，加上同一个 `--init-directory`。开始前断言 `comp-native-version-dir` 和 `native-comp-eln-load-path` 的第一项与 GUI 一致，不一致就整次放弃。
-5. **触发有界**：每次尝试只编译一个文件，一个会话最多 60 次；指纹（版本目录 + 各 load-path 目录的 mtime）没变就立即退出。
-6. **锁**：用 `make-directory` 建锁目录（原子操作），里面记 pid 和启动时间。pid 不存在或者超过 1 小时就视为过期。抢不到锁就直接退出，不等待也不重试。
-7. **写入只走 comp**：只用 `native-compile` 和 `comp-delete-or-replace-file`，从不 `cp` 进 eln-cache，也从不原地覆盖。
-8. **清理**：同一路径的旧 eln 由 comp 自己删。源码路径已经不存在（比如包升级换了目录）、并且超过 7 天的 eln，在子进程里删除，只删账本里记录过的。超过 30 天的旧版本目录整体删除。
+**内置库的 `.el.gz`**：Emacs 自带的 org、winner、which-key、savehist、repeat、delsel 等只有 `.el.gz`。直接对 `.el.gz` 调用 `native-compile` 就能得到 Emacs 要找的 eln，不需要改启动流程。用完整路径 `load` 一个 `.elc` 永远加载字节码，只有不带后缀的 `load`（`require` 就是这样）才会去找 eln。
+
+## Trampoline
+
+advice 或重定义 C 原语时需要 trampoline（`subr--trampoline-*`）。缓存里没有时，第一次会在主线程同步编译约 1 秒，界面冻结。所以要预先编译。
+
+- **预测**：把 `.elc` 当数据读（不加载），在 LAP 里找"`advice-add` 或 `fset` 常量后面紧跟一个原语常量"，以及 `cl-letf` 改 `symbol-function` 编译成的 **`byte-fset` 操作码**（实现时才发现，要看它前面最近三个常量）。顶层代码在 `.elc` 里是 `(byte-code ...)`，同样处理。已经被 advice 的原语用 `advice--cd*r` 取出原始 subr 再判断。
+- **补充**：init 之后已经被 advice 的原语（静态扫描会漏掉 `set-window-buffer` 这类）。
+- **宁可多编**：漏掉一个就是一次冻结，多编一个只花一次 batch 编译。每次最多 50 个（`eln-opt-trampoline-limit`）。
+- 静态扫描只能覆盖 `.elc` 里有的东西。运行时才加的 advice 要靠 init 之后的补充，比如 `magit-files.el` 的 `buffer-name`、`magit-git.el` 的 `message`、`rect.el` 的 `region-beginning` 和 `region-end`。
 
 ## 安全
 
-### 信任边界
+**信任边界**：Emacs 只按文件名信任 eln，不验证内容，所以 eln-opt 保证不可信的输入永远不会变成会被加载的代码。
+- 只编译可信根下的文件（见"候选规则"）；编译会执行宏，但这些文件装包或安装时已经字节编译过一次，native 编译不引入新的代码执行。
+- savehist 和 recentf 只当权重数据：只用 `read` 读取，从不 `eval`；命令名只用 `intern-soft` 查找，从不调用；recentf 的路径不会成为编译对象。
+- 数据只留在本机：报告和状态里只写文件名、函数名和原语名。savehist 里可能有 `kill-ring`（剪贴板内容），分析只取 `extended-command-history` 一类的数据，其它不解析。
 
-Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证：**不可信的输入永远不会变成会被加载的代码。**
+**进行中标记** `in-progress.eld`：编译前写下文件、尝试次数和时间，编完删除。下次持锁启动时如果还在，说明上次的编译被打断（退出、崩溃、断电）：尝试次数没到 `eln-opt-interrupt-limit`（2）就重试，到了就记入失败列表，直到源码改变。
+- 标记只在持锁时读取；它的路径先过可信检查，只用来记录失败；写不进去就不编译；标记或它所在的版本目录是符号链接就拒绝运行，不读也不删（需要用户手动删除）。
+- 用户主动退出也算一次尝试：没有 `kill-emacs-hook`，所以不做这种判断。
 
-- **只编译可信根目录下的文件**：elpa 目录、Emacs 的 `lisp-directory`、dotfiles 的 `emacs/lisp`，用 `file-truename` 判断，指向根目录之外的符号链接直接拒绝。编译会执行宏；这些文件装包时已经被字节编译过一次，所以 native 编译不会引入新的代码执行。
-- **savehist 和 recentf 只当作权重数据**：只用 `read` 读取，并校验结构，从不 `eval`。命令名只用 `intern-soft` 查找，从不调用。recentf 里的路径永远不会成为编译对象。
-- **子进程没有网络**：`package-archives` 设为 nil；缺包就拒绝运行，不走 init 的装包路径。
-- **目录权限**：`native-comp-eln-load-path` 里的每个目录都必须属于当前用户、group 和 other 不可写、本身不是符号链接，否则整次放弃。
+**失败列表** `failed.eld`：key 是源码的 truename 和内容 md5，失败的文件一直跳过，直到源码改变。没有它，同一个坏文件会让每次运行都在同一处停下。强制编译忽略它。
 
-### 完整性
+**锁**：同时只能有一个 worker。锁过期（pid 不在或超过 1 小时）才接管。
 
-- eln-opt 产出的每个 eln，都把 sha256 和大小记进账本。
-- 每次运行先复查：哈希不符，或者在子进程里 dlopen 失败，就删掉并记录原因。
-- 只管理自己产出的文件。Emacs 自己生成的 eln（trampoline 等）只做 dlopen 健康检查，有问题就在报告里提示，不删除。
+**看门狗**：worker 每开始一个文件都输出一行。主 Emacs 600 秒没收到任何输出，就杀掉 worker，并把当时的文件记入失败列表。
 
-### DoS
+**应急开关**：`ELN_OPT=0 emacs` 时，`early-init.el` 设置 `load-no-native`，所有 eln 被跳过，回到 `.elc`。`ELN_OPT=0` 也会覆盖强制编译。
 
-| 风险 | 对策 |
-| --- | --- |
-| 编译炸弹（文件很大、宏展开爆炸） | 单文件大小上限、编译超时（`xl-async` 的 `:timeout`）、每次运行的预算；超时记为失败，不再重试 |
-| 磁盘被占满 | eln-opt 产出的总体积上限（比如 200 MB），按账本统计 |
-| 进程风暴 | 同一时间只有一个子进程；每 3 分钟空闲最多触发一次，一个会话最多 60 次；有锁 |
-| 锁被长期占用 | 只是损失优化，功能不受影响 |
-| 账本被篡改 | 只用 `read`，限制大小，校验结构；不合格就丢弃重建 |
-| **eln 损坏导致 init 中途停下** | 编译后在子进程里加载并跑 smoke tests，不通过就删除；每天复查可以自愈；有应急开关 |
+**做不到的部分**：如果同一用户的账号已经被攻破、对方能写 eln-cache，它同样能改 elpa 和 init 文件。eln 与 `.elc` 处于同一信任级别。eln-opt 能保证的是：流水线本身不扩大攻击面，出问题时能检测、能隔离、能关掉。
 
-### 应急开关
+## 性能
 
-- `ELN_OPT=0 emacs`：early-init 里一行 `(setq load-no-native t)`。已经实测：损坏的 eln 会被跳过，回到 .elc，预加载的核心代码仍然是 native。
-- `emacs-setup.sh eln-opt-reset`：只删除账本里记录的 eln。
+**Pi 上的完整分析**（`eln-opt-rank--compute`）：
 
-### 做不到的部分
+| 阶段 | 改前 | 改后 |
+|---|---|---|
+| 完整分析 | 17.9 秒 | 6.3 秒 |
+| 调用图（graph） | 8.2 秒 | 4.8 秒 |
+| native 列表 | 7.9 秒 | 0.56 秒 |
+| 层级表 | 8.1 秒 | 0.72 秒 |
+| 报告格式化 | 27 毫秒 | 27 毫秒 |
 
-如果同一个用户的账号已经被攻破、对方能写 eln-cache，那它同样能改 elpa 目录和 init 文件。eln 和 .elc 处在同一个信任级别。eln-opt 能保证的是：流水线本身不扩大攻击面，出问题时能检测、能自愈、能关掉。
+改动：native 列表用一次扫描建的哈希表代替每个函数的 `symbol-file`（后者每次都扫整个 `load-history`）；图构建里每个文件的 opt-out 判断只做一次；指令分类用哈希表；循环权重的幂次做了缓存。结果和报告文本与改前逐项一致。
 
-## 借鉴其他项目
+**启动开销**（Pi）：
 
-| 项目 | 它的做法 | eln-opt 借鉴什么 |
-| --- | --- | --- |
-| Android ART（dex2oat、bg-dexopt、Baseline Profiles） | 运行时收集热点方法；设备空闲并且在充电时，每天在后台编译一次；应用开发者可以随应用附带一份"基线 profile"，第一次启动就有合理的热点 | 调度条件（空闲 + 接电源 + 每天一次）；**基线热点表** |
-| HotSpot 分层编译 | 解释 → C1 → C2；code cache 有大小上限；编译后发现假设不成立时可以**去优化**回退 | 三层结构；总体积上限；**崩溃隔离**（回退到 .elc） |
-| LuaJIT | trace 多次中止后列入黑名单，不再尝试 | 失败账本的"两次失败就停" |
-| ccache / Bazel | 缓存 key 包含编译器版本和全部编译参数；`ccache -s` 给出命中率和体积统计；超过上限按 LRU 淘汰 | key 里加编译参数；**状态统计**；超限时按最近使用淘汰 |
-| Python .pyc（PEP 552） | 失效方式可以选：按时间戳，或按源码哈希 | 同样的教训：只看 mtime 不可靠，所以用加载结果来验证 |
-| Java CDS / Leyden | 先做一次"训练运行"，把结果存成归档，以后每次启动直接用 | 离线校准排名权重；基线热点表就是训练结果 |
-| compile-angel、auto-compile（Emacs 包） | 在加载或保存时自动字节编译和 native 编译；`auto-compile` 推荐 `load-prefer-newer t` | Tier 1 的做法；尊重排除列表。不同点：它们靠 advice 或 hook 在父进程里触发，eln-opt 不进入父进程 |
-| Nix | 内容寻址；只有被 GC root 引用的产物才保留 | 账本就是 GC root：只清理账本里记录、并且已经没有对应源码的 eln |
+| 项目 | 耗时 |
+|---|---|
+| 加载 eln-opt（字节码） | 约 20 毫秒（之前 180 毫秒，来自顶层 `require comp`） |
+| 空闲后的指纹比对 | 约 1.5 毫秒 |
+| 决定函数 | 约 0.1 毫秒 |
 
-### 由此补充的设计
+**剩下的主要开销**：字节码函数的特征提取，每次约 3.5 秒（每个函数约 360 微秒，是 Emacs Lisp 的逐条指令开销，微调无效）。要明显再降，需要按文件修改时间缓存每个函数的分析结果，报告和 worker 都能受益。要保证结果完全一致比较复杂（调用列表依赖哪些函数当前已定义），所以是单独的下一步。
 
-**1. 基线热点表（冷启动）**
-新机器上 savehist 和 recentf 都是空的，排名器没有依据。仓库里附带一份 `emacs/data/eln-opt-baseline.eld`，列出一般都值得处理的文件和 trampoline：每次按键都会运行的 evil、winum hook，completion 栈，以及上面已知的三个 trampoline。有了用户自己的数据以后，基线的权重逐步降低。这份表只列文件名和原语名，不包含代码。
+## 已知限制
 
-**2. 尊重已有的退出机制**
-- 带 `no-native-compile: t` 或 `no-byte-compile: t` 文件局部变量的文件，不编译。
-- 匹配 `native-comp-jit-compilation-deny-list`（在 `comp-run` 里）的文件，不编译。
-- `native-comp-speed` 最高为 2。speed 3 会假设同一编译单元里的函数不会被重新定义，这会让 advice 失效。
+- **用法变化不触发**：指纹不包含 savehist 和 recentf，所以只因为用法变化而出现的新热点，不会主动触发。要等 profile、包或 eln-opt 自己有变化，或者手动运行 `eln-opt-compile-now`。这是有意的取舍（没有时限兜底）。
+- **分析会计入自己**：eln-opt 自己的文件也在调用图里，`eln-opt` 常常排在前面。如果不想让它参与，需要在候选规则里排除。
+- **单核机器**：默认不自动启动（`eln-opt-min-processors`）。
+- **Windows 和 Linux**：只有单元测试和模拟（用 `boundp`、`executable-find` 的桩），没有在真机上运行。
+- **GUI 的 idle timer**：在批处理里模拟过（手动调用 `eln-opt-auto--start`），但等它在 GUI 里自己触发，还需要人工确认。
+- **崩溃隔离**：没有实现。只能靠失败列表和进行中标记防止反复出错。
 
-**3. 崩溃隔离（借鉴去优化）**
-主 Emacs 里不加 hook，所以没法在 Emacs 里捕获崩溃。但 macOS 会把崩溃报告写到 `~/Library/Logs/DiagnosticReports/Emacs-*.ips`，子进程可以读：
-- 如果某个崩溃报告的时间晚于某批 eln 的生效时间，并且调用栈里出现了 eln-opt 产出的 eln 文件名，就删掉这个 eln，并把它的 key 永久列入账本。
-- 有崩溃但找不到对应的 eln 时，只在报告里提示，不做任何操作。
-- Linux 上对应的是 `coredumpctl` 的输出，可用时同样处理。
+## 测试
 
-**4. 状态统计（借鉴 `ccache -s`）**
-`emacs-setup.sh eln-opt-status` 和 `M-x eln-opt-report` 显示：
-- 上次运行的时间、结果，以及跳过的原因（指纹没变、拿不到锁、没接电源……）；
-- 各层的文件数和总体积、失败和隔离的数量；
-- trampoline 的预测数、已缓存数、本次补齐数。
+`emacs/tests/eln-opt-tests.el` 用 ERT，所有文件都写在临时目录里，`cl-letf` 替换平台判断、编译和睡眠等函数。覆盖：平台门控和金丝雀、trampoline 预测和补齐、锁、账本和失败列表、进行中标记（被打断一次重试、两次失败、不可信路径、写不了标记、符号链接）、候选规则（可信根、opt-out、大小、ratio）、worker 的顺序和首次失败停止、强制编译、报告格式、reset 的确认、`load-history` 映射与 `symbol-file` 一致。
 
-总体积超过上限时，按"最近一次在排名中出现"的时间淘汰最旧的 eln。
+`bash emacs/install/emacs-setup.sh test` 同时运行 smoke、eln-opt、xl-dired 和 perfetto 的测试。
 
-**5. 触发条件（借鉴 bg-dexopt 的"空闲 + 接电源 + 每天一次"）**
-- 不用 launchd 这类 Emacs 之外的计划任务。主 Emacs 自己用一个重复的 idle timer：用户每空闲满 `eln-opt-auto-idle`（3 分钟）就尝试一次。
-- 条件：没有正在跑的后台子进程，并且本会话的尝试次数还没到 `eln-opt-auto-max-attempts`（60）。到上限后 timer 被取消。
-- 后台子进程在 macOS 上用 `taskpolicy -b`（后台 QoS、效率核心），其它系统用 `nice -n 19`。
-- batch 环境（`noninteractive`）里绝不触发：setup、测试，以及后台子进程自己加载 init 时，都不会再派生子进程。
-- 还没做：用户恢复操作时暂停子进程（SIGSTOP/SIGCONT）。那需要一个 hook，和"只用 timer"冲突，暂时不做。
-- 仍然遵守"每天最多一次"和指纹检查。
+## 探针和实验脚本
 
-**6. 隐私**
-`xueliang.el` 把 `kill-ring` 加进了 savehist，所以 savehist 文件里有剪贴板文本。子进程：
-- 只从中取出 `extended-command-history`，其它变量一律不解析；
-- 报告和账本里只写文件名、函数名和原语名，不写 kill-ring 内容，也不写 recentf 里的路径；
-- 不把这些数据发到任何地方。
-
-**7. 用故障注入测试 eln-opt 本身**
-把实验时用的情况都写成 ERT 测试，放在 `tests/` 下，每个都在临时目录里跑：
-- `.elc` 比 `.eln` 新、没有 `.el`、只有 `.el.gz`、写进了错误的缓存目录；
-- eln 损坏（随机字节、截断、空文件）、名字对但内容来自别的源码；
-- 锁过期、锁被占用、磁盘写满、编译超时、账本被篡改；
-- 改了编译参数、版本目录变了；
-- `native-comp-available-p` 返回 nil（断言什么都没启动，也没写任何文件）、金丝雀编译失败（断言熔断以后不再启动）。
-
-每个测试都要断言两件事：最终状态正确，并且**第二次运行什么都不做**（没有重复编译）。
-
-**8. 多个 Emacs 并存**
-同一台机器上可能有 Emacs.app 和 Homebrew 的 Emacs，或者同一个版本号的两次构建。账本、锁和指纹都按 `comp-native-version-dir` 分开保存，互不干扰。
-
-## 实现清单
-
-按顺序做，每一步单独提交。每一步都标了适合的实现方式：**可以直接实现**的，规格明确，并且有探针可以照着改；**需要仔细 review** 的，不变量很细，错了不会报错，只会悄悄地反复重编或者永远不生效。
-
-### 通用规则
-
-- 代码放在 `emacs/lisp/eln-opt.el`。**init.el 不 require 它**：它只在子 Emacs 里用 `-l` 加载。运行中的 Emacs 里唯一的改动是第 4 步的应急开关，只有一行 `setq`。
-- 状态放在 `user-emacs-directory` 下的 `eln-opt/`：`platform.eld`（平台判断缓存）、`<comp-native-version-dir>/ledger.eld`（账本）、`<comp-native-version-dir>/lock/`（锁目录）、`<comp-native-version-dir>/last-run.eld`（上次运行的报告）。
-- eln 只通过 comp 写入（`native-compile`、`comp-trampoline-compile`、`comp-delete-or-replace-file`），从不 `cp` 或原地覆盖。
-- 测试放在 `emacs/tests/eln-opt-tests.el`，用 `emacs --batch -Q` 就能跑，所有文件都写在 `make-temp-file` 建的临时目录里。需要模拟 native 编译失败等情况时，用 `cl-letf` 替换函数，并统计调用次数。
-- **每个测试都断言两件事**：最终状态正确；第二次运行时 `native-compile` 和 `byte-compile-file` 的调用次数为 0。
-- 提交前跑 `bash emacs/install/emacs-setup.sh check`，并更新这份文档和探针 README 里受影响的部分。
-
-### 1. 平台门控和金丝雀熔断（可以直接实现）
-
-- 函数：`eln-opt-platform-available-p`。按二进制的路径、大小、mtime 查 `platform.eld`；没有缓存时先看 `native-comp-available-p`，再在临时目录编译一个只有一个函数的金丝雀文件，把结果写进缓存。
-- `emacs-setup.sh` 新增子命令 `jit`，第一步就是这个判断。不可用时打印 `eln-opt: native compilation not available, skipped`，退出码为 0。
-- 验收：
-  - `native-comp-available-p` 被替换成返回 nil 时，`eln-opt-run` 返回 `unavailable`，状态目录里除了 `platform.eld` 没有其它文件；
-  - 金丝雀编译被替换成报错时，`platform.eld` 记为不可用；第二次运行不再编译金丝雀；
-  - 改变二进制 key（测试里改 mtime）后，会重新判断一次；
-  - 在这台 Mac 上，`bash emacs/install/emacs-setup.sh eln-opt` 报告可用。
-
-### 2. Trampoline 预测和补齐（可以直接实现）
-
-- 从 `eln-opt-probes/eln-opt-probe-trampolines.el` 移植：`eln-opt-trampolines-predict` 返回预测的原语列表（静态扫描并上已经被 advice 的），`eln-opt-trampolines-build` 对缓存里没有的调用 `comp-trampoline-compile`，每次最多 50 个。
-- 接进 `cmd_trampolines`：在现有的 idle-timer 加载之后执行，受第 1 步的门控控制。
-- 验收：
-  - 跑完以后，`buffer-name`、`message`、`region-beginning`、`region-end` 的 trampoline 都在 eln-cache 里；
-  - 第二次运行编译 0 个；
-  - 测试：一个含 `(advice-add 'buffer-name ...)` 的玩具 .elc，以及一个在函数里用 `cl-letf` 改 `(symbol-function 'message)` 的玩具 .elc，都能被预测到；`(defalias 'x #'car)` 不会被预测；扫描期间这些玩具文件没有被加载（玩具文件里的顶层代码设置一个变量，断言它仍然未绑定）。
-
-### 3. Tier 1：自己的 lisp 编成字节码（可以直接实现）
-
-这一步不依赖 libgccjit，不属于 eln-opt 这条链，Windows 上也要做。
-
-- `emacs-setup.sh` 新增 `compile-lisp`，并在各平台的 setup 里调用：只重编 `.el` 比 `.elc` 新的 `emacs/lisp/*.el` 和 `emacs/xueliang.el`。
-- `.gitignore` 加上 `emacs/**/*.elc`。
-- `early-init.el` 加上 `(setq load-prefer-newer t)`，这样改了 `.el` 还没重编时，加载的是新的源码，而不是旧的 .elc。
-- **`init.el:167` 现在是 `(load ".../emacs/xueliang.el")`，带着扩展名，所以永远不会用 .elc**。要改成不带扩展名的 `emacs/xueliang`。
-- 验收：
-  - 启动后 `(byte-code-function-p (symbol-function 'xl-git-status--entries))` 为 t，`xueliang.el` 里的函数也是；
-  - 第二次运行 `compile-lisp` 编译 0 个文件；
-  - 改一个 `.el` 但不重编时，启动后用的是新源码（解释执行）；
-  - `bash emacs/install/emacs-setup.sh test` 通过。
-
-### 4. 账本、锁、指纹、验证、应急开关（需要仔细 review）
-
-- 账本 key：`(comp-native-version-dir, 源码 truename, 内容哈希, 编译参数)`。条目里记录状态（done / failed / quarantined）、失败次数、原因、时间，以及产出 eln 的 sha256 和大小。只用 `read` 读取，限制大小，校验结构；不合格就丢弃重建。
-- "完成"按加载结果判断：在子进程里 `require` 这个文件，检查其中一个 defun 是否 `native-comp-function-p`。
-- 锁：`make-directory` 建锁目录，里面写 pid 和启动时间；pid 不存在或者超过 1 小时视为过期。拿不到锁就退出，不等待。
-- 指纹：版本目录 + 各 load-path 目录的 mtime。没变就退出。
-- 每次运行开始时复查账本里的 eln：哈希不符或者 dlopen 失败，就删掉并记录原因。
-- 应急开关：`early-init.el` 里加 `(when (equal (getenv "ELN_OPT") "0") (setq load-no-native t))`；`emacs-setup.sh eln-opt-reset` 只删除账本里记录的 eln。
-- 验收：设计文档"用故障注入测试 eln-opt 本身"里列出的每一种情况各写一个 ERT 测试，全部通过，并且每个都满足"第二次运行什么都不做"。
-
-### 5. 排名报告和基线热点表（需要仔细 review）
-
-- 从 `eln-opt-probes/eln-opt-probe-rank.el` 移植，先补上探针 README 里列的缺口。
-- 只输出报告，不编译：`emacs-setup.sh eln-opt-report` 和 `M-x eln-opt-report`。
-- 新建 `emacs/data/eln-opt-baseline.eld`，只列文件名和原语名。
-- 验收：
-  - 报告里没有 `*-autoloads.el`；
-  - 单个 savehist 命令的贡献不超过总分的 20%；
-  - 前 10 名由你人工看过，觉得合理。
-
-### 6. Tier 2 后台编译（需要仔细 review）
-
-- 在预算内编译排名靠前的文件，要满足"安全"一节的全部要求：可信根目录（truename）、尊重 `no-native-compile` 和 deny list、`native-comp-speed` 不超过 2、单文件大小上限、编译超时、总体积上限。
-- 编译完立刻验证：在子进程里加载，并跑 `tests/smoke-tests.el`；不通过就删掉这一批。
-- 状态统计（`eln-opt-status`）和崩溃隔离（读 DiagnosticReports）。
-- 验收：
-  - 测试：指向可信根目录之外的符号链接被拒绝；带 `no-native-compile: t` 的文件不编译；编译超时记为失败，第二次运行不重试；一份伪造的崩溃报告（调用栈里有某个 eln 的文件名）会让这个 eln 被删掉并隔离；
-  - 真实运行一次后，再运行一次，编译 0 个文件。
-
-### 7. 主 Emacs 里的触发器（已改，原先是 launchd）
-
-最初实现成了 launchd 计划任务，后来按你的要求换成主 Emacs 里的 timer：一个独立于 Emacs 的计划任务不合适。
-
-- `emacs/lisp/eln-opt.el`（合并后的单个文件），由 init.el `require` 并调用 `eln-opt-auto-arm`。只用 `run-with-timer` 和 `run-with-idle-timer`，不加 hook。
-- 条件和优先级见上面"触发条件"。重复的 idle timer 每次空闲满 3 分钟再触发，不需要在子进程结束后重新排期。
-- 结果存在 `eln-opt-auto-last-result`，子进程输出在 ` *eln-opt*` 缓冲区；账本和统计仍然用 `eln-opt-status` 看。
-- 验收：各个"不运行"的原因都有测试；batch 下不排 timer；空闲时条件变了（比如拔了电源）就不启动；后台命令带 `taskpolicy -b` 或 `nice -n 19`；用加载了 profile 的 batch 模拟一次完整运行。
-
-## 实现记录（2026-11-24）
-
-实现按上面的清单完成，每一步单独提交（`e85d754` 到 `e62c621`）。与设计不一致的地方如下，以实现为准：
-
-- **验证和审计的子进程加载 profile**，不是裸 `-Q`。`xueliang.el` 的 eln 在顶层引用 `xl-leader-map`，由 `xl-key-bindings.el` 定义，裸子进程会把好的 eln 判为失败，审计还会删掉它。子进程仍然是全新进程，只是先 `-l init.el`。
-- **"完成"的判断**：排名里这个文件的任意一个函数在新加载的 eln 里是 native，就通过。宏生成的函数（如 `define-minor-mode`）不一定以顶层 `defun` 出现。
-- **编译子进程**同样加载 profile，并把 `load-path` 传进去。eln 加载时会 `require` 依赖（winum 需要 dash）。
-- **失败原因**只保存"Error:"开始的至多 300 字符，不保存整段回溯。
-- **Tier 1 的 `xueliang.el` 也会被 Tier 2 编译成 eln**（它在排名前列）。之后它的函数类型是 `subr`，不是 `byte-code-function`；冒烟测试据此改为"字节码或 native 都算已编译"。
-- **Crafted 的模块**没有 .elc，是解释执行的（报告里数量为 1120）。它们不在可信根里，也就不进入 Tier 2。要不要把 Crafted 纳入可信根，需要你决定。
-- **`native-comp-speed` 上限 2**、**预算 3 个文件/次**、**最低排名比 5**（最初是 20；降到 5 后 corfu、evil-common、evil-collection-unimpaired、evil-core、evil-surround 进入候选，但 winner、savehist 等内置库仍因只有 `.el.gz` 而被拒绝）、**单文件源码 1 MB，按解压后算**（最初 200 KB，consult 247 KB 因此被拒绝；后改 500 KB；支持 `.el.gz` 后改 1 MB，让 org 进入候选）、**总量 200 MB**、**编译超时 180 秒**：这些都是起始值，没有校准。
-- **总量超限时只停止编译，不做 LRU 淘汰**。设计里的按最近排名时间淘汰还没实现。
-
-## 未验证的部分
-
-- 查询 native 函数：`M-x eln-opt-report` 列出 eln-opt 编译过的文件和其中已是 native 的函数，并给出 Emacs 自身预加载的 native 函数总数。
-- 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `eln-opt-auto--start`），还没有在 GUI 里等它自己触发。
-- 崩溃隔离只用伪造的崩溃报告测过。真实的 macOS 崩溃报告调用栈里是否会出现 eln 文件名，还没有确认。
-- 不再检查热限制（launchd 版本用 `pmset -g therm`，换成 timer 后去掉了）。
-- `M-x eln-opt-report` 的交互路径（打开缓冲区）没有测；批处理路径（`eln-opt-report`）测过。
-- Linux 和 Windows 上没有测试。
-
-## 内置库的 `.el.gz`（2026-11-25 已支持）
-
-Emacs 自带的库（org、winner、which-key、savehist、repeat、delsel……）只带 `.elc` 和 `.el.gz`，没有 `.el`。它们分数很高，2026-11-24 一度搁置，当时的结论“Emacs 不会使用编译出的 eln”是错的。2026-11-25 重新实验，结论如下：
-
-- **直接编译 `.el.gz` 就行。** Emacs 加载 `org.elc` 时，如果旁边没有 `org.el`，会改用 `org.el.gz` 计算 eln 名字。`native-compile` 对 `.el.gz` 用的是同一个公式（`comp-el-to-eln-filename`），所以编译结果就是 Emacs 要找的那个 eln。不需要改启动流程，也不需要动 `load-path`。之前失败，是因为 eln 名字是手动拼出来的。
-- **eln-opt 的做法**：`eln-opt--source-for` 由 `.elc` 找源码，先找 `.el`，没有再找 `.el.gz`；`eln-opt--elc-for` 去掉 `.gz` 再推出 `.elc`。大小限制按解压后的大小算，上限 1 MB（org.el 解压后约 870 KB）。`-loaddefs` 和 `-autoloads` 一样只有桩函数，不参与排名。
-- **实测**：一次 worker 编译了 14 个 `.el.gz`（org、org-element、org-element-ast、winner、org-persist、which-key、sh-script、savehist、org-fold-core、repeat、delsel、org-fold、pcomplete、org-macro），用时约 8 分钟，其中 org 约 1 分钟。重启后 `org-mode`、`org-element-parse-buffer`、`winner-mode`、`which-key-mode` 都是 native。
-- **测试时注意**：只有不带后缀地 `load`（`require` 就是这样）时，Emacs 才会去找 eln；用完整路径 `load` 一个 `.elc` 永远加载字节码。
+`emacs/ideas/eln-opt-probes/` 里是最初的实验脚本，运行方法和已知缺口见其 README：排名、trampoline 预测、eln 版本和加载规则、解释执行 / 字节码 / native 的耗时对比。它们是历史记录，不是构建的一部分。
 
 ## 未决问题
 
-- Tier 2 的门槛：实测 native 收益普遍不大，需要用离线 profile 确定最低分。
-- 跑字节码的 Emacs 自带库（尤其是 org）可能是 Tier 2 最合适的对象，需要单独测一下。
-- Linux 上的 inotify、`ionice` 和权限检查还没有测试。
-
-## 实验脚本
-
-探针在 [`eln-opt-probes/`](eln-opt-probes/) 里，运行方法、每个脚本的结果和已知缺口见那里的 README：
-
-- `eln-opt-probe-rank.el`：热点排名；
-- `eln-opt-probe-trampolines.el`：trampoline 预测；
-- `eln-opt-probe-eln-rules.sh`：eln 版本和加载规则；
-- `eln-opt-probe-bench.el`：解释执行、字节码、native 三种状态下的耗时。
+- **Tier 2 门槛**：`eln-opt-min-ratio` 和分值是经验值，需要离线 profile 校准。
+- **持久缓存**：按文件修改时间缓存每个函数的分析结果，把 Pi 上的分析降到 1–2 秒左右。
+- **Emacs 自带库的收益**：org 等 `.el.gz` 库的 native 收益还需要在日常使用中测。
+- **Linux 的调度**：`ionice` 和 inotify 相关的部分没有测试。

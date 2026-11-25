@@ -607,7 +607,7 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
 ;;; profiler run before trusting the order (eln-opt.md, "校准").
 ;;; ------------------------------------------------------------
 
-(defconst eln-opt-rank-heat-levels 4
+(defconst eln-opt-rank-heat-levels 3
   "How many call levels heat spreads through.")
 
 (defconst eln-opt-rank-spread 0.5
@@ -1734,7 +1734,7 @@ change it) and our own lisp files (edits change them)."
   "Non-nil means the running Emacs starts the eln-opt worker when idle."
   :type 'boolean)
 
-(defcustom eln-opt-auto-idle 60
+(defcustom eln-opt-auto-idle 5
   "Seconds of idleness, once per session, before the worker starts."
   :type 'integer)
 
