@@ -892,7 +892,7 @@ it at a lower weight.  Hooks that run on every key are heavy."
   "The shipped baseline roots, weighted down as the user's own data grows.
 Returns (ROOTS . FACTOR).  The baseline file names functions only."
   (let* ((file (or (and (bound-and-true-p xl-dotfiles)
-                        (expand-file-name "emacs/eln-opt-baseline.eld" xl-dotfiles))
+                        (expand-file-name "emacs/data/eln-opt-baseline.eld" xl-dotfiles))
                    (expand-file-name "eln-opt-baseline.eld" profile-dir)))
          (form (eln-opt--read-eld file))
          (names (plist-get form :functions)))

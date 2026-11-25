@@ -261,7 +261,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 ### 由此补充的设计
 
 **1. 基线热点表（冷启动）**
-新机器上 savehist 和 recentf 都是空的，排名器没有依据。仓库里附带一份 `emacs/eln-opt-baseline.eld`，列出一般都值得处理的文件和 trampoline：每次按键都会运行的 evil、winum hook，completion 栈，以及上面已知的三个 trampoline。有了用户自己的数据以后，基线的权重逐步降低。这份表只列文件名和原语名，不包含代码。
+新机器上 savehist 和 recentf 都是空的，排名器没有依据。仓库里附带一份 `emacs/data/eln-opt-baseline.eld`，列出一般都值得处理的文件和 trampoline：每次按键都会运行的 evil、winum hook，completion 栈，以及上面已知的三个 trampoline。有了用户自己的数据以后，基线的权重逐步降低。这份表只列文件名和原语名，不包含代码。
 
 **2. 尊重已有的退出机制**
 - 带 `no-native-compile: t` 或 `no-byte-compile: t` 文件局部变量的文件，不编译。
@@ -369,7 +369,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 
 - 从 `eln-opt-probes/eln-opt-probe-rank.el` 移植，先补上探针 README 里列的缺口。
 - 只输出报告，不编译：`emacs-setup.sh eln-opt-report` 和 `M-x eln-opt-report`。
-- 新建 `emacs/eln-opt-baseline.eld`，只列文件名和原语名。
+- 新建 `emacs/data/eln-opt-baseline.eld`，只列文件名和原语名。
 - 验收：
   - 报告里没有 `*-autoloads.el`；
   - 单个 savehist 命令的贡献不超过总分的 20%；
