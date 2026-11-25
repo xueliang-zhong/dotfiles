@@ -1123,7 +1123,8 @@ score and cost), and what is left out altogether."
                          (or (plist-get e :reason) "")))))
       ;; 4. Why each ranked file is or is not compiled
       (princ "\nRanked files not yet native, and what happens to each\n")
-      (princ "(score: expected gain; KB: bytecode size, the cost):\n")
+      (princ "(score: expected gain; KB: bytecode size, the cost)\n")
+      (princ (format "  %-28s  %6s  %6s  %s\n" "file" "score" "KB" "what happens"))
       (let ((n 0))
         (dolist (row rows)
           (let* ((src (and (plist-get row :path)
@@ -1134,7 +1135,7 @@ score and cost), and what is left out altogether."
                             (t (format "candidate, but past the limit of %d per worker run"
                                        eln-opt-worker-max)))))
             (when (< n 40)
-              (princ (format "  %-28s score %6.1f  KB %6.1f  %s\n"
+              (princ (format "  %-28s  %6.1f  %6.1f  %s\n"
                              (plist-get row :file) (plist-get row :score)
                              (/ (or (plist-get row :size) 0) 1024.0) why)))
             (cl-incf n)))
@@ -1269,7 +1270,9 @@ the width of the text, so the columns still line up."
               (while (re-search-forward "[^ ()\n]+" eol t)
                 (add-face-text-property (match-beginning 0) (match-end 0)
                                         'font-lock-function-name-face))))
-           ((string-match "\\`  \\([^ \n]+\\) +score " line)
+           ((string-match "\\`  file +score +KB" line)
+            (add-face-text-property bol eol 'bold))
+           ((string-match "\\`  \\([^ \n]+\\) +[-0-9.]+  +[0-9.]+  " line)
             ;; A ranking row: the file name after the indent.
             (add-face-text-property (+ bol 2) (+ bol 2 (length (match-string 1 line)))
                                     'font-lock-type-face))
