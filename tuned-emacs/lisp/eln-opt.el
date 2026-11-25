@@ -42,6 +42,7 @@
 ;; comp.el is loaded only where it is used (see `eln-opt--require-comp'): at
 ;; startup it costs about 170 ms on a Raspberry Pi, and the timer path never needs it.
 (require 'xl-async)
+(require 'xl-perfetto-trace)     ; spans for the worker's phases; off unless recording
 
 ;; Design: tuned-emacs/ideas/eln-opt.md.  This file is loaded only by a background
 ;; batch run (see `eln-opt-platform-report' and emacs-setup.sh `jit'), never by
@@ -1041,19 +1042,19 @@ Returns the feature or file names loaded, for the report."
   "Full analysis.  Returns a plist: :rows (sorted), :savehist-share, and the
 numbers for the header.  Roots are found first, so that lazy packages behind
 heavy roots can be loaded before the graph is built."
-  (let* ((roots-info (eln-opt-rank--roots profile-dir))
+  (let* ((roots-info (xl-perfetto-with-span "reach: roots" (eln-opt-rank--roots profile-dir)))
          (native (eln-opt-platform-available-p))
          (user-roots (plist-get roots-info :roots))
-         (lazy-loaded (eln-opt-rank--load-lazy-roots user-roots))
-         (graph (eln-opt-rank--graph profile-dir))
+         (lazy-loaded (xl-perfetto-with-span "reach: lazy roots" (eln-opt-rank--load-lazy-roots user-roots)))
+         (graph (xl-perfetto-with-span "reach: graph" (eln-opt-rank--graph profile-dir)))
          (edges (plist-get graph :edges))
          (user-count (plist-get roots-info :user-count))
          (baseline (car (eln-opt-rank--baseline profile-dir)))
          (base-factor (max 0.0 (- 1.0 (/ (float user-count) eln-opt-rank-baseline-users))))
          (base-roots (mapcar (lambda (s) (cons s (* base-factor 1.0))) baseline))
          (seeds (append user-roots base-roots))
-         (heat (eln-opt-rank--propagate seeds edges))
-         (scores (eln-opt-rank--file-scores heat graph))
+         (heat (xl-perfetto-with-span "reach: propagate" (eln-opt-rank--propagate seeds edges)))
+         (scores (xl-perfetto-with-span "reach: file scores" (eln-opt-rank--file-scores heat graph)))
          (total (let ((sum 0.0)) (maphash (lambda (_ v) (cl-incf sum v)) scores) sum))
          ;; Each savehist command's share of the whole score.  Heat is linear,
          ;; so one command's contribution is its own propagation.
@@ -1595,7 +1596,7 @@ behind a lazy package are seen.  The report and the worker both use this, so
 they agree; without the load, a lazy package's files were missed."
   (eln-opt-rank--load-lazy-roots
    (plist-get (eln-opt-rank--roots (eln-opt--profile-dir)) :roots))
-  (eln-opt--byte-candidates))
+  (xl-perfetto-with-span "byte candidates" (eln-opt--byte-candidates)))
 
 (defun eln-opt-worker-plan (&optional native)
   "The worker's plan, as (KIND . SOURCE) with KIND `byte' or `native'.
@@ -1610,7 +1611,7 @@ first: small hot files before big ones.  At most
           (mapcar (lambda (src) (cons 'native src))
                   (eln-opt--plan-from-rows
                    (sort (copy-sequence
-                          (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows))
+                          (plist-get (xl-perfetto-with-span "reach analysis" (eln-opt-rank--compute (eln-opt--profile-dir))) :rows))
                          (lambda (a b) (> (or (plist-get a :ratio) 0)
                                           (or (plist-get b :ratio) 0))))
                    (- eln-opt-worker-max (length bytes))))))))
@@ -1654,6 +1655,11 @@ the child exits.  Its stdin is closed and it is stopped after
     (length files)))
 
 (defun eln-opt--compile-one (kind src)
+  "Compile SRC the KIND way inside a span named for the file, see `eln-opt--compile-one-1'."
+  (xl-perfetto-with-span (format "%s compiling %s" kind (file-name-nondirectory src))
+    (eln-opt--compile-one-1 kind src)))
+
+(defun eln-opt--compile-one-1 (kind src)
   "Compile SRC the KIND way, `byte' or `native'.  Returns nil, or an error
 string.  Success means Emacs will load the result on the next start."
   (condition-case e
@@ -1683,7 +1689,46 @@ and reported; the failed list is not consulted, since the user asked."
         (eln-opt--say "refused %s: not in a trusted folder" src)))
     (nreverse plan)))
 
+(defun eln-opt--trace-follow ()
+  "In the worker: record while the main Emacs records (see `xl-perfetto-follow-marker')."
+  (xl-perfetto-follow-marker "eln-opt-trace"))
+
+(defun eln-opt--trace-top-level (orig form &rest args)
+  "Around `byte-compile-top-level' in the worker: one span per top-level form,
+named for the defun it defines.  Costs one variable check when not recording."
+  (if (not xl-perfetto--recording)
+      (apply orig form args)
+    (xl-perfetto-with-span (let ((head (car-safe form)))
+                             (if (and (memq head '(defun defmacro defsubst cl-defun cl-defmacro))
+                                      (consp (cdr form)) (symbolp (cadr form)))
+                                 (format "byte %s" (cadr form))
+                               (format "byte form %s" (or head "?"))))
+      (apply orig form args))))
+
 (defun eln-opt-worker (&optional sources)
+  "Compile the plan one file at a time, sleeping between files.
+Runs in a batch Emacs with the profile loaded, so package macros expand as
+they should.  Without native compilation it only byte-compiles.  The first
+error stops it, after putting that file on the failed list.  Returns the
+number of files compiled, or `busy'.
+
+With SOURCES, a list of .el files, compiles exactly those (byte, then
+native), ignoring the failed list and the quiet state; the in-progress
+marker and the trusted-root check still apply.
+
+When the main Emacs records with perfetto, this run records too, into a
+file named eln-opt-trace-*.json in the same folder."
+  (eln-opt--trace-follow)
+  (advice-add 'byte-compile-top-level :around #'eln-opt--trace-top-level)
+  (unwind-protect
+      (let ((count (xl-perfetto-with-span "eln-opt worker"
+                     (eln-opt--worker-run sources))))
+        count)
+    (advice-remove 'byte-compile-top-level #'eln-opt--trace-top-level)
+    (let ((file (xl-perfetto-follow-finish)))
+      (when file (eln-opt--say "trace %s" file)))))
+
+(defun eln-opt--worker-run (&optional sources)
   "Compile the plan one file at a time, sleeping between files.
 Runs in a batch Emacs with the profile loaded, so package macros expand as
 they should.  Without native compilation it only byte-compiles.  The first
@@ -1708,7 +1753,8 @@ marker and the trusted-root check still apply."
                             (eln-opt-worker-plan native))))
                (done 0)
                (failures 0)
-               (first t))
+               (first t)
+               (previous nil))
           (when refused
             (eln-opt--say "stopped: %s is a symbolic link; remove it and run again"
                           (eln-opt--marker-file)))
@@ -1725,8 +1771,13 @@ marker and the trusted-root check still apply."
                                    plan " "))
           (catch 'stop
             (dolist (item plan)
-              (unless first (sleep-for eln-opt-worker-sleep))
-              (setq first nil)
+              ;; Pause between files, not between the byte and native steps
+              ;; of one file: those run back to back.
+              (unless (or first (equal (cdr item) previous))
+                (sleep-for eln-opt-worker-sleep))
+              (setq first nil
+                    previous (cdr item))
+              (eln-opt--trace-follow)
               (let* ((src (cdr item)) err
                      (attempts (if (and carry (equal (car carry) src))
                                    (1+ (cdr carry))
@@ -1745,12 +1796,13 @@ marker and the trusted-root check still apply."
                   (cl-incf done)
                   ;; Check the new file now, so the next start does not pay.
                   (when (eq (car item) 'native)
-                    (eln-opt--warm (list (eln-opt--eln-for src))))
+                    (xl-perfetto-with-span (format "warm new eln: %s" (file-name-nondirectory src))
+                      (eln-opt--warm (list (eln-opt--eln-for src)))))
                   (eln-opt--say "done %s" src)))))
           ;; Also files built some other way, or before a worker was stopped
           ;; between the build and its warm-up.  Checked files cost 3 ms each.
           (when native
-            (let ((n (eln-opt--warm (eln-opt--eln-files))))
+            (let ((n (xl-perfetto-with-span "warm all eln" (eln-opt--warm (eln-opt--eln-files)))))
               (when (> n 0) (eln-opt--say "warmed %d eln file(s)" n))))
           (eln-opt--say "finished %d%s" done
                         (if (> failures 0) (format ", failed %d" failures) ""))

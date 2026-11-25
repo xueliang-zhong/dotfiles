@@ -855,6 +855,48 @@ with one warm-up of every eln in the folder."
                                '("all-1.eln" "all-2.eln"))))
           (should (string-match-p "warmed 2 eln file" out)))))))
 
+;; The pause is between files: one file's byte and native steps run back to back.
+(ert-deftest eln-opt-worker-pauses-between-files-not-between-the-steps-of-one ()
+  "Two steps of the same file are not separated by the pause; a new file is."
+  (eln-opt-test--with-worker srcs '("p1" "p2")
+    (let ((pauses 0))
+      (cl-letf (((symbol-function 'eln-opt-worker-plan)
+                 (lambda (&rest _)
+                   (list (cons 'byte (nth 0 srcs)) (cons 'native (nth 0 srcs))
+                         (cons 'native (nth 1 srcs)))))
+                ((symbol-function 'sleep-for) (lambda (&rest _) (cl-incf pauses)))
+                ((symbol-function 'byte-compile-file) (lambda (&rest _) t))
+                ((symbol-function 'eln-opt--elc-current-p) (lambda (_) t))
+                ((symbol-function 'native-compile) #'ignore)
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t))
+                ((symbol-function 'eln-opt--warm) (lambda (files) (length files))))
+        (with-output-to-string (eln-opt-worker))
+        (should (= pauses 1))))))
+
+;; The worker's trace: a span per top-level form, named for its defun.
+(ert-deftest eln-opt-trace-top-level-names-the-defun-and-costs-nothing-idle ()
+  "Outside a recording the advice only calls the original; during one, each
+top-level form is a span named for the function it defines."
+  (let ((calls nil))
+    (should (= 42 (eln-opt--trace-top-level (lambda (_form) 42) '(defun foo () 1))))
+    (let ((dir (file-name-as-directory (make-temp-file "eln-opt-trace-test-" t)))
+          (xl-perfetto-marker-file (expand-file-name "no-marker.eld" temporary-file-directory)))
+      (unwind-protect
+          (let ((xl-perfetto-trace-directory dir)
+                (xl-perfetto-trace-max-seconds 30))
+            (xl-perfetto-trace-start)
+            (should (= 7 (eln-opt--trace-top-level
+                          (lambda (_form) (push 'called calls) 7)
+                          '(defun foo () 1))))
+            (xl-perfetto-trace-stop)
+            (let ((text (with-temp-buffer
+                          (dolist (f (directory-files dir t "\\.json\\'"))
+                            (insert-file-contents f))
+                          (buffer-string))))
+              (should (string-match-p "byte foo" text))
+              (should calls)))
+        (delete-directory dir t)))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)
@@ -1059,7 +1101,8 @@ the .elc then runs native code."
 available, the plan is those sources, and the worker does not sleep."
   (declare (indent 2))
   `(eln-opt-test--with-tier2
-     (let ((,srcs-var (mapcar (lambda (n) (eln-opt-test--src lisp n)) ,names)))
+     (let ((,srcs-var (mapcar (lambda (n) (eln-opt-test--src lisp n)) ,names))
+           (xl-perfetto-marker-file (expand-file-name "no-such-marker.eld" temporary-file-directory)))
        (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () t))
                  ((symbol-function 'eln-opt-worker-plan)
                   (lambda (&rest _) (mapcar (lambda (s) (cons 'native s)) ,srcs-var)))

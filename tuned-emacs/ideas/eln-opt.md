@@ -126,6 +126,10 @@ eln 文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-cach
 
 **内置库的 `.el.gz`**：Emacs 自带的 org、winner、which-key、savehist、repeat、delsel 等只有 `.el.gz`。直接对 `.el.gz` 调用 `native-compile` 就能得到 Emacs 要找的 eln，不需要改启动流程。用完整路径 `load` 一个 `.elc` 永远加载字节码，只有不带后缀的 `load`（`require` 就是这样）才会去找 eln。
 
+## 录制（perfetto）
+
+主 Emacs 用 `xl-perfetto-trace-start` 录制时，worker 在两个文件之间检查标记文件 `traces/recording.eld`，有就同时录制，写出 `eln-opt-trace-*.json`。worker 的每个阶段（可达性分析的各步、候选、每个文件的编译、每个顶层表单、warm）都是一个 span。细节见 `ideas/xl-perfetto-trace.md`"跟随 eln-opt worker"一节。
+
 ## 首次加载检查（macOS）
 
 macOS 在任何进程第一次映射一个新的原生文件时检查它：每个新 `.eln` 约 0.22 秒，跟大小关系不大（37 KB 和 410 KB 都是这样），结果按文件缓存，跨进程有效；再加载只要约 3 毫秒。缓存按文件而不是按内容：把一个检查过的 eln 复制到新路径，第一次加载又是 0.22 秒。

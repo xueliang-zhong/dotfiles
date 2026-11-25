@@ -65,6 +65,20 @@ asked for that mark explicitly."
               (const functions) (const counters))
   :group 'xl-perfetto)
 
+(defcustom xl-perfetto-marker-file
+  (expand-file-name "traces/recording.eld" user-emacs-directory)
+  "File that says a recording runs, for other Emacs processes to follow.
+Written when a recording starts and deleted when it stops.  The eln-opt worker
+reads it between files and records alongside (see `xl-perfetto-follow-marker')."
+  :type 'file
+  :group 'xl-perfetto)
+
+(defvar xl-perfetto--file-prefix "emacs-trace"
+  "Start of the trace file names this process writes.")
+
+(defvar xl-perfetto--follower nil
+  "Non-nil in a process that records only because another Emacs records.")
+
 (defcustom xl-perfetto-trace-ring-size 100000
   "Number of events the ring buffer holds.
 When it is full, the oldest event is overwritten and counted in the
@@ -310,7 +324,8 @@ The file is written under a temporary name and renamed into place, so a
 recording never leaves a half-written trace behind."
   (let* ((directory (xl-perfetto--trace-directory))
          (_ (make-directory directory t))
-         (base (format "emacs-trace-%s" (format-time-string "%Y%m%d-%H%M%S")))
+         (base (format "%s-%s" xl-perfetto--file-prefix
+                       (format-time-string "%Y%m%d-%H%M%S")))
          (file (xl-perfetto--unique-file directory base))
          (temp (make-temp-file (expand-file-name "xl-perfetto-" directory)
                                nil ".json"))
@@ -828,6 +843,25 @@ non-local exit still ends the span."
         xl-perfetto--process-scan-timer nil
         xl-perfetto--auto-stop-timer nil))
 
+(defun xl-perfetto--write-marker (seconds)
+  "Tell other Emacs processes that a recording of SECONDS runs.  Never fails."
+  (unless xl-perfetto--follower
+    (ignore-errors
+      (let* ((marker xl-perfetto-marker-file)
+             (temp (concat marker ".tmp")))
+        (make-directory (file-name-directory marker) t)
+        (with-temp-file temp
+          (prin1 (list :dir (xl-perfetto--trace-directory)
+                       :started (float-time)
+                       :max seconds)
+                 (current-buffer)))
+        (rename-file temp marker t)))))
+
+(defun xl-perfetto--remove-marker ()
+  "Delete the recording marker.  Never fails."
+  (unless xl-perfetto--follower
+    (ignore-errors (delete-file xl-perfetto-marker-file))))
+
 (defun xl-perfetto--start (&optional max-seconds)
   "Start a recording, automatically stopping after MAX-SECONDS.
 Any failure rolls back the instrumentation already installed and then
@@ -853,6 +887,7 @@ signals the error."
         (progn
           (xl-perfetto--install)
           (xl-perfetto--install-auto-stop seconds)
+          (xl-perfetto--write-marker seconds)
           (xl-perfetto--mode-line-on)
           t)
       ((error quit)
@@ -875,6 +910,7 @@ The instrumentation is removed even when writing fails."
             (xl-perfetto--mode-line-off)
             (setq file (xl-perfetto--write-file))
             file)
+        (xl-perfetto--remove-marker)
         (setq xl-perfetto--recording nil)
         (xl-perfetto--reset-state)))))
 
@@ -889,6 +925,49 @@ The instrumentation is removed even when writing fails."
 ;;; ============================================================
 ;;; Commands
 ;;; ============================================================
+
+;;; ============================================================
+;;; Following: other batch processes record while this one does
+;;; ============================================================
+
+(defun xl-perfetto--read-marker ()
+  "The recording marker as a plist, or nil when there is none or it is bad."
+  (let ((file xl-perfetto-marker-file))
+    (when (and (stringp file) (file-regular-p file))
+      (ignore-errors
+        (with-temp-buffer
+          (insert-file-contents file)
+          (let ((info (read (current-buffer))))
+            (and (stringp (plist-get info :dir))
+                 (numberp (plist-get info :started))
+                 (numberp (plist-get info :max))
+                 info)))))))
+
+(defun xl-perfetto-follow-marker (prefix)
+  "Record in this batch process while the main Emacs records.
+Call it between units of work.  When the marker appears and is not past its
+time limit, start a recording into the marker's folder, with file names that
+start with PREFIX.  When the marker is gone or stale, stop and write the file.
+Returns the file written on a stop, or nil.  Never signals: tracing must not
+break the work it watches."
+  (ignore-errors
+    (setq xl-perfetto--follower t
+          xl-perfetto--file-prefix prefix)
+    (let* ((info (xl-perfetto--read-marker))
+           (left (and info (- (+ (plist-get info :started) (plist-get info :max))
+                              (float-time)))))
+      (cond
+       ((and info (> left 0) (not xl-perfetto--recording))
+        (setq xl-perfetto-trace-directory (plist-get info :dir))
+        (xl-perfetto--start (max 1 (ceiling left)))
+        nil)
+       ((and xl-perfetto--recording (or (null info) (<= left 0)))
+        (xl-perfetto--stop))))))
+
+(defun xl-perfetto-follow-finish ()
+  "Stop this process's following recording, write it and return the file."
+  (when (and xl-perfetto--follower xl-perfetto--recording)
+    (ignore-errors (xl-perfetto--stop))))
 
 (defun xl-perfetto-trace-start (&optional max-seconds)
   "Start recording Emacs Lisp activity.

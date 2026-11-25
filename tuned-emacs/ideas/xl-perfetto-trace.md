@@ -201,6 +201,32 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 - 大小：10 万个事件大约 15–25 MB，Perfetto UI 能轻松打开。
 - 打开方式：ui.perfetto.dev 在浏览器本地解析，文件不会上传；没有网络时也可以用 Perfetto 的离线版本。
 
+## 跟随 eln-opt worker
+
+主 Emacs 开始录制时，写一个标记文件 `traces/recording.eld`（内容：录制目录、开始时间、时限），停止时删除。eln-opt 的后台 worker 是另一个 Emacs 进程，它在两个文件之间（原有的 5 秒睡眠之后）检查这个标记：标记出现且没超过时限，就在同一个目录里开始自己的录制，文件名以 `eln-opt-trace-` 开头；标记消失或超时，就停止并写出文件，并在 worker 日志里打印 `ELN-OPT trace <文件>`。这样主 Emacs 不需要知道 worker 的存在，也不需要 hook，只做直接调用。
+
+- 标记是录制的一部分：`xl-perfetto--start` 写入，`xl-perfetto--stop` 删除。写入和删除都不会让录制失败。
+- 超时的标记视为过期（主 Emacs 崩溃时不会留下一个永久生效的标记）。
+- 正在编译一个大文件时，worker 不会检查标记，要等这个文件结束；录制开始得晚，前面的部分就没有。
+- 测试用的录制和 worker 测试都把 `xl-perfetto-marker-file` 绑到临时文件，不碰真实的标记。
+
+worker 里的分段（只在录制时有开销）：
+
+| 名字 | 含义 |
+|---|---|
+| `eln-opt worker` | 整次运行 |
+| `reach: roots` / `lazy roots` / `graph` / `propagate` / `file scores` | 可达性分析的各步 |
+| `reach analysis` | 整个分析（只在计划需要 native 候选时） |
+| `byte candidates` | 字节编译候选 |
+| `byte compiling <file>` / `native compiling <file>` | 每个文件的编译 |
+| `byte <defun>` | 字节编译的每个顶层表单，按它定义的函数命名 |
+| `warm new eln: <file>` | 刚编出的 eln 的预热（加载一次，让系统做首次检查） |
+| `warm all eln` | 整个 eln 目录的预热扫描 |
+
+native 编译没有按函数的入口：`native-compile` 整个文件一次完成，所以 native 只能到文件这一级。字节编译的顶层表单（即每个 `defun`）可以按函数记录，因为 `byte-compile-top-level` 是原生编译的 Lisp 函数，不是 C 原语，worker 里对它加 advice 不需要 trampoline。
+
+实测（批处理主进程录制，子进程是真实的 worker 命令，计划限制为 1 个文件）：worker 的 trace 里有 116 个 span，其中图的构建 2.6 秒，整个分析 6.5 秒，warm 1.0 秒。主进程和 worker 的 pid 不同，所以两个文件在 ui.perfetto.dev 里是两条独立的时间线。
+
 ## 性能预算
 
 - 目标：每个事件的记录开销不超过 5 微秒（Apple Silicon）。打字时感觉不到差别。
