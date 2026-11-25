@@ -244,6 +244,10 @@ cmd_test() {
         --eval '(setq load-prefer-newer t)' \
         -l "$DOTFILES/emacs/tests/eln-opt-tests.el" \
         -f ert-run-tests-batch-and-exit
+    # xl-dired: asynchronous listings and previews, with real processes.
+    "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
+        -l "$DOTFILES/emacs/tests/xl-dired-tests.el" \
+        -f ert-run-tests-batch-and-exit
 }
 
 # Tier 1 of eln-opt: byte-compile our own Lisp so it does not run interpreted.

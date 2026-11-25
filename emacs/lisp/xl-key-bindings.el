@@ -70,7 +70,7 @@
   "9" "window 9" #'winum-select-window-9
 
   "a" "apps" nil
-  "a c" "calc" #'calc  "a d" "dired" #'dired  "a s e" "eshell" #'eshell
+  "a c" "calc" #'calc  "a d" "dired" #'xl-dired  "a s e" "eshell" #'eshell
   "a o a" "org agenda" #'org-agenda  "a o c" "org capture" #'org-capture
 
   "b" "buffers" nil
@@ -103,7 +103,7 @@
   "f R" "rename file"   #'rename-visited-file
   "f D" "delete file"   #'xl-sk-delete-this-file
   "f c" "copy file"     #'copy-file
-  "f j" "dired jump"    #'dired-jump
+  "f j" "dired jump"    #'xl-dired-jump
   "f y" "yank" nil
   "f y y" "copy path"   #'xl-sk-copy-file-path
   "f e" "emacs config" nil
@@ -129,7 +129,7 @@
   "j" "jump" nil
   "j j" "to chars" #'avy-goto-char-timer  "j l" "to line" #'avy-goto-line
   "j w" "to word" #'avy-goto-word-1  "j i" "imenu" #'imenu
-  "j d" "dired jump" #'dired-jump  "j D" "dired jump other" #'dired-jump-other-window
+  "j d" "dired jump" #'xl-dired-jump  "j D" "dired jump other" #'dired-jump-other-window
 
   "n" "narrow" nil
   "n r" "region" #'narrow-to-region  "n f" "defun" #'narrow-to-defun

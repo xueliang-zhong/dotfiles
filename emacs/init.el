@@ -159,6 +159,7 @@ session."
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
+(require 'xl-dired)          ; async dired listings and previews
 (require 'xl-git-status)
 (require 'xl-git-commands)
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output

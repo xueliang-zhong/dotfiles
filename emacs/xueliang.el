@@ -434,7 +434,7 @@
 (defun xueliang-replace-tab-trailing-spaces () (interactive)
   (untabify (point-min) (point-max)) (delete-trailing-whitespace))
 (defun xueliang-dired-jump () (interactive)
-  (dired-jump) (dired-hide-details-mode -1) (hl-line-mode 1))
+  (xl-dired default-directory) (dired-hide-details-mode -1) (hl-line-mode 1))
 (defun xueliang-just-make ()
   "Run `just all' in the dotfiles, asynchronously."
   (interactive)

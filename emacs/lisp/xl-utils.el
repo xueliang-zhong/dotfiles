@@ -243,17 +243,17 @@ INITIAL is the text the search starts with."
     (delete-region (line-beginning-position) (line-end-position))
     (insert line)))
 
-;; F9: my file tree, a narrow dired window on the left (golden-ratio width)
+;; F9: my file tree, a narrow async dired window on the left
 (defun xueliang-dired-sidebar ()
-  "Toggle a dired sidebar on the far left." (interactive)
+  "Toggle an async dired sidebar on the far left." (interactive)
   (if-let* ((sidebar (seq-find (lambda (win)
-                                 (eq (buffer-local-value 'major-mode (window-buffer win))
-                                     'dired-mode))
+                                 (with-current-buffer (window-buffer win)
+                                   (derived-mode-p 'xl-dired-mode)))
                                (window-list))))
       (delete-window sidebar)
     (xueliang-cd-current-dir)
     (evil-window-vsplit) (evil-window-move-far-left)
-    (dired-jump) (dired-hide-details-mode) (hl-line-mode 1)
+    (xl-dired default-directory) (dired-hide-details-mode) (hl-line-mode 1)
     (evil-window-decrease-width (floor (* (window-width) 0.382)))))
 
 (defun xueliang-imenu-or-org-today ()

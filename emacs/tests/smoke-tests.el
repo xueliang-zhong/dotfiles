@@ -158,6 +158,24 @@ It is what happens when the operation outlives `xl-spinner-show-delay'."
         (accept-process-output nil 0.05)))
     (should-not (xl-async-busy-p 'show buffer))))
 
+(defun xl-test--wait-for-xl-dired (buffer)
+  "Wait until the `xl-dired' BUFFER has its asynchronous listing."
+  (with-current-buffer buffer
+    (let ((end (+ (float-time) 10)))
+      (while (and (xl-async-busy-p 'listing buffer)
+                  (< (float-time) end))
+        (accept-process-output nil 0.05)))
+    (should-not (xl-async-busy-p 'listing buffer))))
+
+(defun xl-test--wait-for-xl-preview (buffer)
+  "Wait until the `xl-dired' preview BUFFER has rendered."
+  (with-current-buffer buffer
+    (let ((end (+ (float-time) 10)))
+      (while (and (xl-async-busy-p 'preview buffer)
+                  (< (float-time) end))
+        (accept-process-output nil 0.05)))
+    (should-not (xl-async-busy-p 'preview buffer))))
+
 ;;; ============================================================
 ;;; Profile and file structure
 ;;; ============================================================
@@ -1017,8 +1035,10 @@ keypress.  Prefix keymaps are walked recursively."
                   ("*" . xueliang-search-project-at-point)
                   ("/" . consult-line)
                   ("x" . execute-extended-command)
+                  ("a d" . xl-dired)
                   ("f f" . find-file)
                   ("f r" . consult-recent-file)
+                  ("f j" . xl-dired-jump)
                   ("f p" . xueliang-find-file-in-dotfiles)
                   ("h d a" . describe-symbol)
                   ("i s" . xueliang-insert-snippet)
@@ -1031,6 +1051,7 @@ keypress.  Prefix keymaps are walked recursively."
                   ("g b" . xl-gblame)
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
+                  ("j d" . xl-dired-jump)
                   ("p s" . xueliang-search-project)
                   ("q r" . xl-sk-restart-emacs)
                   ("r l" . vertico-repeat)
@@ -2504,6 +2525,206 @@ that shows blame has the mode-line loader only."
               (should (eq (keymap-lookup normal "RET") #'xueliang-dired-open))))
         (kill-buffer buf)))))
 
+(ert-deftest xl-dired-mode-setup-and-keys ()
+  "`xl-dired' looks like Dired and uses the async preview keys."
+  (with-temp-buffer
+    (setq default-directory temporary-file-directory)
+    (xl-dired-mode)
+    (should (derived-mode-p 'xl-dired-mode))
+    (should (eq (keymap-lookup xl-dired-mode-map "TAB")
+                #'xl-dired-preview))
+    (should (eq (keymap-lookup xl-dired-mode-map "RET")
+                #'xl-dired-open))
+    (let ((normal (evil-get-auxiliary-keymap xl-dired-mode-map 'normal t)))
+      (should (eq (keymap-lookup normal "h") #'xl-dired-up-directory))
+      (should (eq (keymap-lookup normal "l") #'xl-dired-open))
+      (should (eq (keymap-lookup normal "RET") #'xl-dired-open))
+      (should (eq (lookup-key normal (kbd "TAB")) #'xl-dired-preview)))))
+
+(ert-deftest xl-dired-lists-a-directory-asynchronously ()
+  "`xl-dired' starts `ls' in the background and shows the loader first."
+  (xl-test-with-temp-dir dir
+    (with-temp-file (expand-file-name "hello.txt" dir)
+      (insert "hello\n"))
+    (let ((buffer (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (should (xl-async-busy-p 'listing buffer))
+            (with-current-buffer buffer
+              (should (xl-spinner-mode-line-busy-p))
+              (should (zerop (buffer-size))))
+            (xl-test--wait-for-xl-dired buffer)
+            (with-current-buffer buffer
+              (should (derived-mode-p 'xl-dired-mode))
+              (should (save-excursion
+                        (goto-char (point-min))
+                        (search-forward "hello.txt" nil t)))
+              (should (equal (file-name-as-directory
+                              (expand-file-name default-directory))
+                             (file-name-as-directory dir)))))
+        (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(ert-deftest xl-dired-refresh-keeps-the-old-listing-until-ls-answers ()
+  "`g' starts a new `ls' and does not empty the window while it runs."
+  (xl-test-with-temp-dir dir
+    (with-temp-file (expand-file-name "hello.txt" dir)
+      (insert "hello\n"))
+    (let ((buffer (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (xl-test--wait-for-xl-dired buffer)
+            (with-current-buffer buffer
+              (let ((before (buffer-string)))
+                (revert-buffer)
+                (should (xl-async-busy-p 'listing buffer))
+                (should (equal before (buffer-string)))
+                (xl-test--wait-for-xl-dired buffer))))
+        (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(ert-deftest xl-dired-cd-uses-the-current-window ()
+  "Opening a directory replaces the listing in the selected window."
+  (xl-test-with-temp-dir dir
+    (let ((sub (expand-file-name "sub" dir)))
+      (make-directory sub)
+      (with-temp-file (expand-file-name "hello.txt" sub)
+        (insert "hello\n"))
+      (save-window-excursion
+        (delete-other-windows)
+        (let ((buffer (xl-dired-noselect dir)))
+          (unwind-protect
+              (progn
+                (switch-to-buffer buffer)
+                (xl-test--wait-for-xl-dired buffer)
+                (goto-char (point-min))
+                (should (re-search-forward " sub$" nil t))
+                (goto-char (match-beginning 0))
+                (let ((window (selected-window))
+                      (count (length (window-list))))
+                  (xl-dired-open)
+                  (should (eq (selected-window) window))
+                  (should (= (length (window-list)) count))
+                  (should (derived-mode-p 'xl-dired-mode))
+                  (should (equal (file-name-as-directory
+                                  (expand-file-name default-directory))
+                                 (file-name-as-directory sub)))
+                  (xl-test--wait-for-xl-dired buffer)
+                  (goto-char (point-min))
+                  (should (search-forward "hello.txt" nil t))))
+            (when (buffer-live-p buffer) (kill-buffer buffer))))))))
+
+(ert-deftest xl-dired-opens-a-file-in-the-other-window ()
+  "RET/l in `xl-dired' selects the file in the other window."
+  (xl-test-with-temp-dir dir
+    (let ((file (expand-file-name "hello.txt" dir)))
+      (with-temp-file file (insert "hello\n"))
+      (save-window-excursion
+        (delete-other-windows)
+        (let ((buffer (xl-dired-noselect dir)))
+          (unwind-protect
+              (progn
+                (switch-to-buffer buffer)
+                (xl-test--wait-for-xl-dired buffer)
+                (goto-char (point-min))
+                (should (search-forward "hello.txt" nil t))
+                (goto-char (match-beginning 0))
+                (let ((dired-window (selected-window)))
+                  (xl-dired-open)
+                  (should-not (eq (selected-window) dired-window))
+                  (should (equal (expand-file-name (buffer-file-name))
+                                 (expand-file-name file)))))
+            (when (buffer-live-p buffer) (kill-buffer buffer))
+            (when (get-file-buffer file) (kill-buffer (get-file-buffer file)))))))))
+
+(ert-deftest xl-dired-preview-loads-a-text-file-asynchronously ()
+  "TAB previews a text file through the async `head' pipeline."
+  (xl-test-with-temp-dir dir
+    (let ((file (expand-file-name "hello.txt" dir)))
+      (with-temp-file file (insert "alpha\nbeta\n"))
+      (let ((buffer (xl-dired-noselect dir)))
+        (unwind-protect
+            (progn
+              (switch-to-buffer buffer)
+              (xl-test--wait-for-xl-dired buffer)
+              (goto-char (point-min))
+              (should (search-forward "hello.txt" nil t))
+              (goto-char (match-beginning 0))
+              (cl-letf (((symbol-function 'display-buffer)
+                         (lambda (candidate &rest _) candidate)))
+                (xl-dired-preview))
+              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
+                (xl-test--wait-for-xl-preview preview)
+                (with-current-buffer preview
+                  (should buffer-read-only)
+                  (should (string-match-p "alpha" (buffer-string)))
+                  (should (string-match-p "beta" (buffer-string))))))
+          (when (buffer-live-p buffer) (kill-buffer buffer))
+          (when (get-buffer xl-dired-preview-buffer-name)
+            (kill-buffer xl-dired-preview-buffer-name)))))))
+
+(ert-deftest xl-dired-preview-loads-a-directory-asynchronously ()
+  "TAB also previews a directory's `ls' listing in the background."
+  (xl-test-with-temp-dir dir
+    (let ((sub (expand-file-name "sub" dir)))
+      (make-directory sub)
+      (with-temp-file (expand-file-name "inside.txt" sub)
+        (insert "inside\n"))
+      (let ((buffer (xl-dired-noselect dir)))
+        (unwind-protect
+            (progn
+              (switch-to-buffer buffer)
+              (xl-test--wait-for-xl-dired buffer)
+              (goto-char (point-min))
+              (should (re-search-forward " sub$" nil t))
+              (goto-char (match-beginning 0))
+              (cl-letf (((symbol-function 'display-buffer)
+                         (lambda (candidate &rest _) candidate)))
+                (xl-dired-preview))
+              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
+                (xl-test--wait-for-xl-preview preview)
+                (with-current-buffer preview
+                  (should (string-match-p "total" (buffer-string)))
+                  (should (string-match-p "inside.txt" (buffer-string))))))
+          (when (buffer-live-p buffer) (kill-buffer buffer))
+          (when (get-buffer xl-dired-preview-buffer-name)
+            (kill-buffer xl-dired-preview-buffer-name)))))))
+
+(ert-deftest xl-dired-preview-says-when-a-file-is-binary ()
+  "A binary or data file gets a hex dump with a note, not raw bytes."
+  (xl-test-with-temp-dir dir
+    (let ((file (expand-file-name "data.bin" dir)))
+      (with-temp-file file (insert "\0\1\2data"))
+      (let ((buffer (xl-dired-noselect dir)))
+        (unwind-protect
+            (progn
+              (switch-to-buffer buffer)
+              (xl-test--wait-for-xl-dired buffer)
+              (goto-char (point-min))
+              (should (search-forward "data.bin" nil t))
+              (goto-char (match-beginning 0))
+              (cl-letf (((symbol-function 'display-buffer)
+                         (lambda (candidate &rest _) candidate)))
+                (xl-dired-preview))
+              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
+                (xl-test--wait-for-xl-preview preview)
+                (with-current-buffer preview
+                  (should (string-match-p "Binary file" (buffer-string)))
+                  (should (string-match-p "^00000000  " (buffer-string)))
+                  (should-not (string-match-p "\0" (buffer-string))))))
+          (when (buffer-live-p buffer) (kill-buffer buffer))
+          (when (get-buffer xl-dired-preview-buffer-name)
+            (kill-buffer xl-dired-preview-buffer-name)))))))
+
+(ert-deftest xl-dired-schedules-a-preview-after-the-idle-delay ()
+  "Point resting for `xl-dired-preview-idle' starts a preview."
+  (should (= xl-dired-preview-idle 0.1))
+  (with-temp-buffer
+    (setq default-directory temporary-file-directory)
+    (xl-dired-mode)
+    (xl-dired--schedule-preview)
+    (should (timerp xl-dired--hover-timer))
+    (cancel-timer xl-dired--hover-timer)
+    (setq xl-dired--hover-timer nil)))
+
 (ert-deftest xl-eshell-setup ()
   "Eshell starts in insert state with terminal-like keys."
   (let ((buf (eshell)))
@@ -3084,28 +3305,31 @@ the exit status."
       (xueliang-eshell-popup))
     (should (equal (nreverse steps) '(cd split eshell append)))))
 
-(ert-deftest xl-dired-jump-calls-dired-jump ()
-  "`xueliang-dired-jump' jumps to the file's folder and shows the details."
+(ert-deftest xl-dired-jump-calls-xl-dired ()
+  "`xueliang-dired-jump' opens the file's folder with `xl-dired'."
   (let (jumped)
-    (cl-letf (((symbol-function 'dired-jump)
+    (cl-letf (((symbol-function 'xl-dired)
                (lambda (&rest _) (setq jumped t)))
               ((symbol-function 'dired-hide-details-mode) #'ignore))
       (xueliang-dired-jump))
     (should jumped)))
 
 (ert-deftest xl-dired-sidebar-toggle-closes-existing-sidebar ()
-  "Calling the sidebar command again removes the dired window on the left."
+  "Calling the sidebar command again removes the async dired window on the left."
   (xl-test-with-temp-dir dir
     (save-window-excursion
       (delete-other-windows)
       (let ((left (selected-window)))
-        (set-window-buffer left (dired-noselect dir))
+        (set-window-buffer left (xl-dired-noselect dir))
         (let ((right (split-window-right)))
           (set-window-buffer right (get-buffer-create "xl-test-other"))
           (select-window right)
           (let ((before (length (window-list))))
             (xueliang-dired-sidebar)
             (should (= (length (window-list)) (1- before)))))))
+    (dolist (buffer (buffer-list))
+      (when (string-prefix-p "*xl-dired:" (buffer-name buffer))
+        (kill-buffer buffer)))
     (kill-buffer (get-buffer-create "xl-test-other"))))
 
 (ert-deftest xl-dired-open-uses-the-other-window ()
