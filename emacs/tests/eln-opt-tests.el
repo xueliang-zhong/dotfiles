@@ -634,6 +634,91 @@ is unchanged."
         (should-not asked)
         (should (equal deleted '("/x/c.eln")))))))
 
+;;; In-progress marker: an interrupted compile is retried, then given up
+
+(ert-deftest eln-opt-marker-is-written-during-a-compile-and-removed-after ()
+  "The marker names the file while it compiles, and is gone when it finishes."
+  (eln-opt-test--with-worker srcs '("m1")
+    (let ((seen nil))
+      (cl-letf (((symbol-function 'native-compile)
+                 (lambda (&rest _)
+                   (setq seen (plist-get (eln-opt--read-eld (eln-opt--marker-file)) :src))))
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t)))
+        (should (= 1 (eln-opt-test--worker-result))))
+      (should (equal seen (car srcs)))
+      (should-not (file-exists-p (eln-opt--marker-file))))))
+
+(ert-deftest eln-opt-interrupted-once-is-retried-then-interrupted-twice-fails ()
+  "A marker with one attempt is retried; with the limit reached it goes on the
+failed list, and the file is not compiled."
+  (eln-opt-test--with-worker srcs '("m2")
+    (let ((src (car srcs)) (compiled 0))
+      (eln-opt--write-eld (eln-opt--marker-file) (list :src src :attempts 1 :time 0))
+      (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (cl-incf compiled)))
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t)))
+        (should (equal (eln-opt--settle-interrupted) (cons src 1))))
+      (eln-opt--write-eld (eln-opt--marker-file) (list :src src :attempts 2 :time 0))
+      (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (cl-incf compiled)))
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t)))
+        (should-not (eln-opt--settle-interrupted))
+        (should (eln-opt--failed-p src))
+        (should-not (file-exists-p (eln-opt--marker-file)))
+        (should (= 0 compiled))))))
+
+(ert-deftest eln-opt-marker-with-an-untrusted-path-is-dropped-not-used ()
+  "A marker that names a file outside the trusted roots is removed, and nothing
+is recorded for that path."
+  (eln-opt-test--with-state
+    (let* ((dir (make-temp-file "eln-opt-outside-" t))
+           (outside (eln-opt-test--src dir "outside")))
+      (unwind-protect
+          (progn
+            (eln-opt--write-eld (eln-opt--marker-file) (list :src outside :attempts 2 :time 0))
+            (cl-letf (((symbol-function 'eln-opt-trusted-roots) (lambda () nil)))
+              (should-not (eln-opt--settle-interrupted)))
+            (should-not (file-exists-p (eln-opt--marker-file)))
+            (should-not (eln-opt--failed-p outside)))
+        (delete-directory dir t)))))
+
+(ert-deftest eln-opt-worker-does-not-compile-when-the-marker-cannot-be-written ()
+  "If the marker cannot be written, the file is not compiled and the worker stops."
+  (eln-opt-test--with-worker srcs '("m3" "m4")
+    (let ((compiled 0))
+      (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (cl-incf compiled)))
+                ((symbol-function 'eln-opt--write-eld)
+                 (let ((real (symbol-function 'eln-opt--write-eld)))
+                   (lambda (file form)
+                     (if (equal file (eln-opt--marker-file))
+                         (error "disk full")
+                       (funcall real file form))))))
+        (should (= 0 (eln-opt-test--worker-result))))
+      (should (= 0 compiled))
+      (should-not (eln-opt--failed-p (car srcs))))))
+
+(ert-deftest eln-opt-marker-behind-a-symlink-is-refused-and-its-target-untouched ()
+  "A symlinked marker is never read or written through; the worker does not compile."
+  (eln-opt-test--with-worker srcs '("m5")
+    (let* ((target (expand-file-name "target.txt" eln-opt-state-dir))
+           (compiled 0))
+      (with-temp-file target (insert "keep me"))
+      (make-directory (eln-opt--version-dir) t)
+      (make-symbolic-link target (eln-opt--marker-file))
+      (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (cl-incf compiled)))
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t)))
+        (should (= 0 (eln-opt-test--worker-result))))
+      (should (= 0 compiled))
+      (should (equal (with-temp-buffer (insert-file-contents target) (buffer-string))
+                     "keep me")))))
+
+(ert-deftest eln-opt-reset-forgets-the-marker ()
+  "Reset deletes the marker with the failed list."
+  (eln-opt-test--with-state
+    (eln-opt--write-eld (eln-opt--marker-file) (list :src "/x/a.el" :attempts 1 :time 0))
+    (let ((noninteractive t) (eln-opt--user-elns-stub nil))
+      (cl-letf (((symbol-function 'eln-opt--user-elns) (lambda () nil)))
+        (eln-opt-reset)))
+    (should-not (file-exists-p (eln-opt--marker-file)))))
+
 ;;; Processors: automatic workers need a second core; a manual run does not
 
 (ert-deftest eln-opt-auto-needs-two-processors-but-manual-runs-do-not ()

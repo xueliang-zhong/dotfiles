@@ -1360,6 +1360,66 @@ compilation it says so and lists only what will be byte-compiled."
       (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
                                 eln-opt-rank--report-form)))))
 
+;;; ---- In-progress marker: a compile the worker did not finish ----
+
+;; Before each compile the worker writes in-progress.eld (source, attempts,
+;; time) and removes it afterwards.  A marker left behind means that compile
+;; was interrupted: Emacs quit, crashed or lost power.  The marker is read
+;; only while the worker holds the lock, so the worker that wrote it is gone.
+;; Its source path is used only after the trusted check, and only to record a
+;; failure: it never decides what gets compiled or deleted.
+
+(defconst eln-opt-interrupt-limit 2
+  "Attempts at one file that may each be interrupted.  After this many, the
+file goes on the failed list until its source changes.")
+
+(defun eln-opt--marker-file ()
+  (expand-file-name "in-progress.eld" (eln-opt--version-dir)))
+
+(defun eln-opt--symlinked-p (file)
+  "Non-nil if FILE, or the version folder it is in, is a symbolic link.
+The state folder itself may be a link (a profile kept on another disk)."
+  (or (file-symlink-p file)
+      (file-symlink-p (eln-opt--version-dir))))
+
+(defun eln-opt--mark-in-progress (src attempts)
+  "Write the marker for SRC; nil if it cannot be written safely.  A file
+that cannot be marked is not compiled."
+  (and (not (eln-opt--symlinked-p (eln-opt--marker-file)))
+       (condition-case nil
+           (progn (eln-opt--write-eld (eln-opt--marker-file)
+                                      (list :src src :attempts attempts
+                                            :time (eln-opt--now)))
+                  t)
+         (error nil))))
+
+(defun eln-opt--clear-marker ()
+  (ignore-errors (delete-file (eln-opt--marker-file))))
+
+;; A marker that is a symbolic link is never read or removed here: the worker
+;; refuses to run instead (see `eln-opt--symlinked-p').
+(defun eln-opt--settle-interrupted ()
+  "Read a marker left by an interrupted run, under the lock.  Returns
+\(SOURCE . ATTEMPTS) when the file may be retried, else nil.  A file at the
+limit goes on the failed list here.  Untrusted or malformed markers are
+dropped without being used."
+  (let* ((marker (and (not (eln-opt--symlinked-p (eln-opt--marker-file)))
+                      (eln-opt--read-eld (eln-opt--marker-file))))
+         (src (plist-get marker :src))
+         (attempts (plist-get marker :attempts)))
+    (cond
+     ((or (not (and (stringp src) (integerp attempts) (> attempts 0)))
+          (not (file-name-absolute-p src))
+          (not (eln-opt-trusted-file-p src)))
+      (eln-opt--clear-marker)
+      nil)
+     ((>= attempts eln-opt-interrupt-limit)
+      (eln-opt--record-failure src (format "interrupted %d times: Emacs quit or crashed during the compile"
+                                           attempts))
+      (eln-opt--clear-marker)
+      nil)
+     (t (cons src attempts)))))
+
 ;;; ---- The worker: one batch Emacs that compiles the candidates in turn ----
 
 (defun eln-opt--plan-from-rows (rows &optional max)
@@ -1468,9 +1528,14 @@ number of files compiled, or `busy'."
    (t
     (unwind-protect
         (let* ((native (eln-opt-platform-available-p))
-               (plan (eln-opt-worker-plan native))
+               (refused (eln-opt--symlinked-p (eln-opt--marker-file)))
+               (carry (and (not refused) (eln-opt--settle-interrupted)))
+               (plan (and (not refused) (eln-opt-worker-plan native)))
                (done 0)
                (first t))
+          (when refused
+            (eln-opt--say "stopped: %s is a symbolic link; remove it and run again"
+                          (eln-opt--marker-file)))
           ;; Nothing planned: quiet until something changes.  Anything planned
           ;; clears a quiet state from an earlier run.
           (if plan (eln-opt--clear-quiet) (eln-opt--mark-quiet))
@@ -1484,9 +1549,16 @@ number of files compiled, or `busy'."
             (dolist (item plan)
               (unless first (sleep-for eln-opt-worker-sleep))
               (setq first nil)
-              (let ((src (cdr item)) err)
+              (let* ((src (cdr item)) err
+                     (attempts (if (and carry (equal (car carry) src))
+                                   (1+ (cdr carry))
+                                 1)))
                 (eln-opt--say "start %s" src)
+                (unless (eln-opt--mark-in-progress src attempts)
+                  (eln-opt--say "stopped: cannot write the in-progress marker for %s; not compiled" src)
+                  (throw 'stop nil))
                 (setq err (eln-opt--compile-one (car item) src))
+                (eln-opt--clear-marker)
                 (if err
                     (progn
                       (eln-opt--record-failure src err)
@@ -1522,6 +1594,7 @@ confirmation.  Returns the number of elns deleted, or nil when cancelled."
         (ignore-errors (comp-delete-or-replace-file eln))
         (cl-incf n))
       (ignore-errors (delete-file (eln-opt--failed-file)))
+      (eln-opt--clear-marker)
       (eln-opt--clear-quiet)
       (unless noninteractive
         (message "eln-opt: deleted %d eln file(s)" n))
