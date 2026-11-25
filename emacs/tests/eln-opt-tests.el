@@ -438,6 +438,17 @@
         (ignore-errors (fmakunbound 'native-toy-fn))
         (ignore-errors (delete-directory dir t))))))
 
+(ert-deftest eln-opt-report-says-when-this-emacs-cannot-compile ()
+  "On a platform without native compilation the report says so and ranks nothing."
+  (eln-opt-test--with-state
+    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
+      (let ((text (with-output-to-string
+                    (let ((noninteractive t))
+                      (eln-opt-report)))))
+        (should (string-match-p "Native compilation is not available" text))
+        (should-not (string-match-p "Next worker compiles" text))
+        (should-not (string-match-p "ranking" text))))))
+
 ;;; The report view: same format, computed in a child, with a spinner
 
 (ert-deftest eln-opt-report-parses-the-child-output-after-the-marker ()

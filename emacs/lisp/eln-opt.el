@@ -1195,16 +1195,38 @@ text, so that the child's loading messages are dropped."
   "(progn (require (quote eln-opt)) (setq eln-opt-rank--with-marker t) (eln-opt-report))"
   "The child form that prints the ranking report.")
 
+(defun eln-opt-rank--unavailable-text ()
+  "The report's whole text when this Emacs cannot compile native code, else nil.
+Nothing would be compiled here, so the ranking is not shown."
+  (unless (eln-opt-platform-available-p)
+    (format (concat "eln-opt report (report only; nothing is compiled here)\n\n"
+                    "Native compilation is not available in this Emacs, so eln-opt\n"
+                    "compiles nothing here.\nReason: %s\n")
+            (or (plist-get (eln-opt--read-eld (eln-opt--platform-file)) :reason)
+                "unknown"))))
+
 (defun eln-opt-report ()
   "Show the ranking.  Interactive: a buffer, filled in the background.
-Batch: printed to stdout, computed here."
+Batch: printed to stdout, computed here.  On a platform without native
+compilation it says so and stops."
   (interactive)
-  (if noninteractive
-      (progn
-        (when eln-opt-rank--with-marker
-          (princ (format "\n%s\n" eln-opt-rank--marker)))
-        (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
-    (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report" eln-opt-rank--report-form)))
+  (let ((unavailable (eln-opt-rank--unavailable-text)))
+    (cond
+     (noninteractive
+      (when eln-opt-rank--with-marker
+        (princ (format "\n%s\n" eln-opt-rank--marker)))
+      (princ (or unavailable
+                 (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir))))))
+     (unavailable
+      (with-current-buffer (get-buffer-create "*eln-opt report*")
+        (let ((inhibit-read-only t))
+          (erase-buffer)
+          (insert unavailable))
+        (special-mode))
+      (display-buffer "*eln-opt report*"))
+     (t
+      (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
+                                eln-opt-rank--report-form)))))
 
 ;;; ---- The worker: one batch Emacs that compiles the candidates in turn ----
 
