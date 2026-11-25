@@ -734,8 +734,8 @@ disappearing with the shell command's temporary buffer."
 ;; Function keys - match with vim/nvim
 ;; ============================================================
 (define-keymap :keymap global-map
-  "<f2>"   #'imenu
-  "<f3>"   #'imenu
+  "<f2>"   #'consult-imenu
+  "<f3>"   #'consult-imenu
   "<f4>"   #'evil-window-delete
   "<f5>"   #'xueliang-eshell-popup
   "<f6>"   #'consult-yank-pop
