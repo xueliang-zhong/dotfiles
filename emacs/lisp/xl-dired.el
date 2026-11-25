@@ -27,9 +27,14 @@
 ;; (0.1 s by default) starts the same preview.  File previews run `file' and
 ;; then `head' in the background, so they are bounded work even for a huge
 ;; file; directory previews run `ls' in the same background slot.  The preview
-;; buffer carries the GBlame spinner while either loads.  A binary file or a
-;; special file says "No preview available" instead of dumping bytes into the
-;; buffer.
+;; buffer carries the GBlame spinner while either loads.  A byte-compiled
+;; `.elc' file is shown as text, because its comments and docstrings are still
+;; readable.  A binary file or a special file says "No preview available"
+;; instead of dumping bytes into the buffer.  The preview is a view, never a
+;; place to edit: selecting its window replaces it with the entry's own buffer,
+;; so point and typing land in the file.  If the entry has disappeared, the
+;; preview is emptied rather than left with stale text that could be mistaken
+;; for the file.
 
 ;;; Code:
 
@@ -375,6 +380,55 @@ A file goes to the other window.  A directory is `cd' in this window."
   (xl-dired-preview--draw-center nil)
   (xl-spinner-mode-line-stop))
 
+(defun xl-dired-preview--empty ()
+  "Leave this preview buffer blank.
+A preview with no entry must not keep showing text that could be taken
+for the file the user thinks they are editing.  Any load still running
+is cancelled, so it cannot fill the buffer again after this."
+  (xl-async-cancel 'preview)
+  (let ((inhibit-read-only t)
+        (buffer-undo-list t))
+    (erase-buffer)
+    (set-buffer-modified-p nil))
+  (goto-char (point-min))
+  (xl-dired-preview--stop-spinner))
+
+(defun xl-dired-preview--entry-buffer (entry)
+  "Return the buffer visiting ENTRY.
+A directory gets an `xl-dired' buffer, as opening it from Dired would."
+  (if (file-directory-p entry)
+      (xl-dired-noselect entry)
+    (find-file-noselect entry)))
+
+(defun xl-dired-preview--enter (&optional window)
+  "Show this preview's entry in WINDOW once WINDOW is selected.
+WINDOW defaults to the selected window.  The preview buffer is only a
+view, so selecting its window opens the entry's own buffer instead and
+puts point there.  If the entry cannot be found, or cannot be opened,
+the preview is emptied rather than left showing stale text."
+  (let ((window (or window (selected-window))))
+    (when (and (window-live-p window)
+               (eq window (selected-window))
+               (eq (window-buffer window) (current-buffer))
+               (derived-mode-p 'xl-dired-preview-mode))
+      (let ((target (and xl-dired-preview--file
+                         (file-exists-p xl-dired-preview--file)
+                         (or (file-directory-p xl-dired-preview--file)
+                             (file-regular-p xl-dired-preview--file))
+                         (condition-case nil
+                             (xl-dired-preview--entry-buffer
+                              xl-dired-preview--file)
+                           (error nil)))))
+        (if (buffer-live-p target)
+            (let ((preview (current-buffer)))
+              (switch-to-buffer target t)
+              ;; The preview is no longer the window's view; drop its text so
+              ;; a later preview cannot start by showing this entry again.
+              (when (buffer-live-p preview)
+                (with-current-buffer preview
+                  (xl-dired-preview--empty))))
+          (xl-dired-preview--empty))))))
+
 (defun xl-dired-preview--show (text &optional note)
   "Replace the preview buffer's text with TEXT; NOTE marks it as a message.
 Works on the preview buffer whatever buffer is current."
@@ -414,16 +468,30 @@ systems, so those types are listed explicitly."
                      "application/toml"))))
 
 (defun xl-dired-preview--binary-text-p (text)
-  "Return non-nil when TEXT looks binary despite what `file' said."
-  (or (string-search "\0" text)
-      (let ((controls 0)
-            (total (length text)))
-        (dotimes (index total)
-          (let ((char (aref text index)))
-            (when (and (< char 32)
-                       (not (memq char '(?\n ?\t ?\r ?\f ?\b))))
-              (setq controls (1+ controls)))))
-        (and (> total 0) (> controls (/ total 20))))))
+  "Return non-nil when TEXT looks binary despite what `file' said.
+A NUL byte is binary.  So is a text in which more than one control
+character in twenty is not a tab, newline, return, form feed or
+backspace.  The count stops as soon as it passes the limit, and the
+scan is a regexp search, so a 256 KB preview costs milliseconds."
+  (or (and (string-search "\0" text) t)
+      (let* ((total (length text))
+             (limit (/ total 20))
+             (controls 0)
+             (pos 0))
+        (and (> total 0)
+             (progn
+               (while (and (<= controls limit)
+                           (string-match "[\x01-\x07\x0b\x0e-\x1f]" text pos))
+                 (setq controls (1+ controls)
+                       pos (match-end 0)))
+               (> controls limit))))))
+
+(defun xl-dired-preview--byte-code-file-p (file)
+  "Return non-nil when FILE is Emacs Lisp byte code.
+A `.elc' file is written to be read: its comments and docstrings stay
+text even though the byte code part contains control bytes.  So it gets
+a text preview instead of a hex dump."
+  (string-suffix-p ".elc" file t))
 
 (defun xl-dired-preview--clip (text)
   "Return the first `xl-dired-preview-lines' lines of TEXT, bounded.
@@ -455,7 +523,8 @@ Bounded by COUNT, so it is cheap; used where no external program exists."
     (xl-dired-preview--no-preview "could not read the file"))
    ((string-empty-p output)
     (xl-dired-preview--show "(empty file)" t))
-   ((xl-dired-preview--binary-text-p output)
+   ((and (not (xl-dired-preview--byte-code-file-p file))
+         (xl-dired-preview--binary-text-p output))
     (xl-dired-preview--load-hex file))
    (t
     (xl-dired-preview--show (xl-dired-preview--clip output)))))
@@ -578,12 +647,18 @@ cannot be read says so instead."
 
 (defun xl-dired-preview--load-file (file)
   "Preview FILE asynchronously, naming its MIME type first.
+A byte-compiled `.elc' file skips the MIME test: its comments and
+docstrings are readable, so it is shown as text rather than as data.
 Text-like files then run `head' for a bounded number of bytes.  Both
 processes are in the same `xl-async' slot, so a newer preview cancels
 the older one."
   (xl-dired-preview--prepare file)
   (with-current-buffer (xl-dired-preview--buffer)
-    (if-let* ((program (executable-find "file")))
+    (let ((program (executable-find "file")))
+      (cond
+       ((xl-dired-preview--byte-code-file-p file)
+        (xl-dired-preview--load-text file))
+       (program
         (xl-async-run
          :name "xl-dired-mime"
          :command (list program "--mime-type" "-b" "--" file)
@@ -594,13 +669,15 @@ the older one."
                              (not (xl-dired-preview--text-mime-p
                                    (string-trim output))))
                         (xl-dired-preview--load-hex file)
-                      (xl-dired-preview--load-text file))))
-      (xl-dired-preview--load-text file))))
+                      (xl-dired-preview--load-text file)))))
+       (t
+        (xl-dired-preview--load-text file))))))
 
 (defun xl-dired-preview--load (entry)
   "Start loading a preview of ENTRY in the preview buffer.
 A directory shows its `ls' listing; a file first has its MIME type
-named, then a bounded `head'.  All of it is asynchronous."
+named, then a bounded `head'.  A byte-compiled `.elc' file skips the
+MIME test and is read as text.  All of it is asynchronous."
   (if (file-directory-p entry)
       (xl-dired-preview--load-directory entry)
     (xl-dired-preview--load-file entry)))
@@ -626,10 +703,13 @@ named, then a bounded `head'.  All of it is asynchronous."
         (quit-window nil window)
       (kill-buffer (current-buffer)))))
 
-(defun xl-dired-preview--maybe-load (entry)
-  "Preview ENTRY, unless this Dired buffer already shows it."
-  (unless (and (equal entry xl-dired--preview-file)
-               (get-buffer-window xl-dired-preview-buffer-name t))
+(defun xl-dired-preview--maybe-load (entry &optional force)
+  "Preview ENTRY, unless this Dired buffer already previewed it.
+With FORCE, start a fresh preview even for the same ENTRY.  After the
+preview window has been turned into the entry's own window, the idle
+timer must not replace that file with another preview, so this check
+does not depend on the preview window still being visible."
+  (unless (and (not force) (equal entry xl-dired--preview-file))
     (setq xl-dired--preview-file entry)
     (xl-dired-preview--load entry)))
 
@@ -641,7 +721,7 @@ GBlame loader while they load."
   (interactive)
   (let ((entry (xl-dired--entry-at-point)))
     (if entry
-        (xl-dired-preview--maybe-load entry)
+        (xl-dired-preview--maybe-load entry t)
       (user-error "No file or directory on this line"))))
 
 (defun xl-dired--idle-preview (buffer)
@@ -670,9 +750,6 @@ Every command restarts it, so only a still cursor triggers the load."
 
 ;;; ============================================================
 ;;; Modes and keys
-
-(declare-function evil-define-key "evil-core" (state keymap key def &rest bindings))
-(declare-function evil-set-initial-state "evil-core" (mode state))
 ;;; ============================================================
 
 (defvar-keymap xl-dired-mode-map
@@ -700,8 +777,16 @@ reading a directory and refreshing it happen in a subprocess."
 
 (define-derived-mode xl-dired-preview-mode special-mode "XL-Preview"
   "Mode for the asynchronous preview shown by `xl-dired'.
-`q' closes the preview window and `g' loads the file again."
+Selecting the preview window opens the entry itself in that window;
+if the entry is gone, the preview is left blank.  `q' closes the
+preview window and `g' loads the file again."
   (setq-local revert-buffer-function #'xl-dired-preview--revert)
+  ;; Selecting the preview window must land in the real entry.  The window
+  ;; hooks catch selection and `switch-to-buffer'; the command hook also
+  ;; covers a redisplay that pending input interrupted.
+  (add-hook 'post-command-hook #'xl-dired-preview--enter nil t)
+  (add-hook 'window-selection-change-functions #'xl-dired-preview--enter nil t)
+  (add-hook 'window-buffer-change-functions #'xl-dired-preview--enter nil t)
   (add-hook 'kill-buffer-hook #'xl-dired-preview--teardown nil t))
 
 (defvar-keymap xl-dired-preview-mode-map

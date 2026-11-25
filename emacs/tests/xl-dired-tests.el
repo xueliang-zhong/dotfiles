@@ -73,6 +73,156 @@
         (when (get-buffer xl-dired-preview-buffer-name)
           (kill-buffer xl-dired-preview-buffer-name))))))
 
+(ert-deftest xl-dired-elc-preview-shows-text-not-a-hex-dump ()
+  "A byte-compiled file previews its comments and docstrings, not hex data."
+  (xl-dired-test--with-folder dir
+    (let ((file (expand-file-name "sample.elc" dir)))
+      (with-temp-file file
+        (set-buffer-multibyte nil)
+        (insert ";ELC\37\0\0\0\n;;; Compiled\n")
+        (insert "#@12 A docstring.\37\n(defalias 'x \"\\301\")\n"))
+      (unwind-protect
+          (progn
+            (xl-dired-preview--load-file file)
+            (should (xl-dired-test--wait
+                     (lambda ()
+                       (string-match-p "A docstring"
+                                       (xl-dired-test--preview-text)))))
+            (should (string-match-p ";;; Compiled"
+                                    (xl-dired-test--preview-text)))
+            (should-not (string-match-p "Binary file"
+                                        (xl-dired-test--preview-text))))
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))))))
+
+(ert-deftest xl-dired-entering-the-preview-opens-the-real-file ()
+  "Selecting the preview window shows the file itself, not the preview."
+  (xl-dired-test--with-folder dir
+    (let* ((file (expand-file-name "a.txt" dir))
+           (buf (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
+            (with-current-buffer buf
+              (switch-to-buffer buf)
+              (xl-dired-test--goto "a.txt")
+              (xl-dired-preview))
+            (should (xl-dired-test--wait
+                     (lambda ()
+                       (string-match-p "hello" (xl-dired-test--preview-text)))))
+            (let ((preview-window (get-buffer-window xl-dired-preview-buffer-name t)))
+              (should (window-live-p preview-window))
+              (select-window preview-window)
+              (run-hooks 'post-command-hook)
+              (should (eq (window-buffer preview-window)
+                          (find-file-noselect file)))
+              (should (equal (buffer-file-name (window-buffer preview-window)) file))
+              (should (eq (current-buffer) (window-buffer preview-window)))
+              (should (with-current-buffer xl-dired-preview-buffer-name
+                        (zerop (buffer-size))))))
+        (kill-buffer buf)
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))
+        (when-let* ((file-buffer (find-buffer-visiting file)))
+          (kill-buffer file-buffer))))))
+
+(ert-deftest xl-dired-entering-a-deleted-preview-leaves-it-blank ()
+  "A preview whose entry disappeared is emptied, not left looking like a file."
+  (xl-dired-test--with-folder dir
+    (let* ((file (expand-file-name "a.txt" dir))
+           (buf (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
+            (with-current-buffer buf
+              (switch-to-buffer buf)
+              (xl-dired-test--goto "a.txt")
+              (xl-dired-preview))
+            (should (xl-dired-test--wait
+                     (lambda ()
+                       (string-match-p "hello" (xl-dired-test--preview-text)))))
+            (delete-file file)
+            (let ((preview-window (get-buffer-window xl-dired-preview-buffer-name t)))
+              (should (window-live-p preview-window))
+              (select-window preview-window)
+              (xl-dired-preview--enter preview-window)
+              (should (eq (window-buffer preview-window)
+                          (get-buffer xl-dired-preview-buffer-name)))
+              (should (with-current-buffer xl-dired-preview-buffer-name
+                        (zerop (buffer-size))))))
+        (kill-buffer buf)
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))))))
+
+(ert-deftest xl-dired-entering-a-directory-preview-opens-xl-dired ()
+  "Selecting a directory preview opens that directory in `xl-dired-mode'."
+  (xl-dired-test--with-folder dir
+    (let ((buf (xl-dired-noselect dir))
+          (sub (file-name-as-directory (expand-file-name "sub" dir))))
+      (unwind-protect
+          (progn
+            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
+            (with-current-buffer buf
+              (switch-to-buffer buf)
+              (xl-dired-test--goto "sub")
+              (xl-dired-preview))
+            (should (xl-dired-test--wait
+                     (lambda ()
+                       (string-match-p "inner" (xl-dired-test--preview-text)))))
+            (let ((preview-window (get-buffer-window xl-dired-preview-buffer-name t)))
+              (should (window-live-p preview-window))
+              (select-window preview-window)
+              (xl-dired-preview--enter preview-window)
+              (with-current-buffer (window-buffer preview-window)
+                (should (derived-mode-p 'xl-dired-mode))
+                (should (equal (xl-dired--directory) sub)))))
+        (kill-buffer buf)
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))
+        (when-let* ((sub-buffer (get-buffer (xl-dired--buffer-name sub))))
+          (kill-buffer sub-buffer))))))
+
+(ert-deftest xl-dired-idle-preview-does-not-replace-the-entered-file ()
+  "Once a preview window holds the file, resting on that entry does not replace it."
+  (xl-dired-test--with-folder dir
+    (let* ((file (expand-file-name "a.txt" dir))
+           (buf (xl-dired-noselect dir)))
+      (unwind-protect
+          (progn
+            (xl-dired-test--wait (lambda () (with-current-buffer buf (> (buffer-size) 0))))
+            (with-current-buffer buf
+              (switch-to-buffer buf)
+              (xl-dired-test--goto "a.txt")
+              (xl-dired-preview))
+            (should (xl-dired-test--wait
+                     (lambda ()
+                       (string-match-p "hello" (xl-dired-test--preview-text)))))
+            (let ((preview-window (get-buffer-window xl-dired-preview-buffer-name t)))
+              (select-window preview-window)
+              (xl-dired-preview--enter preview-window)
+              (select-window (get-buffer-window buf t))
+              (xl-dired--idle-preview buf)
+              (should-not (get-buffer-window xl-dired-preview-buffer-name t))
+              (should (eq (window-buffer preview-window)
+                          (find-file-noselect file)))))
+        (kill-buffer buf)
+        (when (get-buffer xl-dired-preview-buffer-name)
+          (kill-buffer xl-dired-preview-buffer-name))
+        (when-let* ((file-buffer (find-buffer-visiting file)))
+          (kill-buffer file-buffer))))))
+
+(ert-deftest xl-dired-preview-mode-watches-for-focus ()
+  "The preview buffer reacts when its window is selected or changes buffer."
+  (let ((buffer (xl-dired-preview--buffer)))
+    (unwind-protect
+        (with-current-buffer buffer
+          (should (memq #'xl-dired-preview--enter post-command-hook))
+          (should (memq #'xl-dired-preview--enter
+                        window-selection-change-functions))
+          (should (memq #'xl-dired-preview--enter
+                        window-buffer-change-functions)))
+      (kill-buffer buffer))))
+
 (ert-deftest xl-dired-binary-file-shows-a-hex-dump ()
   "A binary file shows a bounded hex dump with a note, not its raw bytes."
   (xl-dired-test--with-folder dir
@@ -197,6 +347,17 @@ The program is `insert-directory-program', which is `gls' on some Macs."
       (should-error (xl-dired-noselect dir) :type 'user-error))
     (when-let* ((buf (get-buffer (xl-dired--buffer-name dir))))
       (kill-buffer buf))))
+
+;; The binary check is a regexp scan with an early exit; these pin its rules.
+(ert-deftest xl-dired-binary-check-follows-its-rules ()
+  "NUL is binary; ordinary whitespace is not; many control characters are."
+  (should-not (xl-dired-preview--binary-text-p "a\tb\nc\rd\fe\bf\n"))
+  (should (xl-dired-preview--binary-text-p "ab\0cd"))
+  (should (xl-dired-preview--binary-text-p (make-string 200 1)))
+  (should-not (xl-dired-preview--binary-text-p
+               (concat (make-string 39 ?x) "\1")))
+  (should-not (xl-dired-preview--binary-text-p (make-string 1000 ?a)))
+  (should-not (xl-dired-preview--binary-text-p "")))
 
 (provide 'xl-dired-tests)
 ;;; xl-dired-tests.el ends here
