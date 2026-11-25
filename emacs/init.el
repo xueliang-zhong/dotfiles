@@ -164,6 +164,7 @@ session."
 (require 'xl-git-commands)
 (require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
+(require 'xl-perfetto-trace)  ; Chrome JSON timelines of Lisp work
 ;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
 ;; background batch Emacs (timers only, no hooks): byte-compile what runs
 ;; interpreted, then the hot files to native code (byte only without

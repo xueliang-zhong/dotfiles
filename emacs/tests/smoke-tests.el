@@ -903,7 +903,8 @@ Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
   (dolist (file '("emacs/xueliang.el" "emacs/lisp/xl-utils.el"
-                  "emacs/lisp/xl-git-status.el" "emacs/lisp/xl-git-commands.el"))
+                  "emacs/lisp/xl-git-status.el" "emacs/lisp/xl-git-commands.el"
+                  "emacs/lisp/xl-perfetto-trace.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))

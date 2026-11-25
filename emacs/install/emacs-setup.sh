@@ -248,6 +248,10 @@ cmd_test() {
     "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
         -l "$DOTFILES/emacs/tests/xl-dired-tests.el" \
         -f ert-run-tests-batch-and-exit
+    # xl-perfetto-trace: recordings, JSON output and the instrumentation lifecycle.
+    "$EMACS" --batch -Q -L "$DOTFILES/emacs/lisp" \
+        -l "$DOTFILES/emacs/tests/xl-perfetto-trace-tests.el" \
+        -f ert-run-tests-batch-and-exit
 }
 
 # Tier 1 of eln-opt: byte-compile our own Lisp so it does not run interpreted.
