@@ -359,6 +359,16 @@ INITIAL is the text the search starts with."
       ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
 
+;; Text modes (org, markdown, text) put `ispell-completion-at-point' in
+;; `completion-at-point-functions'.  Each query starts a spell checker
+;; (about 230 ms here), and corfu runs every function on each committed
+;; character, so typing Chinese in notes stalled.  Take it out of the automatic
+;; completion; `ispell-complete-word' still works on demand.
+(add-hook 'text-mode-hook
+          (lambda ()
+            (remove-hook 'completion-at-point-functions
+                         #'ispell-completion-at-point t)))
+
 ;; `cape-dabbrev' scans every buffer with the same major mode for candidates
 ;; by default, on every keystroke.  Cape's own docstring recommends against
 ;; that for auto completion; it is a major source of input lag, especially

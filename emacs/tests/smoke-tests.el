@@ -1076,6 +1076,15 @@ keypress.  Prefix keymaps are walked recursively."
                   ("C-<f4>" . kill-buffer-and-window)))
     (should (eq (keymap-lookup global-map (car spec)) (cdr spec)))))
 
+;; Text modes add ispell to completion; corfu would run it on every committed
+;; character (about 230 ms a query), so the automatic list must not have it.
+(ert-deftest xl-text-modes-skip-ispell-in-automatic-completion ()
+  "No text mode lists `ispell-completion-at-point' among the completion functions."
+  (dolist (mode '(text-mode markdown-mode org-mode))
+    (with-temp-buffer
+      (funcall mode)
+      (should-not (memq 'ispell-completion-at-point completion-at-point-functions)))))
+
 (ert-deftest xl-help-key-uses-describe-symbol ()
   "C-h a completes symbols instead of asking for an apropos pattern."
   (should (eq (keymap-lookup help-map "a") #'describe-symbol))
