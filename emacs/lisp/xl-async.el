@@ -93,6 +93,9 @@
   (xl-async-cancel))
 (put 'xl-async--kill-owned 'permanent-local-hook t)
 
+(defconst xl-async-reap-interval 0.25
+  "Seconds between checks that a finished process's sentinel has run.")
+
 (defconst xl-async-timeout-code 124
   "The exit code ON-DONE gets when a run was stopped by its :timeout.
 It is the code of coreutils `timeout', so callers can treat both alike.")
@@ -110,8 +113,10 @@ It is the code of coreutils `timeout', so callers can treat both alike.")
     (process-put proc 'xl-async-timer nil)))
 
 (defun xl-async--sentinel (proc _event)
-  "Deliver PROC's output to its owner once it has exited."
-  (unless (process-live-p proc)
+  "Deliver PROC's output to its owner once it has exited.
+Runs once per process: the reaper below may call it before Emacs does."
+  (unless (or (process-live-p proc) (process-get proc 'xl-async-finished))
+    (process-put proc 'xl-async-finished t)
     (xl-async--stop-timer proc)
     (let* ((out (process-buffer proc))
            (output (if (buffer-live-p out)
@@ -131,6 +136,24 @@ It is the code of coreutils `timeout', so callers can treat both alike.")
             (setq xl-async--processes (delq proc xl-async--processes))
             (when on-done
               (funcall on-done output (xl-async--exit-code proc))))))))))
+
+(defun xl-async--reap (proc)
+  "Deliver PROC's result if its sentinel never ran.
+A process that exits while another sentinel runs can be reaped without
+its sentinel being called, so every run is also checked on a short timer.
+Before calling the sentinel by hand, the rest of PROC's output is read:
+delivering with output still in the pipe would hand over a truncated
+result.  The check stops once the sentinel has run."
+  (cond
+   ((process-get proc 'xl-async-finished) nil)
+   ((process-live-p proc)
+    (run-with-timer xl-async-reap-interval nil #'xl-async--reap proc))
+   (t
+    ;; Reading the pending output may itself run the sentinel.
+    (while (and (not (process-get proc 'xl-async-finished))
+                (accept-process-output proc 0 nil t)))
+    (unless (process-get proc 'xl-async-finished)
+      (xl-async--sentinel proc "finished\n")))))
 
 (defun xl-async--filter (proc chunk)
   "Append CHUNK, output of PROC, to its buffer and to its :on-output callback."
@@ -183,6 +206,7 @@ ON-DONE is skipped when OWNER was killed or the run was cancelled."
                 :noquery t
                 :sentinel #'xl-async--sentinel
                 :filter (and (plist-get args :on-output) #'xl-async--filter)))
+    (run-with-timer xl-async-reap-interval nil #'xl-async--reap proc)
     (process-put proc 'xl-async-owner owner)
     (process-put proc 'xl-async-slot slot)
     (process-put proc 'xl-async-unowned unowned)
@@ -212,6 +236,8 @@ current buffer.  Queued jobs are not touched; see `xl-async-clear-queue'."
     (dolist (proc xl-async--processes)
       (when (or (null slot) (eq slot (process-get proc 'xl-async-slot)))
         (setq xl-async--processes (delq proc xl-async--processes))
+        ;; A cancelled run never delivers: the reaper must not call its sentinel.
+        (process-put proc 'xl-async-finished t)
         (xl-async--stop-timer proc)
         (when (process-live-p proc)
           (delete-process proc))))))

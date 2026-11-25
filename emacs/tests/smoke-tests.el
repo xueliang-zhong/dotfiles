@@ -112,12 +112,16 @@
     dir))
 
 (defun xl-test--wait-for-git-status (buffer)
-  "Wait until the Git status BUFFER has rendered and its queue is empty."
+  "Wait until the Git status BUFFER has rendered and its queue is empty.
+A file-watch refresh waits `xl-git-status-refresh-delay' after the last
+event, so a pending one counts as work: otherwise the test looks before it
+has moved the buffer."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
                       (xl-async-queue-busy-p 'queue buffer)
-                      (xl-async-busy-p nil buffer))
+                      (xl-async-busy-p nil buffer)
+                      (timerp (bound-and-true-p xl-git-status--watch-timer)))
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
     (should buffer-read-only)
