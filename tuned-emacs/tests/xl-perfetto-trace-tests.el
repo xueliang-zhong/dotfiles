@@ -1,5 +1,5 @@
 ;;; xl-perfetto-trace-tests.el --- ERT tests for xl-perfetto-trace -*- lexical-binding: t; -*-
-;; Run: emacs --batch -Q -L emacs/lisp -l emacs/tests/xl-perfetto-trace-tests.el \
+;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/xl-perfetto-trace-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 ;; Each test records into its own temporary folder.  Tests that use timers
 ;; and processes wait for them, as the real recorder does.

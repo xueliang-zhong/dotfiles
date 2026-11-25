@@ -45,7 +45,7 @@ Returns the file written, or nil."
                      comp-loaded-comp-units-h))
           (insert "\nOur files loaded from source:\n")
           (dolist (e events)
-            (when (and (string-prefix-p (expand-file-name "emacs/" xl-dotfiles) (cdr e))
+            (when (and (string-prefix-p (expand-file-name "tuned-emacs/" xl-dotfiles) (cdr e))
                        (string-suffix-p ".el" (cdr e)))
               (insert "  " (cdr e) "\n")))
           (insert "\nEvery load (at, file):\n")

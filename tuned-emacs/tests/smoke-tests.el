@@ -4,7 +4,7 @@
 ;;   just emacs-test
 ;; The profile is loaded by the recipe before this file; every test here
 ;; inspects the state it leaves behind: keymaps, hooks, variables and the
-;; files in emacs/.  Nothing here starts a GUI.
+;; files in tuned-emacs/.  Nothing here starts a GUI.
 
 (require 'ert)
 (require 'seq)
@@ -200,8 +200,8 @@ It is what happens when the operation outlives `xl-spinner-show-delay'."
   ;; The completion stack comes from Crafted, not from `xl-packages'.
   (should-not (memq 'corfu xl-packages))
   (should (equal (symbol-file 'xl-packages 'defvar)
-                 (expand-file-name "emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/xueliang.el" xl-dotfiles)))
+                 (expand-file-name "tuned-emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-org-packages-come-from-crafted ()
@@ -906,9 +906,9 @@ own final character is drawn."
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("emacs/xueliang.el" "emacs/lisp/xl-utils.el"
-                  "emacs/lisp/xl-git-status.el" "emacs/lisp/xl-git-commands.el"
-                  "emacs/lisp/xl-perfetto-trace.el"))
+  (dolist (file '("tuned-emacs/xueliang.el" "tuned-emacs/lisp/xl-utils.el"
+                  "tuned-emacs/lisp/xl-git-status.el" "tuned-emacs/lisp/xl-git-commands.el"
+                  "tuned-emacs/lisp/xl-perfetto-trace.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))
@@ -921,7 +921,7 @@ allowed."
 
 (ert-deftest xl-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `xueliang.el' has to load last."
-  (let ((init (expand-file-name "emacs/init.el" xl-dotfiles))
+  (let ((init (expand-file-name "tuned-emacs/init.el" xl-dotfiles))
         keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
       (when (string-match-p "require 'xl-key-bindings" (cdr entry))
@@ -930,7 +930,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "require 'xl-git-commands" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "emacs/xueliang\"" (cdr entry))
+      (when (string-match-p "tuned-emacs/xueliang\"" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -981,13 +981,13 @@ points the first eln folder at a temporary cache."
   "The maximized size is a frame parameter from `early-init.el', so the first
 frame is created maximized; `init.el' must not set it after the frame exists."
   (should (eq (cdr (assq 'fullscreen default-frame-alist)) 'maximized))
-  (dolist (entry (xl-test--code-lines (expand-file-name "emacs/init.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/init.el" xl-dotfiles)))
     (should-not (string-match-p "set-frame-parameter.*fullscreen" (cdr entry))))
   (should (cl-some (lambda (entry)
                      (string-match-p "push '(fullscreen . maximized) default-frame-alist"
                                      (cdr entry)))
                    (xl-test--code-lines
-                    (expand-file-name "emacs/early-init.el" xl-dotfiles)))))
+                    (expand-file-name "tuned-emacs/early-init.el" xl-dotfiles)))))
 
 ;;; ============================================================
 ;;; Leader keys and function keys
@@ -3428,11 +3428,11 @@ the exit status."
         (should-not (file-exists-p file))))))
 
 (ert-deftest xl-open-dotfile-opens-the-personal-config ()
-  "`SPC f e d' opens emacs/xueliang.el."
+  "`SPC f e d' opens tuned-emacs/xueliang.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
       (xl-sk-open-dotfile))
-    (should (string-suffix-p "emacs/xueliang.el" opened))))
+    (should (string-suffix-p "tuned-emacs/xueliang.el" opened))))
 
 (ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
@@ -3504,7 +3504,7 @@ the exit status."
 ;; eln-opt tier 1: our lisp runs as byte code exactly when a current .elc exists.
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
-  (let ((root (expand-file-name "emacs" xl-dotfiles)))
+  (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))
     (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")
                     (xueliang-elisp-completion-setup "xueliang.el")))
       (let* ((src (expand-file-name (cadr case) root))

@@ -43,9 +43,9 @@ spacemacs-install:
 # Each profile is its own init directory under ~/.emacs-profiles and is
 # started with --init-directory, so it never touches ~/.emacs.d (Spacemacs).
 #
-# The recipes below only wrap emacs/install/emacs-setup.sh, so the same setup
+# The recipes below only wrap tuned-emacs/install/emacs-setup.sh, so the same setup
 # works on a machine without `just`:
-#   bash emacs/install/emacs-setup.sh setup-macos
+#   bash tuned-emacs/install/emacs-setup.sh setup-macos
 # The script holds the checks (platform, Emacs 30+, profile), the Crafted
 # clone, the profile stubs and the trampoline cache; the recipes pass
 # EMACS/PROFILE/PROFILE_DIR/DOTFILES through.
@@ -68,40 +68,40 @@ XL_ENV := "EMACS='" + EMACS + "' PROFILE='" + PROFILE + "' PROFILES='" + PROFILE
 
 # clone Crafted Emacs at the locked commit and generate the profile stubs in DIR
 emacs-crafted-install dir=PROFILE_DIR:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh crafted-install '{{dir}}'
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh crafted-install '{{dir}}'
 
 # start the profile next to the default Emacs
 emacs-try:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh try
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh try
 
 # The first run also installs the packages.
 # load the profile in batch mode; fails on any init error
 emacs-smoke:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh smoke
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh smoke
 
 # run the ERT suite against the loaded profile: keys, hooks, files, behaviour
 emacs-test:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh test
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh test
 
 # everything a config change must pass: smoke + ERT suite
 emacs-check:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh check
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh check
 
 # build the subr trampolines in batch, so a GUI start never compiles them
 emacs-trampolines-cache-setup:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh trampolines
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh trampolines
 
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh make-default
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh make-default
 
 # undo emacs-make-default: put Spacemacs back as ~/.emacs.d
 emacs-restore-spacemacs:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh restore-spacemacs
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh restore-spacemacs
 
 # Windows (run in Git Bash): fresh clone to working Emacs in one command
 emacs-windows-setup:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh setup-windows
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-windows
 
 ###########################
 # macOS: one command does all
@@ -109,7 +109,7 @@ emacs-windows-setup:
 
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
 emacs-mac-setup:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh setup-macos
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-macos
 
 ###########################
 # Linux: one command does all
@@ -117,7 +117,7 @@ emacs-mac-setup:
 
 # Linux: dotfiles + Crafted Emacs in one command
 emacs-linux-setup:
-    @{{XL_ENV}} bash emacs/install/emacs-setup.sh setup-linux
+    @{{XL_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-linux
 
 ###########################
 # Docker Environment

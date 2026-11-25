@@ -28,9 +28,9 @@ just emacs-dotfiles-clean
 just doom-emacs-install
 just spacemacs-install
 
-# XL Emacs setup/checks without `just` (the emacs-* recipes wrap this script)
-bash emacs/install/emacs-setup.sh setup-macos
-bash emacs/install/emacs-setup.sh check
+# tuned-emacs setup/checks without `just` (the emacs-* recipes wrap this script)
+bash tuned-emacs/install/emacs-setup.sh setup-macos
+bash tuned-emacs/install/emacs-setup.sh check
 ```
 
 Manual commands:
@@ -136,7 +136,7 @@ CP_CMD() {
 ├── vimrc              # Vim config (fallback for nvim)
 ├── spacemacs.el       # Spacemacs config
 ├── doom-config-2025.el # Doom Emacs config
-├── emacs/             # XL Emacs: thin layer over Crafted + async git packages
+├── tuned-emacs/             # tuned-emacs: thin layer over Crafted + async git packages
 ├── tmux.conf          # Tmux config
 ├── env.sh             # Installation script
 ├── justfile           # Task runner

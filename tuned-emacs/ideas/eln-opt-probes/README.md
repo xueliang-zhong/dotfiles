@@ -14,7 +14,7 @@ SB=$(mktemp -d -t eln-opt-sandbox)
 cp $P/early-init.el $P/init.el $SB/
 ln -s $P/elpa-31.1 $SB/elpa-31.1
 ln -s $P/eln-cache $SB/eln-cache
-PROBE_PROFILE=$P emacs --batch --init-directory $SB -l $SB/early-init.el -l $SB/init.el -l emacs/ideas/eln-opt-probes/eln-opt-probe-rank.el
+PROBE_PROFILE=$P emacs --batch --init-directory $SB -l $SB/early-init.el -l $SB/init.el -l tuned-emacs/ideas/eln-opt-probes/eln-opt-probe-rank.el
 ```
 
 把最后一行的 `eln-opt-probe-rank.el` 换成 `eln-opt-probe-trampolines.el`，就是 trampoline 预测。
@@ -22,11 +22,11 @@ PROBE_PROFILE=$P emacs --batch --init-directory $SB -l $SB/early-init.el -l $SB/
 另外两个不需要 init：
 
 ```bash
-bash emacs/ideas/eln-opt-probes/eln-opt-probe-eln-rules.sh
+bash tuned-emacs/ideas/eln-opt-probes/eln-opt-probe-eln-rules.sh
 ```
 
 ```bash
-emacs --batch -Q -l emacs/ideas/eln-opt-probes/eln-opt-probe-bench.el
+emacs --batch -Q -l tuned-emacs/ideas/eln-opt-probes/eln-opt-probe-bench.el
 ```
 
 ## 脚本

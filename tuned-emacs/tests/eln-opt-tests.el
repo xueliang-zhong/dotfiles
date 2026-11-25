@@ -1,5 +1,5 @@
 ;;; eln-opt-tests.el --- ERT tests for eln-opt -*- lexical-binding: t; -*-
-;; Run: emacs --batch -Q -L emacs/lisp -l emacs/tests/eln-opt-tests.el \
+;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/eln-opt-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 ;; Every test works in its own temporary state folder.  Each one checks the
 ;; final state and that a second run does no compilation at all.
@@ -349,7 +349,7 @@ runs the canary; it still byte-compiles."
   "A symlink inside our lisp/ that points outside is not trusted."
   (let* ((root (make-temp-file "eln-opt-dot-" t))
          (outside (make-temp-file "eln-opt-out-" t))
-         (lisp (expand-file-name "emacs/lisp" root))
+         (lisp (expand-file-name "tuned-emacs/lisp" root))
          (xl-dotfiles (file-name-as-directory root)))
     (unwind-protect
         (progn
@@ -391,7 +391,7 @@ runs the canary; it still byte-compiles."
      (let* ((root (make-temp-file "eln-opt-tier2-" t))
             (xl-dotfiles (file-name-as-directory root))
             (eln-opt-crash-dir (expand-file-name "crashes/" root))
-            (lisp (expand-file-name "emacs/lisp" root)))
+            (lisp (expand-file-name "tuned-emacs/lisp" root)))
        (make-directory lisp t)
        (unwind-protect (progn ,@body)
          (ignore-errors (delete-directory root t))))))

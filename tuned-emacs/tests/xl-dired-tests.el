@@ -1,5 +1,5 @@
 ;;; xl-dired-tests.el --- ERT tests for xl-dired -*- lexical-binding: t; -*-
-;; Run: emacs --batch -Q -L emacs/lisp -l emacs/tests/xl-dired-tests.el \
+;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/xl-dired-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 ;; Each test works in its own temporary folder.  The listings and previews
 ;; are real asynchronous processes, so the tests wait for them.

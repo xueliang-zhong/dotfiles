@@ -1,8 +1,8 @@
-# XL Emacs（`emacs/`）
+# tuned-emacs（`tuned-emacs/`）
 
 **A thin Emacs layer whose heavy work runs async. 重活异步，界面不等。**
 
-一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-key-bindings`、`xl-git-status`、`xl-spinner`），同时是作者 Xueliang 的缩写；配置本身放在 dotfiles 的 `emacs/` 目录里。
+一层很薄的个人适配层，架在锁定版本的 Crafted Emacs 之上。Git 的重活——status、diff、log、blame、commit 视图、暂存与提交——都用异步进程重写，界面在数据到达前就显示 spinner，不会冻住。`xl-` 是这个项目的命名空间（`xl-key-bindings`、`xl-git-status`、`xl-spinner`），同时是作者 Xueliang 的缩写；配置本身放在 dotfiles 的 `tuned-emacs/` 目录里。
 
 ## 两条可验证的承诺
 
@@ -20,7 +20,7 @@
 ## 目录
 
 ```
-emacs/
+tuned-emacs/
 ├── early-init.el          启动期设置（GC、界面、包源）
 ├── init.el                选 Crafted 模块、装包、按顺序加载
 ├── install/emacs-setup.sh 不依赖 just 的安装、检查和启动脚本
@@ -42,14 +42,14 @@ Emacs 31.1 启动时，先读 `~/.emacs-profiles/crafted` 里的两个存根，�
 just emacs-try
   └─ emacs --init-directory ~/.emacs-profiles/crafted   (Emacs 31.1)
        ├─ ~/.emacs-profiles/crafted/early-init.el   存根：设 xl-dotfiles、xl-crafted-home
-       │    └─ emacs/early-init.el               启动期设置，加载 Crafted 包源配置
+       │    └─ tuned-emacs/early-init.el               启动期设置，加载 Crafted 包源配置
        └─ ~/.emacs-profiles/crafted/init.el         存根
-            └─ emacs/init.el                     选 Crafted 模块、装包、按顺序加载
+            └─ tuned-emacs/init.el                     选 Crafted 模块、装包、按顺序加载
                  ├─ Crafted 模块（~/.emacs-profiles/src/crafted-emacs，锁定提交）
-                 ├─ emacs/lisp/xl-key-bindings.el Spacemacs 键位习惯（SPC 树等）
-                 ├─ emacs/lisp/xl-git-status.el  异步 Git status 摘要
-                 ├─ emacs/lisp/xl-git-commands.el Gstatus/Gblame/Gwrite/Gcommit
-                 └─ emacs/xueliang.el       我自己的设置、键位、命令
+                 ├─ tuned-emacs/lisp/xl-key-bindings.el Spacemacs 键位习惯（SPC 树等）
+                 ├─ tuned-emacs/lisp/xl-git-status.el  异步 Git status 摘要
+                 ├─ tuned-emacs/lisp/xl-git-commands.el Gstatus/Gblame/Gwrite/Gcommit
+                 └─ tuned-emacs/xueliang.el       我自己的设置、键位、命令
 ```
 
 四层的分工：
@@ -93,7 +93,7 @@ Emacs 在创建界面之前读它，所以只放启动期的设置：
 - 汇总要安装的包：Crafted 的 completion、evil、org 三组包，加上 `xl-packages`（Crafted 不提供、而 `lisp/xl-key-bindings.el`、`lisp/xl-git-status.el`、`lisp/xl-git-commands.el` 和 `xueliang.el` 要用的包）。缺包时先 `package-refresh-contents` 再装：这个配置关掉了启动时的自动刷新，而 `package-install-selected-packages` 只在缓存为空时才刷新；旧缓存会让新依赖（例如 2026 年的 transient 要求 compat 31.1）被误报为 unavailable。刷新只发生在确实缺包的那次启动，装完就恢复零网络。如果刷新后还缺包（典型是 GNU ELPA 的签名校验因 `package.el` 的 gnupg home 过期而失败，Denote 就属于 GNU ELPA），会重建 keyring 再刷新一次；仍失败才报错并列出哪些包根本不在任何归档里；gpg 完全不可用时，最后会临时关闭签名校验再试一次（只影响那次启动）。
 - 加载 Crafted 的 defaults、completion、evil、org、startup 五个模块。其中 completion 负责整个补全栈：vertico、consult、marginalia、orderless、embark、corfu、cape。
 - 修正 Crafted 默认值中与我的习惯冲突的部分：插入态 `C-h` 保持为帮助前缀，关闭全局拼写检查，并去掉 Crafted 挂在 `embark-collect-mode-hook` 上的 `consult-preview-at-point-mode`（Consult 3.4 已删除该函数，不去掉会让 Embark Collect 报错）。
-- 把 `emacs/lisp/` 加入加载路径，用 `require` 依次载入 `xl-key-bindings.el`、`xl-git-status.el`、`xl-git-commands.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为其中可以单独安装的包走的是同一条路。
+- 把 `tuned-emacs/lisp/` 加入加载路径，用 `require` 依次载入 `xl-key-bindings.el`、`xl-git-status.el`、`xl-git-commands.el`，最后加载 `xueliang.el`。用 `require` 而不是 `load`，是因为其中可以单独安装的包走的是同一条路。
 - 最后把 `xl-packages` 补回安装名单，并在每次切换主题后再补一次：加载主题会恢复 `custom.el` 里保存的旧名单，不补回的话 `package-autoremove` 可能误删正在用的包。
 
 ### `lisp/xl-key-bindings.el`（适配层）
@@ -223,19 +223,19 @@ status、GBlame、commit 窗口和 G 命令原本各写一份 `make-process`、s
 启动时按这个顺序执行（括号里是对应的文件）：
 
 1. Emacs 31.1 按 `--init-directory` 读 `~/.emacs-profiles/crafted/early-init.el`（存根）。
-2. 存根设置 `xl-dotfiles` 和 `xl-crafted-home`，加载 `emacs/early-init.el`。
-3. `emacs/early-init.el` 设置 GC、界面、JIT、包目录，最后加载 `crafted-early-init-config`。
+2. 存根设置 `xl-dotfiles` 和 `xl-crafted-home`，加载 `tuned-emacs/early-init.el`。
+3. `tuned-emacs/early-init.el` 设置 GC、界面、JIT、包目录，最后加载 `crafted-early-init-config`。
 4. Emacs 进入初始化，运行 `before-init-hook`：Crafted 检查包列表是否为空，为空则刷新。
-5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `emacs/init.el`。
-6. `emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
+5. Emacs 读 `~/.emacs-profiles/crafted/init.el`（存根），加载 `tuned-emacs/init.el`。
+6. `tuned-emacs/init.el` 检查版本，加载 `custom.el`，加载 `crafted-init-config`。
 7. 加载 `crafted-completion-packages`、`crafted-evil-packages`、`crafted-org-packages`，加入 `xl-packages`，再调用 `package-install-selected-packages` 装包。
 8. 加载 `crafted-defaults-config`、`crafted-completion-config`、`crafted-evil-config`、`crafted-org-config`、`crafted-startup-config`。
 9. 修正 `evil-want-C-h-delete` 和 ispell 钩子。
-10. 把 `emacs/lisp/` 加入加载路径，`require` `xl-key-bindings.el`，建立 `xl-leader-map` 和 SPC 键树。
-11. 加载 `emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
-12. 加载 `emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
-14. 加载 `emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
-15. `emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
+10. 把 `tuned-emacs/lisp/` 加入加载路径，`require` `xl-key-bindings.el`，建立 `xl-leader-map` 和 SPC 键树。
+11. 加载 `tuned-emacs/lisp/xl-git-status.el`，定义不依赖 Magit 的异步 status buffer 和 commit 窗口。
+12. 加载 `tuned-emacs/lisp/xl-git-commands.el`，定义 `Gstatus`、`Gblame`、`Gwrite`、`Gcommit` 及对应的 Ex 命令。
+14. 加载 `tuned-emacs/xueliang.el`：先读可选的 `local.el`，再依次设置外观、全局选项、evil、vertico、corfu、dired、eshell、Org、magit、函数、功能键，最后绑定 `SPC b s`、`SPC c c`、`SPC f p`、`SPC g g`。
+15. `tuned-emacs/init.el` 把 `xl-packages` 补回安装名单，并挂到切换主题的钩子上。
 16. 启动完成，显示 Crafted 首页（底部显示启动耗时，`SPC b h` 随时可以回到首页）。如果这次启动来自 `SPC q r`，`initial-buffer-choice` 改为打开上次的文件/dired 并恢复 point 和 window-start，这时不显示首页。
 
 Org、dired、magit 等包的设置放在 `with-eval-after-load` 里，包被第一次用到时才执行，所以它们不拖慢启动。
@@ -268,14 +268,14 @@ just emacs-test    # ERT 测试：键位、钩子、变量、文件结构、真�
 just emacs-check   # 上面两条一起跑
 
 # 没装 just 的机器上，这三条等价：
-bash emacs/install/emacs-setup.sh smoke
-bash emacs/install/emacs-setup.sh test
-bash emacs/install/emacs-setup.sh check
+bash tuned-emacs/install/emacs-setup.sh smoke
+bash tuned-emacs/install/emacs-setup.sh test
+bash tuned-emacs/install/emacs-setup.sh check
 ```
 
 ### `just emacs-test`
 
-`emacs/tests/smoke-tests.el` 里的 109 个 ERT 测试在配置完整加载后运行，覆盖：
+`tuned-emacs/tests/smoke-tests.el` 里的 109 个 ERT 测试在配置完整加载后运行，覆盖：
 
 | 范围 | 例子 |
 | --- | --- |
@@ -303,16 +303,16 @@ bash emacs/install/emacs-setup.sh check
 
 ## 不装 just 也能用
 
-`justfile` 里的 `emacs-*` 配方现在只是 `emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 按步骤打印 `[1/5] ...` 这样的标题；`Install Emacs packages` 逐条显示 `package i/N`，`Prebuild advice trampolines` 逐条显示 `trampolines i/N`，结束时显示总耗时。`NO_COLOR=1` 关闭颜色；步骤内部的其它输出默认隐藏，失败时才打印完整日志；`XL_VERBOSE=1` 可以看到全部输出。所以没有 `just` 的机器照样能装：
+`justfile` 里的 `emacs-*` 配方现在只是 `tuned-emacs/install/emacs-setup.sh` 的薄包装：检查（平台、Emacs 30+、profile）、克隆 Crafted、生成存根、trampoline 缓存全部在脚本里。`setup-macos` / `setup-linux` / `setup-windows` 按步骤打印 `[1/5] ...` 这样的标题；`Install Emacs packages` 逐条显示 `package i/N`，`Prebuild advice trampolines` 逐条显示 `trampolines i/N`，结束时显示总耗时。`NO_COLOR=1` 关闭颜色；步骤内部的其它输出默认隐藏，失败时才打印完整日志；`XL_VERBOSE=1` 可以看到全部输出。所以没有 `just` 的机器照样能装：
 
 ```bash
-bash emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows
-bash emacs/install/emacs-setup.sh crafted-install # 只重建 profile 存根
-bash emacs/install/emacs-setup.sh check           # smoke + ERT
-bash emacs/install/emacs-setup.sh trampolines     # 预编译 advice trampoline
-bash emacs/install/emacs-setup.sh make-default    # ~/.emacs.d -> profile
-bash emacs/install/emacs-setup.sh restore-spacemacs
-bash emacs/install/emacs-setup.sh try             # 启动，参数原样传给 Emacs
+bash tuned-emacs/install/emacs-setup.sh setup-macos     # 或 setup-linux / setup-windows
+bash tuned-emacs/install/emacs-setup.sh crafted-install # 只重建 profile 存根
+bash tuned-emacs/install/emacs-setup.sh check           # smoke + ERT
+bash tuned-emacs/install/emacs-setup.sh trampolines     # 预编译 advice trampoline
+bash tuned-emacs/install/emacs-setup.sh make-default    # ~/.emacs.d -> profile
+bash tuned-emacs/install/emacs-setup.sh restore-spacemacs
+bash tuned-emacs/install/emacs-setup.sh try             # 启动，参数原样传给 Emacs
 ```
 
 环境变量和 `just` 版含义一致：`EMACS`、`PROFILE`、`PROFILES`、`PROFILE_DIR`、`DOTFILES`。另外两个：
@@ -324,7 +324,7 @@ bash emacs/install/emacs-setup.sh try             # 启动，参数原样传给 
 
 如果第一次运行报 `Package ‘compat’ (version 31.1) is unavailable`，说明那份 profile 的归档缓存比依赖还旧：脚本现在会在缺包时自动刷新，重跑一次 `setup-*` 即可；在 Emacs 里也可以先 `M-x package-refresh-contents` 再启动。
 
-`just emacs-mac-setup` 与 `bash emacs/install/emacs-setup.sh setup-macos` 等价，前者只是把 `EMACS`、`PROFILE*`、`DOTFILES` 放进环境再调用脚本。
+`just emacs-mac-setup` 与 `bash tuned-emacs/install/emacs-setup.sh setup-macos` 等价，前者只是把 `EMACS`、`PROFILE*`、`DOTFILES` 放进环境再调用脚本。
 
 ## 在 macOS 上安装
 
@@ -332,12 +332,12 @@ bash emacs/install/emacs-setup.sh try             # 启动，参数原样传给 
 
 ```bash
 just emacs-mac-setup                          # 装了 just
-bash emacs/install/emacs-setup.sh setup-macos    # 没装 just
+bash tuned-emacs/install/emacs-setup.sh setup-macos    # 没装 just
 ```
 
 它依次做五件事：复制 vim/nvim/tmux 配置和 `~/bin` 脚本；按 `frameworks.lock` 克隆 Crafted 并生成 `~/.emacs-profiles/crafted` 存根；在 batch 里完整加载一遍配置，顺便装好所有包（有初始化错误会直接失败）；再加载一遍并预先编译 advice trampoline 缓存，第一次 GUI 启动就不会白屏；最后把 `~/.emacs.d` 指向 Crafted。最后一步要求 Emacs 已经退出；如果它正在运行，前面的步骤仍会完成，退出 Emacs 后再执行 `just emacs-make-default` 即可。
 
-之后用 `just emacs-try`（或 `bash emacs/install/emacs-setup.sh try`）启动 Emacs，或者直接打开 Dock 里的 Emacs。
+之后用 `just emacs-try`（或 `bash tuned-emacs/install/emacs-setup.sh try`）启动 Emacs，或者直接打开 Dock 里的 Emacs。
 
 ## 在 Windows 上安装
 
@@ -345,7 +345,7 @@ bash emacs/install/emacs-setup.sh setup-macos    # 没装 just
 
 ```bash
 just emacs-windows-setup                       # 装了 just
-bash emacs/install/emacs-setup.sh setup-windows   # 没装 just
+bash tuned-emacs/install/emacs-setup.sh setup-windows   # 没装 just
 ```
 
 ### 准备

@@ -35,7 +35,7 @@
 
 ## 用户界面
 
-文件：`emacs/lisp/xl-perfetto-trace.el`，feature `xl-perfetto-trace`，前缀 `xl-perfetto-`（内部用 `xl-perfetto--`）。
+文件：`tuned-emacs/lisp/xl-perfetto-trace.el`，feature `xl-perfetto-trace`，前缀 `xl-perfetto-`（内部用 `xl-perfetto--`）。
 
 ### 命令
 
@@ -137,7 +137,7 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 - **停止时**：对所有包装过的进程（包括已经结束的）调用 `remove-function`。用一个列表记住包装过的进程。
 
 ### 4. xl-async 任务（`xl-async`）
-- **机制**：给 `xl-async-run`（Lisp 函数，见 `emacs/lisp/xl-async.el`）加 `:around` advice。复制参数 plist（不要修改调用方的列表），把 `:on-done` 包一层：调用原来的回调前，先记一个 `e` 事件。启动时记一个 `b` 事件。
+- **机制**：给 `xl-async-run`（Lisp 函数，见 `tuned-emacs/lisp/xl-async.el`）加 `:around` advice。复制参数 plist（不要修改调用方的列表），把 `:on-done` 包一层：调用原来的回调前，先记一个 `e` 事件。启动时记一个 `b` 事件。
 - **id**：`xl-async-<递增计数>`，`b` 和 `e` 用同一个。
 - **名字**：`:name` 参数，没有就用命令的程序名（`:command` 的第一个元素的文件名部分）。
 - **参数**：`e` 事件记 `exit`（退出码）和 `bytes`（输出长度）。
@@ -216,11 +216,11 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 
 ## 文件和集成
 
-- 新文件：`emacs/lisp/xl-perfetto-trace.el`。头部格式参考 `emacs/lisp/xl-dired.el`（Author、Version、`Package-Requires: ((emacs "30.1") (xl-async "0.1.0"))`、Commentary）。对 xl-async 只是可选依赖：没加载时跳过第 4 项。
-- 新测试：`emacs/tests/xl-perfetto-trace-tests.el`，用 `emacs --batch -Q -L emacs/lisp` 单独运行，风格参考 `emacs/tests/xl-dired-tests.el`。
-- `emacs/install/emacs-setup.sh` 的 `cmd_test` 加一段运行这个测试文件。
-- `emacs/tests/smoke-tests.el` 里 `xl-personal-file-is-framework-neutral` 的文件列表加上 `emacs/lisp/xl-perfetto-trace.el`。
-- `emacs/init.el`：加一行 `(require 'xl-perfetto-trace)`。它在开始录制之前什么都不装，所以加载代价很小。
+- 新文件：`tuned-emacs/lisp/xl-perfetto-trace.el`。头部格式参考 `tuned-emacs/lisp/xl-dired.el`（Author、Version、`Package-Requires: ((emacs "30.1") (xl-async "0.1.0"))`、Commentary）。对 xl-async 只是可选依赖：没加载时跳过第 4 项。
+- 新测试：`tuned-emacs/tests/xl-perfetto-trace-tests.el`，用 `emacs --batch -Q -L tuned-emacs/lisp` 单独运行，风格参考 `tuned-emacs/tests/xl-dired-tests.el`。
+- `tuned-emacs/install/emacs-setup.sh` 的 `cmd_test` 加一段运行这个测试文件。
+- `tuned-emacs/tests/smoke-tests.el` 里 `xl-personal-file-is-framework-neutral` 的文件列表加上 `tuned-emacs/lisp/xl-perfetto-trace.el`。
+- `tuned-emacs/init.el`：加一行 `(require 'xl-perfetto-trace)`。它在开始录制之前什么都不装，所以加载代价很小。
 - 按键绑定：不在第一版里决定，交给用户。
 
 ## 测试计划
@@ -243,7 +243,7 @@ xl-async 的任务用异步事件（`b`/`e`），在 Perfetto 里会显示成单
 
 ## 验收标准
 
-- `bash emacs/install/emacs-setup.sh test` 全部通过，包括新测试。
+- `bash tuned-emacs/install/emacs-setup.sh test` 全部通过，包括新测试。
 - 在真实的 GUI Emacs 里录制 10 秒，期间打字、切换 buffer、打开 xl-dired 预览，生成的文件能在 ui.perfetto.dev 打开，看得到命令、定时器、GC、xl-async 和字体着色的轨道。
 - 不录制时：`pre-command-hook` 等全局 hook 里没有追踪器的函数，`advice-member-p` 都为 nil。
 

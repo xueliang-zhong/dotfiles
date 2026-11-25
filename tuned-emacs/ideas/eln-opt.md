@@ -1,6 +1,6 @@
 # eln-opt：后台的分层编译
 
-状态：已实现并在使用。实现在 `emacs/lisp/eln-opt.el`，测试在 `emacs/tests/eln-opt-tests.el`。
+状态：已实现并在使用。实现在 `tuned-emacs/lisp/eln-opt.el`，测试在 `tuned-emacs/tests/eln-opt-tests.el`。
 数字来自 Emacs 31.1（Mac，Emacs.app）和 Emacs 30.1（Raspberry Pi 4，4 核 3.8 GB）。
 
 ## 目标
@@ -38,7 +38,7 @@ Tier 2 的门槛应按实测收益定，而不只看热不热。循环密集的�
 | `M-x eln-opt-stop-worker` | 立刻停止正在跑的后台 worker；正在编译的文件保留进行中标记（下次当作被打断的尝试），本次会话不再自动启动，`eln-opt-compile-now` 仍然可用 |
 | `M-x eln-opt-reset` | 删除 eln-opt 生成的 eln、失败列表、进行中标记、安静状态。先要求输入 `yes` |
 
-命令行：`bash emacs/install/emacs-setup.sh eln-opt`（平台是否可用）、`eln-opt-compile`、`eln-opt-report`、`eln-opt-status`、`eln-opt-reset`、`compile-lisp`（我们自己的 lisp 编成字节码，不依赖 libgccjit）。
+命令行：`bash tuned-emacs/install/emacs-setup.sh eln-opt`（平台是否可用）、`eln-opt-compile`、`eln-opt-report`、`eln-opt-status`、`eln-opt-reset`、`compile-lisp`（我们自己的 lisp 编成字节码，不依赖 libgccjit）。
 
 ## 启动到编译：时间线
 
@@ -74,7 +74,7 @@ Pi 上的大致耗时：每个文件的编译（小文件几秒，org 约 1 分�
 
 一个文件要进入计划，必须同时满足：
 
-- **可信**：`file-truename` 在可信根下（elpa、Emacs 的 `lisp-directory`、dotfiles 的 `emacs/lisp`、`emacs/xueliang.el`）；指向根外的符号链接被拒绝。
+- **可信**：`file-truename` 在可信根下（elpa、Emacs 的 `lisp-directory`、dotfiles 的 `tuned-emacs/lisp`、`tuned-emacs/xueliang.el`）；指向根外的符号链接被拒绝。
 - **有源码**：`.el`，或者 Emacs 自带库的 `.el.gz`（Tier 2）。
 - **定义了函数**，不是 autoloads、loaddefs（只有桩函数），也不是 init.el、early-init.el、custom.el（过期的 `init.elc` 是常见的坑）。
 - **没有 opt-out**：文件里没有 `no-native-compile: t` 或 `no-byte-compile: t`。
@@ -87,7 +87,7 @@ Pi 上的大致耗时：每个文件的编译（小文件几秒，org 约 1 分�
 
 **根**：用户实际用过的命令（savehist，单个命令的权重有上限）、常用 major mode（recentf 的文件经 `auto-mode-alist` 映射）、常用 mode 的 hook 和 keymap、每次按键或重绘都会跑的 hook（`post-command-hook` 等，权重最高）、全局和 leader keymap（权重很低）。某个 mode 的 keymap 和 hook 只有在 mode 出现在常用集合里时才算根，这样大量很少用的 mode 设置会被剪掉。懒加载的重要根（权重 ≥ 0.5）会先加载，否则它们的函数不在图里。
 
-**冷启动的基线**：新机器上 savehist 和 recentf 还是空的，排名没有依据。`emacs/data/eln-opt-baseline.eld` 列出一般都值得处理的函数名（每次按键都会跑的 evil、winum hook，completion 栈，以及已知的 trampoline 原语），每个作为权重 1.0 的根。随着用户自己的数据增长，它的权重按比例下降，用户的命令和文件数达到 `eln-opt-rank-baseline-users`（50）时完全不再起作用。文件只含函数名和原语名，不含代码或路径。
+**冷启动的基线**：新机器上 savehist 和 recentf 还是空的，排名没有依据。`tuned-emacs/data/eln-opt-baseline.eld` 列出一般都值得处理的函数名（每次按键都会跑的 evil、winum hook，completion 栈，以及已知的 trampoline 原语），每个作为权重 1.0 的根。随着用户自己的数据增长，它的权重按比例下降，用户的命令和文件数达到 `eln-opt-rank-baseline-users`（50）时完全不再起作用。文件只含函数名和原语名，不含代码或路径。
 
 **边**：函数常量向量里的函数符号（嵌套闭包递归）；读取了变量并且调用 `funcall`/`apply` 时，变量的值如果是函数（比如 `completion-at-point-functions`），连边；有 advice 的函数双向连边。看不到的部分（运行时才创建的 lambda 和 timer、进程的 filter 和 sentinel）不计入。
 
@@ -142,7 +142,7 @@ macOS 在任何进程第一次映射一个新的原生文件时检查它：每�
 
 做法（`eln-opt--warm`）：worker 每编出一个 eln，就用一个一次性的 `emacs -Q --batch` 加载它一次；运行结束时再对整个目录做一次。子进程里 `load-path` 是 nil，文件的顶层代码在第一个 `require` 就停下，目的只是触发系统检查，不是运行代码；stdin 立即关闭，超过 `eln-opt-warm-timeout`（120 秒）就停掉。只在 macOS 上做。worker 在 `taskpolicy -b` 下运行，后台优先级下系统检查慢很多（31 个文件约 8 秒，前台约 0.4 秒），但不占主线程。
 
-更正：用户实际遇到的几次 13 秒启动，起初归因于这里，后来慢启动记录器（`early-init.el`）的日志显示，12.1 秒卡在 ffap 加载时运行的 `gcc`/`clang`/`g++` 上，与 eln 无关，原因和修法见 `emacs/README.md` 的 `early-init.el` 一节。这里的首次加载开销是真实的，用新副本复现过，但不是那几次慢启动的原因。
+更正：用户实际遇到的几次 13 秒启动，起初归因于这里，后来慢启动记录器（`early-init.el`）的日志显示，12.1 秒卡在 ffap 加载时运行的 `gcc`/`clang`/`g++` 上，与 eln 无关，原因和修法见 `tuned-emacs/README.md` 的 `early-init.el` 一节。这里的首次加载开销是真实的，用新副本复现过，但不是那几次慢启动的原因。
 
 Trampoline 由 `comp-trampoline-compile` 编译后当场加载，已经在编译它的进程里检查过，不需要另外预热。
 
@@ -211,13 +211,13 @@ advice 或重定义 C 原语时需要 trampoline（`subr--trampoline-*`）。缓
 
 ## 测试
 
-`emacs/tests/eln-opt-tests.el` 用 ERT，所有文件都写在临时目录里，`cl-letf` 替换平台判断、编译和睡眠等函数。覆盖：平台门控和金丝雀、trampoline 预测和补齐、锁、账本和失败列表、进行中标记（被打断一次重试、两次失败、不可信路径、写不了标记、符号链接）、候选规则（可信根、opt-out、大小、ratio）、worker 的顺序和首次失败停止、强制编译、报告格式、reset 的确认、`load-history` 映射与 `symbol-file` 一致。
+`tuned-emacs/tests/eln-opt-tests.el` 用 ERT，所有文件都写在临时目录里，`cl-letf` 替换平台判断、编译和睡眠等函数。覆盖：平台门控和金丝雀、trampoline 预测和补齐、锁、账本和失败列表、进行中标记（被打断一次重试、两次失败、不可信路径、写不了标记、符号链接）、候选规则（可信根、opt-out、大小、ratio）、worker 的顺序和首次失败停止、强制编译、报告格式、reset 的确认、`load-history` 映射与 `symbol-file` 一致。
 
-`bash emacs/install/emacs-setup.sh test` 同时运行 smoke、eln-opt、xl-dired 和 perfetto 的测试。
+`bash tuned-emacs/install/emacs-setup.sh test` 同时运行 smoke、eln-opt、xl-dired 和 perfetto 的测试。
 
 ## 探针和实验脚本
 
-`emacs/ideas/eln-opt-probes/` 里是最初的实验脚本，运行方法和已知缺口见其 README：排名、trampoline 预测、eln 版本和加载规则、解释执行 / 字节码 / native 的耗时对比。它们是历史记录，不是构建的一部分。
+`tuned-emacs/ideas/eln-opt-probes/` 里是最初的实验脚本，运行方法和已知缺口见其 README：排名、trampoline 预测、eln 版本和加载规则、解释执行 / 字节码 / native 的耗时对比。它们是历史记录，不是构建的一部分。
 
 ## 未决问题
 

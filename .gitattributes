@@ -1,5 +1,5 @@
 # Keep LF line endings on every platform. Git for Windows defaults to
 # core.autocrlf=true, which would check these out with CRLF: bash then fails
 # on "\r" in the justfile recipes, and `read` in emacs-crafted-install would
-# keep a trailing "\r" on the commit id from emacs/frameworks.lock.
+# keep a trailing "\r" on the commit id from tuned-emacs/frameworks.lock.
 * text=auto eol=lf

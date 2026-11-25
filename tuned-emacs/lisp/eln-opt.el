@@ -29,7 +29,7 @@
 ;; Files that run interpreted (loaded from .el: no .elc, or a stale one) are
 ;; byte-compiled first, on every platform.  Without native compilation (no
 ;; libgccjit, as on most Windows builds) that is all the worker does.
-;; The design notes are in emacs/ideas/eln-opt.md of the dotfiles repository.
+;; The design notes are in tuned-emacs/ideas/eln-opt.md of the dotfiles repository.
 ;;
 ;; Requires xl-async (which holds the loader too) for the views.
 
@@ -43,7 +43,7 @@
 ;; startup it costs about 170 ms on a Raspberry Pi, and the timer path never needs it.
 (require 'xl-async)
 
-;; Design: emacs/ideas/eln-opt.md.  This file is loaded only by a background
+;; Design: tuned-emacs/ideas/eln-opt.md.  This file is loaded only by a background
 ;; batch run (see `eln-opt-platform-report' and emacs-setup.sh `jit'), never by
 ;; init.el.  Step 1 of the checklist: decide whether this Emacs binary can
 ;; compile native code at all, and remember the answer.
@@ -549,9 +549,9 @@ our lisp/ folder, and our xueliang.el.  A root ending in a slash is a folder."
         (list (and (boundp 'package-user-dir) (file-name-as-directory package-user-dir))
               (and (boundp 'lisp-directory) (file-name-as-directory lisp-directory))
               (and (bound-and-true-p xl-dotfiles)
-                   (file-name-as-directory (expand-file-name "emacs/lisp" xl-dotfiles)))
+                   (file-name-as-directory (expand-file-name "tuned-emacs/lisp" xl-dotfiles)))
               (and (bound-and-true-p xl-dotfiles)
-                   (expand-file-name "emacs/xueliang.el" xl-dotfiles)))))
+                   (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles)))))
 
 (defun eln-opt-trusted-file-p (file)
   "Non-nil if FILE's truename is under a trusted root.  A symlink that leaves
@@ -618,7 +618,7 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
 
 ;;; ---- Report: the ranking, the built files, the skips ----
 
-;; Step 5 of emacs/ideas/eln-opt.md.  Nothing here compiles anything.  A child
+;; Step 5 of tuned-emacs/ideas/eln-opt.md.  Nothing here compiles anything.  A child
 ;; Emacs with the profile loaded reads the byte code, the call graph, and the
 ;; usage records (savehist, recentf) as data, and prints a ranking.  Entry
 ;; points: `eln-opt-report' (M-x), and `emacs-setup.sh eln-opt-report'.
@@ -973,7 +973,7 @@ it at a lower weight.  Hooks that run on every key are heavy."
   "The shipped baseline roots, weighted down as the user's own data grows.
 Returns (ROOTS . FACTOR).  The baseline file names functions only."
   (let* ((file (or (and (bound-and-true-p xl-dotfiles)
-                        (expand-file-name "emacs/data/eln-opt-baseline.eld" xl-dotfiles))
+                        (expand-file-name "tuned-emacs/data/eln-opt-baseline.eld" xl-dotfiles))
                    (expand-file-name "eln-opt-baseline.eld" profile-dir)))
          (form (eln-opt--read-eld file))
          (names (plist-get form :functions)))
@@ -1804,14 +1804,14 @@ confirmation.  Returns the number of elns deleted, or nil when cancelled."
 (defun eln-opt--own-stamps ()
   "Modification times of our own lisp files, for the quiet fingerprint."
   (when (bound-and-true-p xl-dotfiles)
-    (let ((dir (expand-file-name "emacs/lisp" xl-dotfiles)))
+    (let ((dir (expand-file-name "tuned-emacs/lisp" xl-dotfiles)))
       (delq nil
             (mapcar (lambda (f)
                       (let ((attrs (file-attributes f)))
                         (and attrs (cons f (file-attribute-modification-time attrs)))))
                     (append (and (file-directory-p dir)
                                  (directory-files dir t "\\.el\\'"))
-                            (list (expand-file-name "emacs/xueliang.el" xl-dotfiles))))))))
+                            (list (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles))))))))
 
 (defun eln-opt--quiet-fingerprint ()
   "What a quiet state is about: this binary, the load path (package updates

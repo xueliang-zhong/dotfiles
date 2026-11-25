@@ -155,7 +155,7 @@ session."
 ;; ============================================================
 ;; lisp/: modules loaded with `require'.  The ones with package headers
 ;; also work when installed on their own.
-(add-to-list 'load-path (expand-file-name "emacs/lisp" xl-dotfiles))
+(add-to-list 'load-path (expand-file-name "tuned-emacs/lisp" xl-dotfiles))
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
@@ -168,12 +168,12 @@ session."
 ;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
 ;; background batch Emacs (timers only, no hooks): byte-compile what runs
 ;; interpreted, then the hot files to native code (byte only without
-;; libgccjit).  See emacs/ideas/eln-opt.md.
+;; libgccjit).  See tuned-emacs/ideas/eln-opt.md.
 (require 'eln-opt)
 (eln-opt-auto-arm)
-;; No extension: `load' then prefers emacs/xueliang.elc when it is current
+;; No extension: `load' then prefers tuned-emacs/xueliang.elc when it is current
 ;; (see `compile-lisp' in emacs-setup.sh), and the .el otherwise.
-(load (expand-file-name "emacs/xueliang" xl-dotfiles))
+(load (expand-file-name "tuned-emacs/xueliang" xl-dotfiles))
 
 ;; ============================================================
 ;; Keep the Package List Complete

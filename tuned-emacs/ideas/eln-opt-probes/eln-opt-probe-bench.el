@@ -1,6 +1,6 @@
 ;;; eln-opt-probe-bench.el --- interpreted vs byte code vs native -*- lexical-binding: t; -*-
 ;; Probe, not part of the config.  Run with: emacs --batch -Q -l THIS-FILE
-;; Copies emacs/lisp to a temporary folder first, so no .elc or .eln is
+;; Copies tuned-emacs/lisp to a temporary folder first, so no .elc or .eln is
 ;; written into the repository, then times two xl-git-status functions in
 ;; each of the three states.
 (setq byte-compile-warnings nil native-comp-async-report-warnings-errors 'silent)
