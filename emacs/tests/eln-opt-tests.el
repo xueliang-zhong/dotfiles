@@ -17,6 +17,12 @@
      (unwind-protect (progn ,@body)
        (ignore-errors (delete-directory eln-opt-state-dir t)))))
 
+(defun eln-opt-test--worker-result ()
+  "Run the worker quietly and return its result."
+  (let (result)
+    (with-output-to-string (setq result (eln-opt-worker)))
+    result))
+
 (defmacro eln-opt-test--count-canary (counter &rest body)
   "Run BODY with `eln-opt--canary' counting its calls into COUNTER."
   (declare (indent 1))
@@ -31,8 +37,8 @@
     (let ((canary-calls 0))
       (eln-opt-test--count-canary canary-calls
         (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-          (should (eq (eln-opt-run) 'unavailable))
-          (should (eq (eln-opt-run) 'unavailable))))
+          (should (eq (eln-opt-test--worker-result) 'unavailable))
+          (should (eq (eln-opt-test--worker-result) 'unavailable))))
       (should (= canary-calls 0))
       (should (equal (directory-files eln-opt-state-dir nil "\\`[^.]")
                      '("platform.eld"))))))
@@ -45,7 +51,7 @@
                 ((symbol-function 'native-compile)
                  (lambda (&rest _) (cl-incf compile-calls) (error "libgccjit missing"))))
         (should-not (eln-opt-platform-available-p))
-        (should (eq (eln-opt-run) 'unavailable))
+        (should (eq (eln-opt-test--worker-result) 'unavailable))
         (should-not (eln-opt-platform-available-p)))
       (should (= compile-calls 1))
       (let ((cached (eln-opt--read-eld (eln-opt--platform-file))))
@@ -252,30 +258,6 @@
                       name name)))
     src))
 
-(ert-deftest eln-opt-ledger-failure-policy ()
-  "A failure waits a day; two failures end it until the key changes."
-  (eln-opt-test--with-state
-    (let* ((key '("/src/a.el" "sha" (1)))
-           (now (eln-opt--now)))
-      (should (eln-opt--may-attempt-p key now))
-      (eln-opt--ledger-set key (list :status 'failed :fails 1 :time now))
-      (should-not (eln-opt--may-attempt-p key now))
-      (should (eln-opt--may-attempt-p key (+ now eln-opt-retry-interval 1)))
-      (eln-opt--ledger-set key (list :status 'failed :fails 2 :time now))
-      (should-not (eln-opt--may-attempt-p key (+ now (* 10 eln-opt-retry-interval))))
-      (eln-opt--ledger-set key (list :status 'quarantined))
-      (should-not (eln-opt--may-attempt-p key (+ now (* 10 eln-opt-retry-interval)))))))
-
-(ert-deftest eln-opt-source-key-changes-with-compile-settings ()
-  "Changing a setting that does not show in the eln name still changes the key."
-  (eln-opt-test--with-state
-    (let* ((dir (make-temp-file "eln-opt-key-" t))
-           (src (eln-opt-test--toy-src dir "keyed"))
-           (k1 (eln-opt-source-key src))
-           (k2 (let ((native-comp-speed 1)) (eln-opt-source-key src))))
-      (should-not (equal k1 k2))
-      (should (equal k1 (eln-opt-source-key src))))))
-
 (ert-deftest eln-opt-lock-is-exclusive-and-takes-over-stale ()
   "A live owner keeps the lock; a dead owner's lock is taken over once."
   (eln-opt-test--with-state
@@ -302,104 +284,6 @@
     (should (eln-opt--lock-stale-p (eln-opt--lock-dir)))
     (should (eln-opt--lock-acquire))
     (eln-opt--lock-release)))
-
-(ert-deftest eln-opt-run-busy-when-locked ()
-  "A run that cannot get the lock does nothing."
-  (eln-opt-test--with-state
-    (let ((work 0))
-      (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () t))
-                ((symbol-function 'eln-opt--work) (lambda () (cl-incf work) (list))))
-        (should (eln-opt--lock-acquire))
-        (should (eq (eln-opt-run) 'busy))
-        (eln-opt--lock-release)
-        (should (= work 0))))))
-
-(ert-deftest eln-opt-second-run-does-no-work ()
-  "With nothing changed, the second run skips the work entirely."
-  (eln-opt-test--with-state
-    (let ((work 0))
-      (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () t))
-                ((symbol-function 'eln-opt--work) (lambda () (cl-incf work) (list :compiled 0))))
-        (should (eq (car (eln-opt-run)) 'ran))
-        (should (= work 1))
-        (should (eq (eln-opt-run) 'unchanged))
-        (should (= work 1))
-        (should-not (file-exists-p (eln-opt--lock-dir)))))))
-
-(ert-deftest eln-opt-audit-records-a-missing-eln-and-allows-a-rebuild ()
-  "A done entry whose eln is gone is recorded as missing, with a reason, and
-may be built again.  It is not dropped silently."
-  (eln-opt-test--with-state
-    (let ((key '("/src/gone.el" "sha" (1))))
-      (eln-opt--ledger-set key (list :status 'done :eln "/no/such.eln" :sha "x" :size 1))
-      (eln-opt--audit)
-      (should (eq (plist-get (eln-opt--ledger-get key) :status) 'missing))
-      (should (string-match-p "gone" (plist-get (eln-opt--ledger-get key) :reason)))
-      (should (eln-opt--may-attempt-p key (eln-opt--now))))))
-
-(ert-deftest eln-opt-audit-discards-tampered-and-broken-eln ()
-  "A changed or unloadable eln is deleted and counted as a failure."
-  (eln-opt-test--with-state
-    (let* ((eln (expand-file-name "bad.eln" eln-opt-state-dir))
-           (key '("/src/bad.el" "sha" (1))))
-      (make-directory eln-opt-state-dir t)
-      ;; Recorded hash does not match the file: deleted at once.
-      (with-temp-file eln (insert "not an eln"))
-      (eln-opt--ledger-set key (list :status 'done :eln eln :sha "wrong" :size 1))
-      (eln-opt--audit)
-      (should-not (file-exists-p eln))
-      (should (= (plist-get (eln-opt--ledger-get key) :fails) 1))
-      (should (eq (plist-get (eln-opt--ledger-get key) :status) 'failed))
-      ;; Recorded hash matches but the file cannot be loaded: deleted too.
-      (with-temp-file eln (insert "not an eln either"))
-      (eln-opt--ledger-set key (list :status 'done :eln eln
-                                    :sha (eln-opt--file-sha eln)
-                                    :size (eln-opt--file-size eln)))
-      (eln-opt--audit)
-      (should-not (file-exists-p eln))
-      (should (eq (plist-get (eln-opt--ledger-get key) :status) 'failed)))))
-
-(ert-deftest eln-opt-child-sees-our-load-path ()
-  "A fresh child can require a file that is only on our load-path."
-  (let* ((dir (make-temp-file "eln-opt-dep-" t))
-         (load-path (cons dir load-path)))
-    (unwind-protect
-        (progn
-          (with-temp-file (expand-file-name "eln-opt-dep-probe.el" dir)
-            (insert "(provide 'eln-opt-dep-probe)\n"))
-          (let ((r (eln-opt--child '(require 'eln-opt-dep-probe))))
-            (should (= (car r) 0))))
-      (delete-directory dir t))))
-
-(ert-deftest eln-opt-verify-accepts-native-and-rejects-garbage ()
-  "Verification loads the eln and checks that the defun is native."
-  (skip-unless (native-comp-available-p))
-  (eln-opt-test--with-state
-    (let* ((dir (make-temp-file "eln-opt-verify-" t))
-           (src (eln-opt-test--toy-src dir "verified"))
-           (eln (expand-file-name "verified.eln" dir)))
-      (native-compile src eln)
-      (should (null (eln-opt-verify src eln)))
-      (with-temp-file eln (insert "garbage"))
-      (should (stringp (eln-opt-verify src eln))))))
-
-;; Step 4: reset removes only what the ledger recorded
-
-(ert-deftest eln-opt-reset-removes-only-recorded-elns ()
-  "Reset deletes recorded elns and the ledger, and leaves other files alone."
-  (eln-opt-test--with-state
-    (let* ((recorded (expand-file-name "recorded.eln" eln-opt-state-dir))
-           (other (expand-file-name "not-ours.eln" eln-opt-state-dir)))
-      (make-directory eln-opt-state-dir t)
-      (with-temp-file recorded (insert "x"))
-      (with-temp-file other (insert "y"))
-      (eln-opt--ledger-set '("/src/r.el" "sha" (1))
-                          (list :status 'done :eln recorded :sha "s" :size 1))
-      (should (= (eln-opt-reset) 1))
-      (should-not (file-exists-p recorded))
-      (should-not (file-exists-p (eln-opt--ledger-file)))
-      (should (file-exists-p other))
-      (should (= (eln-opt-reset) 0)))))
 
 ;;; Step 5: the ranking report (no compiling)
 
@@ -512,14 +396,6 @@ may be built again.  It is not dropped silently."
     (with-temp-file src (insert (format ";;; %s.el\n(defun %s-fn () 1)\n" name name)))
     src))
 
-(ert-deftest eln-opt-timeout-kills-a-child-that-runs-too-long ()
-  "A child that outlives its time is killed and reported; a quick one is ok."
-  (skip-unless (file-executable-p (expand-file-name invocation-name invocation-directory)))
-  (should (eq (eln-opt--run-with-timeout '("-Q" "--batch" "--eval" "(princ 1)") 60) 'ok))
-  (let ((r (eln-opt--run-with-timeout '("-Q" "--batch" "--eval" "(sleep-for 30)") 1)))
-    (should (stringp r))
-    (should (string-match-p "timed out" r))))
-
 (ert-deftest eln-opt-candidate-refuses-untrusted-optout-big-and-low-ranked ()
   "Each rule that keeps a file out of the compile list is enforced here."
   (eln-opt-test--with-tier2
@@ -538,167 +414,6 @@ may be built again.  It is not dropped silently."
       (should-not (eln-opt--candidate-p (eln-opt-test--row big 100.0)))
       (should-not (eln-opt--candidate-p (eln-opt-test--row good 1.0)))
       (delete-directory outside t))))
-
-(ert-deftest eln-opt-work-compiles_budget_then_nothing_on_the_second_run ()
-  "Within the budget, verified elns are recorded; a second run compiles none."
-  (eln-opt-test--with-tier2
-    (let* ((srcs (mapcar (lambda (n) (eln-opt-test--src lisp n)) '("a1" "a2" "a3" "a4")))
-           (rows (mapcar (lambda (f) (eln-opt-test--row f 100.0)) srcs))
-           (children 0))
-      (cl-letf (((symbol-function 'eln-opt-rank--compute)
-                 (lambda (_) (list :rows rows)))
-                ((symbol-function 'eln-opt--child-compile)
-                 (lambda (src eln)
-                   (cl-incf children)
-                   (make-directory (file-name-directory eln) t)
-                   (with-temp-file eln (insert "fake eln"))
-                   'ok))
-                ((symbol-function 'eln-opt-verify) (lambda (_src _eln &optional _names) nil)))
-        (let ((first (eln-opt--work)))
-          (should (= (plist-get first :compiled) (min 4 eln-opt-compile-budget)))
-          (should (= children (min 4 eln-opt-compile-budget))))
-        (let ((second (eln-opt--work)))
-          (should (= (plist-get second :compiled) 0))
-          (should (= children (min 4 eln-opt-compile-budget))))))))
-
-(ert-deftest eln-opt-timeout-is-not-retried-within-the-day ()
-  "A compile that times out is counted failed, and is not attempted again soon."
-  (eln-opt-test--with-tier2
-    (let* ((src (eln-opt-test--src lisp "slow"))
-           (rows (list (eln-opt-test--row src 100.0)))
-           (children 0))
-      (cl-letf (((symbol-function 'eln-opt-rank--compute) (lambda (_) (list :rows rows)))
-                ((symbol-function 'eln-opt--child-compile)
-                 (lambda (_ _) (cl-incf children) "timed out after 180 s")))
-        (should (= (plist-get (eln-opt--work) :failed) 1))
-        (should (= (plist-get (eln-opt--work) :compiled) 0))
-        (should (= children 1))))))
-
-(ert-deftest eln-opt-crash-report-quarantines-the-named-eln ()
-  "An eln named in a fresh crash report is deleted and its key quarantined."
-  (eln-opt-test--with-tier2
-    (let* ((eln (expand-file-name "crashy-abc-def.eln" eln-opt-state-dir))
-           (key '("/src/crashy.el" "sha" (1)))
-           (report-dir eln-opt-crash-dir))
-      (make-directory eln-opt-state-dir t)
-      (with-temp-file eln (insert "eln"))
-      (eln-opt--ledger-set key (list :status 'done :eln eln :sha "s" :size 3))
-      (make-directory report-dir t)
-      (with-temp-file (expand-file-name "Emacs-2026-11-24.ips" report-dir)
-        (insert "{\"threads\": [{\"frames\": [\"crashy-abc-def.eln\"]}]}"))
-      (should (= (eln-opt--crash-scan 0) 1))
-      (should-not (file-exists-p eln))
-      (should (eq (plist-get (eln-opt--ledger-get key) :status) 'quarantined))
-      (should-not (eln-opt--may-attempt-p key (+ (eln-opt--now) (* 10 eln-opt-retry-interval)))))))
-
-(ert-deftest eln-opt-total-size-cap-stops_compiling ()
-  "Past the total eln size cap, a run compiles nothing and says so."
-  (eln-opt-test--with-tier2
-    (let* ((src (eln-opt-test--src lisp "capped"))
-           (children 0))
-      (eln-opt--ledger-set '("/src/old.el" "sha" (1))
-                          (list :status 'done :eln "/x" :sha "s" :size 100))
-      (cl-letf (((symbol-function 'eln-opt-rank--compute)
-                 (lambda (_) (list :rows (list (eln-opt-test--row src 100.0)))))
-                ((symbol-function 'eln-opt--child-compile)
-                 (lambda (_ _) (cl-incf children) 'ok)))
-        (let ((eln-opt-max-total-bytes 50))
-          (let ((r (eln-opt--work)))
-            (should (plist-get r :capped))
-            (should (= children 0))))))))
-
-;;; The in-Emacs trigger (`eln-opt-auto-arm' and its timers), never in batch
-
-(defmacro eln-opt-test--with-auto (&rest body)
-  "A temporary profile folder, an Emacs that has been open for an hour, on AC
-power, native compilation available, and timers recorded instead of armed."
-  (declare (indent 0))
-  `(let* ((user-emacs-directory (file-name-as-directory (make-temp-file "eln-opt-auto-" t)))
-          (before-init-time (time-subtract nil 3600))
-          (eln-opt-auto-enable t)
-          (eln-opt-auto--process nil)
-          (eln-opt-auto--timer nil)
-          (timers nil))
-     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () t))
-               ((symbol-function 'run-with-timer)
-                (lambda (secs _repeat fn) (push (list 'timer secs fn) timers) 'fake-timer))
-               ((symbol-function 'run-with-idle-timer)
-                (lambda (secs _repeat fn) (push (list 'idle secs fn) timers) 'fake-idle))
-               ((symbol-function 'eln-opt-auto--cancel)
-                (lambda () (setq eln-opt-auto--timer nil))))
-       (unwind-protect (progn ,@body)
-         (ignore-errors (delete-directory user-emacs-directory t))))))
-
-(defun eln-opt-test--touch-last-run (age)
-  "Write a last-run record that is AGE seconds old."
-  (let ((f (eln-opt-auto--last-run-file)))
-    (make-directory (file-name-directory f) t)
-    (with-temp-file f (insert "(:time 0)\n"))
-    (set-file-times f (time-subtract nil age))))
-
-(ert-deftest eln-opt-auto-decides-when-to-run ()
-  "Each reason not to run is reported; with none left, it may run."
-  (eln-opt-test--with-auto
-    (should (null (eln-opt-auto--decision)))
-    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-      (should (eq (eln-opt-auto--decision) 'unavailable)))
-    (let ((eln-opt-auto-enable nil))
-      (should (eq (eln-opt-auto--decision) 'disabled)))
-    (let ((process-environment (cons "ELN_OPT=0" process-environment)))
-      (should (eq (eln-opt-auto--decision) 'disabled)))
-    (let ((before-init-time (time-subtract nil 30)))
-      (should (eq (eln-opt-auto--decision) 'too-early)))
-    (eln-opt-test--touch-last-run 60)
-    (should (eq (eln-opt-auto--decision) 'recent))
-    (eln-opt-test--touch-last-run (+ eln-opt-auto-interval 60))
-    (should (null (eln-opt-auto--decision)))))
-
-(ert-deftest eln-opt-auto-tick-waits-for-idle-or-checks-again-later ()
-  "Allowed: an idle timer.  Too early: a timer for the rest.  Unavailable: none."
-  (eln-opt-test--with-auto
-    (eln-opt-auto--tick)
-    (should (equal (car timers) (list 'idle eln-opt-auto-idle #'eln-opt-auto--start)))
-    (setq timers nil)
-    (let ((before-init-time (time-subtract nil (/ eln-opt-auto-uptime 2))))
-      (eln-opt-auto--tick)
-      (should (eq (car (car timers)) 'timer))
-      (should (<= (abs (- (nth 1 (car timers)) (- eln-opt-auto-uptime (/ eln-opt-auto-uptime 2)))) 2)))
-    (setq timers nil)
-    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-      (eln-opt-auto--tick)
-      (should (null timers)))))
-
-(ert-deftest eln-opt-auto-never-arms-in-batch ()
-  "Setup, tests, and the background run itself load init in batch: no timer."
-  (eln-opt-test--with-auto
-    (let ((noninteractive t))
-      (eln-opt-auto-arm)
-      (should (null timers)))
-    (let ((noninteractive nil))
-      (eln-opt-auto-arm)
-      (should (eq (car (car timers)) 'timer)))))
-
-(ert-deftest eln-opt-auto-start-rechecks-and-spawns-nothing-when-not-allowed ()
-  "If a run is not allowed when the idle timer fires, no process starts."
-  (eln-opt-test--with-auto
-    (let ((spawned 0))
-      (eln-opt-test--touch-last-run 60)
-      (cl-letf (((symbol-function 'make-process) (lambda (&rest _) (cl-incf spawned) nil)))
-        (eln-opt-auto--start)
-        (should (= spawned 0))
-        (should (eq (car (car timers)) 'timer))
-        (should (>= (nth 1 (car timers)) eln-opt-auto-retry))))))
-
-(ert-deftest eln-opt-auto-command-runs-at-background-priority ()
-  "The background run uses taskpolicy -b when present, nice -n 19 otherwise."
-  (eln-opt-test--with-auto
-    (cl-letf (((symbol-function 'executable-find)
-               (lambda (p) (and (equal p "taskpolicy") "/usr/sbin/taskpolicy"))))
-      (should (equal (seq-take (eln-opt-auto--command) 2) '("taskpolicy" "-b"))))
-    (cl-letf (((symbol-function 'executable-find)
-               (lambda (p) (and (equal p "nice") "/usr/bin/nice"))))
-      (should (equal (seq-take (eln-opt-auto--command) 3) '("nice" "-n" "19"))))
-    (should (member "--batch" (eln-opt-auto--command)))))
 
 ;;; Query: which functions are native
 
@@ -740,18 +455,193 @@ power, native compilation available, and timers recorded instead of armed."
     (should (cl-some (lambda (a) (and (stringp a) (string-suffix-p "init.el" a))) cmd))
     (should (cl-some (lambda (a) (and (stringp a) (string-match-p "eln-opt-report" a))) cmd))))
 
-;;; The one-line summary of a run
-
-(ert-deftest eln-opt-run-summary-says-what-happened-in-words ()
-  "Each result of `eln-opt-run' is one readable sentence, not Lisp data."
-  (should (string-match-p "not available" (eln-opt-run-summary 'unavailable)))
-  (should (string-match-p "nothing changed" (eln-opt-run-summary 'unchanged)))
-  (should (string-match-p "compiled 2 file(s), failed 0"
-                          (eln-opt-run-summary '(ran :compiled 2 :failed 0 :skipped 1
-                                                    :quarantined 0 :capped nil))))
-  (should (string-match-p "Stopped early"
-                          (eln-opt-run-summary '(ran :compiled 0 :failed 0 :skipped 0
-                                                    :quarantined 0 :capped t)))))
-
 (provide 'eln-opt-tests)
+;;; The worker: built and failed, the plan, the compile loop
+
+(ert-deftest eln-opt-built-means-an-eln-emacs-will-use ()
+  "Built: an eln exists for the source and the .elc is not newer than it."
+  (skip-unless (native-comp-available-p))
+  (let* ((dir (make-temp-file "eln-opt-built-" t))
+         (cache (file-name-as-directory (expand-file-name "cache" dir)))
+         (native-comp-eln-load-path (list cache (car (last native-comp-eln-load-path))))
+         (src (eln-opt-test--toy-src dir "built-toy"))
+         (byte-compile-verbose nil))
+    (unwind-protect
+        (progn
+          (byte-compile-file src)
+          (should-not (eln-opt--built-p src))
+          (set-file-times (concat src "c") (time-subtract nil 100))
+          (native-compile src)
+          (should (eln-opt--built-p src))
+          ;; A newer .elc, as after a package upgrade: Emacs ignores the eln.
+          (set-file-times (concat src "c") (time-add nil 100))
+          (should-not (eln-opt--built-p src)))
+      (ignore-errors (fmakunbound 'built-toy-fn))
+      (delete-directory dir t))))
+
+(ert-deftest eln-opt-failed-list-holds-until-the-source-changes ()
+  "A failed source is skipped until its content changes; one entry per source."
+  (eln-opt-test--with-state
+    (let* ((dir (make-temp-file "eln-opt-failed-" t))
+           (src (eln-opt-test--toy-src dir "bad")))
+      (unwind-protect
+          (progn
+            (should-not (eln-opt--failed-p src))
+            (eln-opt--record-failure src "boom")
+            (should (eln-opt--failed-p src))
+            (eln-opt--record-failure src "boom again")
+            (should (= (length (eln-opt--failed-load)) 1))
+            (with-temp-file src (insert ";;; bad.el\n(defun bad-fn () 2)\n"))
+            (should-not (eln-opt--failed-p src)))
+        (delete-directory dir t)))))
+
+(ert-deftest eln-opt-plan-skips-built-and-failed-and-keeps-the-order ()
+  "The plan is the candidates in score order, without built or failed ones."
+  (eln-opt-test--with-tier2
+    (let* ((srcs (mapcar (lambda (n) (eln-opt-test--src lisp n)) '("p1" "p2" "p3" "p4")))
+           (rows (mapcar (lambda (f) (eln-opt-test--row f 100.0)) srcs)))
+      (cl-letf (((symbol-function 'eln-opt--built-p)
+                 (lambda (src) (string-suffix-p "p2.el" src))))
+        (eln-opt--record-failure (nth 2 srcs) "boom")
+        (should (equal (mapcar #'file-name-nondirectory (eln-opt--plan-from-rows rows))
+                       '("p1.el" "p4.el")))))))
+
+(defmacro eln-opt-test--with-worker (srcs-var names &rest body)
+  "Temporary state and sources named NAMES bound to SRCS-VAR; the platform is
+available, the plan is those sources, and the worker does not sleep."
+  (declare (indent 2))
+  `(eln-opt-test--with-tier2
+     (let ((,srcs-var (mapcar (lambda (n) (eln-opt-test--src lisp n)) ,names)))
+       (cl-letf (((symbol-function 'eln-opt-platform-available-p) (lambda () t))
+                 ((symbol-function 'eln-opt-worker-plan) (lambda () ,srcs-var))
+                 ((symbol-function 'sleep-for) #'ignore))
+         ,@body))))
+
+(ert-deftest eln-opt-worker-compiles-in-turn-and-stops-at-the-first-error ()
+  "The worker compiles each file in turn, and stops at the first failure,
+which goes on the failed list.  The files after it are not started."
+  (eln-opt-test--with-worker srcs '("w1" "w2" "w3")
+    (let ((compiled nil))
+      (cl-letf (((symbol-function 'native-compile)
+                 (lambda (src &rest _)
+                   (push (file-name-nondirectory src) compiled)
+                   (when (string-suffix-p "w2.el" src) (error "Cannot compile"))))
+                ((symbol-function 'eln-opt--built-p) (lambda (_) t)))
+        (let ((out (with-output-to-string (eln-opt-worker))))
+          (should (string-match-p "ELN-OPT done .*w1\\.el" out))
+          (should (string-match-p "ELN-OPT failed .*w2\\.el" out))
+          (should-not (string-match-p "w3\\.el\n" (substring out (string-match "ELN-OPT failed" out))))
+          (should (equal (reverse compiled) '("w1.el" "w2.el")))
+          (should (eln-opt--failed-p (nth 1 srcs)))
+          (should-not (eln-opt--failed-p (nth 0 srcs)))
+          (should-not (file-exists-p (eln-opt--lock-dir))))))))
+
+(ert-deftest eln-opt-worker-counts-a-compile-without-a-usable-eln-as-failed ()
+  "A compile that leaves no eln Emacs would use is a failure, not a success."
+  (eln-opt-test--with-worker srcs '("n1")
+    (cl-letf (((symbol-function 'native-compile) #'ignore)
+              ((symbol-function 'eln-opt--built-p) (lambda (_) nil)))
+      (let ((out (with-output-to-string (eln-opt-worker))))
+        (should (string-match-p "ELN-OPT failed .*no eln" out))
+        (should (eln-opt--failed-p (car srcs)))))))
+
+(ert-deftest eln-opt-worker-is-busy-when-another-holds-the-lock ()
+  "A second worker exits at once when the lock is held."
+  (eln-opt-test--with-worker srcs '("b1")
+    (should (eln-opt--lock-acquire))
+    (let ((compiled 0))
+      (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (cl-incf compiled))))
+        (should (eq (eln-opt-worker) 'busy))
+        (should (= compiled 0))))
+    (eln-opt--lock-release)))
+
+;;; The main Emacs: one idle start, a summary, a watchdog
+
+(defmacro eln-opt-test--with-auto (&rest body)
+  "No worker, no timers armed; timers are recorded instead."
+  (declare (indent 0))
+  `(let ((eln-opt-auto-enable t)
+         (eln-opt-auto--process nil)
+         (eln-opt-auto--timer nil)
+         (eln-opt-auto--current nil)
+         (timers nil))
+     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () t))
+               ((symbol-function 'run-with-idle-timer)
+                (lambda (secs repeat fn) (push (list secs repeat fn) timers) 'fake-timer))
+               ((symbol-function 'cancel-timer) #'ignore))
+       ,@body)))
+
+(ert-deftest eln-opt-auto-arms-one-idle-start-per-session ()
+  "Arming schedules one idle timer that does not repeat; batch arms nothing."
+  (eln-opt-test--with-auto
+    (let ((noninteractive t)) (eln-opt-auto-arm))
+    (should (null timers))
+    (let ((noninteractive nil)) (eln-opt-auto-arm))
+    (should (equal (car timers) (list eln-opt-auto-idle nil #'eln-opt-auto--start)))))
+
+(ert-deftest eln-opt-auto-decision-says-why-not ()
+  "Each reason the worker may not start is reported; with none, it may."
+  (eln-opt-test--with-auto
+    (should (null (eln-opt-auto--decision)))
+    (let ((eln-opt-auto-enable nil))
+      (should (eq (eln-opt-auto--decision) 'disabled)))
+    (let ((process-environment (cons "ELN_OPT=0" process-environment)))
+      (should (eq (eln-opt-auto--decision) 'disabled)))
+    (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
+      (should (eq (eln-opt-auto--decision) 'unavailable)))
+    (let ((eln-opt-auto--process (start-process "eln-opt-test" nil "sleep" "5")))
+      (unwind-protect
+          (should (eq (eln-opt-auto--decision) 'running))
+        (delete-process eln-opt-auto--process)))))
+
+(ert-deftest eln-opt-auto-summary-says-what-the-worker-did ()
+  "The summary counts the files done and names the failure, if any."
+  (should (string-match-p "compiled 2 file"
+                          (eln-opt-auto--summary
+                           "ELN-OPT plan 2 a b\nELN-OPT done /x/a.el\nELN-OPT done /x/b.el\nELN-OPT finished 2\n")))
+  (should (string-match-p "then failed: /x/b.el"
+                          (eln-opt-auto--summary
+                           "ELN-OPT done /x/a.el\nELN-OPT failed /x/b.el boom\nELN-OPT finished 1\n")))
+  (should (string-match-p "nothing to compile" (eln-opt-auto--summary "ELN-OPT plan 0 \nELN-OPT finished 0\n")))
+  (should (string-match-p "lock" (eln-opt-auto--summary "ELN-OPT busy\n")))
+  (should (string-match-p "stopped early" (eln-opt-auto--summary "Loading init...\n"))))
+
+(ert-deftest eln-opt-auto-notes-the-file-the-worker-is-on ()
+  "The file being compiled is tracked from the worker's start and done lines."
+  (eln-opt-test--with-auto
+    (eln-opt-auto--note "Loading x\nELN-OPT start /x/a.el\n")
+    (should (equal eln-opt-auto--current "/x/a.el"))
+    (eln-opt-auto--note "ELN-OPT done /x/a.el\n")
+    (should (null eln-opt-auto--current))))
+
+(ert-deftest eln-opt-auto-watchdog-kills-a-stalled-worker-and-skips-its-file ()
+  "A worker silent for longer than the stall limit is killed, and the file it
+was on goes on the failed list."
+  (eln-opt-test--with-state
+    (eln-opt-test--with-auto
+      (let* ((dir (make-temp-file "eln-opt-stall-" t))
+             (src (eln-opt-test--toy-src dir "stuck"))
+             (eln-opt-auto--process (start-process "eln-opt-test" nil "sleep" "30"))
+             (eln-opt-auto--current src)
+             (eln-opt-auto--last-output (- (float-time) eln-opt-worker-stall 10)))
+        (unwind-protect
+            (progn
+              (eln-opt-auto--watch)
+              (should-not (process-live-p eln-opt-auto--process))
+              (should (eln-opt--failed-p src)))
+          (when (process-live-p eln-opt-auto--process)
+            (delete-process eln-opt-auto--process))
+          (delete-directory dir t))))))
+
+(ert-deftest eln-opt-auto-command-runs-the-worker-at-background-priority ()
+  "The worker runs under taskpolicy -b when present, nice -n 19 otherwise."
+  (cl-letf (((symbol-function 'executable-find)
+             (lambda (p) (and (equal p "taskpolicy") "/usr/sbin/taskpolicy"))))
+    (should (equal (seq-take (eln-opt-auto--command) 2) '("taskpolicy" "-b"))))
+  (cl-letf (((symbol-function 'executable-find)
+             (lambda (p) (and (equal p "nice") "/usr/bin/nice"))))
+    (should (equal (seq-take (eln-opt-auto--command) 3) '("nice" "-n" "19"))))
+  (should (cl-some (lambda (a) (and (stringp a) (string-match-p "(eln-opt-worker)" a)))
+                   (eln-opt-auto--command))))
+
 ;;; eln-opt-tests.el ends here

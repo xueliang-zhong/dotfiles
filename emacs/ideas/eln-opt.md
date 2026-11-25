@@ -2,6 +2,33 @@
 
 状态：设计稿，未实现。所有数字来自 2026-11-24 在 Emacs 31.1（Emacs.app，`31_1-032f33bc`）上的实验。
 
+## 当前设计：一个 worker（2026-11-25 起）
+
+下面"流水线""不会死循环的规则"等章节描述的是第一版（账本、指纹、审计、每轮子进程编译），已经被这一节取代，保留作为历史记录。
+
+**流程**
+1. 主 Emacs 启动后排一个**一次性**的 idle timer（`eln-opt-auto-idle`，60 秒）。整个会话只触发一次。
+2. 触发后启动**一个** worker：同一个 Emacs 二进制，加载同一份 profile，以后台优先级运行（macOS `taskpolicy -b`，其它系统 `nice -n 19`）。
+3. worker 做一次可达性分析，得到候选列表：排名靠前、通过候选过滤（可信根、有 `.el` 源码、ratio 达到阈值、源码不超过 500 KB、没有 `no-native-compile`），**还没有可用 eln**，并且**不在失败列表里**的文件，最多 `eln-opt-worker-max`（30）个。
+4. 按顺序逐个 `native-compile`，每两个文件之间睡 `eln-opt-worker-sleep`（10 秒）。
+5. **任何一个文件出错就停止**：把它记进失败列表，然后退出。
+6. 下次启动 Emacs 时，Emacs 自己加载新 eln。
+
+**状态只剩两样**
+- **eln-cache 本身**：一个文件"编过了"，就是 `comp-el-to-eln-filename` 算出的 eln 存在，并且不比 `.elc` 旧（`.elc` 更新时 Emacs 会忽略 eln）。不再需要账本。
+- **失败列表** `failed.eld`：每条记录源码 truename 和内容 md5。失败的文件一直跳过，直到源码改变。没有它，同一个坏文件会让每次运行都在同一处停下。
+
+**保护**
+- **锁**：同时开两个 Emacs 时只会有一个 worker。
+- **看门狗**：worker 每开始一个文件就打印一行。主 Emacs 如果 `eln-opt-worker-stall`（600 秒）内没有收到任何输出，就杀掉 worker，并把当时正在编的文件记进失败列表。
+
+**主 Emacs 看到什么**
+- worker 的输出写进 `*eln-opt*` 缓冲区，mode line 有 spinner；结束时回显区显示一句总结。
+- `M-x eln-opt-run-now`：立刻启动 worker，并显示 `*eln-opt*`。
+- `M-x eln-opt-report`：排名、已编译的文件、失败列表、每个文件的去向。
+
+**删掉的东西**：账本、审计、指纹、`last-run.eld`、每轮编译预算、崩溃报告扫描、每轮子进程验证、重复的 idle timer 和次数上限、电池判断。
+
 ## 目标与约束
 
 `early-init.el` 关掉了 `native-comp-jit-compilation`：全局 JIT 在第一次使用时就把所有东西放到后台编译，会拖慢整台机器。eln-opt 想保留 JIT 的好处，去掉"什么都编、马上就编"这两点：
@@ -45,7 +72,7 @@ Tier 2  native .eln      只给热、并且编成 native 确实有收益的文�
 
 ```
 平台门控（见下一节）：不支持 native 编译的平台，到这里就结束，后面的步骤都不会发生
-触发：主 Emacs 开了 10 分钟以上、用户空闲 60 秒、距上次运行超过 1 小时（`eln-opt-auto-interval`）、没在用电池（eln-opt.el，只用 timer）
+触发：用户每空闲满 3 分钟（`eln-opt-auto-idle`），主 Emacs 就做一次后台尝试，每次只编译一个文件；一个会话最多 60 次（`eln-opt-auto-max-attempts`）。只用一个重复的 idle timer。
   └─ taskpolicy -b <同一个 Emacs 二进制> --batch --init-directory <同一个 profile>
        0. 前置检查：拿锁、比较指纹、检查目录权限、确认版本目录一致；任何一项不满足就退出
        1. 复查账本里记录的 eln：哈希、dlopen；有问题的删掉
@@ -169,7 +196,7 @@ eln 的文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-c
    - "编译成功但验证失败"也算失败，并记录原因（比如没有源码、elc 一直比 eln 新）。
 3. **Tier 1 一定先于 Tier 2**，并且只在 `.el` 比 `.elc` 新时才重编 elc，所以 elc 的 mtime 保持稳定，不会让 eln 失效。
 4. **同一个二进制，同一个缓存目录**：子进程用 `(expand-file-name invocation-name invocation-directory)` 启动，加上同一个 `--init-directory`。开始前断言 `comp-native-version-dir` 和 `native-comp-eln-load-path` 的第一项与 GUI 一致，不一致就整次放弃。
-5. **触发有界**：每小时最多一次（`eln-opt-auto-interval`，之前是每天一次）；指纹（版本目录 + 各 load-path 目录的 mtime）没变就立即退出。savehist 每天都会变，不放进指纹，排名每周重算一次。
+5. **触发有界**：每次尝试只编译一个文件，一个会话最多 60 次；指纹（版本目录 + 各 load-path 目录的 mtime）没变就立即退出。
 6. **锁**：用 `make-directory` 建锁目录（原子操作），里面记 pid 和启动时间。pid 不存在或者超过 1 小时就视为过期。抢不到锁就直接退出，不等待也不重试。
 7. **写入只走 comp**：只用 `native-compile` 和 `comp-delete-or-replace-file`，从不 `cp` 进 eln-cache，也从不原地覆盖。
 8. **清理**：同一路径的旧 eln 由 comp 自己删。源码路径已经不存在（比如包升级换了目录）、并且超过 7 天的 eln，在子进程里删除，只删账本里记录过的。超过 30 天的旧版本目录整体删除。
@@ -197,7 +224,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 | --- | --- |
 | 编译炸弹（文件很大、宏展开爆炸） | 单文件大小上限、编译超时（`xl-async` 的 `:timeout`）、每次运行的预算；超时记为失败，不再重试 |
 | 磁盘被占满 | eln-opt 产出的总体积上限（比如 200 MB），按账本统计 |
-| 进程风暴 | 同一时间只有一个子进程；每小时最多触发一次；有锁 |
+| 进程风暴 | 同一时间只有一个子进程；每 3 分钟空闲最多触发一次，一个会话最多 60 次；有锁 |
 | 锁被长期占用 | 只是损失优化，功能不受影响 |
 | 账本被篡改 | 只用 `read`，限制大小，校验结构；不合格就丢弃重建 |
 | **eln 损坏导致 init 中途停下** | 编译后在子进程里加载并跑 smoke tests，不通过就删除；每天复查可以自愈；有应急开关 |
@@ -249,8 +276,8 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 总体积超过上限时，按"最近一次在排名中出现"的时间淘汰最旧的 eln。
 
 **5. 触发条件（借鉴 bg-dexopt 的"空闲 + 接电源 + 每天一次"）**
-- 不用 launchd 这类 Emacs 之外的计划任务。主 Emacs 自己用 timer 判断：开了 `eln-opt-auto-uptime`（10 分钟）以上，说明它会长期开着；之后等用户空闲 `eln-opt-auto-idle`（60 秒）。
-- 条件：距上次运行超过 `eln-opt-auto-interval`（看 `last-run.eld` 的 mtime）；没有正在跑的后台子进程。不满足就隔一段时间再检查。
+- 不用 launchd 这类 Emacs 之外的计划任务。主 Emacs 自己用一个重复的 idle timer：用户每空闲满 `eln-opt-auto-idle`（3 分钟）就尝试一次。
+- 条件：没有正在跑的后台子进程，并且本会话的尝试次数还没到 `eln-opt-auto-max-attempts`（60）。到上限后 timer 被取消。
 - 后台子进程在 macOS 上用 `taskpolicy -b`（后台 QoS、效率核心），其它系统用 `nice -n 19`。
 - batch 环境（`noninteractive`）里绝不触发：setup、测试，以及后台子进程自己加载 init 时，都不会再派生子进程。
 - 还没做：用户恢复操作时暂停子进程（SIGSTOP/SIGCONT）。那需要一个 hook，和"只用 timer"冲突，暂时不做。
@@ -355,7 +382,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 最初实现成了 launchd 计划任务，后来按你的要求换成主 Emacs 里的 timer：一个独立于 Emacs 的计划任务不合适。
 
 - `emacs/lisp/eln-opt.el`（合并后的单个文件），由 init.el `require` 并调用 `eln-opt-auto-arm`。只用 `run-with-timer` 和 `run-with-idle-timer`，不加 hook。
-- 条件和优先级见上面"触发条件"。子进程结束后，按 `eln-opt-auto-interval` 重新排下一次检查，Emacs 连开几天也会每天跑一次。
+- 条件和优先级见上面"触发条件"。重复的 idle timer 每次空闲满 3 分钟再触发，不需要在子进程结束后重新排期。
 - 结果存在 `eln-opt-auto-last-result`，子进程输出在 ` *eln-opt*` 缓冲区；账本和统计仍然用 `eln-opt-status` 看。
 - 验收：各个"不运行"的原因都有测试；batch 下不排 timer；空闲时条件变了（比如拔了电源）就不启动；后台命令带 `taskpolicy -b` 或 `nice -n 19`；用加载了 profile 的 batch 模拟一次完整运行。
 
@@ -375,7 +402,7 @@ Emacs 只按文件名信任 eln，不验证内容。所以 eln-opt 必须保证�
 ## 未验证的部分
 
 - 查询 native 函数：`M-x eln-opt-report` 列出 eln-opt 编译过的文件和其中已是 native 的函数，并给出 Emacs 自身预加载的 native 函数总数。
-- 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `eln-opt-auto--start`），还没有在 GUI 里等它自己在 10 分钟后触发。
+- 主 Emacs 里的 timer 只在 batch 里模拟过（手动调用 `eln-opt-auto--start`），还没有在 GUI 里等它自己触发。
 - 崩溃隔离只用伪造的崩溃报告测过。真实的 macOS 崩溃报告调用栈里是否会出现 eln 文件名，还没有确认。
 - 不再检查热限制（launchd 版本用 `pmset -g therm`，换成 timer 后去掉了）。
 - `M-x eln-opt-report` 的交互路径（打开缓冲区）没有测；批处理路径（`eln-opt-report`）测过。

@@ -271,12 +271,12 @@ cmd_compile_lisp() {
 "
 }
 
-# One background run: the profile is loaded so package macros and the load
-# path are the real ones.  Lock, fingerprint and audit live in eln-opt.el.
+# The eln-opt worker, run here: the profile is loaded so package macros and the
+# load path are the real ones.  It compiles the candidates one at a time.
 cmd_eln_opt_run() {
     require_emacs
     require_profile
-    emacs_batch --eval '(progn (require (quote eln-opt)) (princ (concat (eln-opt-run-summary (eln-opt-run)) "\n")))'
+    emacs_batch --eval '(progn (require (quote eln-opt)) (eln-opt-worker))'
 }
 
 cmd_eln_opt_status() {
@@ -491,10 +491,10 @@ use / check:
   trampolines            pre-build advice trampolines so a GUI start is fast
   eln-opt                    say whether eln-opt can run here (native compilation)
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
-  eln-opt-run                one background eln-opt run (audit, then work when due)
-  eln-opt-reset              delete the elns eln-opt recorded, and its ledger
+  eln-opt-run                run the eln-opt worker here: compile the candidates in turn
+  eln-opt-reset              delete the user's elns (not trampolines) and the failed list
   eln-opt-report             print the eln-opt ranking; compiles nothing
-  eln-opt-status             ledger counts, eln bytes, and the last run's result
+  eln-opt-status             how many user elns, and the failed list
 
 profile:
   make-default           point ~/.emacs.d at the profile (Spacemacs moves aside)

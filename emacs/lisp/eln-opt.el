@@ -9,23 +9,26 @@
 
 ;;; Commentary:
 
-;; eln-opt makes the code you use often native-compiled, in a background Emacs,
-;; without turning on Emacs's global JIT.  Nothing in the running session is
-;; profiled or hooked except one timer (`eln-opt-auto-arm'):
+;; eln-opt native-compiles the code you use most, ahead of time, in one
+;; background worker, without turning on Emacs's global JIT.  The running
+;; Emacs profiles nothing and adds no hooks; it arms one idle timer
+;; (`eln-opt-auto-arm'):
 ;;
-;; - `eln-opt-auto-arm' starts a background pass once Emacs has been open a
-;;   while and the user is idle, at most once an hour.
-;; - A pass (`eln-opt-run') ranks the hot files from byte code and the usage
-;;   records (savehist, recentf), compiles the best few in child Emacs
-;;   processes, verifies each eln, and records what it did in a ledger.
-;; - New elns take effect on the next start.
-;; - `eln-opt-report' shows the ranking, what was built,
-;;   and why each file was or was not compiled.
+;; - Once per session, after Emacs has been idle for `eln-opt-auto-idle'
+;;   seconds, it starts one worker: a batch Emacs with this profile.
+;; - The worker ranks files by reachability from what you use (savehist,
+;;   recentf, hooks and keymaps, read from byte code), keeps the candidates
+;;   that have no usable eln yet and have not failed before, and compiles them
+;;   one at a time, `eln-opt-worker-sleep' seconds apart.  The first error
+;;   stops it; the failing file is skipped until its source changes.
+;; - Emacs itself loads the new elns on the next start.
+;; - `eln-opt-report' shows the ranking, what is native, and why each file
+;;   is or is not compiled; `eln-opt-run-now' starts the worker at once.
 ;;
 ;; Without native compilation (no libgccjit), nothing is ever scheduled.
 ;; The design notes are in emacs/ideas/eln-opt.md of the dotfiles repository.
 ;;
-;; Requires xl-async (which holds the loader too) for the background views.
+;; Requires xl-async (which holds the loader too) for the views.
 
 ;;; Code:
 
@@ -263,198 +266,28 @@ not retried within the same run."
             :left (- (length missing) (length todo))))))
 
 ;;; ------------------------------------------------------------
-;;; Step 4: ledger, lock, fingerprint, verification, audit
-;;; (see eln-opt.md, "不会死循环的规则" and "安全")
+;;; State: the build folder, a lock, and the files that failed
 ;;; ------------------------------------------------------------
-
-(defconst eln-opt-max-fails 2
-  "Failures after which a source is left alone until its key changes.")
-
-(defconst eln-opt-retry-interval (* 24 3600)
-  "Seconds before a source that failed once may be tried again.")
 
 (defconst eln-opt-lock-max-age 3600
   "Seconds after which a lock counts as stale even if its owner still exists.")
-
-(defconst eln-opt--ledger-max-bytes (* 1024 1024)
-  "Largest ledger eln-opt will read.")
 
 (defun eln-opt--now () (float-time))
 
 (defun eln-opt--version-dir ()
   "State folder for this Emacs build.  Ledgers never mix builds."
   (expand-file-name comp-native-version-dir eln-opt-state-dir))
-
-(defun eln-opt--ledger-file () (expand-file-name "ledger.eld" (eln-opt--version-dir)))
-(defun eln-opt--last-run-file () (expand-file-name "last-run.eld" (eln-opt--version-dir)))
 (defun eln-opt--lock-dir () (expand-file-name "lock" (eln-opt--version-dir)))
-
-(defun eln-opt--flags ()
-  "Compile settings that change the output but not the eln file name."
-  (list native-comp-speed native-comp-driver-options
-        native-comp-compiler-options native-comp-debug))
-
-(defun eln-opt--file-sha (file)
-  (with-temp-buffer
-    (set-buffer-multibyte nil)
-    (insert-file-contents-literally file)
-    (secure-hash 'sha256 (current-buffer))))
 
 (defun eln-opt--file-size (file)
   (let ((attrs (file-attributes file)))
     (and attrs (file-attribute-size attrs))))
-
-(defun eln-opt-source-key (src)
-  "Ledger key for SRC: its truename, content hash and compile settings."
-  (list (file-truename src) (eln-opt--file-sha (file-truename src)) (eln-opt--flags)))
-
-;;; Ledger
-
-(defun eln-opt--ledger-load ()
-  "Entries of this build's ledger, as an alist (KEY . PLIST)."
-  (let ((form (eln-opt--read-eld (eln-opt--ledger-file) eln-opt--ledger-max-bytes)))
-    (and (equal (plist-get form :version) comp-native-version-dir)
-         (seq-filter (lambda (e) (and (consp e) (consp (car e)) (listp (cdr e))))
-                     (plist-get form :entries)))))
-
-(defun eln-opt--ledger-save (entries)
-  (eln-opt--write-eld (eln-opt--ledger-file)
-                     (list :version comp-native-version-dir :entries entries)))
-
-(defun eln-opt--ledger-get (key)
-  (cdr (assoc key (eln-opt--ledger-load))))
-
-(defun eln-opt--ledger-set (key plist)
-  (eln-opt--ledger-save
-   (cons (cons key plist) (assoc-delete-all key (eln-opt--ledger-load)))))
-
-(defun eln-opt--ledger-remove (key)
-  (eln-opt--ledger-save (assoc-delete-all key (eln-opt--ledger-load))))
-
-(defun eln-opt--record-failure (key reason)
-  "Count one more failure for KEY.  After `eln-opt-max-fails', it waits for a new key."
-  (let ((fails (1+ (or (plist-get (eln-opt--ledger-get key) :fails) 0))))
-    (eln-opt--ledger-set key (list :status 'failed :fails fails
-                                  :reason reason :time (eln-opt--now)))))
-
-(defun eln-opt--may-attempt-p (key now)
-  "Non-nil if KEY should be compiled now.
-Done entries are skipped while their eln exists.  A failed entry waits
-`eln-opt-retry-interval' and is tried at most `eln-opt-max-fails' times.
-Anything else (quarantined, unknown) is left alone."
-  (let* ((e (eln-opt--ledger-get key))
-         (status (plist-get e :status))
-         (eln (plist-get e :eln)))
-    (cond ((null e) t)
-          ((eq status 'missing) t)
-          ((eq status 'done) (not (and eln (file-exists-p eln))))
-          ((eq status 'failed)
-           (and (< (or (plist-get e :fails) 0) eln-opt-max-fails)
-                (>= (- now (or (plist-get e :time) 0)) eln-opt-retry-interval)))
-          (t nil))))
-
-;;; Verification and audit
 
 (defun eln-opt--short (text)
   "The part of TEXT that says what went wrong, at most 300 characters."
   (let* ((start (or (string-match "Error:" text) 0))
          (piece (string-trim (substring text start))))
     (if (> (length piece) 300) (substring piece 0 300) piece)))
-
-(defun eln-opt--child (form &optional profile)
-  "Evaluate FORM in a fresh batch Emacs.  Return (EXIT . OUTPUT).
-A fresh process is the only honest test of loading: this process may already
-hold a native version of the same function.  It gets this process's
-`load-path', because an eln can require its dependencies when it loads (winum
-requires dash).  With PROFILE, it first loads that profile, because a file of
-ours can depend on what init defines: xueliang.el uses `xl-leader-map'."
-  (with-temp-buffer
-    (let* ((exe (expand-file-name invocation-name invocation-directory))
-           (init (and profile (expand-file-name "init.el" profile)))
-           (args (if (and init (file-exists-p init))
-                     (list "--batch" "--init-directory" profile
-                           "-l" (expand-file-name "early-init.el" profile)
-                           "--eval" "(run-hooks (quote before-init-hook))"
-                           "-l" init)
-                   (list "-Q" "--batch")))
-           (status (apply #'call-process exe nil t nil
-                          (append args
-                                  (list "--eval"
-                                        (format "%S" `(progn (setq load-path ',load-path)
-                                                             ,form)))))))
-      (cons status (buffer-string)))))
-
-(defun eln-opt--child-in-profile (form)
-  "`eln-opt--child' with this run's profile loaded first."
-  (eln-opt--child form (eln-opt--profile-dir)))
-
-(defun eln-opt--first-defun (src)
-  "Name of the first top-level defun in SRC, or nil.  SRC is read, not run."
-  (with-temp-buffer
-    (insert-file-contents src)
-    (goto-char (point-min))
-    (let ((read-eval nil) found)
-      (condition-case nil
-          (while (not found)
-            (let ((form (read (current-buffer))))
-              (when (and (consp form) (eq (car form) 'defun) (symbolp (cadr form)))
-                (setq found (cadr form)))))
-        (error nil))
-      found)))
-
-(defun eln-opt-verify (src eln &optional names)
-  "Load ELN in a fresh process and check that one of NAMES is native.
-NAMES are the functions the ranking found in SRC.  Without them, the first
-top-level defun of SRC is checked.  Return nil when it is, otherwise a string
-saying why not.  This is the only test of \"done\": the file existing is not
-enough (see eln-opt.md).  A file can define its functions through macros, so
-its defuns need not be visible when read."
-  (let ((names (or (seq-filter #'symbolp names)
-                   (let ((first (eln-opt--first-defun src))) (and first (list first))))))
-    (if (null names)
-        "no function to check"
-      (let* ((r (eln-opt--child-in-profile
-                 `(progn (load ,eln nil t)
-                         (princ (if (seq-some (lambda (s)
-                                                (and (fboundp s)
-                                                     (native-comp-function-p (symbol-function s))))
-                                              ',names)
-                                    "XL-JIT-OK" "XL-JIT-NOT-NATIVE")))))
-             (out (string-trim (cdr r))))
-        (cond ((/= (car r) 0) (format "child exited %s: %s" (car r) (eln-opt--short out)))
-              ((string-match-p "XL-JIT-OK\\'" out) nil)
-              (t "loaded but not native"))))))
-
-(defun eln-opt--discard-eln (eln)
-  "Delete ELN with comp's own helper, ignoring errors."
-  (ignore-errors (comp-delete-or-replace-file eln)))
-
-(defun eln-opt--audit ()
-  "Check every done entry before doing new work.
-A missing eln drops its entry, so it can be built again.  An eln whose sha256
-or size differs from the ledger, or that fails to load, is deleted and
-counted as a failure."
-  (dolist (entry (eln-opt--ledger-load))
-    (let* ((key (car entry)) (p (cdr entry)) (eln (plist-get p :eln)))
-      (when (eq (plist-get p :status) 'done)
-        (cond
-         ((not (and eln (file-exists-p eln)))
-          ;; Recorded, not silently dropped: something outside eln-opt removed
-          ;; the eln.  The next pass may build it again.
-          (eln-opt--ledger-set key (list :status 'missing :time (eln-opt--now)
-                                        :reason "eln file gone; removed outside eln-opt?")))
-         ((not (and (equal (eln-opt--file-sha eln) (plist-get p :sha))
-                    (equal (eln-opt--file-size eln) (plist-get p :size))))
-          (eln-opt--discard-eln eln)
-          (eln-opt--record-failure key "sha256 or size differs from the ledger"))
-         (t
-          (let* ((r (eln-opt--child-in-profile `(load ,eln nil t)))
-                 (why (and (/= (car r) 0)
-                           (format "load failed in a fresh process: %s"
-                                   (eln-opt--short (cdr r))))))
-            (when why
-              (eln-opt--discard-eln eln)
-              (eln-opt--record-failure key why)))))))))
 
 ;;; Lock: taken by making a directory, which is atomic.  Never waits.
 
@@ -497,48 +330,90 @@ renamed away first, so two runners cannot both take over the same one."
                  (emacs-pid))
       (ignore-errors (delete-directory dir t)))))
 
-;;; Fingerprint and the run itself
 
-(defun eln-opt--mtime (file)
-  (let ((attrs (file-attributes file)))
-    (and attrs (file-attribute-modification-time attrs))))
+;;; The failed list: one entry per source that failed to compile.  It is
+;;; skipped until its content changes, so one bad file cannot stop every run.
 
-(defun eln-opt--watch-files ()
-  "Our own lisp sources, whose edits should trigger a new check."
-  (when (bound-and-true-p xl-dotfiles)
-    (let ((root (expand-file-name "emacs/" xl-dotfiles)))
-      (cons (expand-file-name "xueliang.el" root)
-            (directory-files (expand-file-name "lisp" root) t "\\.el\\'")))))
+(defconst eln-opt--failed-max-bytes (* 256 1024)
+  "Largest failed list eln-opt will read.")
 
-(defun eln-opt--fingerprint ()
-  "Hash of the folder mtimes in `load-path' and of our own lisp sources.
-The state folder is left out: the run itself changes it."
-  (let* ((dirs (seq-filter (lambda (d) (and (stringp d) (file-directory-p d)))
-                           load-path))
-         (items (append
-                 (mapcar (lambda (d) (list d (eln-opt--mtime d))) dirs)
-                 (mapcar (lambda (f) (list f (eln-opt--file-size f) (eln-opt--mtime f)))
-                         (eln-opt--watch-files)))))
-    (secure-hash 'sha256 (prin1-to-string items))))
+(defun eln-opt--failed-file ()
+  (expand-file-name "failed.eld" (eln-opt--version-dir)))
 
-(defun eln-opt--next-eligible ()
-  "Earliest time a failed entry may be tried again, or nil."
-  (let (best)
-    (dolist (e (eln-opt--ledger-load))
-      (let ((p (cdr e)))
-        (when (and (eq (plist-get p :status) 'failed)
-                   (< (or (plist-get p :fails) 0) eln-opt-max-fails))
-          (let ((at (+ (or (plist-get p :time) 0) eln-opt-retry-interval)))
-            (setq best (if best (min best at) at))))))
-    best))
+(defun eln-opt--content-md5 (file)
+  (with-temp-buffer
+    (set-buffer-multibyte nil)
+    (insert-file-contents-literally file)
+    (md5 (current-buffer))))
+
+(defun eln-opt--failed-load ()
+  "The failed list: plists with :src, :md5, :reason and :time."
+  (seq-filter (lambda (e) (and (consp e) (stringp (plist-get e :src))))
+              (eln-opt--read-eld (eln-opt--failed-file) eln-opt--failed-max-bytes)))
+
+(defun eln-opt--failed-p (src)
+  "Non-nil if SRC failed before and has not changed since."
+  (let ((true (file-truename src)))
+    (and (file-readable-p true)
+         (let ((md5 (eln-opt--content-md5 true)))
+           (seq-find (lambda (e) (and (equal (plist-get e :src) true)
+                                      (equal (plist-get e :md5) md5)))
+                     (eln-opt--failed-load))))))
+
+(defun eln-opt--record-failure (src reason)
+  "Put SRC on the failed list with REASON, replacing an older entry for it."
+  (let ((true (file-truename src)))
+    (eln-opt--write-eld
+     (eln-opt--failed-file)
+     (cons (list :src true
+                 :md5 (and (file-readable-p true) (eln-opt--content-md5 true))
+                 :reason (eln-opt--short (format "%s" reason))
+                 :time (eln-opt--now))
+           (seq-remove (lambda (e) (equal (plist-get e :src) true))
+                       (eln-opt--failed-load))))))
+
+;;; Built: the eln Emacs will load for a source.  Emacs looks the eln up by
+;;; the source's path and content, and ignores it when the .elc is newer.
+
+(defun eln-opt--eln-dir ()
+  "The folder where this Emacs writes and finds the user's elns."
+  (expand-file-name comp-native-version-dir (car native-comp-eln-load-path)))
+
+(defun eln-opt--eln-for (src)
+  (ignore-errors (comp-el-to-eln-filename src)))
+
+(defun eln-opt--built-p (src)
+  "Non-nil if SRC has an eln that Emacs will use: present, and not older than
+the .elc next to SRC."
+  (let ((eln (eln-opt--eln-for src))
+        (elc (concat src "c")))
+    (and eln (file-exists-p eln)
+         (not (and (file-exists-p elc) (file-newer-than-file-p elc eln))))))
+
+(defun eln-opt--built-sources ()
+  "(SOURCE . ELN) for every loaded file whose eln, in the user's eln folder,
+Emacs will use.  Emacs's own preloaded native code is not in that folder."
+  (let ((dir (file-name-as-directory (eln-opt--eln-dir)))
+        out)
+    (dolist (entry load-history)
+      (let ((file (car entry)))
+        (when (and (stringp file) (string-suffix-p ".elc" file))
+          (let* ((src (substring file 0 -1))
+                 (eln (and (file-exists-p src) (eln-opt--eln-for src))))
+            (when (and eln (string-prefix-p dir eln) (eln-opt--built-p src))
+              (push (cons src eln) out))))))
+    (sort (delete-dups out) (lambda (a b) (string< (car a) (car b))))))
+
+(defun eln-opt--user-elns ()
+  "Every eln in the user's eln folder, except the subr trampolines."
+  (let ((dir (eln-opt--eln-dir)))
+    (and (file-directory-p dir)
+         (seq-remove (lambda (f) (string-prefix-p "subr--trampoline-" (file-name-nondirectory f)))
+                     (directory-files dir t "\\.eln\\'")))))
 
 ;;; ------------------------------------------------------------
-;;; Step 6: Tier 2, background native compilation
-;;; (eln-opt.md, "流水线" steps 5-6, "安全", "DoS")
+;;; Candidates: which ranked files may be compiled
 ;;; ------------------------------------------------------------
-
-(defconst eln-opt-compile-budget 5
-  "Most files one run compiles.  Each costs a child Emacs with the profile.")
 
 (defconst eln-opt-min-ratio 3.0
   "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
@@ -547,98 +422,19 @@ the candidates is by score.  Uncalibrated: set it from a profiler run.")
 (defconst eln-opt-max-source-bytes (* 500 1024)
   "Largest source file eln-opt will compile.")
 
-(defconst eln-opt-max-total-bytes (* 200 1024 1024)
-  "Most eln bytes eln-opt keeps in total.  Past it, runs compile nothing.")
+(defconst eln-opt-worker-max 30
+  "Most files one worker run compiles.")
 
-(defconst eln-opt-compile-timeout 300
-  "Seconds one child compile may take before it is killed and counted failed.")
+(defconst eln-opt-worker-sleep 10
+  "Seconds the worker sleeps between two compiles, to stay in the background.")
 
-(defvar eln-opt-crash-dir (expand-file-name "~/Library/Logs/DiagnosticReports/")
-  "Where macOS writes crash reports.  Tests rebind it.")
-
-(defconst eln-opt--crash-read-bytes (* 2 1024 1024)
-  "Most of each crash report that is read.")
+(defconst eln-opt-worker-stall 600
+  "Seconds without output after which the main Emacs kills the worker and puts
+the file it was compiling on the failed list.")
 
 (defun eln-opt--profile-dir ()
   "The profile this run belongs to: the batch's user-emacs-directory."
   (file-name-as-directory user-emacs-directory))
-
-(defun eln-opt--run-with-timeout (args seconds)
-  "Run the Emacs binary with ARGS for at most SECONDS.
-Return `ok' on exit 0, otherwise a string saying why not.  A child that runs
-too long is killed, so a hung compile cannot hold the lock forever."
-  (let* ((exe (expand-file-name invocation-name invocation-directory))
-         (buf (generate-new-buffer " *eln-opt-child*"))
-         (proc (make-process :name "eln-opt-child" :buffer buf :noquery t
-                             :command (cons exe args)))
-         (deadline (+ (eln-opt--now) seconds)))
-    (unwind-protect
-        (progn
-          (while (and (process-live-p proc) (< (eln-opt--now) deadline))
-            (accept-process-output proc 0.5))
-          (cond
-           ((process-live-p proc)
-            (signal-process proc 'KILL)
-            (format "timed out after %d s" seconds))
-           ((zerop (process-exit-status proc)) 'ok)
-           (t (format "exit %d: %s" (process-exit-status proc)
-                      (eln-opt--short
-                       (with-current-buffer buf
-                         (buffer-substring-no-properties (point-min) (point-max))))))))
-      (when (buffer-live-p buf) (kill-buffer buf)))))
-
-(defun eln-opt--child-compile (src eln)
-  "Compile SRC to ELN in a child Emacs that loads the profile first.
-The profile is needed: without its packages, macros such as evil's would be
-compiled as calls.  `native-comp-speed' is capped at 2 (eln-opt.md, \"实测\")."
-  (let* ((profile (eln-opt--profile-dir))
-         (form `(progn (setq native-comp-speed (min 2 native-comp-speed))
-                       (native-compile ,src ,eln))))
-    (eln-opt--run-with-timeout
-     (list "--batch" "--init-directory" profile
-           "-l" (expand-file-name "early-init.el" profile)
-           "--eval" "(run-hooks (quote before-init-hook))"
-           "-l" (expand-file-name "init.el" profile)
-           "--eval" (format "%S" form))
-     eln-opt-compile-timeout)))
-
-(defun eln-opt--read-text (file max-bytes)
-  (when (file-readable-p file)
-    (with-temp-buffer
-      (set-buffer-multibyte nil)
-      (insert-file-contents-literally file nil 0 max-bytes)
-      (buffer-string))))
-
-(defun eln-opt--eln-bytes ()
-  "Total size of the elns the ledger records as done."
-  (let ((sum 0))
-    (dolist (e (eln-opt--ledger-load))
-      (when (eq (plist-get (cdr e) :status) 'done)
-        (cl-incf sum (or (plist-get (cdr e) :size) 0))))
-    sum))
-
-(defun eln-opt--crash-scan (since)
-  "Quarantine done elns that a crash report newer than SINCE names.
-An eln named in a crash is deleted and its key quarantined for good: a
-crash is not retried.  Returns the number quarantined."
-  (let ((n 0))
-    (when (file-directory-p eln-opt-crash-dir)
-      (dolist (f (directory-files eln-opt-crash-dir t "\\`Emacs.*\\.ips\\'"))
-        (let ((mtime (eln-opt--mtime f)))
-          (when (and mtime (> (float-time mtime) since))
-            (let ((text (or (eln-opt--read-text f eln-opt--crash-read-bytes) "")))
-              (dolist (e (eln-opt--ledger-load))
-                (let ((eln (plist-get (cdr e) :eln)))
-                  (when (and eln (eq (plist-get (cdr e) :status) 'done)
-                             (string-match-p (regexp-quote (file-name-nondirectory eln))
-                                             text))
-                    (eln-opt--discard-eln eln)
-                    (eln-opt--ledger-set (car e)
-                                        (list :status 'quarantined
-                                              :reason "named in a crash report"
-                                              :time (eln-opt--now)))
-                    (cl-incf n)))))))))
-    n))
 
 (defun eln-opt--candidate-reason (row)
   "Why ranking ROW is not a candidate, as a string; nil if it is one.
@@ -666,129 +462,6 @@ against the trusted roots and the opt-out cookie, and must be a reasonable size.
 (defun eln-opt--candidate-p (row)
   "Non-nil if ranking ROW may be compiled."
   (null (eln-opt--candidate-reason row)))
-
-(defun eln-opt--compile-one (src &optional names)
-  "Compile and verify SRC; NAMES are its functions from the ranking.
-Return `done', `skipped', or `failed'."
-  (let* ((true (file-truename src))
-         (key (eln-opt-source-key true))
-         (eln (comp-el-to-eln-filename true))
-         (now (eln-opt--now)))
-    (if (not (eln-opt--may-attempt-p key now))
-        'skipped
-      (let* ((built (eln-opt--child-compile true eln))
-             (reason (cond ((not (eq built 'ok)) built)
-                           ((not (file-exists-p eln)) "no eln written")
-                           (t (eln-opt-verify true eln names)))))
-        (if reason
-            (progn
-              (eln-opt--discard-eln eln)
-              (eln-opt--record-failure key reason)
-              'failed)
-          (eln-opt--ledger-set key (list :status 'done :eln eln
-                                        :sha (eln-opt--file-sha eln)
-                                        :size (eln-opt--file-size eln)
-                                        :time now))
-          'done)))))
-
-(defun eln-opt--work ()
-  "One compile round: crash scan, then up to `eln-opt-compile-budget' files
-from the ranking, if the total eln size allows it."
-  (let* ((last (eln-opt--read-eld (eln-opt--last-run-file)))
-         (since (or (plist-get last :time) 0))
-         (quarantined (eln-opt--crash-scan since))
-         (capped (>= (eln-opt--eln-bytes) eln-opt-max-total-bytes))
-         (compiled 0) (failed 0) (skipped 0) (built nil))
-    (unless capped
-      (let* ((rows (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows))
-             (cands (seq-take (seq-filter #'eln-opt--candidate-p rows)
-                              eln-opt-compile-budget)))
-        (dolist (row cands)
-          (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
-            (pcase (eln-opt--compile-one src (plist-get row :defuns))
-              ('done (cl-incf compiled)
-                     (push (file-name-nondirectory src) built))
-              ('failed (cl-incf failed))
-              (_ (cl-incf skipped)))))))
-    (list :compiled compiled :failed failed :skipped skipped
-          :quarantined quarantined :capped capped :built (reverse built))))
-
-(defun eln-opt-status ()
-  "Counts by ledger status, eln bytes, and the last run's result."
-  (let ((counts nil))
-    (dolist (e (eln-opt--ledger-load))
-      (let ((st (plist-get (cdr e) :status)))
-        (setf (alist-get st counts 0) (1+ (alist-get st counts 0)))))
-    (list :ledger counts
-          :eln-bytes (eln-opt--eln-bytes)
-          :eln-cap eln-opt-max-total-bytes
-          :last-run (eln-opt--read-eld (eln-opt--last-run-file)))))
-
-(defun eln-opt--run-locked ()
-  (let* ((now (eln-opt--now))
-         (fp (eln-opt--fingerprint))
-         (last (eln-opt--read-eld (eln-opt--last-run-file)))
-         (next (plist-get last :next)))
-    (if (and (equal fp (plist-get last :fingerprint))
-             (or (null next) (< now next)))
-        'unchanged
-      (progn
-        (eln-opt--audit)
-        (let ((result (eln-opt--work)))
-          (eln-opt--write-eld (eln-opt--last-run-file)
-                             (list :fingerprint fp
-                                   :next (eln-opt--next-eligible)
-                                   :time (eln-opt--now)
-                                   :result result))
-          (cons 'ran result))))))
-
-(defun eln-opt-run-summary (result)
-  "One readable line saying what RESULT of `eln-opt-run' did."
-  (pcase result
-    ('unavailable "eln-opt: native compilation is not available here; nothing done.")
-    ('busy "eln-opt: another run holds the lock; nothing done.")
-    ('unchanged "eln-opt: nothing changed since the last run; nothing done.")
-    (`(ran . ,r)
-     (let ((compiled (plist-get r :compiled))
-           (failed (plist-get r :failed))
-           (skipped (plist-get r :skipped))
-           (quarantined (plist-get r :quarantined)))
-       (format (concat "eln-opt: compiled %d file(s), failed %d, quarantined %d.\n"
-                       "      %d candidate(s) were already built or waiting to retry.%s")
-               compiled failed quarantined skipped
-               (concat
-                (if (plist-get r :capped)
-                    "\n      Stopped early: the total eln size is at its cap."
-                  "")
-                (if (plist-get r :built)
-                    (format "\n      Built now: %s."
-                            (mapconcat #'identity (plist-get r :built) ", "))
-                  "")))))
-    (_ (format "eln-opt: %S" result))))
-
-(defun eln-opt-run ()
-  "One background run.  Return `unavailable', `busy', `unchanged', or (ran . RESULT).
-Does nothing at all on a platform without native compilation."
-  (cond
-   ((not (eln-opt-platform-available-p)) 'unavailable)
-   ((not (eln-opt--lock-acquire)) 'busy)
-   (t (unwind-protect (eln-opt--run-locked)
-        (eln-opt--lock-release)))))
-
-;;; Step 4: reset (the kill switch's companion)
-
-(defun eln-opt-reset ()
-  "Delete only the eln files this build's ledger recorded, then the ledger.
-Files eln-opt did not write are never touched.  Returns the number deleted."
-  (let ((n 0))
-    (dolist (e (eln-opt--ledger-load))
-      (let ((eln (plist-get (cdr e) :eln)))
-        (when (and eln (file-exists-p eln))
-          (ignore-errors (delete-file eln))
-          (cl-incf n))))
-    (ignore-errors (delete-file (eln-opt--ledger-file)))
-    (ignore-errors (delete-file (eln-opt--last-run-file)))
-    n))
 
 ;;; Trusted roots: a file is compiled (or ranked for compiling) only if its
 ;;; truename lies under one of these.  Used by the report and by step 6.
@@ -833,13 +506,7 @@ Returns a plist:
             FILE being what `symbol-file' reports; sorted by file name
   :total    how many functions are native in all
 Emacs's own preloaded native code is in :files too, so `:total' is large."
-  (let ((built (let (out)
-                 (dolist (e (eln-opt--ledger-load))
-                   (when (and (eq (plist-get (cdr e) :status) 'done)
-                              (plist-get (cdr e) :eln)
-                              (file-exists-p (plist-get (cdr e) :eln)))
-                     (push (cons (car (car e)) (plist-get (cdr e) :eln)) out)))
-                 (sort out (lambda (a b) (string< (car a) (car b))))))
+  (let ((built (eln-opt--built-sources))
         (groups (make-hash-table :test #'equal))
         (total 0))
     (mapatoms
@@ -1307,11 +974,10 @@ heavy roots can be loaded before the graph is built."
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :lazy-loaded lazy-loaded
             :built-rows (eln-opt-rank--built-rows)
-            :next (seq-take (seq-filter #'eln-opt--candidate-p
-                                        (sort (copy-sequence rows)
-                                              (lambda (a b) (> (plist-get a :score) (plist-get b :score)))))
-                            eln-opt-compile-budget)
-            :ledger (eln-opt-rank--ledger-summary)
+            :next (eln-opt--plan-from-rows
+                   (sort (copy-sequence rows)
+                         (lambda (a b) (> (plist-get a :score) (plist-get b :score)))))
+            :failed (eln-opt--failed-load)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
             :roots (length user-roots)
@@ -1349,20 +1015,6 @@ they are listed here with native \"eln-opt\".  Their KB is the eln size."
   (format "%4s  %6s  %6s  %-7s  %-6s  %-28s  %s\n"
           rank score kb trusted native file top))
 
-(defun eln-opt-rank--ledger-summary ()
-  "Every ledger entry as a plist, newest first, with the source name."
-  (let (out)
-    (dolist (e (eln-opt--ledger-load))
-      (let ((p (cdr e)))
-        (push (list :file (file-name-nondirectory (car (car e)))
-                    :status (plist-get p :status)
-                    :time (plist-get p :time)
-                    :fails (or (plist-get p :fails) 0)
-                    :reason (plist-get p :reason)
-                    :kb (and (plist-get p :size) (/ (plist-get p :size) 1024.0)))
-              out)))
-    (sort out (lambda (a b) (> (or (plist-get a :time) 0) (or (plist-get b :time) 0))))))
-
 (defun eln-opt-rank--when (time)
   (if time (format-time-string "%Y-%m-%d %H:%M" (seconds-to-time time)) "-"))
 
@@ -1372,18 +1024,17 @@ was compiled, what failed, why each ranked file was skipped, what is left out
 altogether.  The ranking table comes last."
   (let* ((built (plist-get result :built-rows))
          (next (plist-get result :next))
-         (ledger (plist-get result :ledger))
-         (done (seq-filter (lambda (e) (eq (plist-get e :status) 'done)) ledger))
-         (bad (seq-filter (lambda (e) (not (eq (plist-get e :status) 'done))) ledger))
+         (failed (plist-get result :failed))
+         (next-names (mapcar #'file-name-nondirectory next))
          (rows (plist-get result :rows)))
     (with-output-to-string
       ;; 1. The answer
       (princ "eln-opt report (report only; nothing is compiled here)\n\n")
-      (princ "Next background pass compiles: ")
+      (princ "Next worker compiles: ")
       (if (null next)
           (princ "nothing.\n")
         (princ (format "%d file(s), in this order: %s\n" (length next)
-                       (mapconcat (lambda (r) (plist-get r :file)) next ", "))))
+                       (mapconcat #'identity next-names ", "))))
       ;; 2. What was compiled
       (princ (format "\nCompiled by eln-opt and native now: %d file(s), %d function(s)\n"
                      (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
@@ -1397,29 +1048,25 @@ altogether.  The ranking table comes last."
                          "yes" "yes"
                          (plist-get row :count)
                          (plist-get row :top)))))
-      (when done
-        (princ "\nEntries in the ledger, status done (time of the build):\n")
-        (dolist (e done)
-          (princ (format "  %-30s %s  %5.1f KB\n" (plist-get e :file)
+      ;; 3. What failed
+      (when failed
+        (princ "\nSkipped after a failure (until the source changes):\n")
+        (dolist (e failed)
+          (princ (format "  %-30s %s\n    %s\n"
+                         (file-name-nondirectory (plist-get e :src))
                          (eln-opt-rank--when (plist-get e :time))
-                         (or (plist-get e :kb) 0)))))
-      ;; 3. What failed or was held back
-      (when bad
-        (princ "\nFailed or quarantined (not retried until the key changes, or for a day):\n")
-        (dolist (e bad)
-          (princ (format "  %-30s %-11s %s  fails %d\n    %s\n"
-                         (plist-get e :file) (plist-get e :status)
-                         (eln-opt-rank--when (plist-get e :time))
-                         (plist-get e :fails)
                          (or (plist-get e :reason) "")))))
       ;; 4. Why each ranked file is or is not compiled
       (princ "\nRanked files not yet native, and what happens to each:\n")
       (let ((n 0))
         (dolist (row rows)
-          (let ((why (if (memq row next)
-                         "compile in the next pass"
-                       (or (eln-opt--candidate-reason row)
-                           (format "candidate, but past the budget of %d per pass" eln-opt-compile-budget)))))
+          (let* ((src (and (plist-get row :path)
+                           (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
+                 (why (cond ((and src (member src next)) "compile in the next worker run")
+                            ((eln-opt--candidate-reason row))
+                            ((and src (eln-opt--failed-p src)) "failed before; see above")
+                            (t (format "candidate, but past the limit of %d per worker run"
+                                       eln-opt-worker-max)))))
             (when (< n 40)
               (princ (format "  %-28s score %6.1f  %s\n"
                              (plist-get row :file) (plist-get row :score) why)))
@@ -1548,22 +1195,6 @@ text, so that the child's loading messages are dropped."
   "(progn (require (quote eln-opt)) (setq eln-opt-rank--with-marker t) (eln-opt-report))"
   "The child form that prints the ranking report.")
 
-(defun eln-opt-run-now ()
-  "Run one eln-opt pass now, in the background.  Interactive only.
-Compiles up to `eln-opt-compile-budget' files, as the daily pass does, but
-without waiting for the daily timer.  A buffer shows the summary when done,
-and a loader turns while it works.  Batch: runs it here and prints the summary."
-  (interactive)
-  (if noninteractive
-      (princ (concat (eln-opt-run-summary (eln-opt-run)) "\n"))
-    (eln-opt-rank--show-async
-     "*eln-opt run*" "eln-opt run"
-     (concat "(progn (require (quote eln-opt)) "
-             "(princ (format \"\\n%s\\n\" " (prin1-to-string eln-opt-rank--marker) ")) "
-             "(princ (concat (eln-opt-run-summary (eln-opt-run)) \"\\n\\n\")) "
-             "(eln-opt-report))")
-     "running an eln-opt pass")))
-
 (defun eln-opt-report ()
   "Show the ranking.  Interactive: a buffer, filled in the background.
 Batch: printed to stdout, computed here."
@@ -1575,157 +1206,240 @@ Batch: printed to stdout, computed here."
         (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
     (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report" eln-opt-rank--report-form)))
 
-;;; ---- Trigger: when a background pass starts ----
+;;; ---- The worker: one batch Emacs that compiles the candidates in turn ----
 
-;; The only part of eln-opt that lives in the main Emacs (emacs/ideas/eln-opt.md).
-;; It uses timers only, no hooks.  After Emacs has been open for
-;; `eln-opt-auto-uptime', and the user has then been idle for `eln-opt-auto-idle',
-;; it starts one background batch Emacs that runs `eln-opt-run' (lock,
-;; fingerprint, audit, compile) at background priority.  Nothing is loaded into
-;; this Emacs: new elns take effect on the next start.  Without native
-;; compilation (no libgccjit), no timer is ever armed.
+(defun eln-opt--plan-from-rows (rows)
+  "Sources of ROWS (best first) to compile: candidates without a usable eln
+that have not failed before, at most `eln-opt-worker-max'."
+  (let (out)
+    (dolist (row rows)
+      (when (eln-opt--candidate-p row)
+        (let ((src (replace-regexp-in-string "\\.elc\\'" ".el" (plist-get row :path))))
+          (unless (or (member src out) (eln-opt--built-p src) (eln-opt--failed-p src))
+            (push src out)))))
+    (seq-take (nreverse out) eln-opt-worker-max)))
 
-;; M-x entry points defined in eln-opt.el; autoloaded so startup does not load it.
+(defun eln-opt-worker-plan ()
+  "The worker's plan: ranked candidates, best first."
+  (eln-opt--plan-from-rows
+   (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows)))
+
+(defun eln-opt--say (fmt &rest args)
+  "Print one line for the main Emacs, which reads lines starting with ELN-OPT."
+  (princ (concat "ELN-OPT " (apply #'format fmt args) "\n")))
+
+(defun eln-opt-worker ()
+  "Compile the plan one file at a time, sleeping between files.
+Runs in a batch Emacs with the profile loaded, so package macros expand as
+they should.  The first error stops it, after putting that file on the failed
+list.  Returns the number of files compiled, or `unavailable' or `busy'."
+  (cond
+   ((not (eln-opt-platform-available-p)) (eln-opt--say "unavailable") 'unavailable)
+   ((not (eln-opt--lock-acquire)) (eln-opt--say "busy") 'busy)
+   (t
+    (unwind-protect
+        (let ((plan (eln-opt-worker-plan))
+              (done 0)
+              (first t))
+          (eln-opt--say "plan %d %s" (length plan)
+                        (mapconcat #'file-name-nondirectory plan " "))
+          (catch 'stop
+            (dolist (src plan)
+              (unless first (sleep-for eln-opt-worker-sleep))
+              (setq first nil)
+              (eln-opt--say "start %s" src)
+              (let ((err (condition-case e
+                             (progn (native-compile (file-truename src)) nil)
+                           (error (format "%S" e)))))
+                (when (and (null err) (not (eln-opt--built-p src)))
+                  (setq err "compiled, but no eln that Emacs will use"))
+                (if err
+                    (progn
+                      (eln-opt--record-failure src err)
+                      (eln-opt--say "failed %s %s" src (eln-opt--short err))
+                      (throw 'stop nil))
+                  (cl-incf done)
+                  (eln-opt--say "done %s" src)))))
+          (eln-opt--say "finished %d" done)
+          done)
+      (eln-opt--lock-release)))))
+
+(defun eln-opt-status ()
+  "The user's eln count and the failed list."
+  (list :elns (length (eln-opt--user-elns))
+        :failed (eln-opt--failed-load)))
+
+(defun eln-opt-reset ()
+  "Delete every eln in the user's eln folder except the subr trampolines, and
+the failed list.  With Emacs's JIT off, those elns are eln-opt's.  Returns the
+number of elns deleted."
+  (let ((n 0))
+    (dolist (eln (eln-opt--user-elns))
+      (ignore-errors (comp-delete-or-replace-file eln))
+      (cl-incf n))
+    (ignore-errors (delete-file (eln-opt--failed-file)))
+    n))
+
+;;; ---- The main Emacs: start the worker once, show its log, watch it ----
+
+;; The only part of eln-opt that runs in the main Emacs.  One idle timer, once
+;; per session; no hooks.  New elns take effect on the next start.
 
 (defgroup eln-opt nil
   "Background native compilation of the hot files."
   :group 'comp)
 
 (defcustom eln-opt-auto-enable t
-  "Non-nil means the running Emacs starts eln-opt in the background."
+  "Non-nil means the running Emacs starts the eln-opt worker when idle."
   :type 'boolean)
 
-(defcustom eln-opt-auto-uptime (* 1 60)
-  "Seconds Emacs must have been open before a background run is considered.
-A short-lived Emacs (a quick edit, `emacsclient -a \"\"') never starts one."
-  :type 'integer)
-
 (defcustom eln-opt-auto-idle 60
-  "Seconds of idleness after which the background run starts."
+  "Seconds of idleness, once per session, before the worker starts."
   :type 'integer)
 
-(defcustom eln-opt-auto-interval 3600
-  "Least time between two background runs, from the last run's record.
-A pass with nothing changed returns at once, so this can be short.  It must
-stay above zero: a run that ends schedules the next check this far away."
-  :type 'integer)
+(defconst eln-opt-log-buffer "*eln-opt*"
+  "The worker's output, and the buffer `eln-opt-run-now' shows.")
 
-(defcustom eln-opt-auto-retry (* 30 60)
-  "When a run is not allowed now (one still running, or too recent), check again
-after this many seconds."
-  :type 'integer)
-
-(defvar eln-opt-auto--timer nil "The pending timer, idle or not.")
-(defvar eln-opt-auto--process nil "The background batch Emacs, while it runs.")
-(defvar eln-opt-auto-last-result nil
-  "What the last background run printed, for example (ran :compiled 1 ...).")
-
-;;; Conditions
-
-(defun eln-opt-auto--last-run-file ()
-  "The record the background run writes.  Its mtime says when it last ran."
-  (expand-file-name (concat "eln-opt/" comp-native-version-dir "/last-run.eld")
-                    user-emacs-directory))
-
-(defun eln-opt-auto--seconds-since-last-run ()
-  "Seconds since the last recorded run, or nil if there is none."
-  (let ((attrs (and (boundp 'comp-native-version-dir)
-                    (file-attributes (eln-opt-auto--last-run-file)))))
-    (and attrs (float-time (time-since (file-attribute-modification-time attrs))))))
-
-(defun eln-opt-auto--uptime ()
-  (float-time (time-since before-init-time)))
+(defvar eln-opt-auto--timer nil "The one-shot idle timer, while armed.")
+(defvar eln-opt-auto--process nil "The worker, while it runs.")
+(defvar eln-opt-auto--watchdog nil "The timer that watches the worker for stalls.")
+(defvar eln-opt-auto--last-output 0 "When the worker last printed anything.")
+(defvar eln-opt-auto--current nil "The source the worker is compiling now.")
 
 (defun eln-opt-auto--decision ()
-  "Nil when a background run may start now, otherwise a symbol saying why not.
-`disabled' and `unavailable' are final for this session; the others are
-retried later."
-  (let ((since (eln-opt-auto--seconds-since-last-run)))
-    (cond ((or (not eln-opt-auto-enable) (equal (getenv "ELN_OPT") "0")) 'disabled)
-          ((not (and (fboundp 'native-comp-available-p) (native-comp-available-p)))
-           'unavailable)
-          ((process-live-p eln-opt-auto--process) 'running)
-          ((< (eln-opt-auto--uptime) eln-opt-auto-uptime) 'too-early)
-          ((and since (< since eln-opt-auto-interval)) 'recent)
-          (t nil))))
-
-(defun eln-opt-auto--delay (why)
-  "Seconds to wait before checking again after WHY, or nil to stop."
-  (pcase why
-    ((or 'disabled 'unavailable) nil)
-    ('too-early (max 1 (- eln-opt-auto-uptime (eln-opt-auto--uptime))))
-    ('recent (max eln-opt-auto-retry
-                  (- eln-opt-auto-interval (or (eln-opt-auto--seconds-since-last-run) 0))))
-    (_ eln-opt-auto-retry)))
-
-;;; Timers
-
-(defun eln-opt-auto--cancel ()
-  (when (timerp eln-opt-auto--timer) (cancel-timer eln-opt-auto--timer))
-  (setq eln-opt-auto--timer nil))
-
-(defun eln-opt-auto--schedule (seconds)
-  (eln-opt-auto--cancel)
-  (setq eln-opt-auto--timer (run-with-timer seconds nil #'eln-opt-auto--tick)))
-
-(defun eln-opt-auto--tick ()
-  "Check the conditions.  If they hold, wait for the user to go idle."
-  (eln-opt-auto--cancel)
-  (let ((why (eln-opt-auto--decision)))
-    (if (null why)
-        (setq eln-opt-auto--timer
-              (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))
-      (let ((delay (eln-opt-auto--delay why)))
-        (when delay (eln-opt-auto--schedule delay))))))
-
-(defun eln-opt-auto-arm ()
-  "Arm the first check.  Does nothing in batch, so setup, tests, and the
-background run itself (which loads this init too) never start another."
-  (unless noninteractive
-    (eln-opt-auto--schedule (max 1 (- eln-opt-auto-uptime (eln-opt-auto--uptime))))))
-
-;;; The background run
+  "Nil when the worker may start now, otherwise a symbol saying why not."
+  (cond ((or (not eln-opt-auto-enable) (equal (getenv "ELN_OPT") "0")) 'disabled)
+        ((not (and (fboundp 'native-comp-available-p) (native-comp-available-p)))
+         'unavailable)
+        ((process-live-p eln-opt-auto--process) 'running)
+        (t nil)))
 
 (defun eln-opt-auto--command ()
-  "Command line of the background run: the same binary and profile, at
-background priority (macOS `taskpolicy -b' puts it on the efficiency cores)."
+  "The worker's command line: this binary and profile, at background priority
+\(macOS `taskpolicy -b' puts it on the efficiency cores)."
   (let* ((exe (expand-file-name invocation-name invocation-directory))
          (profile (file-name-as-directory user-emacs-directory))
          (emacs (list exe "--batch" "--init-directory" profile
                       "-l" (expand-file-name "early-init.el" profile)
                       "--eval" "(run-hooks (quote before-init-hook))"
                       "-l" (expand-file-name "init.el" profile)
-                      "--eval" "(progn (require 'eln-opt) (prin1 (eln-opt-run)) (terpri))")))
+                      "--eval" "(progn (require 'eln-opt) (eln-opt-worker))")))
     (cond ((executable-find "taskpolicy") (append '("taskpolicy" "-b") emacs))
           ((executable-find "nice") (append '("nice" "-n" "19") emacs))
           (t emacs))))
 
+(defun eln-opt-auto--note (text)
+  "Track the file the worker is on, from the ELN-OPT lines in TEXT."
+  (dolist (line (split-string text "\n" t))
+    (cond ((string-match "\\`ELN-OPT start \\(.+\\)\\'" line)
+           (setq eln-opt-auto--current (match-string 1 line)))
+          ((string-match "\\`ELN-OPT \\(?:done\\|failed\\) " line)
+           (setq eln-opt-auto--current nil)))))
+
+(defun eln-opt-auto--filter (proc text)
+  (setq eln-opt-auto--last-output (float-time))
+  (eln-opt-auto--note text)
+  (when (buffer-live-p (process-buffer proc))
+    (with-current-buffer (process-buffer proc)
+      (let ((inhibit-read-only t))
+        (save-excursion
+          (goto-char (point-max))
+          (insert text))))))
+
+(defun eln-opt-auto--summary (text)
+  "One line saying what the worker did, from its output TEXT."
+  (let ((done (eln-opt--count-matches "^ELN-OPT done " text))
+        (failed (and (string-match "^ELN-OPT failed \\(.+\\)$" text)
+                     (match-string 1 text))))
+    (cond ((string-match-p "^ELN-OPT unavailable" text)
+           "eln-opt: native compilation is not available here")
+          ((string-match-p "^ELN-OPT busy" text)
+           "eln-opt: another worker holds the lock")
+          (failed (format "eln-opt: compiled %d file(s), then failed: %s (see %s)"
+                          done failed eln-opt-log-buffer))
+          ((string-match-p "^ELN-OPT finished" text)
+           (if (zerop done)
+               "eln-opt: nothing to compile"
+             (format "eln-opt: compiled %d file(s); they load on the next start" done)))
+          (t (format "eln-opt: the worker stopped early (see %s)" eln-opt-log-buffer)))))
+
+(defun eln-opt--count-matches (regexp text)
+  "How many times REGEXP matches in TEXT."
+  (let ((n 0) (start 0))
+    (while (string-match regexp text start)
+      (setq n (1+ n) start (match-end 0)))
+    n))
+
+(defun eln-opt-auto--stop-watchdog ()
+  (when (timerp eln-opt-auto--watchdog) (cancel-timer eln-opt-auto--watchdog))
+  (setq eln-opt-auto--watchdog nil))
+
 (defun eln-opt-auto--sentinel (proc _event)
   (unless (process-live-p proc)
+    (eln-opt-auto--stop-watchdog)
     (setq eln-opt-auto--process nil
-          eln-opt-auto-last-result
-          (with-current-buffer (process-buffer proc)
-            (save-excursion
-              (goto-char (point-max))
-              ;; The result is the last line that reads as a form.
-              (when (re-search-backward "^\\((ran .*)\\|unchanged\\|busy\\|unavailable\\)$" nil t)
-                (ignore-errors (let ((read-eval nil)) (read (match-string 0))))))))
-    (eln-opt-auto--schedule eln-opt-auto-interval)))
+          eln-opt-auto--current nil)
+    (when (buffer-live-p (process-buffer proc))
+      (with-current-buffer (process-buffer proc)
+        (xl-spinner-mode-line-stop)
+        (message "%s" (eln-opt-auto--summary (buffer-string)))))))
+
+(defun eln-opt-auto--watch ()
+  "Kill a worker that has printed nothing for `eln-opt-worker-stall' seconds,
+and put the file it was compiling on the failed list."
+  (when (and (process-live-p eln-opt-auto--process)
+             (> (- (float-time) eln-opt-auto--last-output) eln-opt-worker-stall))
+    (when eln-opt-auto--current
+      (eln-opt--record-failure eln-opt-auto--current
+                               (format "stalled for %d s; killed" eln-opt-worker-stall)))
+    (delete-process eln-opt-auto--process)))
 
 (defun eln-opt-auto--start ()
-  "Start the background run, unless the conditions changed while idle."
-  (eln-opt-auto--cancel)
-  (let ((why (eln-opt-auto--decision)))
-    (if why
-        (let ((delay (eln-opt-auto--delay why)))
-          (when delay (eln-opt-auto--schedule delay)))
-      (let ((buf (get-buffer-create " *eln-opt*")))
-        (with-current-buffer buf (erase-buffer))
-        (setq eln-opt-auto--process
-              (make-process :name "eln-opt" :buffer buf :noquery t
-                            :connection-type 'pipe
-                            :command (eln-opt-auto--command)
-                            :sentinel #'eln-opt-auto--sentinel))))))
+  "Start the worker, unless eln-opt is off, cannot compile here, or runs already.
+Returns the process, or nil."
+  (setq eln-opt-auto--timer nil)
+  (unless (eln-opt-auto--decision)
+    (let ((buf (get-buffer-create eln-opt-log-buffer)))
+      (with-current-buffer buf
+        (let ((inhibit-read-only t)) (erase-buffer))
+        (special-mode)
+        (xl-spinner-mode-line-start "eln-opt worker"))
+      (setq eln-opt-auto--last-output (float-time)
+            eln-opt-auto--current nil
+            eln-opt-auto--process
+            (make-process :name "eln-opt-worker" :buffer buf :noquery t
+                          :connection-type 'pipe
+                          :command (eln-opt-auto--command)
+                          :filter #'eln-opt-auto--filter
+                          :sentinel #'eln-opt-auto--sentinel))
+      (eln-opt-auto--stop-watchdog)
+      (setq eln-opt-auto--watchdog (run-with-timer 60 60 #'eln-opt-auto--watch))
+      eln-opt-auto--process)))
+
+(defun eln-opt-auto-arm ()
+  "Once per session: when Emacs has been idle for `eln-opt-auto-idle' seconds,
+start the worker.  Does nothing in batch, so setup, tests and the worker
+itself (which loads this init too) never start one.  Does nothing without
+native compilation."
+  (when (timerp eln-opt-auto--timer) (cancel-timer eln-opt-auto--timer))
+  (setq eln-opt-auto--timer nil)
+  (when (and (not noninteractive)
+             eln-opt-auto-enable
+             (fboundp 'native-comp-available-p) (native-comp-available-p))
+    (setq eln-opt-auto--timer
+          (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))))
+
+(defun eln-opt-run-now ()
+  "Start the worker now, or show the one that runs, with a loader in its log.
+Batch: runs the worker here."
+  (interactive)
+  (if noninteractive
+      (eln-opt-worker)
+    (let ((proc (or (and (process-live-p eln-opt-auto--process) eln-opt-auto--process)
+                    (eln-opt-auto--start))))
+      (if proc
+          (display-buffer (process-buffer proc))
+        (message "eln-opt: %s" (eln-opt-auto--decision))))))
 
 (provide 'eln-opt)
 (provide 'eln-opt-rank)
