@@ -43,8 +43,9 @@ Tier 2 的门槛应按实测收益定，而不只看热不热。循环密集的�
 1. 加载 `eln-opt.el`：约 20 毫秒（字节码，Pi）。comp.el **不在这里加载**，只在需要时（worker、trampoline、reset）才加载。
 2. `eln-opt-auto-arm` 挂一个一次性的 idle timer，时长 `eln-opt-auto-idle`（默认 5 秒）。没有轮询，也不做分析。batch 运行时（setup、测试、worker 自己）什么都不挂。
 
-idle timer 触发时（只在 Emacs 连续空闲满那么久之后；一个会话只触发一次）：
+idle timer 触发时（只在 Emacs 连续空闲满那么久之后）：
 
+10a. 一次运行编译了东西（有 `done`），就重新挂一次 idle timer，下一段空闲时继续；一个会话最多 `eln-opt-auto-max-runs`（60）次。没有新工作时记为安静状态，之后不再启动。
 3. 决定是否启动（`eln-opt-auto--decision`，约 0.1 毫秒）：`ELN_OPT=0` 直接禁用；`eln-opt-auto-enable` 为 nil 禁用；已有 worker 在跑；逻辑核少于 `eln-opt-min-processors`（2）就不自动启动（单核上 worker 和会话抢同一个核，单核用户可以手动运行 `eln-opt-compile-now`）；**安静状态**：上次 worker 没有找到任何事要做，并且指纹没变。
 4. 指纹（`eln-opt--quiet-fingerprint`，约 1.5 毫秒）：Emacs 二进制、`load-path`、我们自己的 lisp 文件的修改时间。它不包含用法数据（savehist、recentf）。
 5. 启动 worker：同一个 Emacs 二进制，同一个 profile，`taskpolicy -b`（macOS）或 `nice -n 19`。一个 watchdog 每 60 秒检查一次输出。
@@ -56,13 +57,13 @@ worker（后台批处理 Emacs）：
 8. 平台判断（缓存在 `platform.eld`，key 是二进制的路径、大小和 mtime）。
 9. 排计划：
    - 字节码候选：以源码加载、没有最新 `.elc` 的文件（先加载懒加载的根，比如 `org`，再计算）；
-   - native 候选：平台支持时，做完整分析（Pi 上约 6 秒），按分数从高到低，取 ratio ≥ 3 且没有 eln 的文件；
+   - native 候选：平台支持时，做完整分析（Pi 上约 6 秒），按性价比（ratio = 分数 ÷ 大小 KB）从高到低，取 ratio ≥ 3 且没有 eln 的文件；
    - 合计最多 30 个，字节码在前。计划为空就记为安静状态，然后退出。
-10. 逐个处理，每两个文件之间睡 10 秒（`eln-opt-worker-sleep`）：写进行中标记 → 编译 → 删除标记 → 输出 `done` 或 `failed` 并记入失败列表。**任何一个失败就停止整个 worker。**
-11. 结束：输出 `finished N`，释放锁。主 Emacs 在回显区显示 `compiled N file(s); they load on the next start`。
+10. 逐个处理，每两个文件之间睡 5 秒（`eln-opt-worker-sleep`）：写进行中标记 → 编译 → 删除标记 → 输出 `done` 或 `failed` 并记入失败列表。失败的文件记入失败列表，worker 继续编下一个，所以一个坏文件不会挡住其他文件。
+11. 结束：输出 `finished N`（有失败时 `finished N, failed M`），释放锁。主 Emacs 在回显区显示 `compiled N file(s); they load on the next start`。
 12. 下次启动：Emacs 自己加载新的 `.elc` 和 eln。
 
-Pi 上的大致耗时：每个文件的编译（小文件几秒，org 约 1 分钟）加上 10 秒间隔，30 个文件大约 5 分钟以上。
+Pi 上的大致耗时：每个文件的编译（小文件几秒，org 约 1 分钟）加上 5 秒间隔，30 个文件大约 5 分钟以上。
 
 ## 候选规则
 

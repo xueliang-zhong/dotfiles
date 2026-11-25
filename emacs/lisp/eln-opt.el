@@ -14,8 +14,9 @@
 ;; Emacs profiles nothing and adds no hooks; it arms one idle timer
 ;; (`eln-opt-auto-arm'):
 ;;
-;; - Once per session, after Emacs has been idle for `eln-opt-auto-idle'
-;;   seconds, it starts one worker: a batch Emacs with this profile.
+;; - After Emacs has been idle for `eln-opt-auto-idle' seconds, it starts one
+;;   worker: a batch Emacs with this profile.  A run that compiled something
+;;   arms the idle timer again, up to `eln-opt-auto-max-runs' runs a session.
 ;; - The worker ranks files by reachability from what you use (savehist,
 ;;   recentf, hooks and keymaps, read from byte code), keeps the candidates
 ;;   that have no usable eln yet and have not failed before, and compiles them
@@ -501,7 +502,7 @@ org.el (about 870 KB), which compiles in about a minute.")
 (defconst eln-opt-worker-max 30
   "Most files one worker run compiles.")
 
-(defconst eln-opt-worker-sleep 10
+(defconst eln-opt-worker-sleep 5
   "Seconds the worker sleeps between two compiles, to stay in the background.")
 
 (defconst eln-opt-worker-stall 600
@@ -1106,7 +1107,8 @@ heavy roots can be loaded before the graph is built."
             :next (and native
                        (eln-opt--plan-from-rows
                         (sort (copy-sequence rows)
-                              (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+                              (lambda (a b) (> (or (plist-get a :ratio) 0)
+                                               (or (plist-get b :ratio) 0))))
                         (- eln-opt-worker-max
                            (min eln-opt-worker-max (length (eln-opt--byte-candidates))))))
             :failed (eln-opt--failed-load)
@@ -1561,7 +1563,8 @@ they agree; without the load, a lazy package's files were missed."
 (defun eln-opt-worker-plan (&optional native)
   "The worker's plan, as (KIND . SOURCE) with KIND `byte' or `native'.
 Byte-compiles come first: they are cheap, and interpreted code gains the most.
-Native candidates, best first, follow only when NATIVE is non-nil.  At most
+Native candidates follow only when NATIVE is non-nil, best ratio (score per KB)
+first: small hot files before big ones.  At most
 `eln-opt-worker-max' in all."
   (let ((bytes (seq-take (eln-opt--byte-plan) eln-opt-worker-max)))
     (append
@@ -1569,7 +1572,10 @@ Native candidates, best first, follow only when NATIVE is non-nil.  At most
      (and native
           (mapcar (lambda (src) (cons 'native src))
                   (eln-opt--plan-from-rows
-                   (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows)
+                   (sort (copy-sequence
+                          (plist-get (eln-opt-rank--compute (eln-opt--profile-dir)) :rows))
+                         (lambda (a b) (> (or (plist-get a :ratio) 0)
+                                          (or (plist-get b :ratio) 0))))
                    (- eln-opt-worker-max (length bytes))))))))
 
 (defun eln-opt--compile-one (kind src)
@@ -1626,6 +1632,7 @@ marker and the trusted-root check still apply."
                               (eln-opt-forced-plan sources native)
                             (eln-opt-worker-plan native))))
                (done 0)
+               (failures 0)
                (first t))
           (when refused
             (eln-opt--say "stopped: %s is a symbolic link; remove it and run again"
@@ -1659,10 +1666,11 @@ marker and the trusted-root check still apply."
                     (progn
                       (eln-opt--record-failure src err)
                       (eln-opt--say "failed %s %s" src (eln-opt--short err))
-                      (throw 'stop nil))
+                      (cl-incf failures))
                   (cl-incf done)
                   (eln-opt--say "done %s" src)))))
-          (eln-opt--say "finished %d" done)
+          (eln-opt--say "finished %d%s" done
+                        (if (> failures 0) (format ", failed %d" failures) ""))
           done)
       (eln-opt--lock-release)))))
 
@@ -1821,12 +1829,12 @@ the worker compiles exactly those files."
 (defun eln-opt-auto--summary (text)
   "One line saying what the worker did, from its output TEXT."
   (let ((done (eln-opt--count-matches "^ELN-OPT done " text))
-        (failed (and (string-match "^ELN-OPT failed \\(.+\\)$" text)
-                     (match-string 1 text))))
+        (failed (eln-opt--count-matches "^ELN-OPT failed " text)))
     (cond ((string-match-p "^ELN-OPT busy" text)
            "eln-opt: another worker holds the lock")
-          (failed (format "eln-opt: compiled %d file(s), then failed: %s (see %s)"
-                          done failed eln-opt-log-buffer))
+          ((> failed 0)
+           (format "eln-opt: compiled %d file(s), %d failed (see %s)"
+                   done failed eln-opt-log-buffer))
           ((string-match-p "^ELN-OPT finished" text)
            (if (zerop done)
                "eln-opt: nothing to compile"
@@ -1844,6 +1852,13 @@ the worker compiles exactly those files."
   (when (timerp eln-opt-auto--watchdog) (cancel-timer eln-opt-auto--watchdog))
   (setq eln-opt-auto--watchdog nil))
 
+(defconst eln-opt-auto-max-runs 60
+  "Most automatic worker runs in one session.  Each run that compiles something
+re-arms the idle timer, so a long backlog is worked off over several idle
+periods; this cap keeps a session from running workers without end.")
+
+(defvar eln-opt-auto--runs 0 "Automatic worker runs started in this session.")
+
 (defun eln-opt-auto--sentinel (proc _event)
   (unless (process-live-p proc)
     (eln-opt-auto--stop-watchdog)
@@ -1852,7 +1867,13 @@ the worker compiles exactly those files."
     (when (buffer-live-p (process-buffer proc))
       (with-current-buffer (process-buffer proc)
         (xl-spinner-mode-line-stop)
-        (message "%s" (eln-opt-auto--summary (buffer-string)))))))
+        (let ((text (buffer-string)))
+          (message "%s" (eln-opt-auto--summary text))
+          ;; More may be waiting: compiled something, so arm again for the
+          ;; next idle period.  A run that found nothing marks the quiet state.
+          (when (and (> (eln-opt--count-matches "^ELN-OPT done " text) 0)
+                     (< eln-opt-auto--runs eln-opt-auto-max-runs))
+            (eln-opt-auto-arm)))))))
 
 (defun eln-opt-auto--watch ()
   "Kill a worker that has printed nothing for `eln-opt-worker-stall' seconds,
@@ -1883,6 +1904,7 @@ those files.  Returns the process, or nil."
                           :command (eln-opt-auto--command sources)
                           :filter #'eln-opt-auto--filter
                           :sentinel #'eln-opt-auto--sentinel))
+      (unless sources (cl-incf eln-opt-auto--runs))
       (eln-opt-auto--stop-watchdog)
       (setq eln-opt-auto--watchdog (run-with-timer 60 60 #'eln-opt-auto--watch))
       eln-opt-auto--process)))

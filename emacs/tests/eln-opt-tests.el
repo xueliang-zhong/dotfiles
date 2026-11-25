@@ -504,8 +504,8 @@ functions first."
         (delete-directory out t)))))
 
 (ert-deftest eln-opt-worker-byte-compiles-and-stops-at-a-broken-file ()
-  "Byte items compile to a current .elc; a file that does not compile stops
-the worker and goes on the failed list."
+  "Byte items compile to a current .elc; a file that does not compile goes on
+the failed list, and the worker goes on with the next file."
   (eln-opt-test--with-state
     (let* ((dir (make-temp-file "eln-opt-bw-" t))
            (good (eln-opt-test--toy-src dir "bw-good"))
@@ -518,10 +518,10 @@ the worker and goes on the failed list."
                      (lambda (&rest _) (list (cons 'byte good) (cons 'byte bad) (cons 'byte after))))
                     ((symbol-function 'sleep-for) #'ignore))
             (let ((byte-compile-log-warning-function #'ignore))
-              (should (eql (eln-opt-test--worker-result) 1)))
+              (should (eql (eln-opt-test--worker-result) 2)))
             (should (eln-opt--elc-current-p good))
             (should-not (file-exists-p (concat bad "c")))
-            (should-not (file-exists-p (concat after "c")))
+            (should (eln-opt--elc-current-p after))
             (should (eln-opt--failed-p bad)))
         (delete-directory dir t)))))
 
@@ -955,9 +955,10 @@ available, the plan is those sources, and the worker does not sleep."
                  ((symbol-function 'sleep-for) #'ignore))
          ,@body))))
 
-(ert-deftest eln-opt-worker-compiles-in-turn-and-stops-at-the-first-error ()
-  "The worker compiles each file in turn, and stops at the first failure,
-which goes on the failed list.  The files after it are not started."
+(ert-deftest eln-opt-worker-compiles-in-turn-and-goes-on-past-a-failure ()
+  "The worker compiles each file in turn.  A failure goes on the failed list,
+and the worker goes on with the next file, so one bad file does not block the
+rest."
   (eln-opt-test--with-worker srcs '("w1" "w2" "w3")
     (let ((compiled nil))
       (cl-letf (((symbol-function 'native-compile)
@@ -968,10 +969,12 @@ which goes on the failed list.  The files after it are not started."
         (let ((out (with-output-to-string (eln-opt-worker))))
           (should (string-match-p "ELN-OPT done .*w1\\.el" out))
           (should (string-match-p "ELN-OPT failed .*w2\\.el" out))
-          (should-not (string-match-p "w3\\.el\n" (substring out (string-match "ELN-OPT failed" out))))
-          (should (equal (reverse compiled) '("w1.el" "w2.el")))
+          (should (string-match-p "ELN-OPT done .*w3\\.el" out))
+          (should (string-match-p "finished 2, failed 1" out))
+          (should (equal (reverse compiled) '("w1.el" "w2.el" "w3.el")))
           (should (eln-opt--failed-p (nth 1 srcs)))
           (should-not (eln-opt--failed-p (nth 0 srcs)))
+          (should-not (eln-opt--failed-p (nth 2 srcs)))
           (should-not (file-exists-p (eln-opt--lock-dir))))))))
 
 (ert-deftest eln-opt-worker-counts-a-compile-without-a-usable-eln-as-failed ()
@@ -1038,7 +1041,7 @@ which goes on the failed list.  The files after it are not started."
   (should (string-match-p "compiled 2 file"
                           (eln-opt-auto--summary
                            "ELN-OPT plan 2 a b\nELN-OPT done /x/a.el\nELN-OPT done /x/b.el\nELN-OPT finished 2\n")))
-  (should (string-match-p "then failed: /x/b.el"
+  (should (string-match-p "1 failed"
                           (eln-opt-auto--summary
                            "ELN-OPT done /x/a.el\nELN-OPT failed /x/b.el boom\nELN-OPT finished 1\n")))
   (should (string-match-p "nothing to compile" (eln-opt-auto--summary "ELN-OPT plan 0 \nELN-OPT finished 0\n")))
