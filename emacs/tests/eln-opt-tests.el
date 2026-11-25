@@ -600,6 +600,40 @@ is unchanged."
     (should (memq 'font-lock-function-name-face
                   (ensure-list (get-text-property (string-match "z-a" out) 'face out))))))
 
+;; Reset asks first when run by hand; the batch command does not ask.
+(ert-deftest eln-opt-reset-asks-before-deleting-when-interactive ()
+  "Interactive reset deletes nothing unless the user types yes."
+  (eln-opt-test--with-state
+    (let ((deleted nil) (asked nil) (noninteractive nil))
+      (cl-letf (((symbol-function 'eln-opt--user-elns) (lambda () '("/x/a.eln" "/x/b.eln")))
+                ((symbol-function 'comp-delete-or-replace-file)
+                 (lambda (f) (push f deleted)))
+                ((symbol-function 'yes-or-no-p)
+                 (lambda (prompt) (setq asked prompt) nil)))
+        (eln-opt--write-eld (eln-opt--failed-file) '(:x 1))
+        (should (null (eln-opt-reset)))
+        (should (null deleted))
+        (should (string-match-p "Delete 2 eln" asked))
+        (should (file-exists-p (eln-opt--failed-file)))
+        (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) t)))
+          (should (= 2 (eln-opt-reset))))
+        (should (equal (sort deleted #'string<) '("/x/a.eln" "/x/b.eln")))
+        (should-not (file-exists-p (eln-opt--failed-file)))))))
+
+(ert-deftest eln-opt-reset-batch-does-not-ask ()
+  "The batch command resets without a prompt."
+  (eln-opt-test--with-state
+    (let ((asked nil) (deleted nil))
+      (cl-letf (((symbol-function 'eln-opt--user-elns) (lambda () '("/x/c.eln")))
+                ((symbol-function 'comp-delete-or-replace-file)
+                 (lambda (f) (push f deleted)))
+                ((symbol-function 'yes-or-no-p)
+                 (lambda (_) (setq asked t) nil)))
+        (let ((noninteractive t))
+          (should (= 1 (eln-opt-reset))))
+        (should-not asked)
+        (should (equal deleted '("/x/c.eln")))))))
+
 ;;; Processors: automatic workers need a second core; a manual run does not
 
 (ert-deftest eln-opt-auto-needs-two-processors-but-manual-runs-do-not ()

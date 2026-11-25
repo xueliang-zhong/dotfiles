@@ -1505,15 +1505,27 @@ number of files compiled, or `busy'."
 
 (defun eln-opt-reset ()
   "Delete every eln in the user's eln folder except the subr trampolines, and
-the failed list.  With Emacs's JIT off, those elns are eln-opt's.  Returns the
-number of elns deleted."
-  (let ((n 0))
-    (dolist (eln (eln-opt--user-elns))
-      (ignore-errors (comp-delete-or-replace-file eln))
-      (cl-incf n))
-    (ignore-errors (delete-file (eln-opt--failed-file)))
-    (eln-opt--clear-quiet)
-    n))
+the failed list and the quiet state.  With Emacs's JIT off, those elns are
+eln-opt's.
+
+Interactive: asks first, and the answer must be the word yes.  Batch (the
+emacs-setup.sh command) does not ask: running that command is the
+confirmation.  Returns the number of elns deleted, or nil when cancelled."
+  (interactive)
+  (if (and (not noninteractive)
+           (not (yes-or-no-p
+                 (format "Delete %d eln file(s) built by eln-opt, and the failed list? "
+                         (length (eln-opt--user-elns))))))
+      (progn (message "eln-opt: reset cancelled") nil)
+    (let ((n 0))
+      (dolist (eln (eln-opt--user-elns))
+        (ignore-errors (comp-delete-or-replace-file eln))
+        (cl-incf n))
+      (ignore-errors (delete-file (eln-opt--failed-file)))
+      (eln-opt--clear-quiet)
+      (unless noninteractive
+        (message "eln-opt: deleted %d eln file(s)" n))
+      n)))
 
 ;;; ---- Quiet: a worker that found nothing stops the next starts from looking ----
 
