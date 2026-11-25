@@ -45,11 +45,13 @@
 
 ## 三层
 
-```
-Tier 0  解释执行 .el     emacs/lisp/*.el 和 xueliang.el 现在就在这一层（没有 .elc）
-Tier 1  字节码 .elc      第三方包，以及 Emacs 自带的非预加载库
-Tier 2  native .eln      只给热、并且编成 native 确实有收益的文件
-```
+| Tier | 状态 | 谁负责提升 |
+|---|---|---|
+| 0 | 源码解释执行（没有 `.elc`，或 `.elc` 过期） | 目标是离开这一层 |
+| 1 | 字节码 `.elc` | worker 的 byte-compile，所有平台 |
+| 2 | native `.eln` | worker 的 native-compile，仅限支持的平台和热文件 |
+
+Tier 2 的门槛应按实测收益定，而不只看热不热：循环密集的纯 Lisp 代码 native 通常快 1 到 3 倍，大量调用 C 原语或操作 buffer 的代码差距很小。这对应"未决问题"里的 `eln-opt-min-ratio` 校准。
 
 另外单独处理 **trampoline**：advice 或重定义 C 原语时需要它。它和 Tier 2 无关，但缓存里没有的话，第一次会在主线程同步编译约 1 秒。
 
