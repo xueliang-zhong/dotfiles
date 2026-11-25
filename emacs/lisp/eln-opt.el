@@ -1019,7 +1019,7 @@ heavy roots can be loaded before the graph is built."
        scores)
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :lazy-loaded lazy-loaded
-            :built-rows (eln-opt-rank--built-rows)
+            :built-rows (eln-opt-rank--tier-rows rows)
             :byte (eln-opt--byte-candidates)
             :next (eln-opt--plan-from-rows
                    (sort (copy-sequence rows)
@@ -1037,27 +1037,43 @@ heavy roots can be loaded before the graph is built."
             :native-skipped (plist-get graph :native-skipped)
             :interpreted-skipped (plist-get graph :interpreted-skipped)))))
 
-(defun eln-opt-rank--built-rows ()
-  "One row per file eln-opt built and that is native now.
-These files drop out of the ranking, because their functions are native, so
-they are listed here with native \"eln-opt\".  Their KB is the eln size."
+(defun eln-opt-rank--tier-rows (ranked)
+  "One row per file at Tier 1 or 2, sorted: the elns first, then the
+byte-compiled files, each by name.  A row is `:elc' when its .elc is current,
+and `:eln' when eln-opt built the eln Emacs uses.  RANKED are the ranking rows:
+their files with a current .elc are listed too, as byte-compiled."
   (let* ((info (eln-opt-native-list))
          (natives (plist-get info :files))
+         (seen (make-hash-table :test #'equal))
          rows)
     (dolist (b (plist-get info :built))
       (let* ((src (car b))
-             (eln (cdr b))
              (stem (eln-opt--source-stem src))
              (fns (cl-loop for (file . syms) in natives
                            when (equal (eln-opt--source-stem file) stem)
                            append syms)))
-        (push (list :file (eln-opt-rank--file-key src) :native "eln-opt"
-                    :path src :trusted t :ratio nil :score nil
-                    :size (or (eln-opt--file-size eln) 0)
+        (puthash src t seen)
+        (push (list :file (eln-opt-rank--file-key src) :src src
+                    :elc (eln-opt--elc-current-p src) :eln t
+                    :size (or (eln-opt--source-bytes src) 0)
                     :count (length fns)
                     :top (seq-take fns 3))
               rows)))
-    (sort rows (lambda (a b) (string< (plist-get a :file) (plist-get b :file))))))
+    (dolist (r ranked)
+      (let* ((path (plist-get r :path))
+             (src (and path (eln-opt--source-for path))))
+        (when (and src (not (gethash src seen)) (eln-opt--elc-current-p src))
+          (puthash src t seen)
+          (push (list :file (eln-opt-rank--file-key src) :src src
+                      :elc t :eln nil
+                      :size (or (eln-opt--source-bytes src) 0)
+                      :count (length (plist-get r :defuns))
+                      :top (seq-take (plist-get r :top) 3))
+                rows))))
+    (sort rows (lambda (a b)
+                 (if (eq (plist-get a :eln) (plist-get b :eln))
+                     (string< (plist-get a :file) (plist-get b :file))
+                   (plist-get a :eln))))))
 
 (defun eln-opt-rank--line (rank score kb trusted native file top)
   "One report row.  Every row, ranked or built, uses this one layout."
@@ -1086,16 +1102,20 @@ altogether.  The ranking table comes last."
         (princ (format "%d file(s), in this order: %s\n" (length next)
                        (mapconcat #'identity next-names ", "))))
       ;; 2. What was compiled
-      (princ (format "\nCompiled by eln-opt and native now: %d file(s), %d function(s)\n"
-                     (length built) (apply #'+ (mapcar (lambda (r) (plist-get r :count)) built))))
+      (let ((elns (seq-filter (lambda (r) (plist-get r :eln)) built)))
+        (princ (format "\nTiers now: %d file(s) native (eln), %d function(s); %d file(s) byte-compiled only\n"
+                       (length elns)
+                       (apply #'+ (mapcar (lambda (r) (plist-get r :count)) elns))
+                       (- (length built) (length elns)))))
       (when built
-        (princ (format "\n%-28s  %6s  %-7s  %-6s  %9s  %s\n"
-                       "file" "KB" "trusted" "native" "functions" "examples"))
+        (princ (format "\n%-28s  %6s  %-4s  %-4s  %9s  %s\n"
+                       "file" "KB" "elc" "eln" "functions" "examples"))
         (dolist (row built)
-          (princ (format "%-28s  %6.1f  %-7s  %-6s  %9d  %S\n"
+          (princ (format "%-28s  %6.1f  %-4s  %-4s  %9d  %S\n"
                          (plist-get row :file)
                          (/ (plist-get row :size) 1024.0)
-                         "yes" "yes"
+                         (if (plist-get row :elc) "yes" "no")
+                         (if (plist-get row :eln) "yes" "no")
                          (plist-get row :count)
                          (plist-get row :top)))))
       ;; 3. What failed
@@ -1207,6 +1227,53 @@ so no text is added and the window does not move, as in GBlame."
         (overlay-put eln-opt-rank--center 'before-string
                      (concat (make-string pad ?\s) text))))))
 
+(defun eln-opt-rank--colorize (text)
+  "TEXT with faces for the report buffer: the title and table header bold,
+section titles bold, `yes' in the table green and `no' dimmed.  Only the
+buffer gets faces; the batch output stays plain text.  Faces do not change
+the width of the text, so the columns still line up."
+  (with-temp-buffer
+    (insert text)
+    (goto-char (point-min))
+    (let ((in-table nil) (table-end 0))
+      (while (not (eobp))
+        (let* ((bol (line-beginning-position))
+               (eol (line-end-position))
+               (line (buffer-substring bol eol)))
+          (cond
+           ((string-match-p "\\`eln-opt report" line)
+            (add-face-text-property bol eol 'bold))
+           ((string-match-p "\\`file +KB +elc +eln" line)
+            (setq in-table t
+                  table-end (or (string-match "examples" line) (length line)))
+            (add-face-text-property bol eol 'bold))
+           ((string= line "")
+            (setq in-table nil))
+           (in-table
+            ;; The file name is the first column; the examples are the
+            ;; function names from the examples column on.
+            (add-face-text-property bol (+ bol (or (string-match " " line) (length line)))
+                                    'font-lock-type-face)
+            (save-excursion
+              (goto-char bol)
+              (while (re-search-forward "\\_<\\(yes\\|no\\)\\_>"
+                                        (min eol (+ bol table-end)) t)
+                (add-face-text-property (match-beginning 0) (match-end 0)
+                                        (if (equal (match-string 0) "yes") 'success 'shadow))))
+            (save-excursion
+              (goto-char (min eol (+ bol table-end)))
+              (while (re-search-forward "[^ ()\n]+" eol t)
+                (add-face-text-property (match-beginning 0) (match-end 0)
+                                        'font-lock-function-name-face))))
+           ((string-match "\\`  \\([^ \n]+\\) +score " line)
+            ;; A ranking row: the file name after the indent.
+            (add-face-text-property (+ bol 2) (+ bol 2 (length (match-string 1 line)))
+                                    'font-lock-type-face))
+           ((string-match-p "\\`[A-Za-z][^\n]*:[ \t]*\\'" line)
+            (add-face-text-property bol eol 'bold))))
+        (forward-line 1))
+      (buffer-string))))
+
 (defun eln-opt-rank--show-async (buffer-name label form &optional busy-text)
   "Fill BUFFER-NAME with the text that the child Emacs prints for FORM.
 LABEL names the loader in the mode line.  While the child works, a loader
@@ -1235,7 +1302,7 @@ text, so that the child's loading messages are dropped."
                (inhibit-read-only t))
            (erase-buffer)
            (if (and (eql code 0) report (not (string-empty-p (string-trim report))))
-               (insert report)
+               (insert (eln-opt-rank--colorize report))
              (insert "Failed.\n\n" output))
            (goto-char (point-min))))))
     (display-buffer buf)
@@ -1279,7 +1346,7 @@ compilation it says so and lists only what will be byte-compiled."
       (with-current-buffer (get-buffer-create "*eln-opt report*")
         (let ((inhibit-read-only t))
           (erase-buffer)
-          (insert unavailable))
+          (insert (eln-opt-rank--colorize unavailable)))
         (special-mode))
       (display-buffer "*eln-opt report*"))
      (t

@@ -560,6 +560,37 @@ the worker and goes on the failed list."
       (should (null (eln-opt--byte-plan)))
       (should (equal (reverse order) '((load (lazy-pkg . 1.0)) candidates))))))
 
+;; The table has one row per file at Tier 1 or 2, with an elc and an eln column.
+(ert-deftest eln-opt-report-tier-table-shows-elc-and-eln ()
+  "Native files show eln yes; byte-compiled-only files show eln no."
+  (let* ((rows (list (list :file "zeta" :elc t :eln nil :size 2048 :count 3 :top '(z-a))
+                     (list :file "alpha" :elc t :eln t :size 1024 :count 5 :top '(a-b))))
+         (text (eln-opt-rank--format (list :rows nil :built-rows rows :next nil :failed nil
+                                      :byte nil :excluded nil :native-skipped 0
+                                      :interpreted-skipped 0 :functions 0
+                                      :savehist-share 0.0 :roots 0))))
+    (should (string-match-p "file +KB +elc +eln +functions +examples" text))
+    (should (string-match-p "alpha +1.0 +yes +yes +5" text))
+    (should (string-match-p "zeta +2.0 +yes +no +3" text))))
+
+;; The report buffer gets faces; the batch text does not.
+(ert-deftest eln-opt-report-buffer-is-colored-batch-is-not ()
+  "yes is green and no dimmed in the table; the title is bold; the text itself
+is unchanged."
+  (let* ((plain "eln-opt report (report only)\n\nTiers now: 1 file(s)\n\nfile                 KB  elc   eln   functions  examples\nzeta                2.0  yes   no            3  (z-a)\nalpha               1.0  yes   yes           5  (a-b)\n\nLeft out before ranking:\n")
+         (out (eln-opt-rank--colorize plain)))
+    (should (equal (substring-no-properties out) plain))
+    (let ((yes (string-match "yes   yes" out)))
+      (should (memq 'success (ensure-list (get-text-property yes 'face out)))))
+    (should (memq 'shadow (ensure-list (get-text-property (string-match "no  " out) 'face out))))
+    (should (memq 'bold (ensure-list (get-text-property 0 'face out))))
+    (should (memq 'bold (ensure-list (get-text-property (string-match "Left out" out) 'face out))))
+    ;; File names and function names get their faces too.
+    (should (memq 'font-lock-type-face
+                  (ensure-list (get-text-property (string-match "zeta" out) 'face out))))
+    (should (memq 'font-lock-function-name-face
+                  (ensure-list (get-text-property (string-match "z-a" out) 'face out))))))
+
 ;;; Processors: automatic workers need a second core; a manual run does not
 
 (ert-deftest eln-opt-auto-needs-two-processors-but-manual-runs-do-not ()
