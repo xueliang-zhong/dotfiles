@@ -829,6 +829,166 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
 ;;; Graph: functions, call edges, and roots with evidence weights
 ;;; ------------------------------------------------------------
 
+;;; ------------------------------------------------------------
+;;; Feature cache: each source file's features, kept between runs
+;;; ------------------------------------------------------------
+;; The features of a function come from its byte code, which only changes when
+;; its file is recompiled or reloaded.  So they are kept per load file, with a
+;; validator (size and mtime of that file).  A run reads the cache once, uses
+;; it for every file whose validator still matches, and writes back only the
+;; files it saw: a file that is gone drops out.  The cache lives in the build's
+;; state folder, so another Emacs binary never reads it.
+
+(defvar eln-opt-rank--feature-cache nil
+  "Per load file: (VALIDATOR . HASH of SYM -> FEATURES), read once per process.")
+(defvar eln-opt-rank--feature-loaded nil)
+(defvar eln-opt-rank--feature-seen nil
+  "Per load file seen in this run: (VALIDATOR . ALIST of (SYM . FEATURES)).")
+
+(defun eln-opt-rank--feature-file ()
+  (expand-file-name "features.eld" (eln-opt--version-dir)))
+
+(defconst eln-opt-rank--feature-max-bytes (* 20 1024 1024)
+  "A cache file larger than this is ignored: it is not one this code wrote.")
+
+(defun eln-opt-rank--feature-enabled-p ()
+  "Non-nil unless ELN_OPT_FEATURE_CACHE=0 turns the cache off."
+  (not (equal (getenv "ELN_OPT_FEATURE_CACHE") "0")))
+
+(defconst eln-opt-rank--code-file (or load-file-name buffer-file-name)
+  "The file this code was loaded from: its digest says which analysis produced
+the cached features.  Hashing the loaded file, not the source, means an edit
+not yet compiled does not pretend to be the code that runs.")
+
+(defun eln-opt-rank--digest (file)
+  "SHA-256 of FILE's bytes, or nil when it cannot be read.  Reading and hashing
+600 files of about 20 MB took 0.08 s, far less than the analysis it replaces."
+  (when (and (stringp file) (file-readable-p file))
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (insert-file-contents-literally file)
+      (secure-hash 'sha256 (current-buffer)))))
+
+(defun eln-opt-rank--analysis-key ()
+  "Digest of the code that does the analysis; a changed analysis invalidates
+every cached feature."
+  (eln-opt-rank--digest eln-opt-rank--code-file))
+
+(defun eln-opt-rank--validator (path)
+  "What identifies PATH's current contents: its digest."
+  (eln-opt-rank--digest path))
+
+(defun eln-opt-rank--feature-valid-p (feat)
+  "Non-nil if FEAT has the shape `eln-opt-rank--features' makes.  Anything
+else in a cache file means the file is not trusted."
+  (and (proper-list-p feat)
+       (numberp (plist-get feat :benefit))
+       (integerp (plist-get feat :loops))
+       (integerp (plist-get feat :size))
+       (proper-list-p (plist-get feat :calls))
+       (cl-every #'symbolp (plist-get feat :calls))
+       (proper-list-p (plist-get feat :varrefs))
+       (cl-every #'symbolp (plist-get feat :varrefs))
+       (memq (plist-get feat :dynamic) '(nil t))))
+
+(defun eln-opt-rank--feature-safe-file-p (file)
+  "Non-nil if FILE is a regular file, not a symbolic link, of a sane size."
+  (and (file-regular-p file)
+       (not (file-symlink-p file))
+       (let ((size (file-attribute-size (file-attributes file))))
+         (and (integerp size) (<= size eln-opt-rank--feature-max-bytes)))))
+
+(defun eln-opt-rank--feature-load ()
+  "Read the cache from disk, once per process.  Any problem means no cache."
+  (unless eln-opt-rank--feature-loaded
+    (setq eln-opt-rank--feature-loaded t
+          eln-opt-rank--feature-cache (make-hash-table :test #'equal))
+    (let ((file (eln-opt-rank--feature-file)))
+      (when (and (eln-opt-rank--feature-enabled-p)
+                 (eln-opt-rank--feature-safe-file-p file))
+        (ignore-errors
+          (let* ((data (with-temp-buffer
+                         (insert-file-contents file)
+                         (let ((read-eval nil)) (read (current-buffer)))))
+                 )
+            ;; All or nothing: a cache with one bad entry is not used at all.
+            (when (and (equal (plist-get data :version) (eln-opt--version-name))
+                       (equal (plist-get data :key) (eln-opt-rank--analysis-key))
+                       (proper-list-p (plist-get data :files))
+                       (cl-every
+                        (lambda (entry)
+                          (and (stringp (car entry)) (proper-list-p entry)
+                               (stringp (nth 1 entry))
+                               (proper-list-p (nth 2 entry))
+                               (cl-every (lambda (pair)
+                                           (and (consp pair) (symbolp (car pair))
+                                                (eln-opt-rank--feature-valid-p (cdr pair))))
+                                         (nth 2 entry))))
+                        (plist-get data :files)))
+              (dolist (entry (plist-get data :files))
+                (let ((table (make-hash-table :test #'eq)))
+                  (dolist (pair (nth 2 entry))
+                    (puthash (car pair) (cdr pair) table))
+                  (puthash (car entry) (cons (nth 1 entry) table)
+                           eln-opt-rank--feature-cache))))))))))
+
+(defvar eln-opt-rank--feature-digests nil
+  "PATH -> digest, for this run only.  A file holds many functions, and its
+digest is the costly part, so it is read once per run, not once per function.")
+
+(defun eln-opt-rank--validator-once (path)
+  (or (and eln-opt-rank--feature-digests
+           (gethash path eln-opt-rank--feature-digests))
+      (let ((d (eln-opt-rank--validator path)))
+        (when eln-opt-rank--feature-digests
+          (puthash path d eln-opt-rank--feature-digests))
+        d)))
+
+(defun eln-opt-rank--cached-features (sym path)
+  "The features of SYM, from this run, else the disk cache, when PATH's digest
+still matches; otherwise analysed now."
+  (eln-opt-rank--feature-load)
+  (let* ((valid (eln-opt-rank--validator-once path))
+         (seen (gethash path eln-opt-rank--feature-seen))
+         (this-run (and seen valid (equal (car seen) valid)
+                        (assq sym (cdr seen))))
+         (old (gethash path eln-opt-rank--feature-cache))
+         (table (and old valid (equal (car old) valid) (cdr old)))
+         (from-disk (and table (gethash sym table 'none)))
+         (feat (cond (this-run (cdr this-run))
+                     ((and from-disk (not (eq from-disk 'none))) from-disk)
+                     (t (eln-opt-rank--features sym)))))
+    (unless this-run
+      (puthash path (cons valid (cons (cons sym feat) (and seen (cdr seen))))
+               eln-opt-rank--feature-seen))
+    feat))
+
+(defun eln-opt-rank--feature-save ()
+  "Write this run's features to the cache, replacing the old file.  Writes to
+a fresh temporary file and renames it over the old one, so a reader sees the
+old file or the new one, never a partial one.  Never fails."
+  (when (and eln-opt-rank--feature-seen (eln-opt-rank--feature-enabled-p))
+    (ignore-errors
+      (let ((file (eln-opt-rank--feature-file))
+            (key (eln-opt-rank--analysis-key))
+            (files nil))
+        (when (and key (not (and (file-exists-p file) (file-symlink-p file))))
+          (maphash (lambda (path entry)
+                     (when (car entry)
+                       (push (list path (car entry) (cdr entry)) files)))
+                   eln-opt-rank--feature-seen)
+          (make-directory (file-name-directory file) t)
+          (let ((temp (make-temp-file (expand-file-name "features-" (file-name-directory file))
+                                      nil ".tmp")))
+            (unwind-protect
+                (progn
+                  (with-temp-file temp
+                    (let ((print-length nil) (print-level nil))
+                      (prin1 (list :version (eln-opt--version-name) :key key :files files)
+                             (current-buffer))))
+                  (rename-file temp file t))
+              (when (file-exists-p temp) (ignore-errors (delete-file temp))))))))))
+
 (defun eln-opt-rank--fn-values (v)
   "Functions named by the value of variable V: one function or a list of them."
   (when (and (symbolp v) (boundp v))
@@ -855,6 +1015,8 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
         (interpreted-skipped 0)
         (native-skipped 0))
     ;; Functions: every defun from load-history, keyed by its source file.
+    (setq eln-opt-rank--feature-seen (make-hash-table :test #'equal)
+          eln-opt-rank--feature-digests (make-hash-table :test #'equal))
     (dolist (entry load-history)
       (let* ((file (car entry))
              (key (and (stringp file) (eln-opt-rank--file-key file))))
@@ -878,7 +1040,7 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
                  ((byte-code-function-p (indirect-function sym))
                   (puthash sym key file-of)
                   (puthash sym file path-of)
-                  (puthash sym (eln-opt-rank--features sym) features))
+                  (puthash sym (eln-opt-rank--cached-features sym file) features))
                  (t (cl-incf interpreted-skipped))))))))))
     ;; Edges: constants, plus function-valued variables read by funcall/apply.
     (maphash
@@ -897,6 +1059,7 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
          (advice-mapc (lambda (f _) (when (and (symbolp f) (not (eq f s)))
                                       (puthash s (cons f (gethash s edges)) edges)))
                       s))))
+    (eln-opt-rank--feature-save)
     (list :features features :file file-of :path path-of :edges edges
           :excluded excluded :native-skipped native-skipped
           :interpreted-skipped interpreted-skipped

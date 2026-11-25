@@ -126,6 +126,19 @@ eln 文件名是 `<名字>-<路径哈希>-<内容哈希>.eln`，放在 `eln-cach
 
 **内置库的 `.el.gz`**：Emacs 自带的 org、winner、which-key、savehist、repeat、delsel 等只有 `.el.gz`。直接对 `.el.gz` 调用 `native-compile` 就能得到 Emacs 要找的 eln，不需要改启动流程。用完整路径 `load` 一个 `.elc` 永远加载字节码，只有不带后缀的 `load`（`require` 就是这样）才会去找 eln。
 
+## 特征缓存
+
+图的构建（每个函数的特征，约 5000 个）按源文件缓存在 `eln-opt/<版本>/features.eld`：
+
+- 指纹：每个 load 文件内容的 SHA-256（读 600 个文件、19.5 MB 只要 0.08 秒）。分析代码的指纹是加载进来的 `eln-opt.el`（`.elc` 或 `.el`）的 SHA-256；代码变了，所有缓存失效。
+- 本次运行先查本次结果，再查磁盘；同一个文件的指纹每次运行只算一次。
+- 安全：只用 `read`（`read-eval` 关闭）；文件超过 20 MB、是符号链接、版本或分析指纹不符、或任何一项形状不对，整个文件都不用。
+- 可靠：写临时文件再 rename，读者只会看到旧文件或新文件；本次没看到的文件从缓存中删除。
+- 开关：`ELN_OPT_FEATURE_CACHE=0` 关掉缓存（读和写都不做）。
+- 实测（同一个 Emacs，真实 profile）：图的构建冷启动 5.26 秒，热启动 0.65 秒，没有重新分析任何函数；缓存关闭和缓存热启动的结果逐字节相同（5127 个函数）。
+
+剩下的 0.6 秒是 `no-native-p`：它为每个文件读一遍来查 opt-out 标记，可以和指纹的读取合并。
+
 ## 录制（perfetto）
 
 主 Emacs 用 `xl-perfetto-trace-start` 录制时，worker 在两个文件之间检查标记文件 `traces/recording.eld`，有就同时录制，写出 `eln-opt-trace-*.json`。worker 的每个阶段（可达性分析的各步、候选、每个文件的编译、每个顶层表单、warm）都是一个 span。细节见 `ideas/xl-perfetto-trace.md`"跟随 eln-opt worker"一节。
