@@ -961,6 +961,7 @@ Returns the feature or file names loaded, for the report."
 numbers for the header.  Roots are found first, so that lazy packages behind
 heavy roots can be loaded before the graph is built."
   (let* ((roots-info (eln-opt-rank--roots profile-dir))
+         (native (eln-opt-platform-available-p))
          (user-roots (plist-get roots-info :roots))
          (lazy-loaded (eln-opt-rank--load-lazy-roots user-roots))
          (graph (eln-opt-rank--graph profile-dir))
@@ -1020,12 +1021,18 @@ heavy roots can be loaded before the graph is built."
       (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :lazy-loaded lazy-loaded
             :built-rows (eln-opt-rank--tier-rows rows)
+            :native native
+            :platform-reason (and (not native)
+                                  (or (plist-get (eln-opt--read-eld (eln-opt--platform-file))
+                                                 :reason)
+                                      "unknown"))
             :byte (eln-opt--byte-candidates)
-            :next (eln-opt--plan-from-rows
-                   (sort (copy-sequence rows)
-                         (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
-                   (- eln-opt-worker-max
-                      (min eln-opt-worker-max (length (eln-opt--byte-candidates)))))
+            :next (and native
+                       (eln-opt--plan-from-rows
+                        (sort (copy-sequence rows)
+                              (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+                        (- eln-opt-worker-max
+                           (min eln-opt-worker-max (length (eln-opt--byte-candidates))))))
             :failed (eln-opt--failed-load)
             :savehist-share max-share
             :functions (hash-table-count (plist-get graph :features))
@@ -1085,17 +1092,24 @@ score and cost), and what is left out altogether."
   (let* ((built (plist-get result :built-rows))
          (next (plist-get result :next))
          (failed (plist-get result :failed))
+         ;; A result without the key (built by hand) is treated as native.
+         (native (if (plist-member result :native) (plist-get result :native) t))
          (next-names (mapcar #'file-name-nondirectory next))
          (rows (plist-get result :rows)))
     (with-output-to-string
       ;; 1. The answer
-      (princ "eln-opt report (report only; nothing is compiled here)\n\n")
+      (princ "eln-opt report (report only; nothing is compiled here)\n")
+      (unless native
+        (princ (format "Native compilation is not available in this Emacs (%s): only byte-compiling happens here.\n"
+                       (or (plist-get result :platform-reason) "unknown"))))
+      (princ "\n")
       (princ (eln-opt-rank--byte-line (plist-get result :byte)))
-      (princ "Next worker native-compiles: ")
-      (if (null next)
-          (princ "nothing.\n")
-        (princ (format "%d file(s), in this order: %s\n" (length next)
-                       (mapconcat #'identity next-names ", "))))
+      (when native
+        (princ "Next worker native-compiles: ")
+        (if (null next)
+            (princ "nothing.\n")
+          (princ (format "%d file(s), in this order: %s\n" (length next)
+                         (mapconcat #'identity next-names ", ")))))
       ;; 2. What was compiled
       (let ((elns (seq-filter (lambda (r) (plist-get r :eln)) built)))
         (princ (format "\nStatus: %d file(s) at Tier 2 (native, %d function(s)); %d file(s) at Tier 1 (byte-compiled)\n"
@@ -1124,9 +1138,11 @@ score and cost), and what is left out altogether."
       ;; 4. Why each ranked file is or is not compiled
       (princ "\nRanked files not yet native, and what happens to each\n")
       (princ "(score: expected gain; KB: bytecode size, the cost)\n")
-      (princ (format "  %-28s  %6s  %6s  %s\n" "file" "score" "KB" "what happens"))
+      (if (not native)
+          (princ "  Not listed: without native compilation no file here is native-compiled.\n")
+        (princ (format "  %-28s  %6s  %6s  %s\n" "file" "score" "KB" "what happens")))
       (let ((n 0))
-        (dolist (row rows)
+        (dolist (row (and native rows))
           (let* ((src (and (plist-get row :path)
                            (eln-opt--source-for (plist-get row :path))))
                  (why (cond ((and src (member src next)) "compile in the next worker run")
@@ -1326,39 +1342,19 @@ text, so that the child's loading messages are dropped."
     (format "Next worker byte-compiles first (they run interpreted now): %d file(s): %s\n"
             (length byte) (mapconcat #'file-name-nondirectory byte ", "))))
 
-(defun eln-opt-rank--unavailable-text ()
-  "The report's whole text when this Emacs cannot compile native code, else nil.
-Only byte-compiling happens here, so the native ranking is not shown."
-  (unless (eln-opt-platform-available-p)
-    (concat "eln-opt report (report only; nothing is compiled here)\n\n"
-            (format (concat "Native compilation is not available in this Emacs (%s),\n"
-                            "so eln-opt only byte-compiles here.\n\n")
-                    (or (plist-get (eln-opt--read-eld (eln-opt--platform-file)) :reason)
-                        "unknown"))
-            (eln-opt-rank--byte-line (eln-opt--byte-plan)))))
-
 (defun eln-opt-report ()
   "Show the ranking.  Interactive: a buffer, filled in the background.
 Batch: printed to stdout, computed here.  On a platform without native
-compilation it says so and lists only what will be byte-compiled."
+compilation the same report is shown, with the native parts left out."
   (interactive)
-  (let ((unavailable (eln-opt-rank--unavailable-text)))
-    (cond
-     (noninteractive
-      (when eln-opt-rank--with-marker
-        (princ (format "\n%s\n" eln-opt-rank--marker)))
-      (princ (or unavailable
-                 (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir))))))
-     (unavailable
-      (with-current-buffer (get-buffer-create "*eln-opt report*")
-        (let ((inhibit-read-only t))
-          (erase-buffer)
-          (insert (eln-opt-rank--colorize unavailable)))
-        (special-mode))
-      (display-buffer "*eln-opt report*"))
-     (t
-      (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
-                                eln-opt-rank--report-form)))))
+  (cond
+   (noninteractive
+    (when eln-opt-rank--with-marker
+      (princ (format "\n%s\n" eln-opt-rank--marker)))
+    (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
+   (t
+    (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
+                              eln-opt-rank--report-form))))
 
 ;;; ---- In-progress marker: a compile the worker did not finish ----
 

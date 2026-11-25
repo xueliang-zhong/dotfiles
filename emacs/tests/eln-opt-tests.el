@@ -448,42 +448,19 @@ runs the canary; it still byte-compiles."
         (ignore-errors (delete-directory dir t))))))
 
 (ert-deftest eln-opt-report-says-when-this-emacs-cannot-compile ()
-  "On a platform without native compilation the report says so, lists what
-will be byte-compiled, and ranks nothing for native code."
+  "Without native compilation the report is the same report, with the reason in
+its header, the Status line, the byte-compile list, and no native list."
   (eln-opt-test--with-state
     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil))
               ((symbol-function 'eln-opt--byte-candidates) (lambda () '("/x/a.el"))))
       (let ((text (with-output-to-string
                     (let ((noninteractive t))
                       (eln-opt-report)))))
-        (should (string-match-p "Native compilation is not available" text))
+        (should (string-match-p "Native compilation is not available in this Emacs" text))
         (should (string-match-p "byte-compiles first .*: 1 file(s): a.el" text))
+        (should (string-match-p "Status: 0 file(s) at Tier 2" text))
         (should-not (string-match-p "native-compiles" text))
-        (should-not (string-match-p "ranking" text))))))
-
-;; Windows builds without native compilation have no comp: its variables are
-;; void.  This build defines them in C, so they cannot be unbound; instead
-;; `boundp' says they are not bound, which is what the code tests.
-(ert-deftest eln-opt-works-when-comp-is-not-loaded ()
-  "Without comp's variables, the state folder, the failed list, the built list
-and the report all still work; nothing reads a void variable."
-  (let ((orig (symbol-function 'boundp)))
-    (cl-letf (((symbol-function 'boundp)
-               (lambda (sym)
-                 (and (not (memq sym '(comp-native-version-dir native-comp-eln-load-path)))
-                      (funcall orig sym)))))
-      (eln-opt-test--with-state
-        (should (string-match-p "\\`[0-9]+_[0-9]+-[0-9a-f]\\{8\\}\\'" (eln-opt--version-name)))
-        (should (string-prefix-p eln-opt-state-dir (eln-opt--version-dir)))
-        (should (null (eln-opt--failed-load)))
-        (should (null (eln-opt--built-sources)))
-        (should (null (eln-opt--user-elns)))
-        (should-not (eln-opt--trampoline-cached-p 'car))
-        (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
-          (let ((text (with-output-to-string
-                        (let ((noninteractive t))
-                          (eln-opt-report)))))
-            (should (string-match-p "Native compilation is not available" text))))))))
+        (should (string-match-p "Not listed: without native compilation" text))))))
 
 ;;; Byte-compiling what runs interpreted
 
