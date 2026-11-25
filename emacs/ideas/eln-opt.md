@@ -32,6 +32,9 @@ Tier 2 的门槛应按实测收益定，而不只看热不热。循环密集的�
 | `M-x eln-opt-compile-now` | 立刻启动 worker（绕过空闲和安静状态），显示 `*eln-opt*` |
 | `M-x eln-opt-compile-function` | 编译某个函数所在的源文件（字节码，然后 native），不受安静状态和失败列表影响 |
 | `M-x eln-opt-report` | 显示排名、下一次要编的文件、已经是 Tier 1/2 的文件、为什么某些文件没编 |
+
+  报告的连续调用：子进程还在算就只显示它；60 秒内且指纹没变就直接显示上次结果（`eln-opt-report-cache-seconds`）。
+  手动启动：worker 结束后 30 秒内拒绝再次启动（`eln-opt-manual-gap`）。
 | `M-x eln-opt-stop-worker` | 立刻停止正在跑的后台 worker；正在编译的文件保留进行中标记（下次当作被打断的尝试），本次会话不再自动启动，`eln-opt-compile-now` 仍然可用 |
 | `M-x eln-opt-reset` | 删除 eln-opt 生成的 eln、失败列表、进行中标记、安静状态。先要求输入 `yes` |
 

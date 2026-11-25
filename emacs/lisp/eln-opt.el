@@ -1379,6 +1379,21 @@ the width of the text, so the columns still line up."
         (forward-line 1))
       (buffer-string))))
 
+(defconst eln-opt-report-cache-seconds 60
+  "How long a finished report is reused, when nothing that the fingerprint
+covers has changed.  Repeated `eln-opt-report' calls then cost nothing.")
+
+(defvar eln-opt-rank--cache nil
+  "(TIME FINGERPRINT TEXT) of the last report that finished successfully.")
+
+(defun eln-opt-rank--fresh-cache ()
+  "The cached report text, if it is recent and the fingerprint still matches."
+  (let ((c eln-opt-rank--cache))
+    (and c
+         (< (- (float-time) (car c)) eln-opt-report-cache-seconds)
+         (equal (cadr c) (eln-opt--quiet-fingerprint))
+         (caddr c))))
+
 (defun eln-opt-rank--show-async (buffer-name label form &optional busy-text)
   "Fill BUFFER-NAME with the text that the child Emacs prints for FORM.
 LABEL names the loader in the mode line.  While the child works, a loader
@@ -1407,7 +1422,10 @@ text, so that the child's loading messages are dropped."
                (inhibit-read-only t))
            (erase-buffer)
            (if (and (eql code 0) report (not (string-empty-p (string-trim report))))
-               (insert (eln-opt-rank--colorize report))
+               (progn
+                 (setq eln-opt-rank--cache
+                       (list (float-time) (eln-opt--quiet-fingerprint) report))
+                 (insert (eln-opt-rank--colorize report)))
              (insert "Failed.\n\n" output))
            (goto-char (point-min))))))
     (display-buffer buf)
@@ -1435,8 +1453,23 @@ compilation the same report is shown, with the native parts left out."
       (princ (format "\n%s\n" eln-opt-rank--marker)))
     (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
    (t
-    (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
-                              eln-opt-rank--report-form))))
+    (let ((buf (get-buffer-create "*eln-opt report*")))
+      (cond
+       ;; A child is already computing it: show that one, do not restart it.
+       ((xl-async-busy-p 'eln-opt-rank buf)
+        (display-buffer buf))
+       ;; A recent report that still matches: show it, no child at all.
+       ((eln-opt-rank--fresh-cache)
+        (with-current-buffer buf
+          (let ((inhibit-read-only t))
+            (erase-buffer)
+            (insert (eln-opt-rank--colorize (eln-opt-rank--fresh-cache))))
+          (special-mode)
+          (goto-char (point-min)))
+        (display-buffer buf))
+       (t
+        (eln-opt-rank--show-async "*eln-opt report*" "eln-opt report"
+                                  eln-opt-rank--report-form)))))))
 
 ;;; ---- In-progress marker: a compile the worker did not finish ----
 
@@ -1777,6 +1810,7 @@ change it) and our own lisp files (edits change them)."
 (defvar eln-opt-auto--watchdog nil "The timer that watches the worker for stalls.")
 (defvar eln-opt-auto--last-output 0 "When the worker last printed anything.")
 (defvar eln-opt-auto--current nil "The source the worker is compiling now.")
+(defvar eln-opt-auto--last-end nil "When the last worker ended, or nil.")
 
 (defconst eln-opt-min-processors 2
   "Automatic workers start only on a machine with at least this many logical
@@ -1865,6 +1899,7 @@ periods; this cap keeps a session from running workers without end.")
 
 (defun eln-opt-auto--sentinel (proc _event)
   (unless (process-live-p proc)
+    (setq eln-opt-auto--last-end (float-time))
     (eln-opt-auto--stop-watchdog)
     (setq eln-opt-auto--process nil
           eln-opt-auto--current nil)
@@ -1948,17 +1983,33 @@ starts again this session; `eln-opt-compile-now' still does."
       (message "eln-opt: worker stopped; the file it was compiling is retried next time"))
      (t (message "eln-opt: no worker is running")))))
 
+(defconst eln-opt-manual-gap 30
+  "Seconds after a worker ends before a manual start is allowed again.  Stops
+repeated `eln-opt-compile-now' calls from starting one analysis after another.")
+
+(defun eln-opt-auto--throttled-seconds ()
+  "Seconds still to wait before a manual start, or nil when none is needed."
+  (when eln-opt-auto--last-end
+    (let ((left (- eln-opt-manual-gap (- (float-time) eln-opt-auto--last-end))))
+      (and (> left 0) (ceiling left)))))
+
 (defun eln-opt-compile-now ()
   "Start the worker now, or show the one that runs, with a loader in its log.
-Batch: runs the worker here."
+A worker that ended less than `eln-opt-manual-gap' seconds ago is not
+started again yet.  Batch: runs the worker here."
   (interactive)
-  (if noninteractive
-      (eln-opt-worker)
-    (let ((proc (or (and (process-live-p eln-opt-auto--process) eln-opt-auto--process)
-                    (eln-opt-auto--start t))))
+  (cond
+   (noninteractive (eln-opt-worker))
+   ((process-live-p eln-opt-auto--process)
+    (display-buffer (process-buffer eln-opt-auto--process)))
+   ((eln-opt-auto--throttled-seconds)
+    (message "eln-opt: a worker ended a moment ago; try again in %d s"
+             (eln-opt-auto--throttled-seconds)))
+   (t
+    (let ((proc (eln-opt-auto--start t)))
       (if proc
           (display-buffer (process-buffer proc))
-        (message "eln-opt: %s" (eln-opt-auto--decision t))))))
+        (message "eln-opt: %s" (eln-opt-auto--decision t)))))))
 
 ;;; ---- An explicit request: compile the file of one function now ----
 

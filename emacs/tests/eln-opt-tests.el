@@ -765,6 +765,47 @@ is recorded for that path."
           (eln-opt-stop-worker))
         (should (string-match-p "no worker is running" msg))))))
 
+;; Repeated report and compile calls must not start one analysis after another.
+(ert-deftest eln-opt-report-reuses-a-fresh-cache-and-a-running-child ()
+  "A recent report that still matches is shown without a child; a running
+child is not restarted."
+  (eln-opt-test--with-state
+    (let ((spawned 0) (noninteractive nil))
+      (cl-letf (((symbol-function 'xl-async-run) (lambda (&rest _) (cl-incf spawned) nil))
+                ((symbol-function 'display-buffer) (lambda (&rest _) nil)))
+        (setq eln-opt-rank--cache
+              (list (float-time) (eln-opt--quiet-fingerprint) "CACHED REPORT"))
+        (eln-opt-report)
+        (should (= spawned 0))
+        (with-current-buffer "*eln-opt report*"
+          (should (string-match-p "CACHED REPORT" (buffer-string))))
+        ;; A stale cache is not used.
+        (setq eln-opt-rank--cache (list 0 (eln-opt--quiet-fingerprint) "OLD"))
+        (cl-letf (((symbol-function 'xl-async-busy-p) (lambda (&rest _) nil)))
+          (eln-opt-report))
+        (should (= spawned 1))
+        ;; A child that is already running is shown, not restarted.
+        (cl-letf (((symbol-function 'xl-async-busy-p) (lambda (&rest _) t)))
+          (eln-opt-report))
+        (should (= spawned 1))
+        (kill-buffer "*eln-opt report*")))))
+
+(ert-deftest eln-opt-compile-now-waits-after-a-worker-ends ()
+  "A manual start is refused for `eln-opt-manual-gap' seconds after a worker ended."
+  (eln-opt-test--with-auto
+    (let ((started 0) (msg nil) (noninteractive nil))
+      (cl-letf (((symbol-function 'eln-opt-auto--start)
+                 (lambda (&rest _) (cl-incf started) nil))
+                ((symbol-function 'message)
+                 (lambda (fmt &rest args) (setq msg (apply #'format fmt args)))))
+        (setq eln-opt-auto--last-end (float-time))
+        (eln-opt-compile-now)
+        (should (= started 0))
+        (should (string-match-p "try again in" msg))
+        (setq eln-opt-auto--last-end (- (float-time) (* 2 eln-opt-manual-gap)))
+        (eln-opt-compile-now)
+        (should (= started 1))))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)
