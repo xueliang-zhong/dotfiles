@@ -23,7 +23,7 @@
 ;;   stops it; the failing file is skipped until its source changes.
 ;; - Emacs itself loads the new elns on the next start.
 ;; - `eln-opt-report' shows the ranking, what is native, and why each file
-;;   is or is not compiled; `eln-opt-run-now' starts the worker at once.
+;;   is or is not compiled; `eln-opt-compile-now' starts the worker at once.
 ;;
 ;; Files that run interpreted (loaded from .el: no .elc, or a stale one) are
 ;; byte-compiled first, on every platform.  Without native compilation (no
@@ -1397,6 +1397,9 @@ number of files compiled, or `busy'."
                (plan (eln-opt-worker-plan native))
                (done 0)
                (first t))
+          ;; Nothing planned: quiet until something changes.  Anything planned
+          ;; clears a quiet state from an earlier run.
+          (if plan (eln-opt--clear-quiet) (eln-opt--mark-quiet))
           (unless native (eln-opt--say "native compilation not available; byte-compile only"))
           (eln-opt--say "plan %d %s" (length plan)
                         (mapconcat (lambda (item)
@@ -1435,7 +1438,51 @@ number of elns deleted."
       (ignore-errors (comp-delete-or-replace-file eln))
       (cl-incf n))
     (ignore-errors (delete-file (eln-opt--failed-file)))
+    (eln-opt--clear-quiet)
     n))
+
+;;; ---- Quiet: a worker that found nothing stops the next starts from looking ----
+
+;; Most sessions find nothing new: the profile is tuned and stable.  Starting a
+;; batch Emacs each time just to learn that wastes the machine.  So when the
+;; worker finds no work it records a quiet state.  Each Emacs start checks the
+;; fingerprint (cheap, no worker): if nothing changed, no worker starts.
+;; `eln-opt-compile-now' is never held back.  Usage (savehist, recentf) is not in
+;; the fingerprint: a new hot file from usage alone is picked up after a change
+;; to the profile or the packages, or by `eln-opt-compile-now'.
+
+(defun eln-opt--quiet-file ()
+  (expand-file-name "quiet.eld" (eln-opt--version-dir)))
+
+(defun eln-opt--own-stamps ()
+  "Modification times of our own lisp files, for the quiet fingerprint."
+  (when (bound-and-true-p xl-dotfiles)
+    (let ((dir (expand-file-name "emacs/lisp" xl-dotfiles)))
+      (delq nil
+            (mapcar (lambda (f)
+                      (let ((attrs (file-attributes f)))
+                        (and attrs (cons f (file-attribute-modification-time attrs)))))
+                    (append (and (file-directory-p dir)
+                                 (directory-files dir t "\\.el\\'"))
+                            (list (expand-file-name "emacs/xueliang.el" xl-dotfiles))))))))
+
+(defun eln-opt--quiet-fingerprint ()
+  "What a quiet state is about: this binary, the load path (package updates
+change it) and our own lisp files (edits change them)."
+  (md5 (format "%S" (list (eln-opt--binary-key) load-path (eln-opt--own-stamps)))))
+
+(defun eln-opt--mark-quiet ()
+  (eln-opt--write-eld (eln-opt--quiet-file)
+                      (list :fingerprint (eln-opt--quiet-fingerprint)
+                            :time (float-time))))
+
+(defun eln-opt--clear-quiet ()
+  (ignore-errors (delete-file (eln-opt--quiet-file))))
+
+(defun eln-opt-auto--quiet-p ()
+  "Non-nil when the last worker found nothing and nothing has changed since."
+  (let ((q (eln-opt--read-eld (eln-opt--quiet-file))))
+    (and q (equal (plist-get q :fingerprint) (eln-opt--quiet-fingerprint)))))
 
 ;;; ---- The main Emacs: start the worker once, show its log, watch it ----
 
@@ -1455,7 +1502,7 @@ number of elns deleted."
   :type 'integer)
 
 (defconst eln-opt-log-buffer "*eln-opt*"
-  "The worker's output, and the buffer `eln-opt-run-now' shows.")
+  "The worker's output, and the buffer `eln-opt-compile-now' shows.")
 
 (defvar eln-opt-auto--timer nil "The one-shot idle timer, while armed.")
 (defvar eln-opt-auto--process nil "The worker, while it runs.")
@@ -1463,10 +1510,18 @@ number of elns deleted."
 (defvar eln-opt-auto--last-output 0 "When the worker last printed anything.")
 (defvar eln-opt-auto--current nil "The source the worker is compiling now.")
 
-(defun eln-opt-auto--decision ()
-  "Nil when the worker may start now, otherwise a symbol saying why not."
+(defconst eln-opt-min-processors 2
+  "Automatic workers start only on a machine with at least this many logical
+processors.  On one, the worker competes with the session for the only core.
+A manual run is not held back.")
+
+(defun eln-opt-auto--decision (&optional force)
+  "Nil when the worker may start now, otherwise a symbol saying why not.
+FORCE (a manual run) ignores the processor count and the quiet state."
   (cond ((or (not eln-opt-auto-enable) (equal (getenv "ELN_OPT") "0")) 'disabled)
         ((process-live-p eln-opt-auto--process) 'running)
+        ((and (not force) (< (num-processors) eln-opt-min-processors)) 'single-core)
+        ((and (not force) (eln-opt-auto--quiet-p)) 'quiet)
         (t nil)))
 
 (defun eln-opt-auto--command ()
@@ -1547,11 +1602,11 @@ and put the file it was compiling on the failed list."
                                (format "stalled for %d s; killed" eln-opt-worker-stall)))
     (delete-process eln-opt-auto--process)))
 
-(defun eln-opt-auto--start ()
-  "Start the worker, unless eln-opt is off or runs already.
-Returns the process, or nil."
+(defun eln-opt-auto--start (&optional force)
+  "Start the worker, unless eln-opt is off, runs already, or was quiet last
+time (FORCE overrides the quiet state).  Returns the process, or nil."
   (setq eln-opt-auto--timer nil)
-  (unless (eln-opt-auto--decision)
+  (unless (eln-opt-auto--decision force)
     (let ((buf (get-buffer-create eln-opt-log-buffer)))
       (with-current-buffer buf
         (let ((inhibit-read-only t)) (erase-buffer))
@@ -1580,17 +1635,17 @@ compilation the worker still byte-compiles."
     (setq eln-opt-auto--timer
           (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))))
 
-(defun eln-opt-run-now ()
+(defun eln-opt-compile-now ()
   "Start the worker now, or show the one that runs, with a loader in its log.
 Batch: runs the worker here."
   (interactive)
   (if noninteractive
       (eln-opt-worker)
     (let ((proc (or (and (process-live-p eln-opt-auto--process) eln-opt-auto--process)
-                    (eln-opt-auto--start))))
+                    (eln-opt-auto--start t))))
       (if proc
           (display-buffer (process-buffer proc))
-        (message "eln-opt: %s" (eln-opt-auto--decision))))))
+        (message "eln-opt: %s" (eln-opt-auto--decision t))))))
 
 (provide 'eln-opt)
 (provide 'eln-opt-rank)

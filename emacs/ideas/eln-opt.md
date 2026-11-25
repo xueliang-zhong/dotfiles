@@ -7,7 +7,7 @@
 下面"流水线""不会死循环的规则"等章节描述的是第一版（账本、指纹、审计、每轮子进程编译），已经被这一节取代，保留作为历史记录。
 
 **流程**
-1. 主 Emacs 启动后排一个**一次性**的 idle timer（`eln-opt-auto-idle`，60 秒）。整个会话只触发一次。
+1. 主 Emacs 启动后排一个**一次性**的 idle timer（`eln-opt-auto-idle`，60 秒）。整个会话只触发一次。只在至少有 2 个逻辑核时才启动（`eln-opt-min-processors`）：单核上 worker 和会话抢同一个核。如果你的电脑只有单核 CPU，自动触发不会启动，可以考虑在需要时手动运行 `M-x eln-opt-compile-now`。手动运行不受这个门槛影响。
 2. 触发后启动**一个** worker：同一个 Emacs 二进制，加载同一份 profile，以后台优先级运行（macOS `taskpolicy -b`，其它系统 `nice -n 19`）。
 3. worker 先列出 **byte-compile 候选**：以 `.el` 源码加载（没有 `.elc`，或 `.elc` 已过期）、在可信根下、定义了函数、不是 autoloads/loaddefs 或 init/custom 文件、没有 `no-byte-compile`、不在失败列表里的文件。这一步不需要 libgccjit，所有平台都做。
 4. 平台支持 native 时，再做一次可达性分析，得到 **native 候选**：排名靠前、通过候选过滤（可信根、有 `.el` 或 `.el.gz` 源码、ratio 达到阈值、源码解压后不超过 1 MB、没有 `no-native-compile`），**还没有可用 eln**，并且**不在失败列表里**的文件。两类合计最多 `eln-opt-worker-max`（30）个，byte 在前。
@@ -27,7 +27,7 @@
 
 **主 Emacs 看到什么**
 - worker 的输出写进 `*eln-opt*` 缓冲区，mode line 有 spinner；结束时回显区显示一句总结。
-- `M-x eln-opt-run-now`：立刻启动 worker，并显示 `*eln-opt*`。
+- `M-x eln-opt-compile-now`：立刻启动 worker，并显示 `*eln-opt*`。
 - `M-x eln-opt-report`：排名、已编译的文件、失败列表、每个文件的去向。
 
 **删掉的东西**：账本、审计、指纹、`last-run.eld`、每轮编译预算、崩溃报告扫描、每轮子进程验证、重复的 idle timer 和次数上限、电池判断。

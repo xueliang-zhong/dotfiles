@@ -12,7 +12,7 @@
 #   bash emacs/install/emacs-setup.sh trampolines
 #   bash emacs/install/emacs-setup.sh eln-opt
 #   bash emacs/install/emacs-setup.sh compile-lisp
-#   bash emacs/install/emacs-setup.sh eln-opt-run
+#   bash emacs/install/emacs-setup.sh eln-opt-compile
 #   bash emacs/install/emacs-setup.sh eln-opt-reset
 #   bash emacs/install/emacs-setup.sh eln-opt-report
 #   bash emacs/install/emacs-setup.sh eln-opt-status
@@ -273,7 +273,7 @@ cmd_compile_lisp() {
 
 # The eln-opt worker, run here: the profile is loaded so package macros and the
 # load path are the real ones.  It compiles the candidates one at a time.
-cmd_eln_opt_run() {
+cmd_eln_opt_compile() {
     require_emacs
     require_profile
     emacs_batch --eval '(progn (require (quote eln-opt)) (eln-opt-worker))'
@@ -492,7 +492,7 @@ use / check:
   trampolines            pre-build advice trampolines so a GUI start is fast
   eln-opt                    say whether eln-opt can native-compile here (else byte only)
   compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
-  eln-opt-run                run the eln-opt worker here: byte-compile, then native-compile
+  eln-opt-compile            run the eln-opt worker here: byte-compile, then native-compile
   eln-opt-reset              delete the user's elns (not trampolines) and the failed list
   eln-opt-report             print the eln-opt ranking; compiles nothing
   eln-opt-status             how many user elns, and the failed list
@@ -515,7 +515,7 @@ case "${1:-}" in
     trampolines) shift; cmd_trampolines "$@" ;;
     eln-opt) shift; cmd_eln_opt "$@" ;;
     compile-lisp) shift; cmd_compile_lisp "$@" ;;
-    eln-opt-run) shift; cmd_eln_opt_run "$@" ;;
+    eln-opt-compile) shift; cmd_eln_opt_compile "$@" ;;
     eln-opt-reset) shift; cmd_eln_opt_reset "$@" ;;
     eln-opt-report) shift; cmd_eln_opt_report "$@" ;;
     eln-opt-status) shift; cmd_eln_opt_status "$@" ;;

@@ -560,6 +560,46 @@ the worker and goes on the failed list."
       (should (null (eln-opt--byte-plan)))
       (should (equal (reverse order) '((load (lazy-pkg . 1.0)) candidates))))))
 
+;;; Processors: automatic workers need a second core; a manual run does not
+
+(ert-deftest eln-opt-auto-needs-two-processors-but-manual-runs-do-not ()
+  "On one processor the automatic start says so; a forced (manual) run does not."
+  (eln-opt-test--with-state
+    (eln-opt-test--with-auto
+      (cl-letf (((symbol-function 'num-processors) (lambda (&rest _) 1)))
+        (should (eq (eln-opt-auto--decision) 'single-core))
+        (should (null (eln-opt-auto--decision t))))
+      (cl-letf (((symbol-function 'num-processors) (lambda (&rest _) 2)))
+        (should (null (eln-opt-auto--decision)))))))
+
+;;; Quiet: a worker that finds nothing stops automatic starts from looking
+
+(ert-deftest eln-opt-quiet-holds-automatic-workers-until-something-changes ()
+  "A quiet state holds automatic starts back; a manual run is not held back;
+a changed load path lets them start again."
+  (eln-opt-test--with-state
+    (eln-opt-test--with-auto
+      (should-not (eln-opt-auto--decision))
+      (eln-opt--mark-quiet)
+      (should (eq (eln-opt-auto--decision) 'quiet))
+      (should (null (eln-opt-auto--decision t)))
+      ;; A package update changes the load path: the quiet state no longer holds.
+      (let ((load-path (cons "/tmp/eln-opt-new-package" load-path)))
+        (should-not (eln-opt-auto--decision)))
+      ;; Nothing changed: still quiet, on every start.
+      (should (eq (eln-opt-auto--decision) 'quiet)))))
+
+(ert-deftest eln-opt-worker-marks-quiet-when-nothing_to_do-and-clears-when-busy ()
+  "An empty plan records the quiet state; a non-empty plan clears it."
+  (eln-opt-test--with-worker srcs '()
+    (eln-opt-test--worker-result)
+    (should (file-exists-p (eln-opt--quiet-file))))
+  (eln-opt-test--with-worker srcs '("q1")
+    (eln-opt--mark-quiet)
+    (cl-letf (((symbol-function 'native-compile) (lambda (&rest _) (error "boom"))))
+      (eln-opt-test--worker-result))
+    (should-not (file-exists-p (eln-opt--quiet-file)))))
+
 ;;; The report view: same format, computed in a child, with a spinner
 
 (ert-deftest eln-opt-report-parses-the-child-output-after-the-marker ()
