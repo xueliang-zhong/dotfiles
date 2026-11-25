@@ -3516,5 +3516,40 @@ the exit status."
           (should (eq (and (or (byte-code-function-p f) (native-comp-function-p f)) t)
                       (and current t))))))))
 
+;; Startup must not run compilers: ffap computes include folders with gcc,
+;; clang and g++ unless its variables are already set (12 s once on macOS).
+(ert-deftest xl-startup-ffap-runs-no-compiler ()
+  "Init loads ffap (through Embark) with the preset include folders."
+  (should (featurep 'ffap))
+  (should (equal ffap-c-path '("/usr/include" "/usr/local/include")))
+  (should (equal ffap-c++-path ffap-c-path)))
+
+;; The slow-start recorder writes its log only when init was slow.
+(ert-deftest xl-slow-start-report-only-when-slow ()
+  "A start over the threshold writes the log with the longest stretch first;
+a fast one writes nothing."
+  (let* ((log (make-temp-file "startup-slow" nil ".log"))
+         (before-init-time (time-subtract nil 10))
+         (after-init-time nil))
+    (unwind-protect
+        (progn
+          (delete-file log)
+          (let ((xl-slow-start-seconds 100)
+                (xl--start-loads (list (cons (float-time) "/x/b.elc"))))
+            (setq after-init-time (current-time))
+            (should-not (xl--slow-start-report log))
+            (should-not (file-exists-p log)))
+          (let* ((t0 (float-time before-init-time))
+                 (xl-slow-start-seconds 1)
+                 (xl--start-loads (list (cons (+ t0 9) "/x/slow.elc")
+                                        (cons (+ t0 1) "/x/fast.elc"))))
+            (should (equal (xl--slow-start-report log) log))
+            (with-temp-buffer
+              (insert-file-contents log)
+              (should (re-search-forward "stretch, at, file):\n *8\\.000 s .*slow\\.elc" nil t)))))
+      (when (file-exists-p log) (delete-file log))
+      ;; The report removes the recorder; the test leaves it as it found it.
+      (add-hook 'after-load-functions #'xl--note-load))))
+
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

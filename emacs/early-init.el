@@ -2,6 +2,68 @@
 ;; Loaded by the stub in ~/.emacs-profiles/crafted/early-init.el, which
 ;; defines `xl-dotfiles' and `xl-crafted-home'.
 
+;; Slow-start recorder: the time each file finishes loading.  When init takes
+;; more than `xl-slow-start-seconds', the longest stretches, the fresh .eln
+;; files and our files loaded from source go to startup-slow.log, so a slow
+;; start that cannot be reproduced on demand still leaves evidence.  Otherwise
+;; the list is dropped.  Cost: one cons per loaded file.
+(defvar xl-slow-start-seconds 3)
+(defvar xl--start-loads nil "(TIME . FILE) for each finished load, newest first.")
+(defun xl--note-load (file) (push (cons (float-time) file) xl--start-loads))
+(add-hook 'after-load-functions #'xl--note-load)
+
+(defun xl--slow-start-report (&optional log)
+  "Write the startup record to LOG (startup-slow.log) if init was slow.
+Returns the file written, or nil."
+  (remove-hook 'after-load-functions #'xl--note-load)
+  (let* ((init (float-time (time-subtract after-init-time before-init-time)))
+         (log (or log (expand-file-name "startup-slow.log" user-emacs-directory)))
+         (events (reverse xl--start-loads))
+         (prev (float-time before-init-time))
+         gaps)
+    (setq xl--start-loads nil)
+    (when (> init xl-slow-start-seconds)
+      (ignore-errors
+        (dolist (e events)
+          (push (list (- (car e) prev) (- (car e) (float-time before-init-time)) (cdr e)) gaps)
+          (setq prev (car e)))
+        (with-temp-file log
+          (insert (format "%s  init %.2f s, %d files loaded\n\n"
+                          (format-time-string "%F %T") init (length events)))
+          (insert "Longest stretches before a load finished (stretch, at, file):\n")
+          (dolist (g (seq-take (sort gaps (lambda (a b) (> (car a) (car b)))) 15))
+            (insert (format "  %6.3f s  %6.3f s  %s\n" (nth 0 g) (nth 1 g) (nth 2 g))))
+          (when (boundp 'comp-loaded-comp-units-h)
+            (insert "\nUser .eln files loaded, built in the last day (age):\n")
+            (maphash (lambda (f _)
+                       (when (string-match-p "eln-cache" f)
+                         (let ((age (float-time (time-subtract
+                                                 nil (file-attribute-modification-time
+                                                      (file-attributes f))))))
+                           (when (< age 86400)
+                             (insert (format "  %7.0f s  %s\n" age (file-name-nondirectory f)))))))
+                     comp-loaded-comp-units-h))
+          (insert "\nOur files loaded from source:\n")
+          (dolist (e events)
+            (when (and (string-prefix-p (expand-file-name "emacs/" xl-dotfiles) (cdr e))
+                       (string-suffix-p ".el" (cdr e)))
+              (insert "  " (cdr e) "\n")))
+          (insert "\nEvery load (at, file):\n")
+          (dolist (e events)
+            (insert (format "  %7.3f  %s\n" (- (car e) (float-time before-init-time)) (cdr e)))))
+        (message "Slow start: %.1f s; details in %s" init log)
+        log))))
+(add-hook 'emacs-startup-hook #'xl--slow-start-report)
+
+;; ffap works out its C and C++ include folders when it loads, by running
+;; gcc, clang and g++ (`ffap--c-path').  Embark loads ffap during init, and on
+;; macOS those commands are xcrun shims that sometimes hang: the slow-start
+;; log showed 12.1 of 13.3 s spent there.  With the variables already set,
+;; ffap's `defvar' skips that work; the folders matter only for following an
+;; #include with ffap.
+(defvar ffap-c-path '("/usr/include" "/usr/local/include"))
+(defvar ffap-c++-path ffap-c-path)
+
 ;; Crafted writes custom.el and the selected-package list back on every start.
 ;; I set my options explicitly, so nothing needs saving at startup.
 (setq crafted-init-auto-save-customized nil
