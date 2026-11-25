@@ -544,6 +544,22 @@ a source."
   (file-name-sans-extension
    (string-remove-suffix ".gz" (or (ignore-errors (file-truename file)) file))))
 
+(defun eln-opt--defun-files ()
+  "A hash from function symbol to the file `symbol-file' names for it, built
+in one pass over `load-history'.  `symbol-file' scans the whole history for
+each call, which took seconds on a Raspberry Pi with thousands of native
+functions.  The first entry that names a function wins, as in `symbol-file'.
+It agrees with `symbol-file' for native functions, which is all that
+`eln-opt-native-list' asks; autoloaded functions are not tracked here."
+  (let ((files (make-hash-table :test #'eq)))
+    (dolist (entry load-history)
+      (when (stringp (car entry))
+        (dolist (item (cdr entry))
+          (let ((sym (and (consp item) (eq (car item) 'defun) (cdr item))))
+            (when (and sym (not (gethash sym files)))
+              (puthash sym (car entry) files))))))
+    files))
+
 (defun eln-opt-native-list ()
   "Natively compiled functions in this Emacs, grouped by source file.
 Returns a plist:
@@ -554,13 +570,14 @@ Returns a plist:
 Emacs's own preloaded native code is in :files too, so `:total' is large."
   (let ((built (eln-opt--built-sources))
         (groups (make-hash-table :test #'equal))
+        (defun-files (eln-opt--defun-files))
         (total 0))
     (mapatoms
      (lambda (s)
        (when (and (fboundp s) (not (macrop s))
                   (ignore-errors (native-comp-function-p (indirect-function s))))
          (cl-incf total)
-         (let ((file (or (symbol-file s 'defun) "(no file)")))
+         (let ((file (or (gethash s defun-files) "(no file)")))
            (push s (gethash file groups))))))
     (let (files)
       (maphash (lambda (f syms) (push (cons f (sort syms #'string<)) files)) groups)
@@ -644,6 +661,34 @@ gone.  Below it the baseline's weight falls in step with the user's data.")
 ;;; Byte-code features of one function (nested closures included)
 ;;; ------------------------------------------------------------
 
+(defconst eln-opt-rank--op-class
+  (let ((h (make-hash-table :test #'eq)))
+    ;; The same order as the old cond: inline, then buffer.  First one wins.
+    (dolist (op eln-opt-rank--inline-ops) (unless (gethash op h) (puthash op 'inline h)))
+    (dolist (op eln-opt-rank--buffer-ops) (unless (gethash op h) (puthash op 'buffer h)))
+    h)
+  "Instruction name to its benefit class, `inline' or `buffer'.")
+
+(defconst eln-opt-rank--const-class
+  (let ((h (make-hash-table :test #'eq)))
+    ;; The same order as the old cond: C-heavy, allocating, then dynamic.
+    (dolist (c eln-opt-rank--c-heavy) (unless (gethash c h) (puthash c 'c-heavy h)))
+    (dolist (c eln-opt-rank--alloc-heavy) (unless (gethash c h) (puthash c 'alloc h)))
+    (dolist (c eln-opt-rank--dynamic-callers) (unless (gethash c h) (puthash c 'dynamic h)))
+    h)
+  "Called function name to its class, `c-heavy', `alloc' or `dynamic'.")
+
+(defvar eln-opt-rank--weight-cache (make-vector 64 nil)
+  "Memo of `eln-opt-rank--weight', by loop level.")
+
+(defun eln-opt-rank--weight (level)
+  "The weight of code at LEVEL loop levels deep: the loop factor to that power."
+  (if (< level 64)
+      (or (aref eln-opt-rank--weight-cache level)
+          (aset eln-opt-rank--weight-cache level
+                (expt eln-opt-rank-loop-factor level)))
+    (expt eln-opt-rank-loop-factor level)))
+
 (defun eln-opt-rank--lap (fn)
   (seq-filter #'consp
               (byte-decompile-bytecode (aref fn 1) (aref fn 2))))
@@ -682,23 +727,22 @@ Returns (:benefit B :loops N :calls LIST :varrefs LIST :dynamic BOOL :size N)."
     (dotimes (i n)
       (let* ((op (aref ops i))
              (head (car op))
-             (w (expt eln-opt-rank-loop-factor
-                      (+ (aref depth i) (if recursive 1 0)))))
+             (w (eln-opt-rank--weight (+ (aref depth i) (if recursive 1 0))))
+             (class (gethash head eln-opt-rank--op-class)))
         (cond
-         ((memq head eln-opt-rank--inline-ops) (cl-incf benefit w))
-         ((memq head eln-opt-rank--buffer-ops) (cl-decf benefit (* 2 w)))
+         ((eq class 'inline) (cl-incf benefit w))
+         ((eq class 'buffer) (cl-decf benefit (* 2 w)))
          ((eq head 'byte-varref)
           (let ((v (car-safe (cdr op)))) (when (symbolp v) (push v varrefs))))
          ((eq head 'byte-constant)
           (let ((c (car-safe (cdr op))))
             (when (and (symbolp c) c (fboundp c))
               (push c calls)
-              (cond ((memq c eln-opt-rank--c-heavy) (cl-decf benefit (* 2 w)))
-                    ((memq c eln-opt-rank--alloc-heavy) (cl-decf benefit (* 2 w)))
-                    ((memq c eln-opt-rank--dynamic-callers)
-                     (setq dynamic t) (cl-incf benefit (* 0.5 w)))
-                    ((subrp (indirect-function c)) nil)
-                    (t (cl-incf benefit (* 0.5 w))))))))))
+              (pcase (gethash c eln-opt-rank--const-class)
+                ((or 'c-heavy 'alloc) (cl-decf benefit (* 2 w)))
+                ('dynamic (setq dynamic t) (cl-incf benefit (* 0.5 w)))
+                (_ (unless (subrp (indirect-function c))
+                     (cl-incf benefit (* 0.5 w)))))))))))
     (list :benefit benefit :loops loops :calls calls :varrefs varrefs
           :dynamic dynamic :size (length (aref fn 1)))))
 
@@ -780,6 +824,7 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
       (let* ((file (car entry))
              (key (and (stringp file) (eln-opt-rank--file-key file))))
         (when key
+          (let ((optout 'unknown))
           (dolist (d (cdr entry))
             (when (and (consp d) (eq (car d) 'defun) (symbolp (cdr d))
                        (fboundp (cdr d)))
@@ -787,7 +832,9 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
                 (cond
                  ((native-comp-function-p (indirect-function sym))
                   (cl-incf native-skipped))
-                 ((eln-opt-rank--no-native-p file)
+                 ((if (eq optout 'unknown)
+                      (setq optout (eln-opt-rank--no-native-p file))
+                    optout)
                   (cl-pushnew (cons key "no-native-compile or no-byte-compile") excluded
                               :test #'equal))
                  ;; Interpreted functions are skipped, not compiled here: the
@@ -797,7 +844,7 @@ Returns nil for autoload files (-autoloads, -loaddefs), which only hold stubs."
                   (puthash sym key file-of)
                   (puthash sym file path-of)
                   (puthash sym (eln-opt-rank--features sym) features))
-                 (t (cl-incf interpreted-skipped)))))))))
+                 (t (cl-incf interpreted-skipped))))))))))
     ;; Edges: constants, plus function-valued variables read by funcall/apply.
     (maphash
      (lambda (sym feat)

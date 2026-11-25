@@ -696,6 +696,24 @@ is recorded for that path."
         (eln-opt-reset)))
     (should-not (file-exists-p (eln-opt--marker-file)))))
 
+;; The one-pass file map must give what `symbol-file' gives for the native
+;; functions, or the native list names the wrong files.
+(ert-deftest eln-opt-defun-files-agrees-with-symbol-file ()
+  "For every native function, the map and `symbol-file' name the same file."
+  (eln-opt-test--with-tier2
+    (let ((src (eln-opt-test--src lisp "mapped1")))
+      (load (file-name-sans-extension src) nil t)
+      (let ((map (eln-opt--defun-files)) (bad 0) (checked 0))
+        (should (equal (gethash 'mapped1-fn map) (symbol-file 'mapped1-fn 'defun)))
+        (mapatoms (lambda (s)
+                    (when (and (fboundp s) (not (macrop s))
+                               (ignore-errors (native-comp-function-p (indirect-function s))))
+                      (cl-incf checked)
+                      (unless (equal (gethash s map) (symbol-file s 'defun))
+                        (cl-incf bad)))))
+        (should (> checked 100))
+        (should (= bad 0))))))
+
 ;;; Explicit compile: one file, now, whatever the failed list and the quiet state say
 
 (defun eln-opt-test--forced (sources)
