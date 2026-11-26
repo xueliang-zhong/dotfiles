@@ -390,7 +390,7 @@ The child exits after the request it is running.  Return WORKER."
 ;;; Native compilation
 ;;; ============================================================
 
-(declare-function xl-native-compile-watch "xl-native-compile" (process file))
+(declare-function xl-native-compile-request "xl-native-compile" (file args))
 
 (defun xl-async-evaluate--source-of (library)
   "The source file behind LIBRARY, a path from `locate-library'.
@@ -415,8 +415,10 @@ files that require other parts of the configuration or use package
 macros.  CALLBACK, when given, is called once with
 the process, as `xl-async-evaluate' does; `xl-async-evaluate-result'
 then holds (:ok ELN-PATH) or (:error MESSAGE).  Without CALLBACK, the
-compilation is shown in the monitor buffer `*xl-native-compile*', with a
-spinner in its mode line (see xl-native-compile.el).
+compilation is queued and shown in the monitor buffer `*xl-native-compile*'
+\(see xl-native-compile.el): one child at a time, a file queued once, and a
+spinner for the running one.  Then the return value is a status line, such as
+`busy compiling X; Y waits behind 1 other request(s)'.
 
 Without native compilation this signals a `user-error' and starts
 nothing, so CALLBACK is never called with anything but a process.
@@ -441,25 +443,28 @@ Check `native-comp-available-p' first when that is possible."
       (setq file source)
       (unless (plist-get args :profile)
         (setq args (plist-put args :profile user-emacs-directory)))))
+  (if callback
+      (xl-async-native-compile--start file args callback)
+    ;; Without a callback, the compilation goes to the queue and its monitor.
+    (require 'xl-native-compile)
+    (xl-native-compile-request file args)))
+
+(defun xl-async-native-compile--start (file args callback)
+  "Start the child that native-compiles FILE with ARGS; return its process.
+CALLBACK, when non-nil, is called once with the process when it ends."
   ;; With :profile, the child starts from that profile, as a normal start
   ;; does, so the file's requires and package macros resolve.
-  (let* ((profile (plist-get args :profile)))
+  (let ((profile (plist-get args :profile)))
     ;; The child must write its .eln where this Emacs looks for it, so the
     ;; child takes this Emacs's `native-comp-eln-load-path' (set after its
     ;; init, which may change it).
-    (let ((process
-           (apply #'xl-async-evaluate
-                  (list 'progn
-                        (list 'setq 'native-comp-eln-load-path
-                              (list 'quote native-comp-eln-load-path))
-                        (list 'native-compile file))
-                  callback
-                  (append (and profile (list :init-directory profile)) args))))
-      ;; Without a callback, show the compilation in its monitor buffer.
-      (unless callback
-        (require 'xl-native-compile)
-        (xl-native-compile-watch process file))
-      process)))
+    (apply #'xl-async-evaluate
+           (list 'progn
+                 (list 'setq 'native-comp-eln-load-path
+                       (list 'quote native-comp-eln-load-path))
+                 (list 'native-compile file))
+           callback
+           (append (and profile (list :init-directory profile)) args))))
 
 (provide 'xl-async-evaluate)
 ;;; xl-async-evaluate.el ends here
