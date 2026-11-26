@@ -313,7 +313,7 @@ cmd_eln_opt_reset() {
         --eval '(princ (format "eln-opt reset: %d eln file(s) removed\n" (eln-opt-reset)))'
 }
 
-# Background native-compilation gate (tuned-emacs/ideas/eln-opt.md, step 1); without
+# Background native-compilation gate (tuned-emacs/doc/eln-opt.md, step 1); without
 # it, eln-opt only byte-compiles.  Runs
 # in a bare batch Emacs whose state folder is the profile's, and never loads
 # the profile, so it stays quick.  Always exits 0: "not available" is an answer.

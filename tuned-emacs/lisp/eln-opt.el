@@ -29,7 +29,7 @@
 ;; Files that run interpreted (loaded from .el: no .elc, or a stale one) are
 ;; byte-compiled first, on every platform.  Without native compilation (no
 ;; libgccjit, as on most Windows builds) that is all the worker does.
-;; The design notes are in tuned-emacs/ideas/eln-opt.md of the dotfiles repository.
+;; The design notes are in tuned-emacs/doc/eln-opt.md of the dotfiles repository.
 ;;
 ;; Requires xl-async (which holds the loader too) for the views.
 
@@ -44,7 +44,7 @@
 (require 'xl-async)
 (require 'xl-perfetto-trace)     ; spans for the worker's phases; off unless recording
 
-;; Design: tuned-emacs/ideas/eln-opt.md.  This file is loaded only by a background
+;; Design: tuned-emacs/doc/eln-opt.md.  This file is loaded only by a background
 ;; batch run (see `eln-opt-platform-report' and emacs-setup.sh `jit'), never by
 ;; init.el.  Step 1 of the checklist: decide whether this Emacs binary can
 ;; compile native code at all, and remember the answer.
@@ -619,7 +619,7 @@ Emacs's own preloaded native code is in :files too, so `:total' is large."
 
 ;;; ---- Report: the ranking, the built files, the skips ----
 
-;; Step 5 of tuned-emacs/ideas/eln-opt.md.  Nothing here compiles anything.  A child
+;; Step 5 of tuned-emacs/doc/eln-opt.md.  Nothing here compiles anything.  A child
 ;; Emacs with the profile loaded reads the byte code, the call graph, and the
 ;; usage records (savehist, recentf) as data, and prints a ranking.  Entry
 ;; points: `eln-opt-report' (M-x), and `emacs-setup.sh eln-opt-report'.

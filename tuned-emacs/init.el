@@ -210,7 +210,7 @@ session."
 ;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
 ;; background batch Emacs (timers only, no hooks): byte-compile what runs
 ;; interpreted, then the hot files to native code (byte only without
-;; libgccjit).  See tuned-emacs/ideas/eln-opt.md.
+;; libgccjit).  See tuned-emacs/doc/eln-opt.md.
 (require 'eln-opt)
 (eln-opt-auto-arm)
 ;; No extension: `load' then prefers tuned-emacs/xueliang.elc when it is current

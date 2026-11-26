@@ -158,3 +158,9 @@ git commit -m "description"
 3. **Document new features**: Add comments for non-obvious configurations
 4. **Cross-platform**: Test on both macOS and Linux when possible
 5. **Minimalism**: Add new features only when necessary; prefer built-in solutions
+
+## Documentation
+
+- Write documents in English.
+- Put design notes, reference material and long explanations in `tuned-emacs/doc/`. The top-level `tuned-emacs/README.md` is the entry point and links to them.
+- Keep documents in sync with the code: when a change alters behaviour described in a document, update that document in the same commit.
