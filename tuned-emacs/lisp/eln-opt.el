@@ -1823,6 +1823,13 @@ marker and the trusted-root check still apply."
                   (eln-opt--say "done %s" src)))))
           ;; Also files built some other way, or before a worker was stopped
           ;; between the build and its warm-up.  Checked files cost 3 ms each.
+          ;; Trampolines for the C primitives the configuration advises.  A
+          ;; missing one freezes the interface on first use, so the worker builds
+          ;; the predicted ones too (the set is static: see the design document).
+          (when native
+            (let ((r (xl-perfetto-with-span "trampolines" (eln-opt-trampolines-build))))
+              (when (and (consp r) (> (plist-get r :built) 0))
+                (eln-opt--say "built %d trampoline(s)" (plist-get r :built)))))
           (when native
             (let ((n (xl-perfetto-with-span "warm all eln" (eln-opt--warm (eln-opt--eln-files)))))
               (when (> n 0) (eln-opt--say "warmed %d eln file(s)" n))))

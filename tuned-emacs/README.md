@@ -16,6 +16,39 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 `xl-` is the namespace of this project (`xl-key-bindings`, `xl-git-status`, `xl-spinner`). The configuration lives in the `tuned-emacs/` folder of the dotfiles repository.
 
+## Background compilation: no all-or-nothing choice
+
+Emacs 31 gives two ways to use native compilation, and both are awkward:
+
+- **All or nothing.** Emacs's native-compilation settings either compile every
+  file that loads, or none. Compiling every file spends CPU and disk on code
+  that is rarely run; compiling none leaves the code you use most running
+  without native compilation.
+- **Trampolines on the main thread.** When a function is advised or a C
+  primitive is redefined, Emacs compiles a trampoline for it synchronously.
+  That takes about a second and freezes the interface, and it happens in the
+  middle of work, the first time the advice is used.
+
+eln-opt removes the choice. You do not turn native compilation on or off, and
+you do not manage the compiled files:
+
+- **Native-compiles only the hot code**, ranked by how the code is reached from
+  the commands you use (not by file size). Only files whose expected gain
+  justifies the cost are compiled natively.
+- **Handles trampolines.** It predicts which C primitives your configuration
+  advises and builds their trampolines in the background worker, never in your
+  running session, so the first use does not freeze. `trampolines` rebuilds
+  them by hand.
+- **Works only when Emacs is idle**, one file at a time, at low priority, and
+  spaced out so it never competes with your work. Its results are used from the next start.
+- **Stays safe.** It compiles only files under trusted roots, skips a file after
+  it fails until its source changes, resumes after an interruption, and can be
+  switched off with `ELN_OPT=0`.
+
+You can see what it is doing and why with `M-x eln-opt-report`: the status of
+each file, its score, its size, and the command that forces a native compile.
+The design is in [doc/eln-opt.md](doc/eln-opt.md).
+
 ## Requirements
 
 - Emacs 30 or later (developed and tested on Emacs 31.1).
@@ -138,7 +171,7 @@ Known failing test: `xl-packages-load-as-byte-code` in `smoke-tests.el` still ex
 | Change the Spacemacs-style default bindings | `lisp/xl-key-bindings.el` |
 | Add or remove a Crafted module | The `require` lines in `init.el` |
 | Upgrade Crafted | Change the commit in `frameworks.lock`, then run `emacs-crafted-install` |
-| Change startup settings (GC, JIT, package directories) | `early-init.el` |
+| Change startup settings (GC, native-compilation settings, package directories) | `early-init.el` |
 | After upgrading Emacs or rebuilding a profile | Run `trampolines` to avoid a blank first frame |
 
 After a change, run `just emacs-check` (or the script equivalent).

@@ -9,7 +9,7 @@ Emacs code runs in one of three states: interpreted source, byte code, or native
 
 - **Transparent.** The running Emacs adds no hooks, no advice and no analysis. It has one one-shot idle timer. Analysis and compilation run in a background child process.
 - **Light.** Startup cost is small. When idle, only a fingerprint comparison runs. Real work happens only when the fingerprint changes.
-- **Background, low priority.** One file at a time, with rest between files.
+- **Background, low priority.** One file at a time, spaced out so it never competes with the session.
 - **Safe.** It never loads untrusted code, never recompiles repeatedly because of a version mismatch, resumes after an interruption, and can be turned off.
 - **Effective next start.** New results take effect on the next start, not in the running session.
 
@@ -64,10 +64,11 @@ In the worker (a background batch Emacs):
    - At most 30 items in total, byte-compiles first. An empty plan marks the session quiet and exits.
 10. Process the plan one item at a time, sleeping `eln-opt-worker-sleep` (1 s) between files: write the in-progress marker, compile, delete the marker, and after a successful native compile warm the new eln (see "First-load check"). Print `done` or `failed`, and record a failure in the failure list. A failed file does not stop the others.
 10b. On a platform with native compilation, warm the whole eln directory once (see "First-load check"). This also covers elns made by other means and elns the worker was stopped before warming.
+10c. Build the predicted trampolines that are still missing, at most `eln-opt-trampoline-limit` (50) per run, and print how many were built. This is the only place eln-opt builds trampolines during normal use.
 11. Finish: print `finished N` (or `finished N, failed M`) and release the lock. The main Emacs shows `compiled N file(s); they load on the next start`.
 12. Next start: Emacs loads the new `.elc` and eln files by itself.
 
-Rough time on the Pi: each file takes seconds to compile (org takes about a minute), plus the pause between files (1 second by default). Thirty files take a few minutes.
+Rough time on the Pi: each file takes seconds to compile (org takes about a minute), plus the spacing between files (1 second by default). Thirty files take a few minutes.
 
 ## Candidate rules
 
@@ -153,6 +154,8 @@ The fix (`eln-opt--warm`): after the worker makes each eln, a one-shot `emacs -Q
 Correction: the 13-second starts that prompted this work were first attributed to the first-load check. The slow-start log later showed that 12.1 s was spent in the `gcc`, `clang` and `g++` runs that ffap makes at load time, which has nothing to do with elns. The cause and fix are in [startup.md](startup.md). The first-load cost described here is real and was reproduced with new copies, but it was not the cause of those slow starts.
 
 Trampolines compiled by `comp-trampoline-compile` are loaded immediately, and were already checked by the process that compiled them, so they need no warming.
+
+**Who builds them.** The worker builds the predicted trampolines after it has compiled its files (step 10c), at most `eln-opt-trampoline-limit` per run. This happens in the background worker only; the running session never compiles a trampoline for eln-opt. The setup script and the `trampolines` command build the same set on demand.
 
 ## Trampolines
 
