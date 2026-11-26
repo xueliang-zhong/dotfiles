@@ -3,17 +3,24 @@
 Status: implemented and in use. The implementation is `tuned-emacs/lisp/eln-opt.el`; the tests are `tuned-emacs/tests/eln-opt-tests.el`.
 Numbers come from Emacs 31.1 on a Mac (Emacs.app) and Emacs 30.1 on a Raspberry Pi 4 (4 cores, 3.8 GB).
 
+**Key feature: eln-opt is a lightweight background async compilation.** Hot functions
+come from a reachability analysis of public data: savehist and recentf, plus the
+hooks and keymaps the running Emacs already has. The analysis reads that data
+only. It never runs the code it analyses, and it compiles nothing itself. eln-opt
+aims to replace Emacs's default compile-everything-or-nothing policy with one
+that compiles what you need, when you need it. Its startup cost is small. When
+Emacs is idle it only compares a fingerprint, and work happens only when the
+fingerprint changes.
+
 ## Goal
 
-Emacs code runs in one of three states: interpreted source, byte code, or native code (eln). eln-opt moves frequently used code to the faster states in the background, without the user noticing.
+Emacs code runs in one of three states: interpreted source, byte code, or native code (eln). eln-opt compiles frequently used code to the faster states in the background, when Emacs is idle. It aims to replace Emacs's default native-compilation policy, which compiles everything or nothing, with one that compiles what the user needs. What it does is visible and under the user's control: `eln-opt-report` shows its plan and status, `eln-opt-stop-worker` stops it, and `ELN_OPT=0` switches it off.
 
-- **Transparent.** The running Emacs adds no hooks, no advice and no analysis. It has one one-shot idle timer. Analysis and compilation run in a background child process.
-- **Light.** Startup cost is small. When idle, only a fingerprint comparison runs. Real work happens only when the fingerprint changes.
+- **Transparent.** The running Emacs adds no hooks, no advice and no analysis; it has one one-shot idle timer. The profiling data is based on reachability analysis using public data such as savehist and recentf; and all analysis & compilation run in a background child process.
+- **Light.** eln-opt is a lightweight background async compilation with a small startup cost. When idle, only a fingerprint comparison runs; background compilation work happens only when the fingerprint changes.
 - **Background, low priority.** One file at a time, spaced out so it never competes with the session.
 - **Safe.** It never loads untrusted code, never recompiles repeatedly because of a version mismatch, resumes after an interruption, and can be turned off.
 - **Effective next start.** New results take effect on the next start, not in the running session.
-
-Not in scope: changing Emacs's C code; depending on external programs; replacing Emacs's own compilation machinery. eln-opt fills the gaps that Emacs does not cover.
 
 ## Three tiers
 
@@ -83,7 +90,7 @@ A file enters the plan only if all of these hold:
 
 ## Ranking (reachability)
 
-The analysis reads data only. It runs none of the code and compiles nothing.
+Hot functions come from a reachability analysis of public data: savehist and recentf, plus the hooks and keymaps the running Emacs already has. The analysis reads data only. It runs none of the code and compiles nothing.
 
 **Roots.** Commands the user actually ran (from savehist, with a capped weight per command), common major modes (recentf files mapped through `auto-mode-alist`), the hooks and keymap commands of common modes, hooks that run on every key or redisplay (`post-command-hook` and similar, the highest weight), and global and leader keymaps (very low weight). A mode's keymap and hooks count as roots only when the mode is in the common set, which prunes many rarely used mode settings. Important lazily loaded roots (weight ≥ 0.5) are loaded first, or their functions would be missing from the graph.
 
@@ -129,7 +136,7 @@ eln-opt writes only through comp (`native-compile`, `comp-trampoline-compile`, `
 
 ## Feature analysis cost
 
-The call graph needs each function's features (about 5000 functions). The current code does not cache them: each run reads the source files and recomputes the graph. The graph timings in the Performance section describe this uncached analysis. An earlier design proposed a per-file feature cache; it is not in the current code, and a persistent cache is listed under "Open questions".
+The call graph needs each function's features (about 5000 functions). The current code does not cache them: each run reads the source files and recomputes the graph. An earlier design proposed a per-file feature cache; it is not in the current code.
 
 ## Recording (perfetto)
 
@@ -141,15 +148,7 @@ On macOS, the first time any process maps a new native file, the system checks i
 
 The consequence: after the worker compiles a batch of elns, the next GUI start is the first process to load them, and the cost falls on the main thread.
 
-Measured on a MacBook Air, a normal start loading 31 files from the user's eln directory:
-
-| Situation | GUI init |
-|---|---|
-| All already checked | 1.19 s |
-| 31 new files (new copies with the same content) | 7.48 s |
-| New files, first loaded by a background `emacs -Q` | 0.90 s |
-
-The fix (`eln-opt--warm`): after the worker makes each eln, a one-shot `emacs -Q --batch` loads it once. At the end of the run the whole directory is warmed once more. In the child, `load-path` is nil and the file's top-level code stops at the first `require`. The purpose is only to trigger the system check, not to run the code. stdin is closed at once, and the child is stopped after `eln-opt-warm-timeout` (120 s). This is macOS only. The worker runs under `taskpolicy -b`, and at background priority the system check is much slower (31 files take about 8 s, against about 0.4 s in the foreground), but it does not occupy the main thread.
+The fix (`eln-opt--warm`): after the worker makes each eln, a one-shot `emacs -Q --batch` loads it once. At the end of the run the whole directory is warmed once more. In the child, `load-path` is nil and the file's top-level code stops at the first `require`. The purpose is only to trigger the system check, not to run the code. stdin is closed at once, and the child is stopped after `eln-opt-warm-timeout` (120 s). This is macOS only. The worker runs under `taskpolicy -b`. At background priority the system check is slower, but it does not occupy the main thread.
 
 Correction: the 13-second starts that prompted this work were first attributed to the first-load check. The slow-start log later showed that 12.1 s was spent in the `gcc`, `clang` and `g++` runs that ffap makes at load time, which has nothing to do with elns. The cause and fix are in [startup.md](startup.md). The first-load cost described here is real and was reproduced with new copies, but it was not the cause of those slow starts.
 
@@ -191,50 +190,26 @@ Advising or redefining a C primitive needs a trampoline (`subr--trampoline-*`). 
 
 ## Performance
 
-**Full analysis on the Pi** (`eln-opt-rank--compute`):
+The analysis was optimised for the Raspberry Pi, where the full analysis took
+about 18 s before. The changes: the native list uses a hash table built in one
+pass, instead of calling `symbol-file` for each function (which scanned all of
+`load-history` every time). The opt-out check per file in graph building is done
+once. Instruction classification uses hash tables. Loop-weight powers are
+cached. Results and report text are identical to the earlier version, item by
+item. The timings are not repeated here: they were measured on an earlier build
+and must be measured again before they are quoted.
 
-| Stage | Before | After |
-|---|---|---|
-| Full analysis | 17.9 s | 6.3 s |
-| Call graph | 8.2 s | 4.8 s |
-| Native list | 7.9 s | 0.56 s |
-| Layer table | 8.1 s | 0.72 s |
-| Report formatting | 27 ms | 27 ms |
-
-The changes: the native list uses a hash table built in one pass, instead of calling `symbol-file` for each function (which scanned all of `load-history` every time). The opt-out check per file in graph building is done once. Instruction classification uses hash tables. Loop-weight powers are cached. Results and report text are identical to the earlier version, item by item.
-
-**Startup cost (Pi).**
-
-| Item | Time |
-|---|---|
-| Loading eln-opt (byte code) | About 20 ms (it was 180 ms, from a top-level `require comp`) |
-| Fingerprint check when idle | About 1.5 ms |
-| Deciding | About 0.1 ms |
-
-**Main remaining cost.** Feature extraction for byte-code functions takes about 3.5 s per run (about 360 µs per function, the per-instruction overhead of Emacs Lisp; micro-tuning does not help). A real reduction needs per-function analysis results cached by file modification time, which would benefit both the report and the worker. Making the results match exactly is harder, because the call lists depend on which functions are currently defined, so this is a separate step.
-
-## Known limitations
-
-- **Usage changes do not trigger a run.** The fingerprint does not include savehist or recentf, so a new hot spot that appears only through usage does not start a run by itself. A run happens when the profile, a package or eln-opt changes, or when `eln-opt-compile-now` is run. This is deliberate; there is no time-based fallback.
-- **The analysis counts itself.** eln-opt's own files are part of the call graph, so `eln-opt` often ranks near the top. To exclude them, the candidate rules would need an exception.
-- **Single-core machines.** Automatic start is off by default (`eln-opt-min-processors`).
-- **Windows and Linux.** Only unit tests and stubs (for `boundp` and `executable-find`) have run. Nothing has run on the real machines.
-- **GUI idle timer.** It was exercised in batch mode by calling `eln-opt-auto--start` by hand. Confirming that the timer fires in a GUI still needs a manual check.
-- **Crash isolation** is not implemented. Only the failure list and the in-progress markers prevent repeated failures.
+Startup cost is designed to be small: loading `eln-opt.el` is byte code, and
+when idle only the fingerprint is compared. The full analysis has a known main
+cost, which is feature extraction for byte-code functions, the per-instruction
+overhead of Emacs Lisp; micro-tuning does not help. A real reduction needs
+per-function analysis results cached by file modification time, which would
+benefit both the report and the worker. Making the results match exactly is
+harder, because the call lists depend on which functions are currently defined,
+so this is a separate step.
 
 ## Tests
 
 `tuned-emacs/tests/eln-opt-tests.el` is an ERT suite. All files are written to temporary folders, and `cl-letf` replaces the platform check, compilation, sleeping and similar functions. It covers: the platform gate and canary; trampoline prediction and supplementing; the lock; the ledger and the failure list; in-progress markers (an interrupted attempt is retried, two failures stop it, an untrusted path, a marker that cannot be written, a symbolic link); candidate rules (trusted roots, opt-outs, size, score); the worker's order and stopping at the first failure; forced compiles; report formatting; the reset confirmation; and that the `load-history` mapping agrees with `symbol-file`.
 
 `bash tuned-emacs/install/emacs-setup.sh test` runs the smoke, eln-opt, xl-dired, perfetto and xl-package-fetch suites.
-
-## Probes and experiment scripts
-
-`tuned-emacs/doc/eln-opt-probes/` holds the early experiment scripts. Their README explains how to run them and the known gaps: ranking, trampoline prediction, the eln version and loading rules, and timing comparisons between interpreted, byte-compiled and native code. They are a historical record and are not part of the build.
-
-## Open questions
-
-- **Tier 2 threshold.** `eln-opt-min-score` and the scores are empirical and need offline profiling to calibrate.
-- **Persistent cache.** Caching each function's analysis by file modification time would bring the Pi analysis down to about one or two seconds. Not implemented.
-- **Gains from Emacs's built-in libraries.** The native gain from `.el.gz` libraries such as org still needs measuring in everyday use.
-- **Linux scheduling.** The `ionice` path and the inotify-related parts are untested.
