@@ -48,10 +48,13 @@
   "Non-nil when emacs-setup.sh asked for step-by-step progress output.")
 
 (defun xl-report (format-string &rest args)
-  "Print a progress line to stdout when `xl-progress' is set."
+  "Print a progress line when `xl-progress' is set.
+Written to stderr one character at a time: batch stdout is buffered, so
+progress written to it appears only at exit.  stderr is unbuffered, so
+every character appears as soon as it is written."
   (when xl-progress
-    (princ (apply #'format format-string args))
-    (princ "\n")))
+    (mapc #'external-debugging-output
+          (concat (apply #'format format-string args) "\n"))))
 
 (defun xl-package-present-p (pkg)
   "Non-nil when PKG is activated or built-in.

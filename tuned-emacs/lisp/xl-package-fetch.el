@@ -114,9 +114,9 @@ package that fails any step is skipped; the caller installs the rest."
                    (when (and (bound-and-true-p xl-progress)
                               (zerop (% index 2))
                               (zerop (car result)))
-                     (princ "."))))
+                     (external-debugging-output ?.))))
               (when (and descs (bound-and-true-p xl-progress))
-                (terpri))))))
+                (external-debugging-output ?\n))))))
     (unwind-protect
         (let* ((tar-ok (cl-loop for i from 0 below (length descs)
                                 collect (zerop (car (nth (* 2 i) fetched)))))
