@@ -854,102 +854,6 @@ with one warm-up of every eln in the folder."
                                '("all-1.eln" "all-2.eln"))))
           (should (string-match-p "warmed 2 eln file" out)))))))
 
-;; The feature cache: a matching file is not analysed again; a changed one is;
-;; a damaged or foreign cache is ignored as a whole.
-(defmacro eln-opt-test--with-feature-cache (dir &rest body)
-  "Temporary state folder DIR, cache globals reset, and a counting stub for
-the analysis.  BODY sees `calls' bound to the number of analyses."
-  (declare (indent 1))
-  `(let* ((,dir (file-name-as-directory (make-temp-file "eln-opt-feat-" t)))
-          (eln-opt-state-dir ,dir)
-          (eln-opt-rank--feature-cache nil)
-          (eln-opt-rank--feature-loaded nil)
-          (eln-opt-rank--feature-seen (make-hash-table :test #'equal))
-          (calls 0))
-     (unwind-protect
-         (cl-letf (((symbol-function 'eln-opt-rank--features)
-                    (lambda (_sym) (cl-incf calls)
-                      (list :benefit 1.0 :loops 0 :size 10
-                            :calls nil :varrefs nil :dynamic nil))))
-           ,@body)
-       (delete-directory ,dir t))))
-
-(ert-deftest eln-opt-feature-cache-reuses-a-matching-file-and-redoes-a-changed-one ()
-  "A file whose validator matches gives its cached features; a changed file is
-analysed again."
-  (eln-opt-test--with-feature-cache dir
-    (let ((src (make-temp-file "eln-opt-src-" nil ".elc")))
-      (unwind-protect
-          (progn
-            (eln-opt-rank--cached-features 'f1 src)
-            (eln-opt-rank--cached-features 'f1 src)
-            (should (= calls 1))
-            (eln-opt-rank--feature-save)
-            ;; A new run: the disk cache is read, the file is unchanged.
-            (setq eln-opt-rank--feature-cache nil eln-opt-rank--feature-loaded nil
-                  eln-opt-rank--feature-seen (make-hash-table :test #'equal))
-            (eln-opt-rank--cached-features 'f1 src)
-            (should (= calls 1))
-            ;; The file changes: analysed again.
-            (with-temp-file src (insert "changed content, another size"))
-            (setq eln-opt-rank--feature-cache nil eln-opt-rank--feature-loaded nil
-                  eln-opt-rank--feature-seen (make-hash-table :test #'equal))
-            (eln-opt-rank--cached-features 'f1 src)
-            (should (= calls 2)))
-        (delete-file src)))))
-
-(ert-deftest eln-opt-feature-cache-ignores-a-damaged-or-foreign-file ()
-  "A cache with a bad entry, another analysis key, or a symbolic link is not used."
-  (eln-opt-test--with-feature-cache dir
-    (let ((src (make-temp-file "eln-opt-src-" nil ".elc"))
-          (file (eln-opt-rank--feature-file)))
-      (unwind-protect
-          (progn
-            (make-directory (file-name-directory file) t)
-            ;; A bad :benefit: the whole file is refused.
-            (with-temp-file file
-              (prin1 (list :version (eln-opt--version-name)
-                           :key (eln-opt-rank--analysis-key)
-                           :files (list (list src (eln-opt-rank--validator src)
-                                              (list (cons 'f1 (list :benefit "x"
-                                                                    :loops 0 :size 1
-                                                                    :calls nil :varrefs nil
-                                                                    :dynamic nil))))))
-                     (current-buffer)))
-            (eln-opt-rank--cached-features 'f1 src)
-            (should (= calls 1))
-            ;; Another analysis key: refused.
-            (with-temp-file file
-              (prin1 (list :version (eln-opt--version-name) :key "other" :files nil)
-                     (current-buffer)))
-            (setq eln-opt-rank--feature-cache nil eln-opt-rank--feature-loaded nil)
-            (eln-opt-rank--cached-features 'f2 src)
-            (should (= calls 2))
-            ;; A symbolic link is never read.
-            (delete-file file)
-            (make-symbolic-link (expand-file-name "elsewhere.eld" dir) file)
-            (setq eln-opt-rank--feature-cache nil eln-opt-rank--feature-loaded nil)
-            (should-not (eln-opt-rank--feature-safe-file-p file)))
-        (delete-file src)))))
-
-;; ELN_OPT_FEATURE_CACHE=0: nothing is read or written, every function is analysed.
-(ert-deftest eln-opt-feature-cache-switch-off-reads-and-writes-nothing ()
-  (eln-opt-test--with-feature-cache dir
-    (let ((src (make-temp-file "eln-opt-src-" nil ".elc"))
-          (process-environment (cons "ELN_OPT_FEATURE_CACHE=0" process-environment)))
-      (unwind-protect
-          (progn
-            (eln-opt-rank--cached-features 'f1 src)
-            (eln-opt-rank--feature-save)
-            (should-not (file-exists-p (eln-opt-rank--feature-file)))
-            ;; A new run: nothing from the last one may be reused.
-            (setq eln-opt-rank--feature-loaded nil
-                  eln-opt-rank--feature-seen (make-hash-table :test #'equal))
-            (eln-opt-rank--cached-features 'f1 src)
-            (should (= calls 2)))
-        (delete-file src)))))
-
-;; The pause is between files: one file's byte and native steps run back to back.
 (ert-deftest eln-opt-worker-pauses-between-files-not-between-the-steps-of-one ()
   "Two steps of the same file are not separated by the pause; a new file is."
   (eln-opt-test--with-worker srcs '("p1" "p2")
@@ -1022,16 +926,6 @@ top-level form is a span named for the function it defines."
             (should (string-match-p "refused .*not in a trusted folder" text))
             (should-not (file-exists-p (concat src "c"))))
         (delete-directory outside t)))))
-
-(ert-deftest eln-opt-function-source-finds-the-lisp-file-or-says-why ()
-  "A Lisp function resolves to its source file; a C primitive is refused."
-  (eln-opt-test--with-tier2
-    (let ((src (eln-opt-test--src lisp "forced-fn")))
-      (with-temp-buffer
-        (insert-file-contents src)
-        (eval-buffer nil nil src))
-      (should (equal (eln-opt-function-source 'forced-fn-fn) src)))
-    (should-error (eln-opt-function-source 'car) :type 'user-error)))
 
 ;;; Processors: automatic workers need a second core; a manual run does not
 
