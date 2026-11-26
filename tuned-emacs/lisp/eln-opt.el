@@ -1275,10 +1275,14 @@ messages also go to its output, so the parent keeps only what follows it.")
   "Non-nil in the child: print `eln-opt-rank--marker' before the report.")
 
 (defun eln-opt-rank--report-from-output (output)
-  "The report in a child's OUTPUT: what follows the marker, or nil."
+  "The report in a child's OUTPUT: what follows the marker, or nil.
+Carriage returns are dropped, so a CRLF from any source shows as a plain line."
   (let ((at (string-match (regexp-quote eln-opt-rank--marker) output)))
     (and at (string-trim-left
-             (substring output (+ at (length eln-opt-rank--marker))) "\n+"))))
+             (replace-regexp-in-string
+              "\r" ""
+              (substring output (+ at (length eln-opt-rank--marker))))
+             "\n+"))))
 
 (defun eln-opt-rank--child-command (form)
   "The child Emacs command that evaluates FORM (a string of Lisp) after the
