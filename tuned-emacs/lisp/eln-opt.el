@@ -1169,42 +1169,26 @@ their files with a current .elc are listed too, as byte-compiled."
   (if time (format-time-string "%Y-%m-%d %H:%M" (seconds-to-time time)) "-"))
 
 (defun eln-opt-rank--format (result)
-  "The report as a string.  Sections, in order: what the next pass does, the
-files at Tier 1 and 2, what failed, what happens to each ranked file (with its
-score and cost), and what is left out altogether."
+  "The report as a string: title, status, the table of built files, what the
+next worker does, what failed, what happens to each ranked file, what is left
+out, and a note on how files are ranked."
   (let* ((built (plist-get result :built-rows))
          (next (plist-get result :next))
          (failed (plist-get result :failed))
          ;; A result without the key (built by hand) is treated as native.
          (native (if (plist-member result :native) (plist-get result :native) t))
          (next-names (mapcar #'file-name-nondirectory next))
-         (rows (plist-get result :rows)))
+         (rows (plist-get result :rows))
+         (elns (seq-filter (lambda (r) (plist-get r :eln)) built)))
     (with-output-to-string
-      ;; 1. The answer
-      (princ "eln-opt report (report only; nothing is compiled here)\n")
-      (princ "How it is ranked: from what this session reaches (savehist, recentf,\n")
-      (princ "hooks, keymaps, advice), read from byte code.  A file scores by the\n")
-      (princ "weight of the reachable code it holds.  This estimates use, it measures\n")
-      (princ "no time.  Tier 2 files are native, Tier 1 byte-compiled.  The examples\n")
-      (princ "are our best-effort guess at the functions most useful to you: the\n")
-      (princ "top-weighted ones for Tier 1 files, a sample for Tier 2 files.\n")
+      (princ "eln-opt report\n")
       (unless native
-        (princ (format "Native compilation is not available in this Emacs (%s): only byte-compiling happens here.\n"
+        (princ (format "\nNative compilation is not available in this Emacs (%s): only byte-compiling happens here.\n"
                        (or (plist-get result :platform-reason) "unknown"))))
-      (princ "\n")
-      (princ (eln-opt-rank--byte-line (plist-get result :byte)))
-      (when native
-        (princ "Next worker native-compiles: ")
-        (if (null next)
-            (princ "nothing.\n")
-          (princ (format "%d file(s), in this order: %s\n" (length next)
-                         (mapconcat #'identity next-names ", ")))))
-      ;; 2. What was compiled
-      (let ((elns (seq-filter (lambda (r) (plist-get r :eln)) built)))
-        (princ (format "\nStatus: %d file(s) at Tier 2 (native, %d function(s)); %d file(s) at Tier 1 (byte-compiled)\n"
-                       (length elns)
-                       (apply #'+ (mapcar (lambda (r) (plist-get r :count)) elns))
-                       (- (length built) (length elns)))))
+      (princ (format "\nStatus:\n  %d file(s) at Tier 2 (native, %d function(s));\n  %d file(s) at Tier 1 (byte-compiled)\n"
+                     (length elns)
+                     (apply #'+ (mapcar (lambda (r) (plist-get r :count)) elns))
+                     (- (length built) (length elns))))
       (when built
         (princ (format "\n%-28s  %6s  %-4s  %-4s  %9s  %s\n"
                        "file" "KB" "elc" "eln" "functions" "examples"))
@@ -1216,7 +1200,14 @@ score and cost), and what is left out altogether."
                          (if (plist-get row :eln) "yes" "no")
                          (plist-get row :count)
                          (plist-get row :top)))))
-      ;; 3. What failed
+      (princ "\n")
+      (princ (eln-opt-rank--byte-line (plist-get result :byte)))
+      (when native
+        (princ "\nNext worker native-compiles:\n")
+        (if (null next)
+            (princ "  nothing.\n")
+          (princ (format "  %d file(s), in this order: %s\n" (length next)
+                         (mapconcat #'identity next-names ", ")))))
       (when failed
         (princ "\nSkipped after a failure (until the source changes):\n")
         (dolist (e failed)
@@ -1224,7 +1215,6 @@ score and cost), and what is left out altogether."
                          (file-name-nondirectory (plist-get e :src))
                          (eln-opt-rank--when (plist-get e :time))
                          (or (plist-get e :reason) "")))))
-      ;; 4. Why each ranked file is or is not compiled
       (princ "\nRanked files not yet native, and what happens to each\n")
       (princ "(score: expected gain; KB: bytecode size, the cost)\n")
       (if (not native)
@@ -1245,7 +1235,6 @@ score and cost), and what is left out altogether."
                              (/ (or (plist-get row :size) 0) 1024.0) why)))
             (cl-incf n)))
         (when (> n 40) (princ (format "  ... and %d more\n" (- n 40)))))
-      ;; 5. What is left out altogether
       (princ "\nLeft out before ranking:\n")
       (princ (format "  already native in this Emacs (after init): %d function(s)\n"
                      (plist-get result :native-skipped)))
@@ -1262,7 +1251,17 @@ score and cost), and what is left out altogether."
                        (mapconcat #'identity (plist-get result :lazy-loaded) ", "))))
       (princ (format "  functions analysed: %d;  largest single savehist command share of the score: %.1f%%\n"
                      (plist-get result :functions)
-                     (* 100 (plist-get result :savehist-share)))))))
+                     (* 100 (plist-get result :savehist-share))))
+      (princ "\nNOTE:\n")
+      (princ "  How the functions are ranked: from what this session reaches\n")
+      (princ "  (savehist, recentf, hooks, keymaps, advice), read from byte code.  A\n")
+      (princ "  file scores by the weight of the reachable code it holds.  This\n")
+      (princ "  estimates use, it measures no time.  Tier 2 files are native, Tier 1\n")
+      (princ "  byte-compiled.  The examples are our best-effort guess at the\n")
+      (princ "  functions most useful to you: the top-weighted ones for Tier 1 files,\n")
+      (princ "  a sample for Tier 2 files.\n")
+      (princ "  If an important function is missing, you can still native-compile it\n")
+      (princ "  yourself: (native-compile 'your-function)\n"))))
 
 ;;; The report as a buffer.  The ranking takes seconds, so it runs in a child
 ;;; Emacs that loads the profile and prints this same text; the buffer shows a
@@ -1444,10 +1443,10 @@ text, so that the child's loading messages are dropped."
   "The child form that prints the ranking report.")
 
 (defun eln-opt-rank--byte-line (byte)
-  "The report line for BYTE, the files the next worker byte-compiles."
+  "The report lines for BYTE, the files the next worker byte-compiles."
   (if (null byte)
       "Next worker byte-compiles: nothing; no loaded file runs interpreted.\n"
-    (format "Next worker byte-compiles first (they run interpreted now): %d file(s): %s\n"
+    (format "Next worker byte-compiles first (they run interpreted now):\n  %d file(s): %s\n"
             (length byte) (mapconcat #'file-name-nondirectory byte ", "))))
 
 (defun eln-opt-report ()

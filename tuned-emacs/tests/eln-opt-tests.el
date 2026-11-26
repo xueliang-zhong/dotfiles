@@ -457,8 +457,8 @@ its header, the Status line, the byte-compile list, and no native list."
                     (let ((noninteractive t))
                       (eln-opt-report)))))
         (should (string-match-p "Native compilation is not available in this Emacs" text))
-        (should (string-match-p "byte-compiles first .*: 1 file(s): a.el" text))
-        (should (string-match-p "Status: 0 file(s) at Tier 2" text))
+        (should (string-match-p "byte-compiles first .*:\n  1 file(s): a.el" text))
+        (should (string-match-p "Status:\n  0 file(s) at Tier 2" text))
         (should-not (string-match-p "native-compiles" text))
         (should (string-match-p "Not listed: without native compilation" text))))))
 
