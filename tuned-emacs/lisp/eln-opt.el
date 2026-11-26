@@ -493,9 +493,10 @@ Emacs will use.  Emacs's own preloaded native code is not in that folder."
 ;;; Candidates: which ranked files may be compiled
 ;;; ------------------------------------------------------------
 
-(defconst eln-opt-min-ratio 3.0
-  "Lowest score/KB a file needs to be a candidate.  Filters only; the order of
-the candidates is by score.  Uncalibrated: set it from a profiler run.")
+(defconst eln-opt-min-score 3.0
+  "Lowest score a file needs to be a candidate.  The score is the expected
+gain per KB of byte code, the one number eln-opt shows.  Filters only; the
+order of the candidates is by score.  Uncalibrated: set it from a profiler run.")
 
 (defconst eln-opt-max-source-bytes (* 1024 1024)
   "Largest source file eln-opt will compile, uncompressed.  1 MB lets in
@@ -523,9 +524,9 @@ against the trusted roots and the opt-out cookie, and must be a reasonable size.
          (src (and path (eln-opt--source-for path))))
     (cond
      ((null path) "no source path recorded")
-     ((null (plist-get row :ratio)) "no ratio")
-     ((< (plist-get row :ratio) eln-opt-min-ratio)
-      (format "ratio %.1f is below %.1f" (plist-get row :ratio) eln-opt-min-ratio))
+     ((null (plist-get row :score)) "no score")
+     ((< (plist-get row :score) eln-opt-min-score)
+      (format "score %.1f < %.1f" (plist-get row :score) eln-opt-min-score))
      ((not (file-readable-p src))
       (if (string-suffix-p ".elc" path) "no .el or .el.gz source next to the .elc"
         "source not readable"))
@@ -1080,8 +1081,8 @@ heavy roots can be loaded before the graph is built."
                             (push (cons sym (* h (plist-get feat :benefit))) fns)))))
                     (plist-get graph :file))
            (when (> score 0)
-             (push (list :file key :score score :size size
-                         :ratio (/ score (max 0.1 (/ size 1024.0)))
+             (push (list :file key :gain score :size size
+                         :score (/ score (max 0.1 (/ size 1024.0)))
                          :top (mapcar #'car (seq-take (sort fns (lambda (a b) (> (cdr a) (cdr b))))
                                                       3))
                          :defuns (let (names)
@@ -1112,8 +1113,8 @@ heavy roots can be loaded before the graph is built."
             :next (and native
                        (eln-opt--plan-from-rows
                         (sort (copy-sequence rows)
-                              (lambda (a b) (> (or (plist-get a :ratio) 0)
-                                               (or (plist-get b :ratio) 0))))
+                              (lambda (a b) (> (or (plist-get a :score) 0)
+                                               (or (plist-get b :score) 0))))
                         (- eln-opt-worker-max
                            (min eln-opt-worker-max (length (eln-opt--byte-candidates))))))
             :failed (eln-opt--failed-load)
@@ -1216,23 +1217,25 @@ out, and a note on how files are ranked."
                          (eln-opt-rank--when (plist-get e :time))
                          (or (plist-get e :reason) "")))))
       (princ "\nRanked files not yet native, and what happens to each\n")
-      (princ "(score: expected gain; KB: bytecode size, the cost)\n")
+      (princ "(score: expected gain per KB of byte code; KB: its size)\n")
       (if (not native)
           (princ "  Not listed: without native compilation no file here is native-compiled.\n")
-        (princ (format "  %-28s  %6s  %6s  %s\n" "file" "score" "KB" "what happens")))
+        (princ (format "  %-29s %6s  %6s  %-17s%s\n"
+                       "file" "score" "KB" "status" "force xl-async-native-compile")))
       (let ((n 0))
         (dolist (row (and native rows))
           (let* ((src (and (plist-get row :path)
                            (eln-opt--source-for (plist-get row :path))))
-                 (why (cond ((and src (member src next)) "compile in the next worker run")
+                 (why (cond ((and src (member src next)) "compile planned")
                             ((eln-opt--candidate-reason row))
                             ((and src (eln-opt--failed-p src)) "failed before; see above")
                             (t (format "candidate, but past the limit of %d per worker run"
                                        eln-opt-worker-max)))))
             (when (< n 40)
-              (princ (format "  %-28s  %6.1f  %6.1f  %s\n"
+              (princ (format "  %-29s %6.1f  %6.1f  %-17s(xl-async-native-compile '%s)\n"
                              (plist-get row :file) (plist-get row :score)
-                             (/ (or (plist-get row :size) 0) 1024.0) why)))
+                             (/ (or (plist-get row :size) 0) 1024.0) why
+                             (plist-get row :file))))
             (cl-incf n)))
         (when (> n 40) (princ (format "  ... and %d more\n" (- n 40)))))
       (princ "\nLeft out before ranking:\n")
@@ -1381,9 +1384,15 @@ the width of the text, so the columns still line up."
            ((string-match "\\`  file +score +KB" line)
             (add-face-text-property bol eol 'bold))
            ((string-match "\\`  \\([^ \n]+\\) +[-0-9.]+  +[0-9.]+  " line)
-            ;; A ranking row: the file name after the indent.
+            ;; A ranking row: the file name after the indent, and the
+            ;; command in the last column, highlighted like a function name.
             (add-face-text-property (+ bol 2) (+ bol 2 (length (match-string 1 line)))
-                                    'font-lock-type-face))
+                                    'font-lock-type-face)
+            (save-excursion
+              (goto-char bol)
+              (when (re-search-forward "(xl-async-native-compile[^)]*)" eol t)
+                (add-face-text-property (match-beginning 0) (match-end 0)
+                                        'font-lock-function-name-face))))
            ((string-match-p "\\`[A-Za-z][^\n]*:[ \t]*\\'" line)
             (add-face-text-property bol eol 'bold))))
         (forward-line 1))
@@ -1614,7 +1623,7 @@ they agree; without the load, a lazy package's files were missed."
 (defun eln-opt-worker-plan (&optional native)
   "The worker's plan, as (KIND . SOURCE) with KIND `byte' or `native'.
 Byte-compiles come first: they are cheap, and interpreted code gains the most.
-Native candidates follow only when NATIVE is non-nil, best ratio (score per KB)
+Native candidates follow only when NATIVE is non-nil, best score first
 first: small hot files before big ones.  At most
 `eln-opt-worker-max' in all."
   (let ((bytes (seq-take (eln-opt--byte-plan) eln-opt-worker-max)))
@@ -1625,8 +1634,8 @@ first: small hot files before big ones.  At most
                   (eln-opt--plan-from-rows
                    (sort (copy-sequence
                           (plist-get (xl-perfetto-with-span "reach analysis" (eln-opt-rank--compute (eln-opt--profile-dir))) :rows))
-                         (lambda (a b) (> (or (plist-get a :ratio) 0)
-                                          (or (plist-get b :ratio) 0))))
+                         (lambda (a b) (> (or (plist-get a :score) 0)
+                                          (or (plist-get b :score) 0))))
                    (- eln-opt-worker-max (length bytes))))))))
 
 ;;; ---- First load: macOS checks each new native file once ----

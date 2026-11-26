@@ -398,7 +398,7 @@ runs the canary; it still byte-compiles."
 
 (defun eln-opt-test--row (path ratio)
   (list :file (file-name-sans-extension (file-name-nondirectory path))
-        :path path :ratio ratio :score 1.0 :size 1000 :top nil :trusted t))
+        :path path :score ratio :gain 1.0 :size 1000 :top nil :trusted t))
 
 (defun eln-opt-test--src (dir name)
   (let ((src (expand-file-name (concat name ".el") dir)))

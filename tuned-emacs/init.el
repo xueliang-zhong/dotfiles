@@ -211,6 +211,9 @@ session."
 ;; background batch Emacs (timers only, no hooks): byte-compile what runs
 ;; interpreted, then the hot files to native code (byte only without
 ;; libgccjit).  See tuned-emacs/doc/eln-opt.md.
+;; The force-compile commands in `eln-opt-report' call these; load the file on first use.
+(autoload 'xl-async-native-compile "xl-async-evaluate" nil t)
+(autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
 (require 'eln-opt)
 (eln-opt-auto-arm)
 ;; No extension: `load' then prefers tuned-emacs/xueliang.elc when it is current

@@ -60,7 +60,7 @@ In the worker (a background batch Emacs):
 8. Platform check, cached in `platform.eld`, keyed by the binary's path, size and mtime.
 9. Build the plan:
    - Byte-compile candidates: files loaded from source that have no current `.elc`. Lazily loaded roots (for example `org`) are loaded first, so the call graph is complete.
-   - Native candidates, when the platform supports it: a full analysis (about 6 s on the Pi), sorted by ratio (score divided by size in KB), taking files with ratio ≥ 3 that have no eln.
+   - Native candidates, when the platform supports it: a full analysis (about 6 s on the Pi), sorted by score (expected gain per KB of byte code), taking files with ratio ≥ 3 that have no eln.
    - At most 30 items in total, byte-compiles first. An empty plan marks the session quiet and exits.
 10. Process the plan one item at a time, sleeping `eln-opt-worker-sleep` (5 s) between files: write the in-progress marker, compile, delete the marker, and after a successful native compile warm the new eln (see "First-load check"). Print `done` or `failed`, and record a failure in the failure list. A failed file does not stop the others.
 10b. On a platform with native compilation, warm the whole eln directory once (see "First-load check"). This also covers elns made by other means and elns the worker was stopped before warming.
@@ -78,7 +78,7 @@ A file enters the plan only if all of these hold:
 - **Defines functions.** Not an autoload or loaddefs file (which only contains stubs), and not `init.el`, `early-init.el` or `custom.el` (a stale `init.elc` is a common trap).
 - **No opt-out.** The file does not contain `no-native-compile: t` or `no-byte-compile: t`.
 - **Not in the failure list** (forced compiles excepted).
-- Tier 2 also requires ratio ≥ `eln-opt-min-ratio` (3.0) and unpacked source ≤ `eln-opt-max-source-bytes` (1 MB).
+- Tier 2 also requires score ≥ `eln-opt-min-score` (3.0) and unpacked source ≤ `eln-opt-max-source-bytes` (1 MB).
 
 ## Ranking (reachability)
 
@@ -94,7 +94,7 @@ The analysis reads data only. It runs none of the code and compiles nothing.
 
 - Heat propagates along edges: `R(callee) += 0.5 · R(caller) / sqrt(out-degree)`, for at most three levels (`eln-opt-rank-heat-levels`).
 - Benefit B is computed from byte code (LAP). Loop bodies are found from backward jumps. Instructions inside a loop are weighted by `4^depth` (recursion counts as one more level). Inline operations (`car`, `cdr`, arithmetic, `eq`, `aref` and so on) add to the score. Buffer operations, heavy C work (`insert`, `re-search-*`, `string-match` and so on) and allocating calls (`substring`, `concat`, `format`, `split-string` and so on) subtract.
-- File score = Σ R · B. Ratio = score ÷ byte-code size in KB.
+- File gain = Σ R · B (internal). Score = gain ÷ byte-code size in KB. The score is the only number eln-opt shows, and it is the one compared with `eln-opt-min-score`.
 - Functions that are already native are skipped. Ownership uses `eln-opt--defun-files`, a table built in one pass over `load-history`, which agrees with `symbol-file` for all native functions.
 
 The coefficients (4.0, 0.5 and the per-opcode values) are empirical. They have not been calibrated offline, which would need a profiler run on the user's machine.
@@ -221,7 +221,7 @@ The changes: the native list uses a hash table built in one pass, instead of cal
 
 ## Tests
 
-`tuned-emacs/tests/eln-opt-tests.el` is an ERT suite. All files are written to temporary folders, and `cl-letf` replaces the platform check, compilation, sleeping and similar functions. It covers: the platform gate and canary; trampoline prediction and supplementing; the lock; the ledger and the failure list; in-progress markers (an interrupted attempt is retried, two failures stop it, an untrusted path, a marker that cannot be written, a symbolic link); candidate rules (trusted roots, opt-outs, size, ratio); the worker's order and stopping at the first failure; forced compiles; report formatting; the reset confirmation; and that the `load-history` mapping agrees with `symbol-file`.
+`tuned-emacs/tests/eln-opt-tests.el` is an ERT suite. All files are written to temporary folders, and `cl-letf` replaces the platform check, compilation, sleeping and similar functions. It covers: the platform gate and canary; trampoline prediction and supplementing; the lock; the ledger and the failure list; in-progress markers (an interrupted attempt is retried, two failures stop it, an untrusted path, a marker that cannot be written, a symbolic link); candidate rules (trusted roots, opt-outs, size, score); the worker's order and stopping at the first failure; forced compiles; report formatting; the reset confirmation; and that the `load-history` mapping agrees with `symbol-file`.
 
 `bash tuned-emacs/install/emacs-setup.sh test` runs the smoke, eln-opt, xl-dired, perfetto and xl-package-fetch suites.
 
@@ -231,7 +231,7 @@ The changes: the native list uses a hash table built in one pass, instead of cal
 
 ## Open questions
 
-- **Tier 2 threshold.** `eln-opt-min-ratio` and the scores are empirical and need offline profiling to calibrate.
+- **Tier 2 threshold.** `eln-opt-min-score` and the scores are empirical and need offline profiling to calibrate.
 - **Persistent cache.** Caching each function's analysis by file modification time would bring the Pi analysis down to about one or two seconds. Not implemented.
 - **Gains from Emacs's built-in libraries.** The native gain from `.el.gz` libraries such as org still needs measuring in everyday use.
 - **Linux scheduling.** The `ionice` path and the inotify-related parts are untested.

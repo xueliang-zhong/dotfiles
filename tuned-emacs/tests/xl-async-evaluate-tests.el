@@ -311,5 +311,26 @@ ARGS are passed through to `xl-async-evaluate'."
               (kill-buffer (process-buffer proc)))))
       (delete-directory directory t))))
 
+;; A feature symbol is resolved to its .el source; an unknown feature is refused
+;; before any child process starts.
+(ert-deftest xl-async-native-compile-resolves-a-feature-to-its-source ()
+  "`xl-async-evaluate--source-of' maps an .elc to its .el, and an unknown
+feature signals `user-error'."
+  (let* ((dir (make-temp-file "xl-nc-" t))
+         (el (expand-file-name "xlnc-probe.el" dir)))
+    (unwind-protect
+        (progn
+          (with-temp-file el
+            (insert ";;; xlnc-probe.el --- probe -*- lexical-binding: t; -*-\n(provide 'xlnc-probe)\n"))
+          (byte-compile-file el)
+          (should (equal (xl-async-evaluate--source-of (concat el "c")) el))
+          (let ((load-path (cons dir load-path)))
+            (should (equal (xl-async-evaluate--source-of
+                            (locate-library "xlnc-probe"))
+                           el))
+            (should-error (xl-async-native-compile 'xlnc-no-such-feature-zz)
+                          :type 'user-error)))
+      (ignore-errors (delete-directory dir t)))))
+
 (provide 'xl-async-evaluate-tests)
 ;;; xl-async-evaluate-tests.el ends here

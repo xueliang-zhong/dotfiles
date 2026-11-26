@@ -390,8 +390,22 @@ The child exits after the request it is running.  Return WORKER."
 ;;; Native compilation
 ;;; ============================================================
 
+(defun xl-async-evaluate--source-of (library)
+  "The source file behind LIBRARY, a path from `locate-library'.
+Returns the .el next to it, or the .el.gz Emacs ships for its own libraries;
+nil when neither exists."
+  (let ((base (replace-regexp-in-string
+               "\\.\\(elc\\|el\\(\\.gz\\)?\\)\\'" "" library)))
+    (cl-some (lambda (ext)
+               (let ((file (concat base ext)))
+                 (and (file-exists-p file) file)))
+             '(".el" ".el.gz"))))
+
 (defun xl-async-native-compile (file &optional callback &rest args)
   "Compile FILE with `native-compile' in a fresh child Emacs.
+FILE is a source file, or a feature symbol such as `consult', which is
+resolved with `locate-library' to its source (.el or .el.gz).  A symbol is
+compiled with this Emacs's profile, so that package macros resolve.
 ARGS may give `:load-path', a list of directories the child needs to
 read FILE's dependencies, and `:profile', a profile folder whose
 early-init and init the child loads first.  The profile is needed for
@@ -406,6 +420,23 @@ Check `native-comp-available-p' first when that is possible."
   (unless (and (fboundp 'native-comp-available-p)
                (native-comp-available-p))
     (user-error "xl-async-native-compile: native compilation is not available"))
+  (when (symbolp file)
+    (let* ((library (or (locate-library (symbol-name file))
+                        ;; Loaded by path, not through `load-path' (such as
+                        ;; xueliang.el): find the file in `load-history'.
+                        (cl-find-if
+                         (lambda (f)
+                           (string-match-p
+                            (format "/%s\\.el\\(c\\|\\.gz\\)?\\'"
+                                    (regexp-quote (symbol-name file)))
+                            f))
+                         (delq nil (mapcar #'car load-history)))))
+           (source (and library (xl-async-evaluate--source-of library))))
+      (unless source
+        (user-error "xl-async-native-compile: no source file for `%s'" file))
+      (setq file source)
+      (unless (plist-get args :profile)
+        (setq args (plist-put args :profile user-emacs-directory)))))
   ;; With :profile, the child starts from that profile, as a normal start
   ;; does, so the file's requires and package macros resolve.
   (let* ((profile (plist-get args :profile)))
