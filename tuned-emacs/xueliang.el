@@ -66,13 +66,11 @@
   (keymap-set isearch-mode-map "M-3" #'xueliang-isearch-insert-hash))
 
 ;; Priority Suggestions: 1 = high, 2 = medium, 3 = low
-(xl-idle-require 'org        0.5)
-(xl-idle-require 'org-indent 0.5)
-(xl-idle-require 'magit      1.5)
-(xl-idle-require 'eshell     2.0)
+(xl-idle-require 'org    0.5)
+(xl-idle-require 'eshell 1.0)
 
 ;; Other useful things to do when idle
-(run-with-idle-timer 300 t 'garbage-collect)
+(run-with-idle-timer 1800 t 'garbage-collect)
 
 ;; ============================================================
 ;; Global Settings - Preserving your existing habits
