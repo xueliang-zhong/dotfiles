@@ -505,7 +505,7 @@ org.el (about 870 KB), which compiles in about a minute.")
 (defconst eln-opt-worker-max 30
   "Most files one worker run compiles.")
 
-(defconst eln-opt-worker-sleep 5
+(defconst eln-opt-worker-sleep 1
   "Seconds the worker sleeps between two compiles, to stay in the background.")
 
 (defconst eln-opt-worker-stall 600

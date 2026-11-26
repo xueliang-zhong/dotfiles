@@ -62,12 +62,12 @@ In the worker (a background batch Emacs):
    - Byte-compile candidates: files loaded from source that have no current `.elc`. Lazily loaded roots (for example `org`) are loaded first, so the call graph is complete.
    - Native candidates, when the platform supports it: a full analysis (about 6 s on the Pi), sorted by score (expected gain per KB of byte code), taking files with ratio ≥ 3 that have no eln.
    - At most 30 items in total, byte-compiles first. An empty plan marks the session quiet and exits.
-10. Process the plan one item at a time, sleeping `eln-opt-worker-sleep` (5 s) between files: write the in-progress marker, compile, delete the marker, and after a successful native compile warm the new eln (see "First-load check"). Print `done` or `failed`, and record a failure in the failure list. A failed file does not stop the others.
+10. Process the plan one item at a time, sleeping `eln-opt-worker-sleep` (1 s) between files: write the in-progress marker, compile, delete the marker, and after a successful native compile warm the new eln (see "First-load check"). Print `done` or `failed`, and record a failure in the failure list. A failed file does not stop the others.
 10b. On a platform with native compilation, warm the whole eln directory once (see "First-load check"). This also covers elns made by other means and elns the worker was stopped before warming.
 11. Finish: print `finished N` (or `finished N, failed M`) and release the lock. The main Emacs shows `compiled N file(s); they load on the next start`.
 12. Next start: Emacs loads the new `.elc` and eln files by itself.
 
-Rough time on the Pi: each file takes seconds to compile (org takes about a minute), plus the 5 second pause. Thirty files take more than five minutes.
+Rough time on the Pi: each file takes seconds to compile (org takes about a minute), plus the pause between files (1 second by default). Thirty files take a few minutes.
 
 ## Candidate rules
 
