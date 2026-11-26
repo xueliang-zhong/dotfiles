@@ -101,6 +101,41 @@ background (.elc, then .eln where native compilation is available)."
          (xl-report "package %d/%d failed: %s (%s)"
                     index total pkg (error-message-string err)))))))
 
+(defun xl-refresh-archives ()
+  "Refresh the package archives, downloading them in parallel.
+`package-refresh-contents' with ASYNC starts every archive at once.  This
+waits for them and prints one dot per archive as it finishes, so progress is
+visible.  An archive has finished when it is no longer in
+`package--downloads-in-progress', which package.el keeps."
+  (let ((total (length package-archives))
+        (printed 0)
+        (start (float-time)))
+    (cl-flet ((print-finished ()
+                (let ((finished (- total (length package--downloads-in-progress))))
+                  (when (and xl-progress (> finished printed))
+                    (dotimes (_ (- finished printed))
+                      (external-debugging-output ?.)))
+                  (setq printed (max printed finished)))))
+      (package-refresh-contents t)
+      (print-finished)
+      (while package--downloads-in-progress
+        (accept-process-output nil 0.05)
+        (print-finished)))
+    (when xl-progress (external-debugging-output ?\n))
+    ;; A failed download is reported by package.el in the echo area; say
+    ;; which archive it was, and that the install goes on with what is cached.
+    (dolist (archive package-archives)
+      (let ((file (expand-file-name
+                   "archive-contents"
+                   (expand-file-name (concat "archives/" (car archive))
+                                     package-user-dir))))
+        (unless (and (file-exists-p file)
+                     (time-less-p (float-time start)
+                                  (float-time (file-attribute-modification-time
+                                               (file-attributes file)))))
+          (message "Could not refresh archive %s (%s); using its cached index, if any"
+                   (car archive) (cdr archive)))))))
+
 (defun xl-install-missing-packages ()
   "Refresh the archives, then install what `package-selected-packages' lists.
 `package-install-selected-packages' only refreshes when the archive cache is
@@ -117,7 +152,7 @@ session."
   (when-let* ((missing (seq-remove #'xl-package-present-p package-selected-packages)))
     (require 'package)
     (xl-report "refreshing package archives ... (this may take a few seconds)")
-    (package-refresh-contents)
+    (xl-refresh-archives)
     ;; Parallel download and gpg check; whatever it cannot finish is left to
     ;; `xl-install-packages' below.
     (add-to-list 'load-path (expand-file-name "tuned-emacs/lisp" xl-dotfiles))
@@ -130,7 +165,7 @@ session."
       (xl-report "rebuilding the ELPA keyring")
       (xl-refresh-package-keyring)
       (xl-report "refreshing package archives again")
-      (package-refresh-contents)
+      (xl-refresh-archives)
       (xl-install-packages (seq-remove #'package-installed-p package-selected-packages))
       (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
         ;; Last resort for machines without a usable gpg: download over
@@ -139,7 +174,7 @@ session."
                  still)
         (xl-report "retrying without signature verification")
         (let ((package-check-signature nil))
-          (package-refresh-contents)
+          (xl-refresh-archives)
           (xl-install-packages
            (seq-remove #'package-installed-p package-selected-packages)))
         (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
