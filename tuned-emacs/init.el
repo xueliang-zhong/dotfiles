@@ -252,6 +252,7 @@ session."
 ;; The force-compile commands in `eln-opt-report' call these; load the file on first use.
 (autoload 'xl-async-native-compile "xl-async-evaluate" nil t)
 (autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
+(autoload 'xl-package-install "xl-package-install" nil t)
 (require 'eln-opt)
 (eln-opt-auto-arm)
 ;; No extension: `load' then prefers tuned-emacs/xueliang.elc when it is current

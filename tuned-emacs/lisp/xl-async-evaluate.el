@@ -390,6 +390,8 @@ The child exits after the request it is running.  Return WORKER."
 ;;; Native compilation
 ;;; ============================================================
 
+(declare-function xl-native-compile-watch "xl-native-compile" (process file))
+
 (defun xl-async-evaluate--source-of (library)
   "The source file behind LIBRARY, a path from `locate-library'.
 Returns the .el next to it, or the .el.gz Emacs ships for its own libraries;
@@ -412,7 +414,9 @@ early-init and init the child loads first.  The profile is needed for
 files that require other parts of the configuration or use package
 macros.  CALLBACK, when given, is called once with
 the process, as `xl-async-evaluate' does; `xl-async-evaluate-result'
-then holds (:ok ELN-PATH) or (:error MESSAGE).
+then holds (:ok ELN-PATH) or (:error MESSAGE).  Without CALLBACK, the
+compilation is shown in the monitor buffer `*xl-native-compile*', with a
+spinner in its mode line (see xl-native-compile.el).
 
 Without native compilation this signals a `user-error' and starts
 nothing, so CALLBACK is never called with anything but a process.
@@ -443,13 +447,19 @@ Check `native-comp-available-p' first when that is possible."
     ;; The child must write its .eln where this Emacs looks for it, so the
     ;; child takes this Emacs's `native-comp-eln-load-path' (set after its
     ;; init, which may change it).
-    (apply #'xl-async-evaluate
-           (list 'progn
-                 (list 'setq 'native-comp-eln-load-path
-                       (list 'quote native-comp-eln-load-path))
-                 (list 'native-compile file))
-           callback
-           (append (and profile (list :init-directory profile)) args))))
+    (let ((process
+           (apply #'xl-async-evaluate
+                  (list 'progn
+                        (list 'setq 'native-comp-eln-load-path
+                              (list 'quote native-comp-eln-load-path))
+                        (list 'native-compile file))
+                  callback
+                  (append (and profile (list :init-directory profile)) args))))
+      ;; Without a callback, show the compilation in its monitor buffer.
+      (unless callback
+        (require 'xl-native-compile)
+        (xl-native-compile-watch process file))
+      process)))
 
 (provide 'xl-async-evaluate)
 ;;; xl-async-evaluate.el ends here
