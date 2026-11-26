@@ -748,9 +748,7 @@ is recorded for that path."
 (ert-deftest eln-opt-stop-worker-ends-the-run-and-arms-nothing ()
   "A running worker is stopped, its timers are cancelled, and the stop says so."
   (eln-opt-test--with-auto
-    (let* ((buf (get-buffer-create eln-opt-log-buffer))
-           (proc (make-process :name "eln-opt-test-stop" :buffer buf :noquery t
-                               :command (list "sleep" "100"))))
+    (let* ((proc (xl-async-start (list "sleep" "100") :name "eln-opt-test-stop")))
       (setq eln-opt-auto--process proc
             eln-opt-auto--watchdog (run-with-timer 60 60 #'ignore)
             eln-opt-auto--timer (run-with-idle-timer 5 nil #'ignore))
@@ -1281,7 +1279,7 @@ rest."
     ;; No native compilation is no reason: the worker still byte-compiles.
     (cl-letf (((symbol-function 'native-comp-available-p) (lambda () nil)))
       (should (null (eln-opt-auto--decision))))
-    (let ((eln-opt-auto--process (start-process "eln-opt-test" nil "sleep" "5")))
+    (let ((eln-opt-auto--process (xl-async-start (list "sleep" "5"))))
       (unwind-protect
           (should (eq (eln-opt-auto--decision) 'running))
         (delete-process eln-opt-auto--process)))))
@@ -1313,7 +1311,7 @@ was on goes on the failed list."
     (eln-opt-test--with-auto
       (let* ((dir (make-temp-file "eln-opt-stall-" t))
              (src (eln-opt-test--toy-src dir "stuck"))
-             (eln-opt-auto--process (start-process "eln-opt-test" nil "sleep" "30"))
+             (eln-opt-auto--process (xl-async-start (list "sleep" "30")))
              (eln-opt-auto--current src)
              (eln-opt-auto--last-output (- (float-time) eln-opt-worker-stall 10)))
         (unwind-protect

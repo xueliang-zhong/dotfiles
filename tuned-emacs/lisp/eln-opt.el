@@ -1814,7 +1814,7 @@ the child exits.  Its stdin is closed and it is stopped after
             (deadline (+ (float-time) eln-opt-warm-timeout)))
         (while (and (xl-async-live-p proc) (< (float-time) deadline))
           (accept-process-output proc 0.2))
-        (eln-opt--kill proc)))
+        (xl-async-abort proc)))
     (length files)))
 
 (defun eln-opt--compile-one (kind src)
@@ -2116,14 +2116,9 @@ the worker compiles exactly those files."
            (setq eln-opt-auto--current nil)))))
 
 (defun eln-opt-auto--filter (_proc text)
+  "Note the worker's output TEXT; the framework keeps the text in the log."
   (setq eln-opt-auto--last-output (float-time))
-  (eln-opt-auto--note text)
-  (when (buffer-live-p (get-buffer eln-opt-log-buffer))
-    (with-current-buffer eln-opt-log-buffer
-      (let ((inhibit-read-only t))
-        (save-excursion
-          (goto-char (point-max))
-          (insert text))))))
+  (eln-opt-auto--note text))
 
 (defun eln-opt-auto--summary (text)
   "One line saying what the worker did, from its output TEXT."
@@ -2147,13 +2142,6 @@ the worker compiles exactly those files."
       (setq n (1+ n) start (match-end 0)))
     n))
 
-(defun eln-opt--kill (proc)
-  "End PROC now: abort it as an `xl-async' task, then delete it if still live.
-An abort runs no exit handler, so the caller ends the loader and the state."
-  (when (process-live-p proc)
-    (xl-async-abort proc)
-    (when (process-live-p proc) (delete-process proc))))
-
 (defun eln-opt-auto--stop-watchdog ()
   (when (timerp eln-opt-auto--watchdog) (cancel-timer eln-opt-auto--watchdog))
   (setq eln-opt-auto--watchdog nil))
@@ -2165,22 +2153,20 @@ periods; this cap keeps a session from running workers without end.")
 
 (defvar eln-opt-auto--runs 0 "Automatic worker runs started in this session.")
 
-(defun eln-opt-auto--exit (_proc)
-  "The worker has exited normally: summarize its log and arm again if needed."
+(defun eln-opt-auto--exit (proc)
+  "The worker has exited normally: summarize its output and arm again if needed."
   (setq eln-opt-auto--last-end (float-time))
   (eln-opt-auto--stop-watchdog)
   (setq eln-opt-auto--process nil
         eln-opt-auto--current nil)
-  (when (buffer-live-p (get-buffer eln-opt-log-buffer))
-    (with-current-buffer eln-opt-log-buffer
-      (xl-spinner-mode-line-stop)
-      (let ((text (buffer-string)))
-        (message "%s" (eln-opt-auto--summary text))
-        ;; More may be waiting: compiled something, so arm again for the
-        ;; next idle period.  A run that found nothing marks the quiet state.
-        (when (and (> (eln-opt--count-matches "^ELN-OPT done " text) 0)
-                   (< eln-opt-auto--runs eln-opt-auto-max-runs))
-          (eln-opt-auto-arm))))))
+  (xl-spinner-mode-line-stop)
+  (let ((text (xl-async-output proc)))
+    (message "%s" (eln-opt-auto--summary text))
+    ;; More may be waiting: compiled something, so arm again for the
+    ;; next idle period.  A run that found nothing marks the quiet state.
+    (when (and (> (eln-opt--count-matches "^ELN-OPT done " text) 0)
+               (< eln-opt-auto--runs eln-opt-auto-max-runs))
+      (eln-opt-auto-arm))))
 
 (defun eln-opt-auto--watch ()
   "Kill a worker that has printed nothing for `eln-opt-worker-stall' seconds,
@@ -2190,7 +2176,7 @@ and put the file it was compiling on the failed list."
     (when eln-opt-auto--current
       (eln-opt--record-failure eln-opt-auto--current
                                (format "stalled for %d s; killed" eln-opt-worker-stall)))
-    (eln-opt--kill eln-opt-auto--process)))
+    (xl-async-abort eln-opt-auto--process)))
 
 (defun eln-opt-auto--start (&optional force sources)
   "Start the worker, unless eln-opt is off, runs already, or was quiet last
@@ -2198,18 +2184,21 @@ time (FORCE overrides those).  With SOURCES, the worker compiles exactly
 those files.  Returns the process, or nil."
   (setq eln-opt-auto--timer nil)
   (unless (eln-opt-auto--decision force)
-    (let ((buf (get-buffer-create eln-opt-log-buffer)))
-      (with-current-buffer buf
-        (let ((inhibit-read-only t)) (erase-buffer))
-        (special-mode)
-        (xl-spinner-mode-line-start "eln-opt worker"))
-      (setq eln-opt-auto--last-output (float-time)
-            eln-opt-auto--current nil
-            eln-opt-auto--process
-            (xl-async-start (eln-opt-auto--command sources)
-                            :name "eln-opt-worker" :keep-input t))
-      (xl-async-on-output eln-opt-auto--process #'eln-opt-auto--filter)
-      (xl-async-on-exit eln-opt-auto--process #'eln-opt-auto--exit)
+    ;; The log is the worker's own buffer, under a fixed name, kept after the
+    ;; run.  A new run starts with a fresh one.
+    (when-let* ((old (get-buffer eln-opt-log-buffer)))
+      (kill-buffer old))
+    (setq eln-opt-auto--last-output (float-time)
+          eln-opt-auto--current nil
+          eln-opt-auto--process
+          (xl-async-start (eln-opt-auto--command sources)
+                          :name "eln-opt-worker" :keep-input t
+                          :buffer-name eln-opt-log-buffer))
+    (with-current-buffer (xl-async-buffer eln-opt-auto--process)
+      (xl-spinner-mode-line-start "eln-opt worker"))
+    (let ((proc eln-opt-auto--process))
+      (xl-async-on-output proc #'eln-opt-auto--filter)
+      (xl-async-on-exit proc #'eln-opt-auto--exit)
       (unless sources (cl-incf eln-opt-auto--runs))
       (eln-opt-auto--stop-watchdog)
       (setq eln-opt-auto--watchdog (run-with-timer 60 60 #'eln-opt-auto--watch))
@@ -2243,10 +2232,8 @@ starts again this session; `eln-opt-compile-now' still does."
             eln-opt-auto--current nil)
       ;; An abort ends the task without its exit handler, so the loader is
       ;; ended here.
-      (when (buffer-live-p (get-buffer eln-opt-log-buffer))
-        (with-current-buffer eln-opt-log-buffer
-          (xl-spinner-mode-line-stop)))
-      (eln-opt--kill proc)
+      (xl-spinner-mode-line-stop)
+      (xl-async-abort proc)
       (message "eln-opt: worker stopped; the file it was compiling is retried next time"))
      (t (message "eln-opt: no worker is running")))))
 
