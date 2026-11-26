@@ -433,6 +433,7 @@ blocking.
   (xl-spinner-mode-line-install))
 
 ;; Evil's normal state would otherwise take RET, g and q first.
+(require 'evil nil t) ; a macro below: loaded now, or it is compiled as a call
 (with-eval-after-load 'evil
   (evil-define-key 'normal xl-gblame-mode-map
     (kbd "RET") #'xl-gblame-show-commit

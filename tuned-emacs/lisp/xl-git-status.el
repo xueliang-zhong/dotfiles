@@ -1478,6 +1478,7 @@ or shows the commit at point."
     (xl-git-status--ensure-watching buffer root)
     (xl-git-status--load buffer root)))
 
+(require 'evil nil t) ; a macro below: loaded now, or it is compiled as a call
 ;; Evil's normal state would otherwise take TAB, s, u, X, S, U, p, P and RET first.
 (with-eval-after-load 'evil
   (evil-define-key 'normal xl-git-status-mode-map
