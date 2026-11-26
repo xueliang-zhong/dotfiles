@@ -70,6 +70,8 @@ Returns the file written, or nil."
       crafted-init-auto-save-selected-packages nil)
 
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
+;; (Not also clearing `file-name-handler-alist': eln-opt's batch loads would
+;; then read `.el.gz' files raw, since the .gz handler is missing.)
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook
           (lambda () (setq gc-cons-threshold (* 128 1024 1024))))
@@ -120,8 +122,20 @@ Returns the file written, or nil."
 
 ;; The tagged evil release (1.15.0 on NonGNU ELPA) breaks on Emacs 30+
 ;; (void-variable evil-mode-buffers); take the evil family from MELPA.
+;; Set the archives and priorities directly instead of loading
+;; `crafted-early-init-config', whose `(require 'package)' pulls in 37
+;; files (url, auth-source, json, eieio, cus-edit, ...) on every start.
+(defvar package-archives
+  '(("gnu"    . "https://elpa.gnu.org/packages/")
+    ("nongnu" . "https://elpa.nongnu.org/nongnu/")
+    ("stable" . "https://stable.melpa.org/packages/")
+    ("melpa"  . "https://melpa.org/packages/")))
+(defvar package-archive-priorities
+  '(("gnu"    . 99)
+    ("nongnu" . 80)
+    ("stable" . 70)
+    ("melpa"  . 0)))
+(defvar package-selected-packages nil)
 (setq package-pinned-packages '((evil . "melpa")
                                 (evil-collection . "melpa")
                                 (evil-org . "melpa")))
-
-(load (expand-file-name "modules/crafted-early-init-config" xl-crafted-home))

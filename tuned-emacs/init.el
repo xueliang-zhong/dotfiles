@@ -8,11 +8,15 @@
 (when (< emacs-major-version 30)
   (error "This profile needs Emacs 30+, this is %s" emacs-version))
 
+(require 'cl-lib)
+
 ;; Customize writes into its own file, never into this one
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file) (load custom-file nil :nomessage))
 
-;; Crafted's base: puts its modules/ folder on the load path
+;; Crafted's base: puts its modules/ folder on the load path.
+;; `crafted-emacs-home' is set first so Crafted skips its `vc-find-root' lookup.
+(defvar crafted-emacs-home xl-crafted-home)
 (load (expand-file-name "modules/crafted-init-config" xl-crafted-home))
 
 ;; ============================================================
@@ -49,11 +53,22 @@
     (princ (apply #'format format-string args))
     (princ "\n")))
 
+(defun xl-package-present-p (pkg)
+  "Non-nil when PKG is activated or built-in.
+Checks `package-alist' and `locate-library' first so a normal start
+where every package is already installed never needs to load
+`package.el' and its 37 dependencies."
+  (if (or (featurep 'package) (null package-alist))
+      (package-installed-p pkg)
+    (or (assq pkg package-alist)
+        (locate-library (symbol-name pkg)))))
+
 (defun xl-refresh-package-keyring ()
   "Rebuild package.el's GPG home from the keyring shipped with Emacs.
 A stale or corrupt `package-gnupghome-dir' makes GNU ELPA fail signature
 verification, which hides GNU packages (denote, for example) from
 `package-archive-contents' even after a refresh."
+  (require 'package)
   (when (and package-gnupghome-dir (file-directory-p package-gnupghome-dir))
     (ignore-errors (delete-directory package-gnupghome-dir t)))
   (let ((keyring (expand-file-name "package-keyring.gpg" data-directory)))
@@ -62,6 +77,7 @@ verification, which hides GNU packages (denote, for example) from
 
 (defun xl-install-packages (packages)
   "Install PACKAGES one at a time, reporting each when `xl-progress' is set."
+  (require 'package)
   (let ((total (length packages))
         (index 0))
     (xl-report "installing %d package(s)" total)
@@ -88,7 +104,8 @@ try once more: a stale keyring makes the GNU ELPA signature check fail, so
 GNU packages such as denote never enter `package-archive-contents'.  If
 gpg is unusable even then, retry once without signature checks for this
 session."
-  (when-let* ((missing (seq-remove #'package-installed-p package-selected-packages)))
+  (when-let* ((missing (seq-remove #'xl-package-present-p package-selected-packages)))
+    (require 'package)
     (xl-report "refreshing package archives")
     (package-refresh-contents)
     (xl-install-packages (seq-remove #'package-installed-p package-selected-packages))
@@ -159,12 +176,25 @@ session."
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
-(require 'xl-dired)          ; async dired listings and previews
+;; `xl-dired': load on first use so startup does not pull in `dired',
+;; `dired-x' and `evil-collection-dired'.
+(dolist (cmd '(xl-dired xl-dired-jump xl-dired-open xl-dired-up-directory
+               xl-dired-preview xl-dired-preview-quit xl-dired-mode))
+  (autoload cmd "xl-dired" nil t))
+(autoload 'xl-dired-noselect "xl-dired")
 (require 'xl-git-status)
 (require 'xl-git-commands)
-(require 'xl-org-babel-async) ; `:async yes' shell blocks, layered output
+;; `xl-org-babel-async' only advises `ob-core' and binds a key in `org-mode-map';
+;; deferring it until `org' loads keeps `ansi-color' out of startup.
+(with-eval-after-load 'org
+  (require 'xl-org-babel-async))
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
-(require 'xl-perfetto-trace)  ; Chrome JSON timelines of Lisp work
+(dolist (cmd '(xl-perfetto-trace-start xl-perfetto-trace-stop
+               xl-perfetto-trace-mark xl-perfetto-trace-open))
+  (autoload cmd "xl-perfetto-trace" nil t))
+(autoload 'xl-perfetto-trace-function "xl-perfetto-trace")
+(autoload 'xl-perfetto-untrace-function "xl-perfetto-trace")
+(autoload 'xl-perfetto-with-span "xl-perfetto-trace" nil nil 'macro)
 ;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
 ;; background batch Emacs (timers only, no hooks): byte-compile what runs
 ;; interpreted, then the hot files to native code (byte only without

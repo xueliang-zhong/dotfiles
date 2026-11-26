@@ -27,9 +27,9 @@
 
 (require 'subr-x)    ; string-trim-right
 (require 'seq)       ; seq-find, seq-remove
-(require 'diff-mode) ; diff-added, diff-removed, diff-context, diff-hunk-header
 (require 'xl-async) ; the shared loading indicator
-(require 'filenotify) ; watch the work tree for changes
+(autoload 'file-notify-add-watch "filenotify")
+(autoload 'file-notify-rm-watch "filenotify")
 
 (defgroup xl-git-status nil
   "Faces for `xl-git-status'."
@@ -1253,6 +1253,7 @@ starts four processes instead of over fifty."
 
 (define-derived-mode xl-git-status-mode special-mode "Git-Status"
   "Major mode for `xl-git-status' buffers."
+  (require 'diff-mode)
   (unless (hash-table-p xl-git-status--expanded)
     (setq xl-git-status--expanded (make-hash-table :test #'equal)))
   ;; The loader slot sits at the left edge of the mode line, where a
@@ -1263,7 +1264,8 @@ starts four processes instead of over fifty."
                 (xl-git-status))))
 
 (define-derived-mode xl-git-show-mode special-mode "Git-Show"
-  "Major mode for `xl-git-status--show-commit' buffers.")
+  "Major mode for `xl-git-status--show-commit' buffers."
+  (require 'diff-mode))
 
 (defun xl-git-status--root ()
   "Return the expanded Git root for `default-directory', or nil.

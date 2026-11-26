@@ -115,10 +115,9 @@
       which-key-add-column-padding 1)
 
 ;; Small defaults from Crafted's newcomers settings, kept here so they are
-;; visible and easy to revert.  Column number in the mode line; the compact
-;; mode line hides the less useful parts; imenu rescans on every call;
+;; visible and easy to revert.  Column number in the mode line and the compact
+;; mode line come from `crafted-defaults-config'; imenu rescans on every call;
 ;; compile output scrolls to the first error.
-(column-number-mode 1)
 (setq mode-line-compact 'long
       imenu-auto-rescan t
       compilation-scroll-output 'first-error)
@@ -136,12 +135,11 @@
 ;; Split side by side only on wide frames; works better for org-timestamp
 (setq-default split-width-threshold 160)
 
-;; keep editing state persistent and predictable
-(save-place-mode 1)
-
 ;; Kill ring survives restarts, like savehist keeps search history.  Text
 ;; properties are stripped before saving: propertized strings bloat the
 ;; history file and can fail to load.  Duplicate kills are not stored twice.
+;; Explicit on purpose: eln-opt ranks files from the `history' file that
+;; savehist writes, so this must not depend on crafted's defaults.
 (require 'savehist)
 (add-to-list 'savehist-additional-variables 'kill-ring)
 (add-hook 'savehist-save-hook
@@ -152,7 +150,6 @@
 (setq kill-do-not-save-duplicates t)
 (savehist-mode 1)
 (recentf-mode 1)
-(global-auto-revert-mode 1)
 (global-hl-line-mode -1)                ; no current-line highlight
 
 ;; Long lines stay on one line, like `set nowrap' in my vimrc: no wrapping
