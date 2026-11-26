@@ -1229,8 +1229,7 @@ out, and a note on how files are ranked."
                  (why (cond ((and src (member src next)) "compile planned")
                             ((eln-opt--candidate-reason row))
                             ((and src (eln-opt--failed-p src)) "failed before; see above")
-                            (t (format "candidate, but past the limit of %d per worker run"
-                                       eln-opt-worker-max)))))
+                            (t "candidate"))))
             (when (< n 40)
               (princ (format "  %-29s %6.1f  %6.1f  %-17s(xl-async-native-compile '%s)\n"
                              (plist-get row :file) (plist-get row :score)
