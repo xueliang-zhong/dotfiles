@@ -771,7 +771,8 @@ is recorded for that path."
 child is not restarted."
   (eln-opt-test--with-state
     (let ((spawned 0) (noninteractive nil))
-      (cl-letf (((symbol-function 'xl-async-run) (lambda (&rest _) (cl-incf spawned) nil))
+      (cl-letf (((symbol-function 'xl-async-start)
+                 (lambda (&rest _) (cl-incf spawned) (start-process "eln-opt-test-report" nil "sleep" "0")))
                 ((symbol-function 'display-buffer) (lambda (&rest _) nil)))
         (setq eln-opt-rank--cache
               (list (float-time) (eln-opt--quiet-fingerprint) "CACHED REPORT"))
