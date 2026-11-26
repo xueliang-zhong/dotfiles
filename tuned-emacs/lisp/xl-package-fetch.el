@@ -19,10 +19,12 @@
   "Most downloads or gpg checks that run at the same time: twice the CPU count.
 They mostly wait on the network, so more than one per CPU keeps them busy.")
 
-(defun xl-fetch--run (commands)
+(defun xl-fetch--run (commands &optional on-done)
   "Run COMMANDS (argv lists) in parallel and wait for all of them.
 At most `xl-fetch-max-jobs' run at once.  Return a list of
-\(EXIT-CODE . OUTPUT), one per command, in the order of COMMANDS."
+\(EXIT-CODE . OUTPUT), one per command, in the order of COMMANDS.
+ON-DONE, when given, is called as (ON-DONE INDEX RESULT) as each command
+finishes, with RESULT the (EXIT-CODE . OUTPUT) of that command."
   (let* ((count (length commands))
          (results (make-vector count nil))
          (queue (number-sequence 0 (1- count)))
@@ -45,6 +47,8 @@ At most `xl-fetch-max-jobs' run at once.  Return a list of
                            (kill-buffer buffer)
                            (cl-decf running)
                            (cl-incf done)
+                           (when on-done
+                             (funcall on-done index (aref results index)))
                            (launch))))
                       (cl-incf running)))))
       (launch)
@@ -98,12 +102,21 @@ package that fails any step is skipped; the caller installs the rest."
          (fetched
           (progn
             (when (and descs (fboundp 'xl-report))
-              (xl-report "fetching packages in parallel -j %d ..." xl-fetch-max-jobs))
-            (xl-fetch--run
-             (cl-loop for url in urls for file in local for sig in sig-local
-                      append (list (list curl "-sSf" "-o" file url)
-                                   (list curl "-s" "-o" sig "-w" "%{http_code}"
-                                         (concat url ".sig"))))))))
+              (xl-report "fetching package(s) in parallel -j %d ..." xl-fetch-max-jobs))
+            (prog1
+                (xl-fetch--run
+                 (cl-loop for url in urls for file in local for sig in sig-local
+                          append (list (list curl "-sSf" "-o" file url)
+                                       (list curl "-s" "-o" sig "-w" "%{http_code}"
+                                             (concat url ".sig"))))
+                 ;; One dot per package whose archive file arrived (even indices).
+                 (lambda (index result)
+                   (when (and (bound-and-true-p xl-progress)
+                              (zerop (% index 2))
+                              (zerop (car result)))
+                     (princ "."))))
+              (when (and descs (bound-and-true-p xl-progress))
+                (terpri))))))
     (unwind-protect
         (let* ((tar-ok (cl-loop for i from 0 below (length descs)
                                 collect (zerop (car (nth (* 2 i) fetched)))))
