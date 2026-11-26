@@ -2,24 +2,22 @@
 
 A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/SystemCrafters/crafted-emacs). It is a distribution in its own right, not just a Git tweak.
 
-**Key feature: eln-opt, a lightweight background async compilation.** Hot functions
-come from a reachability analysis of public data: savehist and recentf, plus the
-hooks and keymaps the running Emacs already has. The analysis reads that data
-only. It never runs the code it analyses, and it compiles nothing itself. eln-opt
-aims to replace Emacs's default compile-everything-or-nothing policy with one
-that compiles what you need, when you need it. Its startup cost is small. When
-Emacs is idle it only compares a fingerprint, and work happens only when the
-fingerprint changes.
+**Key feature: eln-opt, a lightweight background async compilation.** Hot
+functions come from a reachability analysis of public data such as savehist and
+recentf. eln-opt aims to replace Emacs native compilation's default
+compile-everything policy with one that only compiles hot functions based on
+reachability analysis. Its startup cost is small. When Emacs is idle it only
+compares a fingerprint, and work happens only when the fingerprint changes.
 
-Its main features:
+**Main features:**
 
-- **Asynchronous Git.** Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
 - **Background compilation (eln-opt).** The key feature described above. It is safe to interrupt, retry and switch off. See [doc/eln-opt.md](doc/eln-opt.md).
-- **Fast, measured startup.** Startup avoids heavy loads, records slow starts to a log, and installs missing packages in parallel with signature checks (about 17 s against 42 s for a serial install on the same machine). See [doc/startup.md](doc/startup.md).
+- **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
+- **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
+- **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
 - **Shared asynchronous layer.** One composable process API (`xl-async`) runs Git, dired listings and previews, Org `:async` source blocks, and background Lisp evaluation.
-- **Lisp-level tracing.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
+- **Unified spinner animation UI for all async tasks.** One loader design (`xl-spinner`) shows every asynchronous task: the mode-line spinner, the centre loader, and the progress lines of background work.
 - **Spacemacs-style keys and a home page.** `SPC` trees, `,` major-mode leader, a recent-files home buffer, and a restart command that returns to the same file and point.
-- **Editing extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
 - **One setup for three systems.** A single script installs and checks the profile on macOS, Linux and Windows, and works without `just`.
 - **Tested without a GUI.** ERT suites for each module run in `emacs --batch`.
 
@@ -29,15 +27,12 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 ## Background compilation: no all-or-nothing choice
 
-eln-opt is a lightweight background async compilation with a small startup
-cost. When Emacs is idle it only compares a fingerprint; background compilation
-work happens only when the fingerprint changes. The hot functions come from a
-reachability analysis of public data such as savehist and recentf. The analysis
-reads that data and never runs the code it analyses.
-
-eln-opt aims to replace Emacs's default native-compilation policy, which
-compiles everything or nothing, with one that compiles what the user needs,
-when the user needs it.
+**eln-opt is a lightweight background async compilation.** Hot functions come
+from a reachability analysis of public data such as savehist and recentf.
+eln-opt aims to replace Emacs native compilation's default compile-everything
+policy with one that only compiles hot functions based on reachability analysis.
+Its startup cost is small. When Emacs is idle it only compares a fingerprint,
+and work happens only when the fingerprint changes.
 
 Emacs 31 gives two ways to use native compilation, and both are awkward:
 
