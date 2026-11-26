@@ -1182,6 +1182,12 @@ score and cost), and what is left out altogether."
     (with-output-to-string
       ;; 1. The answer
       (princ "eln-opt report (report only; nothing is compiled here)\n")
+      (princ "How it is ranked: from what this session reaches (savehist, recentf,\n")
+      (princ "hooks, keymaps, advice), read from byte code.  A file scores by the\n")
+      (princ "weight of the reachable code it holds.  This estimates use, it measures\n")
+      (princ "no time.  Tier 2 files are native, Tier 1 byte-compiled.  The examples\n")
+      (princ "are our best-effort guess at the functions most useful to you: the\n")
+      (princ "top-weighted ones for Tier 1 files, a sample for Tier 2 files.\n")
       (unless native
         (princ (format "Native compilation is not available in this Emacs (%s): only byte-compiling happens here.\n"
                        (or (plist-get result :platform-reason) "unknown"))))
