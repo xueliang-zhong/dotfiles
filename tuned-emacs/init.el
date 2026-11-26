@@ -76,17 +76,24 @@ verification, which hides GNU packages (denote, for example) from
       (ignore-errors (package-import-keyring keyring)))))
 
 (defun xl-install-packages (packages)
-  "Install PACKAGES one at a time, reporting each when `xl-progress' is set."
+  "Install PACKAGES one at a time, reporting each when `xl-progress' is set.
+Each package is copied as source only: `package.el' would byte-compile it
+here, which makes the install slow, and eln-opt compiles it later in the
+background (.elc, then .eln where native compilation is available)."
   (require 'package)
   (let ((total (length packages))
         (index 0))
-    (xl-report "installing %d package(s)" total)
+    (when packages
+      (xl-report "installing %d package(s)" total))
     (dolist (pkg packages)
       (setq index (1+ index))
       (xl-report "package %d/%d: %s" index total pkg)
       (condition-case err
           (unless (package-installed-p pkg)
-            (package-install pkg))
+            ;; `package--compile' is private; the Emacs 30/31 install path
+            ;; calls it only from `package-install-1'.  Check it on upgrade.
+            (cl-letf (((symbol-function 'package--compile) #'ignore))
+              (package-install pkg)))
         (error
          (xl-report "package %d/%d failed: %s (%s)"
                     index total pkg (error-message-string err)))))))
@@ -106,8 +113,13 @@ gpg is unusable even then, retry once without signature checks for this
 session."
   (when-let* ((missing (seq-remove #'xl-package-present-p package-selected-packages)))
     (require 'package)
-    (xl-report "refreshing package archives")
+    (xl-report "refreshing package archives ... (this may take a few seconds)")
     (package-refresh-contents)
+    ;; Parallel download and gpg check; whatever it cannot finish is left to
+    ;; `xl-install-packages' below.
+    (add-to-list 'load-path (expand-file-name "tuned-emacs/lisp" xl-dotfiles))
+    (require 'xl-package-fetch)
+    (xl-fetch-packages (seq-remove #'package-installed-p package-selected-packages))
     (xl-install-packages (seq-remove #'package-installed-p package-selected-packages))
     (when-let* ((still (seq-remove #'package-installed-p package-selected-packages)))
       (message "Package install incomplete (%S); rebuilding the ELPA keyring"

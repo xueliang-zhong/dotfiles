@@ -38,8 +38,8 @@ die() {
 }
 
 # Step headings for the multi-step setup commands.  Noisy commands run
-# under `run_quiet'; the long profile/trampoline step prints its own
-# package/trampoline progress lines.  NO_COLOR turns the colours off.
+# under `run_quiet'; the long package step prints its own
+# package progress lines.  NO_COLOR turns the colours off.
 progress_total=0
 progress_done=0
 progress_started=${SECONDS:-0}
@@ -95,7 +95,7 @@ progress_finish() {
 }
 
 # Run a step with only its own progress lines visible: init.el prints
-# package/trampoline counts when XL_PROGRESS is set, and emacs_batch hides
+# package counts when XL_PROGRESS is set, and emacs_batch hides
 # the usual "Loading ..." / "Contacting host" messages.  XL_VERBOSE=1
 # streams the full output instead.
 run_progress() {
@@ -252,6 +252,10 @@ cmd_test() {
     "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
         -l "$DOTFILES/tuned-emacs/tests/xl-perfetto-trace-tests.el" \
         -f ert-run-tests-batch-and-exit
+    # xl-package-fetch: parallel job runner, dependency plan, gpg check (no network).
+    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
+        -l "$DOTFILES/tuned-emacs/tests/xl-package-fetch-tests.el" \
+        -f ert-run-tests-batch-and-exit
 }
 
 # Tier 1 of eln-opt: byte-compile our own Lisp so it does not run interpreted.
@@ -397,11 +401,10 @@ cmd_restore_spacemacs() {
 cmd_setup_macos() {
     [ "$(uname -s)" = Darwin ] ||
         die "run this on macOS; on Linux use setup-linux, on Windows setup-windows"
-    progress_init 6
+    progress_init 5
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
     progress_step "Install Emacs packages" run_progress cmd_smoke
-    progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
     progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "macOS setup complete"
@@ -414,11 +417,10 @@ cmd_setup_linux() {
         MINGW* | MSYS* | CYGWIN*) die "run this in Linux; on Windows use setup-windows" ;;
         *) die "no setup for $(uname -s)" ;;
     esac
-    progress_init 6
+    progress_init 5
     progress_step "Install dotfiles" run_quiet install_dotfiles
     progress_step "Crafted profile" run_quiet cmd_crafted_install "$PROFILE_DIR"
     progress_step "Install Emacs packages" run_progress cmd_smoke
-    progress_step "Prebuild advice trampolines" run_progress cmd_trampolines
     progress_step "Byte-compile own Lisp" run_quiet cmd_compile_lisp
     progress_step "Make Crafted the default Emacs" cmd_make_default
     progress_finish "Linux setup complete"
