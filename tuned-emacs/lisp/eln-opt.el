@@ -1460,9 +1460,12 @@ compilation the same report is shown, with the native parts left out."
   (interactive)
   (cond
    (noninteractive
-    (when eln-opt-rank--with-marker
-      (princ (format "\n%s\n" eln-opt-rank--marker)))
-    (princ (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
+    ;; Compute first: loading the analysis's libraries prints messages, and
+    ;; they must land before the marker, where the parent drops them.
+    (let ((text (eln-opt-rank--format (eln-opt-rank--compute (eln-opt--profile-dir)))))
+      (when eln-opt-rank--with-marker
+        (princ (format "\n%s\n" eln-opt-rank--marker)))
+      (princ text)))
    (t
     (let ((buf (get-buffer-create "*eln-opt report*")))
       (cond
