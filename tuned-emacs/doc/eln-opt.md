@@ -78,7 +78,7 @@ A file enters the plan only if all of these hold:
 - **Defines functions.** Not an autoload or loaddefs file (which only contains stubs), and not `init.el`, `early-init.el` or `custom.el` (a stale `init.elc` is a common trap).
 - **No opt-out.** The file does not contain `no-native-compile: t` or `no-byte-compile: t`.
 - **Not in the failure list** (forced compiles excepted).
-- Tier 2 also requires score ≥ `eln-opt-min-score` (3.0) and unpacked source ≤ `eln-opt-max-source-bytes` (1 MB).
+- Tier 2 also requires score ≥ `eln-opt-min-score` (3.0), compared at the one decimal the report shows and unpacked source ≤ `eln-opt-max-source-bytes` (1 MB).
 
 ## Ranking (reachability)
 

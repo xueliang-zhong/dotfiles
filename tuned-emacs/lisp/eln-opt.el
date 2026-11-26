@@ -525,7 +525,9 @@ against the trusted roots and the opt-out cookie, and must be a reasonable size.
     (cond
      ((null path) "no source path recorded")
      ((null (plist-get row :score)) "no score")
-     ((< (plist-get row :score) eln-opt-min-score)
+     ;; Compare the score as the report shows it (one decimal), so a row
+     ;; that reads "3.0 < 3.0" cannot happen.
+     ((< (/ (fround (* 10 (plist-get row :score))) 10.0) eln-opt-min-score)
       (format "score %.1f < %.1f" (plist-get row :score) eln-opt-min-score))
      ((not (file-readable-p src))
       (if (string-suffix-p ".elc" path) "no .el or .el.gz source next to the .elc"
