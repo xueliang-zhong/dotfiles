@@ -49,6 +49,9 @@
     (ignore-errors (load-theme 'doom-tokyo-night t)))
 ;; Remove the muddy background strip behind comments in `spacemacs-dark'
 (set-face-attribute 'font-lock-comment-face nil :background 'unspecified)
+;; The theme also passes nil for these two; Emacs 31 warns about nil values.
+(set-face-attribute 'trailing-whitespace nil :foreground 'unspecified :background 'unspecified)
+(set-face-attribute 'which-key-separator-face nil :background 'unspecified)
 ;; make sure M-x works on MacOS
 (when xl-mac-p (keymap-global-set "s-x" #'execute-extended-command))
 
