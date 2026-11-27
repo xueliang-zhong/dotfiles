@@ -81,6 +81,8 @@ These are in `early-init.el`:
 - **ffap** does not run the compiler at startup. The C header paths that ffap computes at load time run `gcc`, `clang` and `g++`; on macOS these are Xcode shims that occasionally stall. Two variables, `ffap-c-path` and `ffap-c++-path`, are predefined to `/usr/include` and `/usr/local/include`, so the `defvar` initialisers are skipped. The cost is that `#include <...>` lookups search only those two directories.
 - **Slow-start record.** Each finished load is timed. If startup takes longer than `xl-slow-start-seconds` (3 s), the slowest stretches, recent `.eln` files, our own files loaded from source and the full load order are written to `~/.emacs.d/startup-slow.log`. Fast starts write nothing.
 
+Org files of at least 1 MB (`xueliang-org-big-buffer-size`, set in `lisp/xl-utils.el`) open unfolded. Folding every heading costs about 340 ms on a 5 MB file with 12000 headings. A `#+STARTUP:` line in the file still overrides this. org-indent-mode stays on for these files.
+
 ## Why the order matters
 
 - Packages install before any module or personal file loads, because they need them.
