@@ -984,6 +984,42 @@ a changed load path lets them start again."
     (should (cl-some (lambda (a) (and (stringp a) (string-suffix-p "init.el" a))) cmd))
     (should (cl-some (lambda (a) (and (stringp a) (string-match-p "eln-opt-report" a))) cmd))))
 
+;; ---- eln-opt-compile-all: the files it chooses, and the request it makes ----
+
+(defvar xl-dotfiles)
+
+(ert-deftest eln-opt-compile-all-picks-our-files-and-asks-first ()
+  "Our lisp/ and personal.el are chosen; autoloads are not; a yes starts one
+worker with exactly those files; a no starts nothing."
+  (let* ((root (file-name-as-directory (make-temp-file "eln-opt-all-" t)))
+         (xl-dotfiles root)
+         (lisp (expand-file-name "tuned-emacs/lisp/" root))
+         (personal (expand-file-name "tuned-emacs/personal.el" root))
+         (started nil))
+    (unwind-protect
+        (progn
+          (make-directory lisp t)
+          (with-temp-file (expand-file-name "a.el" lisp) (insert "(defun a1 () 1)\n"))
+          (with-temp-file (expand-file-name "foo-autoloads.el" lisp) (insert ";;; x\n"))
+          (with-temp-file personal (insert "(defun p1 () 2)\n"))
+          (let ((files (eln-opt--all-sources)))
+            (should (member (expand-file-name "a.el" lisp) files))
+            (should (member personal files))
+            (should-not (cl-some (lambda (f) (string-match-p "autoloads" f)) files)))
+          (cl-letf (((symbol-function 'y-or-n-p) (lambda (_) t))
+                    ((symbol-function 'eln-opt-auto--start)
+                     (lambda (force sources) (setq started (list force sources)) 'proc)))
+            (eln-opt-compile-all))
+          (should (eq (car started) t))
+          (should (member personal (cadr started)))
+          (setq started nil)
+          (cl-letf (((symbol-function 'y-or-n-p) (lambda (_) nil))
+                    ((symbol-function 'eln-opt-auto--start)
+                     (lambda (&rest _) (setq started 'wrongly))))
+            (eln-opt-compile-all))
+          (should-not started))
+      (delete-directory root t))))
+
 (provide 'eln-opt-tests)
 ;;; The worker: built and failed, the plan, the compile loop
 

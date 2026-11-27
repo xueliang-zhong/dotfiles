@@ -525,9 +525,10 @@ against the trusted roots and the opt-out cookie, and must be a reasonable size.
     (cond
      ((null path) "no source path recorded")
      ((null (plist-get row :score)) "no score")
-     ;; Compare the score as the report shows it (one decimal), so a row
-     ;; that reads "3.0 < 3.0" cannot happen.
-     ((< (/ (fround (* 10 (plist-get row :score))) 10.0) eln-opt-min-score)
+     ;; Our own files are always compiled: the score threshold only judges
+     ;; what the analysis spread to other files.
+     ((and (not (plist-get row :mandatory))
+           (< (/ (fround (* 10 (plist-get row :score))) 10.0) eln-opt-min-score))
       (format "score %.1f < %.1f" (plist-get row :score) eln-opt-min-score))
      ((not (file-readable-p src))
       (if (string-suffix-p ".elc" path) "no .el or .el.gz source next to the .elc"
@@ -985,13 +986,15 @@ Returns (ROOTS . FACTOR).  The baseline file names functions only."
                (seq-filter (lambda (s) (and (symbolp s) (fboundp s))) names))
           nil)))
 
-(defun eln-opt-rank--propagate (seeds edges)
-  "Heat per symbol after spreading SEEDS, an alist (SYM . WEIGHT), along EDGES."
+(defun eln-opt-rank--propagate (seeds edges &optional levels)
+  "Heat per symbol after spreading SEEDS, an alist (SYM . WEIGHT), along EDGES.
+LEVELS is how many steps the heat travels (default `eln-opt-rank-heat-levels');
+0 leaves the heat on the seeds."
   (let ((heat (make-hash-table :test #'eq))
         (frontier seeds))
     (dolist (s seeds)
       (puthash (car s) (+ (cdr s) (gethash (car s) heat 0.0)) heat))
-    (dotimes (_ eln-opt-rank-heat-levels)
+    (dotimes (_ (or levels eln-opt-rank-heat-levels))
       (let ((next (make-hash-table :test #'eq)))
         (dolist (fw frontier)
           (let* ((outs (gethash (car fw) edges))
@@ -1041,22 +1044,157 @@ Returns the feature or file names loaded, for the report."
                     loaded))))))
     (delete-dups loaded)))
 
+(defcustom eln-opt-analysis-depth 3
+  "How much of the reachability analysis runs.
+0: skip it.  Only the functions of the distro (tuned-emacs/lisp) and of
+personal.el are candidates; nothing is read from savehist, recentf, hooks or
+keymaps.
+1: roots only.  The functions you use directly (savehist, recentf, hooks,
+keymaps) get the heat; nothing is spread along call edges.
+N > 1: roots, spread N - 1 steps along the call graph.  The graph is built
+either way for now."
+  :type 'natnum
+  :group 'eln-opt)
+
+(defun eln-opt-rank--fixed-seeds (graph)
+  "Heat seeds for depth 0: every function of the distro's lisp folder and of
+personal.el, each with weight 1.  Nothing from savehist, recentf or hooks."
+  (let ((lisp-dir (and (bound-and-true-p xl-dotfiles)
+                       (expand-file-name "tuned-emacs/lisp/" xl-dotfiles)))
+        (personal (and (bound-and-true-p xl-dotfiles)
+                       (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))
+        (seeds nil))
+    (when lisp-dir
+      (maphash (lambda (sym path)
+                 (let ((full (expand-file-name path)))
+                   (when (or (string-prefix-p lisp-dir full) (equal full personal))
+                     (push (cons sym 1.0) seeds))))
+               (plist-get graph :path)))
+    seeds))
+
+(defun eln-opt--fixed-sources ()
+  "Depth 0's list: every .el in our lisp/ folder and personal.el, trusted and
+not yet native.  The package folder is not in it."
+  (let* ((lisp-dir (and (bound-and-true-p xl-dotfiles)
+                        (file-name-as-directory (expand-file-name "tuned-emacs/lisp" xl-dotfiles))))
+         (personal (and (bound-and-true-p xl-dotfiles)
+                        (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))
+         (files (append (and lisp-dir (directory-files lisp-dir t "\\.el\\'"))
+                        (and personal (file-exists-p personal) (list personal)))))
+    (seq-filter (lambda (f)
+                  (and (eln-opt-trusted-file-p f)
+                       (not (string-match-p "-\\(autoloads\\|pkg\\)\\.el\\'" f))
+                       (not (eln-opt--built-p f))))
+                files)))
+
+(defcustom eln-opt-profile-analysis-strong nil
+  "Non-nil: run the reachability analysis for system packages even when the
+priority list (this distro's lisp/ and personal.el) already has candidates.
+Nil (the default): the priority list is enough, and the analysis is skipped."
+  :type 'boolean
+  :group 'eln-opt)
+
+(defun eln-opt-rank--fixed-rows ()
+  "Depth 0: the candidates are the files we own, with no analysis.  Each row
+scores `eln-opt-min-score' (so it passes the candidate check), its size is
+its file's, and its functions are the definitions a text scan finds."
+  (let (rows)
+    (dolist (src (eln-opt--fixed-sources))
+      (let ((names nil))
+        (with-temp-buffer
+          (insert-file-contents src)
+          (goto-char (point-min))
+          (while (re-search-forward
+                  "^(\\(?:cl-\\)?\\(?:defun\\|defmacro\\|defsubst\\) \\([^ ()\n]+\\)" nil t)
+            (push (match-string 1) names)))
+        (setq names (nreverse names))
+        (push (list :file (eln-opt-rank--file-key src) :path src :trusted t :mandatory t
+                    :score eln-opt-min-score :gain eln-opt-min-score
+                    :size (or (eln-opt--source-bytes src) 0)
+                    :defuns (mapcar #'intern names)
+                    :top (mapcar #'intern (seq-take names 3)))
+              rows)))
+    rows))
+
+(defun eln-opt-rank--add-mandatory (rows)
+  "ROWS with our own files marked `:mandatory': a file the analysis already
+ranked keeps its row (score and functions), with the mark added; a file it
+did not reach gets a row of its own."
+  (let* ((fixed (eln-opt-rank--fixed-rows))
+         (paths (mapcar (lambda (f) (plist-get f :path)) fixed)))
+    (append
+     (mapcar (lambda (f)
+               (let ((r (seq-find (lambda (x) (equal (plist-get x :path) (plist-get f :path)))
+                                  rows)))
+                 (if r (cons :mandatory (cons t r)) f)))
+             fixed)
+     (seq-remove (lambda (r) (member (plist-get r :path) paths)) rows))))
+
+(defun eln-opt-rank--compute-fixed (profile-dir)
+  "Depth 0: the report and the worker use the files we own, with no graph."
+  (let* ((native (eln-opt-platform-available-p))
+         (rows (eln-opt-rank--fixed-rows)))
+    (list :rows rows
+          :lazy-loaded nil
+          :built-rows (eln-opt-rank--tier-rows rows)
+          :native native
+          :platform-reason (and (not native)
+                                (or (plist-get (eln-opt--read-eld (eln-opt--platform-file))
+                                               :reason)
+                                    "unknown"))
+          :byte (eln-opt--byte-candidates)
+          :next (and native
+                     (eln-opt--plan-from-rows
+                      rows
+                      (- eln-opt-worker-max
+                         (min eln-opt-worker-max (length (eln-opt--byte-candidates))))))
+          :failed (eln-opt--failed-load)
+          :savehist-share 0.0
+          :depth eln-opt-analysis-depth
+          :early t
+          :functions 0
+          :roots 0
+          :user-count 0
+          :baseline-roots 0
+          :baseline-factor 1.0
+          :excluded nil
+          :native-skipped 0
+          :interpreted-skipped 0
+          :profile profile-dir)))
+
 (defun eln-opt-rank--compute (profile-dir)
+  "The analysis for `eln-opt-analysis-depth': depth 0 scans the files we own;
+depth 1 and more run the reachability analysis (see `eln-opt-rank--compute-graph')."
+  (if (or (= eln-opt-analysis-depth 0)
+          (and (not eln-opt-profile-analysis-strong)
+               (seq-some #'eln-opt--candidate-p (eln-opt-rank--fixed-rows))))
+      (eln-opt-rank--compute-fixed profile-dir)
+    (eln-opt-rank--compute-graph profile-dir)))
+
+(defun eln-opt-rank--compute-graph (profile-dir)
   "Full analysis.  Returns a plist: :rows (sorted), :savehist-share, and the
 numbers for the header.  Roots are found first, so that lazy packages behind
 heavy roots can be loaded before the graph is built."
-  (let* ((roots-info (xl-perfetto-with-span "reach: roots" (eln-opt-rank--roots profile-dir)))
+  (let* ((depth eln-opt-analysis-depth)
+         (roots-info (and (> depth 0)
+                          (xl-perfetto-with-span "reach: roots" (eln-opt-rank--roots profile-dir))))
          (native (eln-opt-platform-available-p))
          (user-roots (plist-get roots-info :roots))
-         (lazy-loaded (xl-perfetto-with-span "reach: lazy roots" (eln-opt-rank--load-lazy-roots user-roots)))
+         (lazy-loaded (and (> depth 0)
+                           (xl-perfetto-with-span "reach: lazy roots"
+                             (eln-opt-rank--load-lazy-roots user-roots))))
          (graph (xl-perfetto-with-span "reach: graph" (eln-opt-rank--graph profile-dir)))
          (edges (plist-get graph :edges))
-         (user-count (plist-get roots-info :user-count))
-         (baseline (car (eln-opt-rank--baseline profile-dir)))
+         ;; Depth 1 is roots only; depth N spreads N - 1 steps.
+         (levels (max 0 (1- depth)))
+         (user-count (or (plist-get roots-info :user-count) 0))
+         (baseline (and (> depth 0) (car (eln-opt-rank--baseline profile-dir))))
          (base-factor (max 0.0 (- 1.0 (/ (float user-count) eln-opt-rank-baseline-users))))
          (base-roots (mapcar (lambda (s) (cons s (* base-factor 1.0))) baseline))
-         (seeds (append user-roots base-roots))
-         (heat (xl-perfetto-with-span "reach: propagate" (eln-opt-rank--propagate seeds edges)))
+         (seeds (if (= depth 0)
+                    (eln-opt-rank--fixed-seeds graph)
+                  (append user-roots base-roots)))
+         (heat (xl-perfetto-with-span "reach: propagate" (eln-opt-rank--propagate seeds edges levels)))
          (scores (xl-perfetto-with-span "reach: file scores" (eln-opt-rank--file-scores heat graph)))
          (total (let ((sum 0.0)) (maphash (lambda (_ v) (cl-incf sum v)) scores) sum))
          ;; Each savehist command's share of the whole score.  Heat is linear,
@@ -1065,7 +1203,7 @@ heavy roots can be loaded before the graph is built."
          (max-share 0.0))
     (when (> total 0)
       (dolist (r savehist-cmds)
-        (let* ((h (eln-opt-rank--propagate (list r) edges))
+        (let* ((h (eln-opt-rank--propagate (list r) edges levels))
                (s (eln-opt-rank--file-scores h graph))
                (part 0.0))
           (maphash (lambda (_ v) (cl-incf part v)) s)
@@ -1103,7 +1241,8 @@ heavy roots can be loaded before the graph is built."
                                     (and p (eln-opt-trusted-file-p p))))
                    rows))))
        scores)
-      (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
+      (setq rows (eln-opt-rank--add-mandatory rows))
+    (list :rows (sort rows (lambda (a b) (> (plist-get a :score) (plist-get b :score))))
             :lazy-loaded lazy-loaded
             :built-rows (eln-opt-rank--tier-rows rows)
             :native native
@@ -1121,6 +1260,7 @@ heavy roots can be loaded before the graph is built."
                            (min eln-opt-worker-max (length (eln-opt--byte-candidates))))))
             :failed (eln-opt--failed-load)
             :savehist-share max-share
+            :depth depth
             :functions (hash-table-count (plist-get graph :features))
             :roots (length user-roots)
             :user-count user-count
@@ -1188,6 +1328,12 @@ out, and a note on how files are ranked."
       (unless native
         (princ (format "\nNative compilation is not available in this Emacs (%s): only byte-compiling happens here.\n"
                        (or (plist-get result :platform-reason) "unknown"))))
+      (let* ((d (or (plist-get result :depth) 1))
+             (text (cond ((plist-get result :early)
+                          "priority list only: this distro's lisp/ and personal.el; set eln-opt-profile-analysis-strong to also analyse system packages")
+                         ((= d 1) "roots only; set eln-opt-analysis-depth above 1 to spread along calls")
+                         (t (format "roots, spread %d steps along calls" (1- d))))))
+        (princ (format "\nAnalysis depth: %d (%s)\n" d text)))
       (princ (format "\nStatus:\n  %d file(s) at Tier 2 (native, %d function(s));\n  %d file(s) at Tier 1 (byte-compiled)\n"
                      (length elns)
                      (apply #'+ (mapcar (lambda (r) (plist-get r :count)) elns))
@@ -1233,10 +1379,14 @@ out, and a note on how files are ranked."
                             ((and src (eln-opt--failed-p src)) "failed before; see above")
                             (t "candidate"))))
             (when (< n 40)
-              (princ (format "  %-29s %6.1f  %6.1f  %-17s(xl-async-native-compile '%s)\n"
+              ;; A file that opts out of native compilation gets no force hint:
+              ;; the user said not to compile it.
+              (princ (format "  %-29s %6.1f  %6.1f  %-17s%s\n"
                              (plist-get row :file) (plist-get row :score)
                              (/ (or (plist-get row :size) 0) 1024.0) why
-                             (plist-get row :file))))
+                             (if (and src (eln-opt-rank--no-native-p src))
+                                 ""
+                               (format "(xl-async-native-compile '%s)" (plist-get row :file))))))
             (cl-incf n)))
         (when (> n 40) (princ (format "  ... and %d more\n" (- n 40)))))
       (princ "\nLeft out before ranking:\n")
@@ -2083,6 +2233,50 @@ compilation the worker still byte-compiles."
   (when (and (not noninteractive) eln-opt-auto-enable)
     (setq eln-opt-auto--timer
           (run-with-idle-timer eln-opt-auto-idle nil #'eln-opt-auto--start))))
+
+;;; ---- Compile everything you own, on request: one background worker ----
+
+(defun eln-opt--all-sources ()
+  "Every .el file of the folders this profile owns, not yet native: the
+package folder, our lisp/ folder, and personal.el.  Emacs's own library
+folder is left out: its files are already native in the build.  Autoload and
+package descriptor files are left out too."
+  (let* ((roots (delq nil
+                      (list (and (boundp 'package-user-dir)
+                                 (file-name-as-directory (expand-file-name package-user-dir)))
+                            (and (bound-and-true-p xl-dotfiles)
+                                 (file-name-as-directory
+                                  (expand-file-name "tuned-emacs/lisp" xl-dotfiles)))
+                            (and (bound-and-true-p xl-dotfiles)
+                                 (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))))
+         (files nil))
+    (dolist (root roots)
+      (dolist (f (if (file-directory-p root)
+                     (directory-files-recursively root "\\.el\\'")
+                   (and (file-exists-p root) (list root))))
+        (unless (or (string-match-p "-\\(autoloads\\|pkg\\)\\.el\\'" f)
+                    (not (eln-opt-trusted-file-p f))
+                    (eln-opt--built-p f))
+          (push f files))))
+    (sort (delete-dups files) #'string<)))
+
+;;;###autoload
+(defun eln-opt-compile-all ()
+  "Native-compile every .el this profile owns that is not yet native, in one
+background worker (see `eln-opt--all-sources').  Asks first, with the count.
+Runs like the automatic worker: a child Emacs, one file at a time, its log in
+the *eln-opt* buffer.  The trusted-root and in-progress rules still apply."
+  (interactive)
+  (let ((files (eln-opt--all-sources)))
+    (cond
+     ((null files) (message "eln-opt: every file you own is native already"))
+     ((not (y-or-n-p (format "eln-opt: native-compile %d file(s) in the background? "
+                             (length files))))
+      (message "eln-opt: not started"))
+     ((eln-opt-auto--start t files)
+      (message "eln-opt: compiling %d file(s) in the background; see %s"
+               (length files) eln-opt-log-buffer))
+     (t (message "eln-opt: not started (a worker is running, or eln-opt is off)")))))
 
 ;;;###autoload
 (defun eln-opt-stop-worker ()
