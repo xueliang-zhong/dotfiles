@@ -301,6 +301,50 @@ disappearing with the shell command's temporary buffer."
   (let ((default-directory (expand-file-name xl-dotfiles-dir)))
     (compile (mapconcat #'identity (cons "just" args) " "))))
 
+;; ============================================================
+;; org-indent spinner - a single dot after org-indent's lighter while it works
+;; ============================================================
+;; org-indent initializes a buffer in idle slices (see `org-indent-agent-active-delay'
+;; in xueliang.el).  While a buffer is still on its list, a single-dot spinner
+;; follows the lighter in the minor-mode list, so the work is visible.
+(require 'xl-spinner)
+(defvar org-indent-agentized-buffers)
+
+(defvar-local xueliang-org-indent--glyph nil
+  "Single-dot spinner frame shown after org-indent's lighter, or nil.")
+
+(defun xueliang-org-indent--draw (frame)
+  "Show FRAME after org-indent's lighter; nil clears it."
+  (setq xueliang-org-indent--glyph frame)
+  (force-mode-line-update))
+
+(defun xueliang-org-indent--around (original buffer delay)
+  "Run ORIGINAL on BUFFER for DELAY, with a spinner while org-indent is busy."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (unless (xl-spinner-running-p)
+        (xl-spinner-start #'xueliang-org-indent--draw
+                          :frames xl-spinner-one-dot-frames
+                          :interval xl-spinner-one-dot-interval))))
+  (unwind-protect
+      (funcall original buffer delay)
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (unless (memq buffer org-indent-agentized-buffers)
+          (xl-spinner-stop))))))
+
+(defun xueliang-org-indent-spinner-install ()
+  "Advise org-indent's buffer initialization and extend its lighter with the spinner."
+  (advice-add 'org-indent-initialize-buffer :around #'xueliang-org-indent--around)
+  (let* ((entry (assq 'org-indent-mode minor-mode-alist))
+         (lighter (cadr entry)))
+    (when entry
+      (setcdr entry
+              (list `(:eval (concat ,lighter
+                                    (if xueliang-org-indent--glyph
+                                        (concat " " xueliang-org-indent--glyph)
+                                      ""))))))))
+
 (provide 'xl-utils)
 
 ;;; xl-utils.el ends here

@@ -375,6 +375,9 @@
 (with-eval-after-load 'org-indent
   (setq org-indent-agent-active-delay '(0 0 100000)))
 
+;; The single-dot spinner that shows org-indent working: see xl-utils.el.
+(with-eval-after-load 'org-indent (xueliang-org-indent-spinner-install))
+
 (defun xueliang-org-setup ()
   (org-indent-mode 1)
   (org-superstar-mode 1)
