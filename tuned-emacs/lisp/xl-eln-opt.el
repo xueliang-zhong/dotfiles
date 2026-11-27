@@ -356,6 +356,18 @@ preloaded elns under <version>/preloaded/."
                                                    (concat version "/preloaded") dir)))))
               native-comp-eln-load-path)))
 
+(defun xl-eln-opt--ensure-elc (src)
+  "Byte-compile SRC to its .elc when that is missing or older than SRC.
+Emacs loads an .eln only beside a .elc older than it (as it does for the
+system's own libraries); a bare .el never picks the .eln up.  So the .elc is
+made first, and the .eln after it."
+  (when (string-suffix-p ".el" src)
+    (let ((elc (concat src "c")))
+      (when (or (not (file-exists-p elc)) (file-newer-than-file-p src elc))
+        (require 'bytecomp)
+        (let ((byte-compile-verbose nil))
+          (byte-compile-file src))))))
+
 (defun xl-eln-opt--remove-stale (src)
   "Delete the .eln files of SRC made from earlier contents of SRC.  The name is
 a hash of the path plus a hash of the content, so an edited file leaves its old
@@ -457,6 +469,7 @@ recorded too: it follows the marker between files (see
               (xl-perfetto-with-span (format "native %s" (xl-eln-opt--short-name src))
                 (condition-case err
                     (progn
+                      (xl-eln-opt--ensure-elc src)
                       (native-compile src (comp-el-to-eln-filename src))
                       (if (file-exists-p (comp-el-to-eln-filename src))
                           (progn (xl-eln-opt--remove-stale src) (cl-incf done))

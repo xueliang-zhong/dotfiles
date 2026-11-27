@@ -45,7 +45,7 @@ A file opts out by setting `no-native-compile` or `no-byte-compile` to `t`. The 
 - The child never writes the user's state. Before `init.el` loads, `savehist-file`, `recentf-save-file`, `save-place-file`, `persistent-scratch-save-file` and `project-list-file` point at the null device, and after it loads the modes that save at exit are turned off. (`init.el` writes recentf while it loads, so the redirect must come first.) The report child does the same.
 - Planning caches, per source, the opt-out cookie and the uncompressed size, in `xl-eln-opt/facts.eld`, keyed by path, modification time and size. A source that has not changed is not opened again. Only the sources asked for in the run are kept in the file.
 - A pid file, `xl-eln-opt/pid` in the profile, allows one run at a time. A zombie process (exited but not yet reaped) does not count as alive.
-- For each file, in history order: follow the trace marker (see Tracing), then `native-compile` to the `.eln` path given by `comp-el-to-eln-filename`. The file succeeds when the `.eln` exists afterwards. The `.eln` files of earlier contents of the same file are then deleted: the name is a hash of the path plus a hash of the content, so an edit would otherwise leave the old `.eln` behind.
+- For each file, in history order: follow the trace marker (see Tracing), make the `.elc` beside an `.el` if it is missing or older (Emacs uses an `.eln` only beside a `.elc` older than it, so a bare `.el` never picks the `.eln` up; `.elc` files are git-ignored), then `native-compile` to the `.eln` path given by `comp-el-to-eln-filename`. The file succeeds when the `.eln` exists afterwards. The `.eln` files of earlier contents of the same file are then deleted: the name is a hash of the path plus a hash of the content, so an edit would otherwise leave the old `.eln` behind.
 - A failure (an error, or no `.eln` written) is recorded with the source, its modification time, the reason and the time. The record is kept in `xl-eln-opt/failed.eld` until the source changes.
 - Because the child loads the profile, advice added at load time makes Emacs build the trampolines of advised C primitives in the child, so the main Emacs does not build them on its first use.
 
@@ -95,7 +95,7 @@ The default is all five, which is what xl-eln-opt did before the option existed.
 
 ## Known limits
 
-- Not yet verified: that `.eln` files built here are picked up by a GUI start after a restart.
+- Verified in batch: a fresh `require` of a distro file loads the native function once its `.elc` and `.eln` are in place. Not yet verified: the same after a GUI restart.
 - No ERT suite covers this module yet.
 - The minor-mode list changes only when savehist saves.
 - The idle check runs once per session. A long session is not re-checked until the next start.
