@@ -95,8 +95,8 @@ Returns the file written, or nil."
 ;; skipped and the .elc or .el files load instead.  Core Emacs stays native.
 (when (equal (getenv "ELN_OPT") "0")
   (setq load-no-native t))   ; a stale .elc never shadows a newer .el (eln-opt tier 1)
-(setq native-comp-jit-compilation nil
-      package-native-compile nil
+(setq native-comp-jit-compilation t   ; compile what is loaded, as it is used
+      package-native-compile nil          ; do not pre-compile packages nobody uses
       native-comp-async-report-warnings-errors 'silent)
 
 ;; Compiled packages are not portable across Emacs versions.
