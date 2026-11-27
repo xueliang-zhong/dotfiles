@@ -289,7 +289,7 @@ Behaviour that callers rely on (covered by existing tests): ON-DONE runs in OWNE
 
 Perfetto records asynchronous work by advising the entry point. The design moves the advice from `xl-async-run` to `xl-async-start`, because every process now starts there: a `b` event at the start and an `e` event in the finally handler, named by `:name`. That would make evaluate, the worker and native compile visible on the timeline, while compatibility calls are still recorded.
 
-**Current state:** `xl-perfetto-trace.el` still advises `xl-async-run` (see `xl-perfetto--async-around`). Calls made through layer 0 directly, such as evaluate and the worker, are not yet recorded. Changing the advice to `xl-async-start` is one of the open items below.
+**Current state:** `xl-perfetto-trace.el` advises `xl-async-start` (see `xl-perfetto--async-around`), so jobs made directly, such as evaluate, the worker, package installs and native compiles, are recorded as well as those made through `xl-async-run`.
 
 ## Platforms
 
@@ -338,7 +338,7 @@ The plan had six steps, each one commit, with all test suites passing at every s
 1. Layer 0 in `xl-async.el` next to the old code, with `tests/xl-async-tests.el`. **Done.**
 2. Layer 1 with tests. **Done.**
 3. The compatibility layer: `xl-async-run` and `xl-async-enqueue` rewritten as compositions, the old implementation removed, existing tests unchanged. **Done.**
-4. Perfetto advising `xl-async-start` instead of `xl-async-run`. **Not done**: perfetto still advises `xl-async-run`.
+4. Perfetto advising `xl-async-start` instead of `xl-async-run`. **Done**: perfetto advises `xl-async-start`.
 5. Evaluate on layer 0 with the standard-input protocol, plus the worker and native compile. **Done** in `lisp/xl-async-evaluate.el`.
 6. Loader split into `xl-spinner.el`. **Done.**
 
@@ -354,5 +354,4 @@ These were settled before the first version, for simplicity and stability.
 
 ## Open items
 
-- **Perfetto advice target.** Move the advice from `xl-async-run` to `xl-async-start`, so that evaluate, the worker and native compile appear on the timeline (step 4 above).
 - **Feature-cache notes from the design phase.** The `xl-async-jit-rank` module and its feature cache no longer exist, and `eln-opt.el` has no feature cache either. Nothing here needs follow-up unless a cache is reintroduced; see `eln-opt.md`, "Open questions".

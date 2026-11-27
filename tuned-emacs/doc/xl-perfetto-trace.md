@@ -143,11 +143,11 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 ### 4. xl-async tasks (`xl-async`)
 
-- **Mechanism.** `:around` advice on the Lisp function `xl-async-run` (see `tuned-emacs/lisp/xl-async.el`). The argument plist is copied, not modified. `:on-done` is wrapped so that an `e` event is recorded before the original callback runs. A `b` event is recorded at start.
+- **Mechanism.** `:around` advice on the Lisp function `xl-async-start`, the one place every job starts, so jobs made directly (package installs, native compiles) are recorded as well as those made through `xl-async-run`. A `b` event is recorded at start. A finally handler on the process records the `e` event when the job ends, however it ends.
 - **Id.** `xl-async-<incrementing counter>`; the `b` and `e` events share it.
 - **Name.** The `:name` argument, or else the program name from `:command` (the file-name part of its first element).
-- **Arguments.** The `e` event records `exit` (the exit code) and `bytes` (the output length).
-- **Watch for.** A cancelled task (`xl-async-cancel`) does not call `:on-done`, so it has a `b` and no `e`. At stop, every unfinished id receives an `e` with `cancelled-or-running` set to t, so Perfetto shows no unterminated track.
+- **Arguments.** The `e` event records `status` (done, timeout or cancelled), `exit` (the exit code) and `bytes` (the output length).
+- **Watch for.** A cancelled job ends at once with status `cancelled`. At stop, a job still running gets an `e` with `cancelled-or-running` set to t, so Perfetto shows no unterminated track.
 
 ### 5. Garbage collection (`gc`)
 
@@ -174,7 +174,22 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 - `xl-perfetto-trace-mark` produces an `i` instant event whose name is the text the user typed.
 
-### 9. Counters (`counters`)
+### 9. Major-mode changes (`modes`)
+
+- **Mechanism.** The hooks `change-major-mode-hook` and `after-change-major-mode-hook`, not advice, so every switch is timed: a file opened, a mode called directly (`org-mode`), or a mode switched in a buffer.
+- **Name.** `mode <new mode>`, with `from` and `to` as arguments.
+
+### 10. Completion (`completion`)
+
+- **Mechanism.** `:around` advice on `completion-at-point` (Lisp). That one call runs every function in `completion-at-point-functions`, so corfu, cape, ispell and the rest are covered.
+- **Arguments.** `candidates` (the count only, never the text) and the buffer and mode, unless names are off.
+
+### 11. Files (`files`)
+
+- **Mechanism.** `:around` advice on `find-file-noselect` and `save-buffer` (both Lisp). The save hooks `before-save-hook` and `after-save-hook` are timed separately, so a slow format-on-save shows as its own span.
+- **Name.** `find-file`, `save-buffer`, `before-save-hook`, `after-save-hook`.
+
+### 12. Counters (`counters`)
 
 - After each GC, and once a second (reusing the process-scan timer), a `C` event with the entries of `memory-use-counts`, `gcs-done`, the number of live processes, and the number of buffers.
 

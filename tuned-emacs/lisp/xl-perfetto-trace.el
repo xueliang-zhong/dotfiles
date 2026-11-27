@@ -43,7 +43,11 @@
 (require 'timer)
 
 (declare-function jit-lock-function "jit-lock" (start))
-(declare-function xl-async-run "xl-async" (&rest args))
+(declare-function xl-async-start "xl-async" (command &rest args))
+(declare-function xl-async-status "xl-async" (proc))
+(declare-function xl-async-output "xl-async" (proc))
+(declare-function xl-async-exit-code "xl-async" (proc))
+(declare-function xl-async-finally "xl-async" (proc fn))
 (declare-function xl-async-cancel "xl-async" (&optional slot buffer))
 
 ;;; ============================================================
@@ -56,13 +60,14 @@
   :prefix "xl-perfetto-")
 
 (defcustom xl-perfetto-trace-categories
-  '(commands timers processes xl-async gc redisplay functions counters)
+  '(commands timers processes xl-async gc redisplay functions modes completion files counters)
   "Categories of events a recording collects.
 `marks' is not here: `xl-perfetto-trace-mark' always records, because you
 asked for that mark explicitly."
   :type '(set (const commands) (const timers) (const processes)
               (const xl-async) (const gc) (const redisplay)
-              (const functions) (const counters))
+              (const functions) (const modes) (const completion) (const files)
+              (const counters))
   :group 'xl-perfetto)
 
 (defcustom xl-perfetto-marker-file
@@ -126,7 +131,10 @@ exactly from the start; see `xl-perfetto--async-around'."
     (4 . "gc")
     (5 . "redisplay")
     (6 . "functions")
-    (7 . "marks"))
+    (7 . "marks")
+    (8 . "modes")
+    (9 . "completion")
+    (10 . "files"))
   "Track number and name, as written into the trace metadata.")
 
 (defvar xl-perfetto--recording nil
@@ -497,35 +505,38 @@ recording never leaves a half-written trace behind."
 ;;; xl-async jobs
 ;;; ============================================================
 
-(defun xl-perfetto--async-name (args)
-  "Return a display name for the `xl-async-run' arguments ARGS."
-  (let ((name (plist-get args :name))
-        (command (plist-get args :command)))
+;; Advised on `xl-async-start', the one place every job starts, so jobs made
+;; directly (package installs, native compiles) are recorded too.  The end is
+;; recorded by a finally handler on the process, which runs however the job ends.
+
+(defun xl-perfetto--async-name (command args)
+  "Return a display name for a job started with COMMAND and ARGS."
+  (let ((name (plist-get args :name)))
     (or (and name (format "%s" name))
         (and (consp command) (car command)
              (file-name-nondirectory (car command)))
         "xl-async")))
 
-(defun xl-perfetto--async-around (original &rest args)
-  "Record the `xl-async-run' described by ARGS around ORIGINAL."
+(defun xl-perfetto--async-around (original command &rest args)
+  "Record the job that `xl-async-start' starts for COMMAND and ARGS.
+ORIGINAL is `xl-async-start'.  Returns the process it returns."
   (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let* ((args (copy-sequence args))
-           (id (format "xl-async-%d" (cl-incf xl-perfetto--async-counter)))
-           (name (xl-perfetto--async-name args))
-           (old-on-done (plist-get args :on-done)))
-      (xl-perfetto--record "b" name "xl-async" (xl-perfetto--elapsed)
-                           nil 3 nil id)
-      (push (cons id (list :name name)) xl-perfetto--async-open)
-      (plist-put args :on-done
-                 (lambda (output code)
-                   (xl-perfetto--async-finish id code (string-bytes output))
-                   (when old-on-done
-                     (funcall old-on-done output code))))
-      (apply original args))))
+      (apply original command args)
+    (let* ((id (format "xl-async-%d" (cl-incf xl-perfetto--async-counter)))
+           (name (xl-perfetto--async-name command args))
+           (process (apply original command args)))
+      (when (processp process)
+        (xl-perfetto--record "b" name "xl-async" (xl-perfetto--elapsed)
+                             nil 3 nil id)
+        (push (cons id (list :name name)) xl-perfetto--async-open)
+        (xl-async-finally process
+                          (lambda (proc)
+                            (xl-perfetto--async-finish id proc))))
+      process)))
 
-(defun xl-perfetto--async-finish (id code bytes)
-  "Close the asynchronous event ID with exit CODE and BYTES of output."
+(defun xl-perfetto--async-finish (id process)
+  "Close the asynchronous event ID for PROCESS, which has ended.
+Records its status, exit code and output size."
   (let ((entry (assoc id xl-perfetto--async-open)))
     (when entry
       (setq xl-perfetto--async-open
@@ -534,7 +545,10 @@ recording never leaves a half-written trace behind."
         (xl-perfetto--record
          "e" (plist-get (cdr entry) :name) "xl-async"
          (xl-perfetto--elapsed) nil 3
-         (list :exit code :bytes bytes) id)))))
+         (list :status (format "%s" (xl-async-status process))
+               :exit (xl-async-exit-code process)
+               :bytes (string-bytes (or (xl-async-output process) "")))
+         id)))))
 
 (defun xl-perfetto--close-async-events ()
   "Close every `xl-async' job still open when the recording stops."
@@ -544,6 +558,197 @@ recording never leaves a half-written trace behind."
      (xl-perfetto--elapsed) nil 3
      (list :cancelled-or-running t) (car entry)))
   (setq xl-perfetto--async-open nil))
+
+;;; ============================================================
+;;; Major modes
+;;; ============================================================
+
+;; The hooks run for every major-mode change, whether a file was opened, the
+;; mode was called directly (`org-mode'), or a mode was switched in a buffer.
+;; Advising `set-auto-mode' or `normal-mode' would miss the direct calls.
+
+(defvar xl-perfetto--mode-change nil
+  "(START BUFFER OLD-MODE) of the major-mode change in progress, or nil.")
+
+(defun xl-perfetto--mode-change-start ()
+  "Remember when a major-mode change begins, in microseconds."
+  (when (and xl-perfetto--recording (not xl-perfetto--inside))
+    (setq xl-perfetto--mode-change
+          (list (xl-perfetto--elapsed)
+                (and xl-perfetto-trace-record-names (buffer-name))
+                (symbol-name major-mode)))))
+
+(defun xl-perfetto--minibuffer-mode-p ()
+  "Non-nil in a minibuffer, whose mode switches are not worth a span."
+  (or (minibufferp)
+      (memq major-mode '(minibuffer-mode minibuffer-inactive-mode))))
+
+(defun xl-perfetto--mode-change-end ()
+  "Record the major-mode change that has just finished, as a span.
+Changes into or out of the minibuffer are skipped: every minibuffer use
+switches modes, and that would bury the mode changes that matter."
+  (when (and xl-perfetto--recording
+             (not xl-perfetto--inside)
+             xl-perfetto--mode-change
+             (not (xl-perfetto--minibuffer-mode-p)))
+    (let ((change xl-perfetto--mode-change))
+      (setq xl-perfetto--mode-change nil)
+      (xl-perfetto--record
+       "X" (format "mode %s" major-mode) "modes"
+       (car change) (- (xl-perfetto--elapsed) (car change)) 8
+       (append (list :from (nth 2 change) :to (symbol-name major-mode))
+               (when (nth 1 change) (list :buffer (nth 1 change))))))))
+
+(defun xl-perfetto--install-modes ()
+  "Install the hooks that time major-mode changes."
+  (add-hook 'change-major-mode-hook #'xl-perfetto--mode-change-start)
+  (add-hook 'after-change-major-mode-hook #'xl-perfetto--mode-change-end)
+  (push (lambda ()
+          (remove-hook 'change-major-mode-hook #'xl-perfetto--mode-change-start)
+          (remove-hook 'after-change-major-mode-hook #'xl-perfetto--mode-change-end)
+          (setq xl-perfetto--mode-change nil))
+        xl-perfetto--installed))
+
+;;; ============================================================
+;;; Completion
+;;; ============================================================
+
+;; `completion-at-point' runs every function in `completion-at-point-functions':
+;; corfu, cape, ispell and the rest.  Timing that one call covers all of them.
+;; Only the duration and the number of candidates are recorded, never the text.
+
+(defun xl-perfetto--completion-around (original &rest args)
+  "Record the duration of `completion-at-point' around ORIGINAL, called with ARGS."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let* ((start (xl-perfetto--elapsed))
+           (buffer (and xl-perfetto-trace-record-names (buffer-name)))
+           (mode (symbol-name major-mode))
+           (result nil))
+      (unwind-protect
+          (setq result (apply original args))
+        (xl-perfetto--record
+         "X" "completion-at-point" "completion" start
+         (- (xl-perfetto--elapsed) start) 9
+         (append (list :mode mode
+                       :candidates (if (and (consp result) (integerp (nth 2 result)))
+                                       (- (nth 2 result) (nth 1 result))
+                                     0))
+                 (when buffer (list :buffer buffer))))))))
+
+(defun xl-perfetto--install-completion ()
+  "Advise `completion-at-point' with the timing."
+  (advice-add 'completion-at-point :around #'xl-perfetto--completion-around)
+  (push (lambda ()
+          (advice-remove 'completion-at-point #'xl-perfetto--completion-around))
+        xl-perfetto--installed))
+
+;; Minibuffer completion (vertico, and consult lists shown through it) does not go
+;; through `completion-at-point', so it is timed on `vertico--update', the function
+;; that recomputes and shows the candidates on each change of input.
+
+(defun xl-perfetto--vertico-around (original &rest args)
+  "Record `vertico--update' around ORIGINAL, called with ARGS, with its candidates."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed))
+          (candidates 0))
+      (unwind-protect
+          (apply original args)
+        (setq candidates (if (boundp 'vertico--total) vertico--total 0))
+        (xl-perfetto--record
+         "X" "vertico--update" "completion" start
+         (- (xl-perfetto--elapsed) start) 9
+         (list :candidates candidates))))))
+
+(defun xl-perfetto--install-vertico ()
+  "Advise `vertico--update' when vertico is loaded."
+  (when (fboundp 'vertico--update)
+    (advice-add 'vertico--update :around #'xl-perfetto--vertico-around)
+    (push (lambda ()
+            (advice-remove 'vertico--update #'xl-perfetto--vertico-around))
+          xl-perfetto--installed)))
+
+;;; ============================================================
+;;; Files: opening and saving
+;;; ============================================================
+
+;; `find-file-noselect' and `save-buffer' are Lisp functions, so they are advised.
+;; The save hooks are timed separately, because format-on-save and similar
+;; hooks are often the slow part of a save.  File names are recorded only when
+;; `xl-perfetto-trace-record-names' allows it.
+
+(defvar xl-perfetto--save-hook-start nil
+  "Microsecond time when the current save hook started, or nil.")
+
+(defun xl-perfetto--timed-around (name original &rest args)
+  "Record a span named NAME around ORIGINAL, called with ARGS, on the files track."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let* ((start (xl-perfetto--elapsed))
+           (buffer (and xl-perfetto-trace-record-names (buffer-name)))
+           (mode (symbol-name major-mode))
+           (file (and xl-perfetto-trace-record-names
+                      (or (and (stringp (car args)) (car args))
+                          (buffer-file-name)))))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" name "files" start (- (xl-perfetto--elapsed) start) 10
+         (append (list :mode mode)
+                 (when buffer (list :buffer buffer))
+                 (when file (list :file file))))))))
+
+(defun xl-perfetto--find-file-around (original &rest args)
+  "Record `find-file-noselect' around ORIGINAL, called with ARGS."
+  (apply #'xl-perfetto--timed-around "find-file" original args))
+
+(defun xl-perfetto--save-buffer-around (original &rest args)
+  "Record `save-buffer' around ORIGINAL, called with ARGS."
+  (apply #'xl-perfetto--timed-around "save-buffer" original args))
+
+(defun xl-perfetto--save-hook-begin ()
+  "Start the timing of a save hook."
+  (when (and xl-perfetto--recording (not xl-perfetto--inside))
+    (setq xl-perfetto--save-hook-start (xl-perfetto--elapsed))))
+
+(defun xl-perfetto--save-hook-end (name)
+  "End the timing of the save hook NAME, started by `xl-perfetto--save-hook-begin'."
+  (when (and xl-perfetto--recording
+             (not xl-perfetto--inside)
+             xl-perfetto--save-hook-start)
+    (let ((start xl-perfetto--save-hook-start))
+      (setq xl-perfetto--save-hook-start nil)
+      (xl-perfetto--record
+       "X" name "files" start (- (xl-perfetto--elapsed) start) 10
+       (list :buffer (and xl-perfetto-trace-record-names (buffer-name)))))))
+
+(defun xl-perfetto--before-save-end ()
+  "End the timing of `before-save-hook'."
+  (xl-perfetto--save-hook-end "before-save-hook"))
+
+(defun xl-perfetto--after-save-end ()
+  "End the timing of `after-save-hook'."
+  (xl-perfetto--save-hook-end "after-save-hook"))
+
+(defun xl-perfetto--install-files ()
+  "Advise the file functions and time the save hooks."
+  (advice-add 'find-file-noselect :around #'xl-perfetto--find-file-around)
+  (advice-add 'save-buffer :around #'xl-perfetto--save-buffer-around)
+  ;; Start at the front of each hook (depth -100), end at the back (depth 100).
+  (add-hook 'before-save-hook #'xl-perfetto--save-hook-begin -100)
+  (add-hook 'before-save-hook #'xl-perfetto--before-save-end 100)
+  (add-hook 'after-save-hook #'xl-perfetto--save-hook-begin -100)
+  (add-hook 'after-save-hook #'xl-perfetto--after-save-end 100)
+  (push (lambda ()
+          (advice-remove 'find-file-noselect #'xl-perfetto--find-file-around)
+          (advice-remove 'save-buffer #'xl-perfetto--save-buffer-around)
+          (remove-hook 'before-save-hook #'xl-perfetto--save-hook-begin)
+          (remove-hook 'before-save-hook #'xl-perfetto--before-save-end)
+          (remove-hook 'after-save-hook #'xl-perfetto--save-hook-begin)
+          (remove-hook 'after-save-hook #'xl-perfetto--after-save-end)
+          (setq xl-perfetto--save-hook-start nil))
+        xl-perfetto--installed))
 
 ;;; ============================================================
 ;;; GC, redisplay, counters
@@ -737,11 +942,11 @@ non-local exit still ends the span."
   (push #'xl-perfetto--unwrap-processes xl-perfetto--installed))
 
 (defun xl-perfetto--install-async ()
-  "Advise `xl-async-run' when xl-async is loaded."
-  (when (fboundp 'xl-async-run)
-    (advice-add 'xl-async-run :around #'xl-perfetto--async-around)
+  "Advise `xl-async-start' when xl-async is loaded."
+  (when (fboundp 'xl-async-start)
+    (advice-add 'xl-async-start :around #'xl-perfetto--async-around)
     (push (lambda ()
-            (advice-remove 'xl-async-run #'xl-perfetto--async-around))
+            (advice-remove 'xl-async-start #'xl-perfetto--async-around))
           xl-perfetto--installed)))
 
 (defun xl-perfetto--install-gc ()
@@ -806,6 +1011,10 @@ non-local exit still ends the span."
     (when (memq 'gc categories) (xl-perfetto--install-gc))
     (when (memq 'redisplay categories) (xl-perfetto--install-redisplay))
     (when (memq 'functions categories) (xl-perfetto--install-functions))
+    (when (memq 'modes categories) (xl-perfetto--install-modes))
+    (when (memq 'completion categories) (xl-perfetto--install-completion))
+    (when (memq 'completion categories) (xl-perfetto--install-vertico))
+    (when (memq 'files categories) (xl-perfetto--install-files))
     (when (or (memq 'processes categories)
               (memq 'counters categories))
       (xl-perfetto--install-scan))))

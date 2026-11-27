@@ -149,7 +149,7 @@ FIELD values are compared with `equal'."
           (should-not (advice-member-p #'xl-perfetto--jit-lock-around
                                        'jit-lock-function))
           (should-not (advice-member-p #'xl-perfetto--async-around
-                                       'xl-async-run))
+                                       'xl-async-start))
           (should-not xl-perfetto--process-scan-timer)
           (should-not xl-perfetto--auto-stop-timer)
           (should (eq filter (process-filter process)))
@@ -335,7 +335,7 @@ FIELD values are compared with `equal'."
       (should (= 2 (xlpt--arg end "bytes"))))))
 
 (ert-deftest xl-perfetto-trace-closes-a-cancelled-xl-async-job ()
-  "A cancelled job has no e until stopping the recording closes it."
+  "A cancelled job ends at once, with status cancelled."
   (xlpt--with-recording directory
     (xl-perfetto-trace-start)
     (with-temp-buffer
@@ -348,7 +348,7 @@ FIELD values are compared with `equal'."
                    (xlpt--read file)
                    "ph" "e" "name" "xl-perfetto-test-cancelled")))
       (should event)
-      (should (eq t (xlpt--arg event "cancelled-or-running"))))))
+      (should (equal "cancelled" (xlpt--arg event "status"))))))
 
 (ert-deftest xl-perfetto-trace-user-function-end-and-errors-propagate ()
   "A traced function that raises still ends its span; the error propagates."
