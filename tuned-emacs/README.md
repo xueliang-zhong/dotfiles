@@ -33,6 +33,9 @@ A failed file is not retried until its source changes.
 - The child starts once per session, after five seconds of idle time, and only
   when something is left to compile. `xl-eln-opt-mode` and `xl-eln-opt-idle`
   change this.
+- `xl-eln-opt-scope` chooses what is compiled by itself: commands, minor modes
+  and recent files from your history, and the code from packages or from the
+  distro. All are on by default.
 - `M-x xl-eln-opt-report` shows each source, its size, its status and the
   command that forces a compile. Nothing is compiled by the report.
 - `M-x xl-eln-opt-start` runs the compile now. `M-x xl-eln-opt-compile-file` and

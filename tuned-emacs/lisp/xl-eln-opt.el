@@ -125,51 +125,92 @@ Runs in `savehist-save-hook', so the list is written with the history."
   "The minor mode names in RAW, savehist's list of strings, as symbols."
   (mapcar (lambda (m) (if (stringp m) (intern m) m)) (and (listp raw) raw)))
 
+(defcustom xl-eln-opt-scope '(savehist minor-modes recentf packages distro)
+  "Which sources xl-eln-opt compiles by itself.
+Where a source comes from: `savehist' (the commands you ran), `minor-modes' (the
+minor modes that were enabled), `recentf' (the major modes of your recent files
+and the recent Emacs Lisp files).  Where a file lies: `packages' (Emacs's own
+libraries, installed packages and the profile folder) or `distro' (tuned-emacs/).
+The explicit commands `xl-eln-opt-compile' and `xl-eln-opt-compile-file' ignore
+this option."
+  :type '(set (const :tag "Commands in savehist" savehist)
+              (const :tag "Minor modes that were enabled" minor-modes)
+              (const :tag "Major modes and Lisp files in recentf" recentf)
+              (const :tag "Emacs's libraries, installed packages, profile folder" packages)
+              (const :tag "tuned-emacs/ distro" distro))
+  :group 'xl-eln-opt)
+
+(defun xl-eln-opt--distro-file-p (src)
+  "Non-nil when SRC lies under the distro folder tuned-emacs/."
+  (let ((root (and (bound-and-true-p xl-dotfiles)
+                   (file-name-as-directory (expand-file-name "tuned-emacs" xl-dotfiles)))))
+    (and root
+         (ignore-errors
+           (string-prefix-p (file-truename root) (file-truename src))))))
+
+(defun xl-eln-opt--scoped (label src why)
+  "The row (LABEL SOURCE WHY).  A source outside `xl-eln-opt-scope' is dropped
+from the row, and WHY says which scope it is outside."
+  (cond ((null src) (list label nil why))
+        ((memq (if (xl-eln-opt--distro-file-p src) 'distro 'packages) xl-eln-opt-scope)
+         (list label src nil))
+        (t (list label nil (format "outside xl-eln-opt-scope (%s)"
+                                   (if (xl-eln-opt--distro-file-p src) "distro" "packages"))))))
+
 (defun xl-eln-opt--recent-rows (recent)
-  "One row per recentf file: (LABEL SOURCE WHY).  A file is a source when it is
-Emacs Lisp in a trusted root; its package, if any, is in the label."
+  "Rows for the recentf files: (LABEL SOURCE WHY).  A file is a source when it is
+Emacs Lisp in a trusted root."
   (mapcar (lambda (file)
             (let* ((f (expand-file-name file))
-                   (label "recentf")
-                   (src (and (or (string-suffix-p ".el" f) (string-suffix-p ".el.gz" f))
-                             (xl-eln-opt--trusted-p f) f)))
-              (list label src
-                    (cond (src nil)
-                          ((not (or (string-suffix-p ".el" f) (string-suffix-p ".el.gz" f)))
-                           "not Emacs Lisp")
-                          (t "outside the trusted roots")))))
+                   (src (and (xl-eln-opt--trusted-p f) f)))
+              (xl-eln-opt--scoped "recentf" src
+                                  (cond (src nil)
+                                        (t "outside the trusted roots")))))
           (seq-filter (lambda (f)
                         (and (stringp f)
                              (or (string-suffix-p ".el" f) (string-suffix-p ".el.gz" f))))
                       (and (listp recent) recent))))
 
-(defun xl-eln-opt--history-sources ()
-  "Source files of the commands and minor modes in savehist, and of the modes
-of recentf files."
-  (let* ((commands (xl-eln-opt--read-setq
-                    (or (and (boundp 'savehist-file) savehist-file)
-                        (expand-file-name "history" user-emacs-directory))
-                    'extended-command-history))
-         (minors (xl-eln-opt--read-setq
-                  (or (and (boundp 'savehist-file) savehist-file)
-                      (expand-file-name "history" user-emacs-directory))
-                  'xl-eln-opt-minor-modes))
-         (recent (xl-eln-opt--read-setq
-                  (or (and (boundp 'recentf-save-file) recentf-save-file)
-                      (expand-file-name "recentf.eld" user-emacs-directory))
-                  'recentf-list))
+(defun xl-eln-opt--symbol-row (label sym)
+  "The row for the function or mode SYM, labelled LABEL."
+  (let ((src (xl-eln-opt--source-of-symbol sym)))
+    (xl-eln-opt--scoped label src (and (null src) (xl-eln-opt--why-no-source sym)))))
+
+(defun xl-eln-opt--rows ()
+  "Every history entry in `xl-eln-opt-scope' as a row (LABEL SOURCE WHY).
+SOURCE is nil when the entry has no source; WHY then says why."
+  (let* ((savehist-path (or (and (boundp 'savehist-file) savehist-file)
+                            (expand-file-name "history" user-emacs-directory)))
+         (recentf-path (or (and (boundp 'recentf-save-file) recentf-save-file)
+                           (expand-file-name "recentf.eld" user-emacs-directory)))
+         (commands (and (memq 'savehist xl-eln-opt-scope)
+                        (xl-eln-opt--read-setq savehist-path 'extended-command-history)))
+         (minors (and (memq 'minor-modes xl-eln-opt-scope)
+                      (xl-eln-opt--read-setq savehist-path 'xl-eln-opt-minor-modes)))
+         (recent (and (memq 'recentf xl-eln-opt-scope)
+                      (xl-eln-opt--read-setq recentf-path 'recentf-list)))
          (modes (delete-dups
                  (delq nil
                        (mapcar (lambda (file)
                                  (cl-loop for (re . mode) in auto-mode-alist
                                           when (and (stringp file) (string-match-p re file))
                                           return mode))
-                               recent))))
-         (sources (append (mapcar #'xl-eln-opt--source-of-symbol (xl-eln-opt--commands commands))
-                          (mapcar #'xl-eln-opt--source-of-symbol (xl-eln-opt--minor-modes minors))
-                          (mapcar #'xl-eln-opt--source-of-symbol modes)
-                          (mapcar #'cadr (xl-eln-opt--recent-rows recent)))))
-    (delete-dups (delq nil sources))))
+                               recent)))))
+    (append
+     (when (memq 'savehist xl-eln-opt-scope)
+       (mapcar (lambda (sym) (xl-eln-opt--symbol-row (format "command %s" sym) sym))
+               (xl-eln-opt--commands commands)))
+     (when (memq 'minor-modes xl-eln-opt-scope)
+       (mapcar (lambda (sym) (xl-eln-opt--symbol-row (format "mode %s" sym) sym))
+               (xl-eln-opt--minor-modes minors)))
+     (when (memq 'recentf xl-eln-opt-scope)
+       (append (mapcar (lambda (sym) (xl-eln-opt--symbol-row (format "mode %s" sym) sym))
+                       modes)
+               (xl-eln-opt--recent-rows recent))))))
+
+(defun xl-eln-opt--history-sources ()
+  "The source files of the history entries in scope, each once."
+  (delete-dups (delq nil (mapcar #'cadr (xl-eln-opt--rows)))))
 
 (defun xl-eln-opt--failed ()
   "The failed list: an alist (SOURCE . MTIME-IT-FAILED-AT)."
@@ -377,43 +418,8 @@ nothing in batch, or when the mode is 0."
                      (t "outside the trusted roots")))))))
 
 (defun xl-eln-opt--items ()
-  "The history entries as rows: (LABEL SOURCE WHY) with SOURCE nil when none."
-  (let* ((commands (xl-eln-opt--read-setq
-                    (or (and (boundp 'savehist-file) savehist-file)
-                        (expand-file-name "history" user-emacs-directory))
-                    'extended-command-history))
-         (recent (xl-eln-opt--read-setq
-                  (or (and (boundp 'recentf-save-file) recentf-save-file)
-                      (expand-file-name "recentf.eld" user-emacs-directory))
-                  'recentf-list))
-         (minors (xl-eln-opt--read-setq
-                  (or (and (boundp 'savehist-file) savehist-file)
-                      (expand-file-name "history" user-emacs-directory))
-                  'xl-eln-opt-minor-modes))
-         (modes (delete-dups
-                 (delq nil
-                       (mapcar (lambda (file)
-                                 (cl-loop for (re . mode) in auto-mode-alist
-                                          when (and (stringp file) (string-match-p re file))
-                                          return mode))
-                               recent)))))
-    (append
-     (mapcar (lambda (sym)
-               (let ((src (xl-eln-opt--source-of-symbol sym)))
-                 (list (format "command %s" sym) src
-                       (if src nil (xl-eln-opt--why-no-source sym)))))
-             (xl-eln-opt--commands commands))
-     (mapcar (lambda (sym)
-               (let ((src (xl-eln-opt--source-of-symbol sym)))
-                 (list (format "mode %s" sym) src
-                       (if src nil (xl-eln-opt--why-no-source sym)))))
-             (xl-eln-opt--minor-modes minors))
-     (mapcar (lambda (mode)
-               (let ((src (xl-eln-opt--source-of-symbol mode)))
-                 (list (format "mode %s" mode) src
-                       (if src nil (xl-eln-opt--why-no-source mode)))))
-             modes)
-     (xl-eln-opt--recent-rows recent))))
+  "The history entries as rows: (LABEL SOURCE WHY), in scope."
+  (xl-eln-opt--rows))
 
 (defun xl-eln-opt--status-word (verdict)
   (pcase (car verdict)
@@ -520,7 +526,8 @@ printed in the last column of the report, so the suffix is not needed."
                            (format "(xl-eln-opt-compile '%s)" name)
                          "")))
             (princ (format "  %-40s %-52s%s\n" (car r) why hint)))))
-      (princ "\nNOTE:\n  The sources come from savehist (commands) and recentf (modes).\n")
+      (princ (format "\nScope (xl-eln-opt-scope): %s\n" xl-eln-opt-scope))
+      (princ "\nNOTE:\n  The sources come from the scope above: savehist (commands), minor modes, and recentf (modes and Lisp files).\n")
       (princ "  Built-in libraries count too: their .el.gz is compiled.  A file is skipped\n")
       (princ "  when it is outside the trusted roots, opts out with no-native-compile, or is\n")
       (princ "  over the size limit.  A failure is kept until the file changes.\n")

@@ -80,6 +80,16 @@ While `xl-perfetto-trace-start` records in the main Emacs, a child run follows t
 | `xl-eln-opt-mode` | 1 | 0: only when you run a command; 1: also once per session, after the idle delay |
 | `xl-eln-opt-idle` | 5.0 | Seconds of idle time before the once-per-session check |
 | `xl-eln-opt-max-source-bytes` | 1048576 | Largest source, uncompressed, that is compiled without force |
+| `xl-eln-opt-scope` | `(savehist minor-modes recentf packages distro)` | Which sources to compile by itself (see Scope) |
+
+## Scope
+
+`xl-eln-opt-scope` is a set of two kinds of choice.
+
+- Where a source comes from: `savehist` (the commands you ran), `minor-modes` (the minor modes that were enabled), `recentf` (the major modes of recent files, and the recent Emacs Lisp files).
+- Where the file lies: `packages` (Emacs's own libraries, installed packages, and the profile folder), or `distro` (`tuned-emacs/`).
+
+The default is all five, which is what xl-eln-opt did before the option existed. A source from a kind that is out of scope is not read at all. A source that lies in a location out of scope has no source in the report, and the row says "outside xl-eln-opt-scope (packages)" or "(distro)". The report prints the scope it used. The explicit commands `xl-eln-opt-compile` and `xl-eln-opt-compile-file` ignore the scope.
 
 ## Known limits
 
