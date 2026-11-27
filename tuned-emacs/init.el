@@ -146,6 +146,9 @@ gpg is unusable even then, retry once without signature checks for this
 session."
   (when-let* ((missing (seq-remove #'xl-package-present-p package-selected-packages)))
     (require 'package)
+    ;; Installing byte-compiles; load bytecomp now, not from inside some lexical
+    ;; binding of its variables (that fails on Windows and some Linux builds).
+    (require 'bytecomp)
     (xl-report "refreshing package archives ... (this may take a few seconds)")
     (xl-refresh-archives)
     ;; Parallel download and gpg check; whatever it cannot finish is left to
