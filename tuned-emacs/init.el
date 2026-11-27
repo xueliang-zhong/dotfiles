@@ -253,8 +253,8 @@ session."
 (autoload 'xl-package-install "xl-package-install" nil t)
 (require 'eln-opt)
 (eln-opt-auto-arm)
-;; No extension: `load' then prefers tuned-emacs/xueliang.elc when it is current
-;; (see `compile-lisp' in emacs-setup.sh), and the .el otherwise.
+;; No extension: `load' finds xueliang.el.  It is never byte-compiled, so there
+;; is no .elc that can go stale (its header has a no-byte-compile cookie).
 (load (expand-file-name "tuned-emacs/xueliang" xl-dotfiles))
 
 ;; ============================================================

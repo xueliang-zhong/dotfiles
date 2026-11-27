@@ -3501,12 +3501,18 @@ the exit status."
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
 
+;; xueliang.el is never compiled, so it cannot have a stale .elc: its header says so.
+(ert-deftest xl-personal-file-has-no-byte-compile-cookie ()
+  "`xueliang.el' carries no-byte-compile, so neither compile-lisp nor eln-opt makes an .elc."
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles) nil 0 200)
+    (should (string-match-p "no-byte-compile:[ \t]*t" (buffer-string)))))
+
 ;; eln-opt tier 1: our lisp runs as byte code exactly when a current .elc exists.
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))
-    (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")
-                    (xueliang-elisp-completion-setup "xueliang.el")))
+    (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")))
       (let* ((src (expand-file-name (cadr case) root))
              (elc (concat src "c"))
              (current (and (file-exists-p elc)

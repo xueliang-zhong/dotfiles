@@ -1,4 +1,4 @@
-;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; -*-
+;;; xueliang.el --- My Emacs habits, framework-neutral -*- lexical-binding: t; no-byte-compile: t; -*-
 
 ;; ============================================================
 ;; Platform, Paths and Appearance
@@ -368,6 +368,12 @@
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4))
     (set-face-attribute face nil :background 'unspecified))
   (advice-add 'org-open-at-point :around #'xueliang-org-open-at-point-split-advice))
+
+;; org-indent keeps the indentation of every line up to date in idle time.  Its
+;; default slice is up to 2 s, which freezes Emacs for that long on a large file
+;; (1.4 s on a 2 MB file).  A 0.1 s slice does the same work in short pieces.
+(with-eval-after-load 'org-indent
+  (setq org-indent-agent-active-delay '(0 0 100000)))
 
 (defun xueliang-org-setup ()
   (org-indent-mode 1)

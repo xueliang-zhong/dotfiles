@@ -81,7 +81,7 @@ Rough time on the Pi: each file takes seconds to compile (org takes about a minu
 
 A file enters the plan only if all of these hold:
 
-- **Trusted.** `file-truename` is under a trusted root: elpa, Emacs's `lisp-directory`, `tuned-emacs/lisp`, or `tuned-emacs/xueliang.el`. A symbolic link pointing outside a root is rejected.
+- **Trusted.** `file-truename` is under a trusted root: elpa, Emacs's `lisp-directory`, `tuned-emacs/lisp`, or `tuned-emacs/xueliang.el`. `xueliang.el` is trusted but never compiled: its header carries a `no-byte-compile` cookie, so eln-opt skips it. A symbolic link pointing outside a root is rejected.
 - **Has source.** A `.el`, or for tier 2 an Emacs built-in library's `.el.gz`.
 - **Defines functions.** Not an autoload or loaddefs file (which only contains stubs), and not `init.el`, `early-init.el` or `custom.el` (a stale `init.elc` is a common trap).
 - **No opt-out.** The file does not contain `no-native-compile: t` or `no-byte-compile: t`.

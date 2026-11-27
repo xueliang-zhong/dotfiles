@@ -271,8 +271,7 @@ cmd_compile_lisp() {
 ;; bytecomp is loaded makes its defvar fail on some builds (Windows).
 (require 'bytecomp)
 (let* ((dir (expand-file-name \"tuned-emacs\" \"$DOTFILES\"))
-       (files (append (directory-files (expand-file-name \"lisp\" dir) t \"\\\\.el\\\\'\")
-                      (list (expand-file-name \"xueliang.el\" dir))))
+       (files (directory-files (expand-file-name \"lisp\" dir) t \"\\\\.el\\\\'\"))
        (done 0) (failed nil))
   (dolist (f files)
     (when (file-newer-than-file-p f (concat f \"c\"))
@@ -504,7 +503,7 @@ use / check:
   check                  smoke + test; run this after a config change
   trampolines            pre-build advice trampolines so a GUI start is fast
   eln-opt                    say whether eln-opt can native-compile here (else byte only)
-  compile-lisp           byte-compile our own lisp/ and xueliang.el where stale
+  compile-lisp           byte-compile our own lisp/ where stale (xueliang.el is never compiled)
   eln-opt-compile            run the eln-opt worker here: byte-compile, then native-compile
   eln-opt-reset              delete the user's elns (not trampolines) and the failed list
   eln-opt-report             print the eln-opt ranking; compiles nothing
