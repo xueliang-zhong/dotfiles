@@ -43,12 +43,13 @@ A file opts out by setting `no-native-compile` or `no-byte-compile` to `t`. The 
 `xl-eln-opt-start` runs a batch Emacs with the profile's `early-init.el` and `init.el`, then calls `xl-eln-opt-run`:
 
 - The child never writes the user's state. Before `init.el` loads, `savehist-file`, `recentf-save-file`, `save-place-file`, `persistent-scratch-save-file` and `project-list-file` point at the null device, and after it loads the modes that save at exit are turned off. (`init.el` writes recentf while it loads, so the redirect must come first.) The report child does the same.
-- A pid file, `xl-warm/pid` in the profile, allows one run at a time. A zombie process (exited but not yet reaped) does not count as alive.
+- Planning caches, per source, the opt-out cookie and the uncompressed size, in `xl-eln-opt/facts.eld`, keyed by path, modification time and size. A source that has not changed is not opened again. Only the sources asked for in the run are kept in the file.
+- A pid file, `xl-eln-opt/pid` in the profile, allows one run at a time. A zombie process (exited but not yet reaped) does not count as alive.
 - For each file, in history order: follow the trace marker (see Tracing), then `native-compile` to the `.eln` path given by `comp-el-to-eln-filename`. The file succeeds when the `.eln` exists afterwards. The `.eln` files of earlier contents of the same file are then deleted: the name is a hash of the path plus a hash of the content, so an edit would otherwise leave the old `.eln` behind.
-- A failure (an error, or no `.eln` written) is recorded with the source, its modification time, the reason and the time. The record is kept in `xl-warm/failed.eld` until the source changes.
+- A failure (an error, or no `.eln` written) is recorded with the source, its modification time, the reason and the time. The record is kept in `xl-eln-opt/failed.eld` until the source changes.
 - Because the child loads the profile, advice added at load time makes Emacs build the trampolines of advised C primitives in the child, so the main Emacs does not build them on its first use.
 
-The pid and failed-list folder keeps the name `xl-warm/` from the module's earlier name. It is a folder on disk and was not renamed.
+The pid and failed-list folder is `xl-eln-opt/` in the profile.
 
 ## Forcing a compile
 

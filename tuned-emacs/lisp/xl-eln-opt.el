@@ -32,7 +32,7 @@
   "Native-compile the files of your history in a child Emacs."
   :group 'lisp)
 
-(defvar xl-eln-opt-state-dir (expand-file-name "xl-warm/" user-emacs-directory)
+(defvar xl-eln-opt-state-dir (expand-file-name "xl-eln-opt/" user-emacs-directory)
   "Folder holding the failed list and the pid of the running child.")
 
 (defun xl-eln-opt--state (name)
@@ -230,7 +230,7 @@ and the report says so; a very large file takes long and may not pay off."
   :type 'natnum
   :group 'xl-eln-opt)
 
-(defun xl-eln-opt--source-bytes (src)
+(defun xl-eln-opt--source-bytes-compute (src)
   "SRC's size in bytes, uncompressed when SRC is an .el.gz."
   (if (string-suffix-p ".gz" src)
       (or (ignore-errors
@@ -242,7 +242,7 @@ and the report says so; a very large file takes long and may not pay off."
           0)
     (or (ignore-errors (file-attribute-size (file-attributes src))) 0)))
 
-(defun xl-eln-opt--opted-out-p (src)
+(defun xl-eln-opt--opted-out-compute (src)
   "The cookie that opts SRC out, as a string (`no-native-compile' or
 `no-byte-compile'), or nil.  The cookie is either on the -*- first line or a
 line of the local variables.  A file that says so is never compiled."
@@ -258,6 +258,65 @@ line of the local variables.  A file that says so is never compiled."
               (and (re-search-forward
                     "^[ \t;]*\\(no-native-compile\\|no-byte-compile\\):[ \t]*t" nil t)
                    (match-string 1))))))))
+
+(defvar xl-eln-opt--facts-table nil
+  "Per-source facts read this session: SRC -> (MTIME SIZE OPTOUT BYTES).")
+(defvar xl-eln-opt--facts-used nil
+  "The sources whose facts were asked for in this process; only these are saved.")
+
+(defun xl-eln-opt--facts-file ()
+  (xl-eln-opt--state "facts.eld"))
+
+(defun xl-eln-opt--facts-load ()
+  "The table of saved facts, read once per process."
+  (unless xl-eln-opt--facts-table
+    (setq xl-eln-opt--facts-table (make-hash-table :test 'equal))
+    (dolist (row (xl-eln-opt--read-setq (xl-eln-opt--facts-file) 'xl-eln-opt-facts))
+      (when (and (consp row) (stringp (car row)))
+        (puthash (car row) (cdr row) xl-eln-opt--facts-table))))
+  (unless xl-eln-opt--facts-used
+    (setq xl-eln-opt--facts-used (make-hash-table :test 'equal)))
+  xl-eln-opt--facts-table)
+
+(defun xl-eln-opt--facts (src)
+  "The opt-out cookie and the uncompressed size of SRC, as (OPTOUT . BYTES).
+Read from the file only when its modification time or size has changed, so a
+source that has not changed is not opened again."
+  (let* ((attrs (file-attributes src))
+         (table (xl-eln-opt--facts-load)))
+    (if (not attrs)
+        (cons nil 0)
+      (let* ((mtime (float-time (file-attribute-modification-time attrs)))
+             (size (file-attribute-size attrs))
+             (hit (gethash src table)))
+        (puthash src t xl-eln-opt--facts-used)
+        (if (and hit (equal (car hit) mtime) (equal (cadr hit) size))
+            (cons (nth 2 hit) (nth 3 hit))
+          (let* ((optout (xl-eln-opt--opted-out-compute src))
+                 (bytes (xl-eln-opt--source-bytes-compute src)))
+            (puthash src (list mtime size optout bytes) table)
+            (cons optout bytes)))))))
+
+(defun xl-eln-opt--facts-save ()
+  "Write the facts of the sources asked for in this process, and no others."
+  (when xl-eln-opt--facts-table
+    (let (rows)
+      (maphash (lambda (src _)
+                 (let ((v (gethash src xl-eln-opt--facts-table)))
+                   (when (and v (gethash src xl-eln-opt--facts-used))
+                     (push (cons src v) rows))))
+               xl-eln-opt--facts-table)
+      (make-directory xl-eln-opt-state-dir t)
+      (with-temp-file (xl-eln-opt--facts-file)
+        (prin1 `(setq xl-eln-opt-facts ',rows) (current-buffer))))))
+
+(defun xl-eln-opt--opted-out-p (src)
+  "The cookie that opts SRC out, or nil.  Cached; see `xl-eln-opt--facts'."
+  (car (xl-eln-opt--facts src)))
+
+(defun xl-eln-opt--source-bytes (src)
+  "SRC's uncompressed size in bytes.  Cached; see `xl-eln-opt--facts'."
+  (cdr (xl-eln-opt--facts src)))
 
 (defun xl-eln-opt--failed-entry (src)
   "The failed record of SRC as (MTIME REASON TIME), or nil."
@@ -393,6 +452,7 @@ recorded too: it follows the marker between files (see
                                  (format-time-string "%Y-%m-%d %H:%M"))
                            failed))))))
             (xl-eln-opt--save-failed failed)
+            (xl-eln-opt--facts-save)
             (message "xl-eln-opt: %d compiled, %d todo, %d failed" done (length todo) (length failed))
             done)))
       (xl-perfetto-follow-finish)
