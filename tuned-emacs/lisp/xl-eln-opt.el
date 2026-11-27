@@ -363,7 +363,11 @@ recorded too: it follows the marker between files (see
   (if (not (xl-eln-opt--lock))
       (progn (message "xl-eln-opt: another run is alive") 0)
     (unwind-protect
-        (xl-perfetto-with-span "xl-eln-opt run"
+        ;; Start following before the run span: the span checks at entry
+        ;; whether a recording is on, so the marker must be read first.
+        (progn
+         (xl-perfetto-follow-marker "xl-eln-opt-trace")
+         (xl-perfetto-with-span "xl-eln-opt run"
           (let* ((todo (cond ((and files force)
                               (seq-remove #'xl-eln-opt--hard-skip-p files))
                              (files (xl-eln-opt--todo files))
@@ -390,7 +394,7 @@ recorded too: it follows the marker between files (see
                            failed))))))
             (xl-eln-opt--save-failed failed)
             (message "xl-eln-opt: %d compiled, %d todo, %d failed" done (length todo) (length failed))
-            done))
+            done)))
       (xl-perfetto-follow-finish)
       (xl-eln-opt--unlock))))
 
