@@ -151,8 +151,7 @@ package that fails any step is skipped; the caller installs the rest."
                                           (package-desc-name desc)
                                           (package-desc-version desc))))
                         (condition-case err
-                            (cl-letf (((symbol-function 'package--compile)
-                                       #'ignore))
+                            (progn
                               (package-install-file file)
                               (cl-incf installed)
                               ;; The marker package.el writes for good signatures.

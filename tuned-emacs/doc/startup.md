@@ -50,7 +50,7 @@ Settings for Org, dired, magit and others go inside `with-eval-after-load`, so t
 4. **Serial fallback** (`xl-install-packages`). Anything still missing runs through `package-install`, one package at a time.
 5. If packages are still missing, the keyring is rebuilt and the archives are refreshed once more. If that fails too, startup reports the missing packages and, if none of the archives offers them, says so. If gpg is unusable, signature checks are turned off for that one startup.
 
-Packages are copied as source. `package.el` would byte-compile each package during installation; both install paths suppress that with a `cl-letf` around `package--compile`, because the compilation is slow and eln-opt does it in the background (see [eln-opt.md](eln-opt.md)). After a fresh install there are no `.elc` files in `elpa-31.1`; they appear as eln-opt works.
+Packages are installed the normal way: `package.el` byte-compiles each package during installation, on both install paths (the serial fallback and the parallel fetch). Native compilation is left to eln-opt, which runs in the background (see [eln-opt.md](eln-opt.md)).
 
 Built-in libraries such as `lua-mode` are not installed from the archive, because `package-installed-p` already reports them as installed. Emacs ships them with byte-compiled files, so there is nothing to copy.
 
@@ -62,18 +62,11 @@ fetching packages in parallel -j 16 ...
 fetched 38 package(s) in parallel
 ```
 
-### Measured install time
+### Install time
 
-On an 8-core Mac, starting from empty `elpa` directories and a warm network:
+The install time has not been measured since byte-compilation was restored during installation. Earlier figures came from an install that skipped byte-compilation and are not quoted here. Measure again before quoting any number.
 
-| Path | Wall time |
-| --- | ---: |
-| Serial (`package-install` per package, no byte-compile) | 42.0 s |
-| Parallel fetch | 15.5 to 17.7 s |
-
-Both runs installed the same 38 packages with the same `.signed` markers. The archive refresh takes about 6.5 s and is serial in both. These numbers are from one machine and one network; rerun the measurement on your own machine before relying on them.
-
-Each gpg check takes roughly 0.3 to 0.8 s and is the largest per-package cost. Signature checks are not disabled for speed.
+Signature checks are not disabled for speed.
 
 ## Startup settings
 

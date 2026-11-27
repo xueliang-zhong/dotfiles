@@ -80,9 +80,7 @@ verification, which hides GNU packages (denote, for example) from
 
 (defun xl-install-packages (packages)
   "Install PACKAGES one at a time, reporting each when `xl-progress' is set.
-Each package is copied as source only: `package.el' would byte-compile it
-here, which makes the install slow, and eln-opt compiles it later in the
-background (.elc, then .eln where native compilation is available)."
+Each package is installed the normal way, byte-compiled by `package.el'."
   (require 'package)
   (let ((total (length packages))
         (index 0))
@@ -93,10 +91,7 @@ background (.elc, then .eln where native compilation is available)."
       (xl-report "package %d/%d: %s" index total pkg)
       (condition-case err
           (unless (package-installed-p pkg)
-            ;; `package--compile' is private; the Emacs 30/31 install path
-            ;; calls it only from `package-install-1'.  Check it on upgrade.
-            (cl-letf (((symbol-function 'package--compile) #'ignore))
-              (package-install pkg)))
+            (package-install pkg))
         (error
          (xl-report "package %d/%d failed: %s (%s)"
                     index total pkg (error-message-string err)))))))

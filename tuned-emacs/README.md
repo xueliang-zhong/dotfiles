@@ -175,8 +175,6 @@ The suites run in `emacs --batch`, without a graphical frame:
 | `tests/xl-perfetto-trace-tests.el` | Trace recording and JSON output |
 | `tests/xl-package-fetch-tests.el` | Parallel job runner, dependency plan, unsigned-archive policy, gpg check |
 
-Known failing test: `xl-packages-load-as-byte-code` in `smoke-tests.el` still expects package functions to be byte-compiled at install time. Packages now install as source; eln-opt compiles them later. `check` stops at this failure, so the suites after it do not run until the test is updated.
-
 ## Common changes
 
 | Goal | Where |
