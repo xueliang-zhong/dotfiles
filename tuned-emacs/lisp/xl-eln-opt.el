@@ -176,6 +176,22 @@ Emacs Lisp in a trusted root."
   (let ((src (xl-eln-opt--source-of-symbol sym)))
     (xl-eln-opt--scoped label src (and (null src) (xl-eln-opt--why-no-source sym)))))
 
+(defun xl-eln-opt--distro-rows ()
+  "A row for every Emacs Lisp file of the distro (tuned-emacs/*.el and
+lisp/*.el), whether or not the history mentions it."
+  (let* ((dir (and (bound-and-true-p xl-dotfiles)
+                   (file-name-as-directory (expand-file-name "tuned-emacs" xl-dotfiles))))
+         (files (and dir (file-directory-p dir)
+                     (append (directory-files dir t "\\.el\\'")
+                             (let ((lisp (expand-file-name "lisp" dir)))
+                               (and (file-directory-p lisp)
+                                    (directory-files lisp t "\\.el\\'")))))))
+    (mapcar (lambda (f)
+              (let ((src (and (xl-eln-opt--trusted-p f) f)))
+                (xl-eln-opt--scoped "distro" src
+                                    (if src nil "outside the trusted roots"))))
+            files)))
+
 (defun xl-eln-opt--rows ()
   "Every history entry in `xl-eln-opt-scope' as a row (LABEL SOURCE WHY).
 SOURCE is nil when the entry has no source; WHY then says why."
@@ -206,7 +222,9 @@ SOURCE is nil when the entry has no source; WHY then says why."
      (when (memq 'recentf xl-eln-opt-scope)
        (append (mapcar (lambda (sym) (xl-eln-opt--symbol-row (format "mode %s" sym) sym))
                        modes)
-               (xl-eln-opt--recent-rows recent))))))
+               (xl-eln-opt--recent-rows recent)))
+     (when (memq 'distro xl-eln-opt-scope)
+       (xl-eln-opt--distro-rows)))))
 
 (defun xl-eln-opt--history-sources ()
   "The source files of the history entries in scope, each once."
