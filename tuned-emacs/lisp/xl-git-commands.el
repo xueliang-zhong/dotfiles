@@ -456,11 +456,12 @@ blocking.
     default-directory))
 
 (defun xl-git-commands--refresh-status (root)
-  "Refresh the status buffer showing ROOT, when it is open."
+  "Refresh the status buffer showing ROOT, when it exists.  It is updated but
+not shown: Gwrite and Gcommit must not bring the status window up."
   (when-let* ((repo (file-name-nondirectory (directory-file-name root)))
               (buffer (get-buffer (format "*git-status: %s*" repo))))
     (with-current-buffer buffer
-      (xl-git-status))))
+      (xl-git-status t))))
 
 (defun xl-git-commands--run (args action)
   "Run git ARGS in the current file's folder in the background.

@@ -1438,8 +1438,9 @@ A queue that is busy refreshes the status itself when it drains."
     (cancel-timer xl-git-status--watch-timer))
   (setq xl-git-status--watch-timer nil))
 
-(defun xl-git-status ()
+(defun xl-git-status (&optional no-display)
   "Show the Git status and recent log of the current repository.
+With NO-DISPLAY, update the status buffer without showing it in a window.
 The buffer lists the head, untracked, unstaged and staged files
 with their diff hunks, and the ten most recent commits.  An animated
 ASCII spinner is shown while the git commands run.  `g' refreshes the
@@ -1476,7 +1477,8 @@ or shows the commit at point."
               buffer-read-only nil)
         (xl-git-status--start-spinner))
       (setq default-directory root))
-    (display-buffer buffer)
+    (unless no-display
+      (display-buffer buffer))
     (xl-git-status--ensure-watching buffer root)
     (xl-git-status--load buffer root)))
 
