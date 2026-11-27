@@ -232,7 +232,7 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 ## Following from another process
 
-When the main Emacs starts recording, it writes a marker file `traces/recording.eld` (containing the recording directory, the start time and the limit), and deletes it at stop. A separate Emacs process can follow it: between units of work it calls `xl-perfetto-follow-marker` with a file prefix. While the marker is present and not expired, that process starts its own recording in the same directory, with file names beginning with the prefix. When the marker disappears or expires, it stops and writes its file. The main Emacs needs no knowledge of the follower, and uses no hooks, only direct calls.
+When the main Emacs starts recording, it writes a marker file `traces/recording.eld` (containing the recording directory, the start time and the limit), and deletes it at stop. A separate Emacs process can follow it: between units of work it calls `xl-perfetto-follow-marker` with a file prefix. While the marker is present and not expired, that process starts its own recording in the same directory, with file names beginning with the prefix. When the marker disappears or expires, it stops and writes its file. The main Emacs needs no knowledge of the follower, and uses no hooks, only direct calls. The background native compiler is such a follower: see [xl-eln-opt.md](xl-eln-opt.md).
 
 - The marker is part of the recording: `xl-perfetto--start` writes it and `xl-perfetto--stop` deletes it. Writing and deleting never make a recording fail.
 - An expired marker is treated as stale, so a crashed main Emacs does not leave a permanent marker.

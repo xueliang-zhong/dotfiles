@@ -2,11 +2,11 @@
 
 A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/SystemCrafters/crafted-emacs). It is a distribution in its own right, not just a Git tweak.
 
-**Key feature: xl-eln-opt, background native compilation of the code you use.** While Emacs is idle it compiles the files behind your commands, major modes and minor modes, so they can run as native code. Nothing you do not use is compiled.
+**Key feature: xl-eln-opt, background native compilation of what you use.** Once per session, after Emacs has been idle for five seconds, a child Emacs native-compiles the files behind your commands, major modes, minor modes and recent files. Nothing is compiled while you work, and code you never use is never compiled. Details: [doc/xl-eln-opt.md](doc/xl-eln-opt.md).
 
 **Main features:**
 
-- **Background compilation (xl-eln-opt).** The key feature described above. See [Background compilation](#background-compilation).
+- **Background native compilation (xl-eln-opt).** The key feature described above. See [Background compilation](#background-compilation).
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
 - **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
@@ -22,22 +22,27 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 ## Background compilation
 
-xl-eln-opt compiles, in the background, the files your own history uses. Once per
-session, after five seconds of idle time, it starts a child Emacs. The child
-native-compiles the source files of the commands in savehist, the modes of
-recentf files, and the minor modes that were enabled, and it records any
-failure until the source changes.
+`xl-eln-opt` compiles, in a child Emacs, the source of what your history uses.
+The sources are the commands in savehist, the minor modes that were enabled,
+the major modes of your recent files, and the recent Emacs Lisp files. Each file
+is native-compiled only if it lies under a trusted folder (Emacs's library, the
+package folder, the profile, or this distribution), and only if it does not opt
+out with `no-native-compile` or `no-byte-compile`. Files over 1 MB are skipped.
+A failed file is not retried until its source changes.
 
-- Only files under trusted roots are compiled: Emacs's library folder, the
-  package folder, the profile folder, and this distribution.
-- A file whose first line (or a local variable) says `no-native-compile` or
-  `no-byte-compile` is never compiled. Files over 1 MB are skipped.
-- `M-x xl-eln-opt-report` shows each source, its size, its status and the command
-  that forces a compile. `M-x xl-eln-opt-start` runs the compile now, and
-  `xl-eln-opt-clean` removes compiled files while keeping the trampolines.
-- Tracing: while `xl-perfetto-trace-start` records in the main Emacs, the child's run
-  is recorded as well, into `xl-eln-opt-trace-*.json` in the same folder. Each file
-  is a span named `native <file>`, inside `xl-eln-opt run`.
+- The child starts once per session, after five seconds of idle time, and only
+  when something is left to compile. `xl-eln-opt-mode` and `xl-eln-opt-idle`
+  change this.
+- `M-x xl-eln-opt-report` shows each source, its size, its status and the
+  command that forces a compile. Nothing is compiled by the report.
+- `M-x xl-eln-opt-start` runs the compile now. `M-x xl-eln-opt-compile-file` and
+  `M-x xl-eln-opt-compile` force one file or one function.
+- `M-x xl-eln-opt-clean` deletes the compiled files and keeps the subr
+  trampolines.
+- While `xl-perfetto-trace-start` records, the child's run is recorded too, into
+  `xl-eln-opt-trace-*.json` next to the main trace.
+
+Everything is described in [doc/xl-eln-opt.md](doc/xl-eln-opt.md).
 
 ## Requirements
 
@@ -73,7 +78,7 @@ tuned-emacs/
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
 │   ├── xl-package-fetch.el      Parallel download and signature check of packages
-│   ├── xl-eln-opt.el               Background native compilation of your history's files
+│   ├── xl-eln-opt.el            Background native compilation of what you use
 │   └── xl-utils.el              Small shared helpers
 ├── install/emacs-setup.sh   Install, check and run script (no `just' needed)
 ├── tests/                   ERT suites (see "Testing")
@@ -171,6 +176,7 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/lisp-modules.md](doc/lisp-modules.md) | The personal Lisp modules: Git status, G commands, key bindings, spinners, Org babel, dired, personal settings |
 | [doc/windows.md](doc/windows.md) | Windows setup, platform differences, line endings |
 | [doc/xl-async.md](doc/xl-async.md) | The asynchronous process layer |
+| [doc/xl-eln-opt.md](doc/xl-eln-opt.md) | Background native compilation: sources, verdicts, the child, reports |
 | [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
 | [doc/xl-perfetto-trace-prompt.md](doc/xl-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
 
