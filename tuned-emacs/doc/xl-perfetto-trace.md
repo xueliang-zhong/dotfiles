@@ -122,6 +122,9 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 - **Mechanism.** `pre-command-hook` records the start time and `this-command`. `post-command-hook` produces an `X` event. Both hooks go on the global value and are placed first and last (`add-hook` with DEPTH -100 and 100), so the measured time covers other hooks.
 - **Name.** The symbol name of `this-command`, or `"(anonymous command)"`.
 - **Arguments.** `buffer` (controlled by `xl-perfetto-trace-record-names`) and `mode`. `this-command-keys` is **not** recorded, because it may contain text being typed.
+- **M-x.** `execute-extended-command` is advised too: the command it runs gets its own span, named `M-x NAME`, nested inside the `execute-extended-command` span, so the command's own time is visible.
+- **Keys (`keys`).** When a special key starts a command, an instant `key RET` is recorded at that moment, on the commands track. `xl-perfetto-trace-keys` picks the keys (`return`, `tab`, `escape`; default `return`). Printable keys are never recorded. The time is when the command loop takes the key, which is the closest point Emacs offers to the key press.
+- **Key to window.** Read a `key RET`, the command span after it, and the first `redisplay` event after that: their gap is the time from the key to the drawn window, for example `magit-status`.
 - **Watch for.** If a command signals an error, `post-command-hook` still runs. If two `pre` events occur with no `post` between them (for example, in a recursive edit), the earlier start time is discarded, so no false span is produced.
 
 ### 2. Timers (`timers`)
@@ -181,7 +184,11 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 ### 10. Completion (`completion`)
 
-- **Mechanism.** `:around` advice on `completion-at-point` (Lisp). That one call runs every function in `completion-at-point-functions`, so corfu, cape, ispell and the rest are covered.
+- **Mechanism.** `:around` advice on three functions (Lisp):
+  - `completion-at-point`: one call runs every function in `completion-at-point-functions` (cape, ispell, ...). Corfu's own popup does not go through it.
+  - `vertico--update`: the minibuffer candidate list, on each keystroke.
+  - `corfu--update`: the in-buffer popup, on each keystroke (when corfu is loaded).
+- **Name.** `completion-at-point`, `vertico--update`, `corfu--update`.
 - **Arguments.** `candidates` (the count only, never the text) and the buffer and mode, unless names are off.
 
 ### 11. Files (`files`)

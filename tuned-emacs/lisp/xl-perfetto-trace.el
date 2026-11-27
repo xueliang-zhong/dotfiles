@@ -60,7 +60,7 @@
   :prefix "xl-perfetto-")
 
 (defcustom xl-perfetto-trace-categories
-  '(commands timers processes xl-async gc redisplay functions modes completion files counters)
+  '(commands keys timers processes xl-async gc redisplay functions modes completion files counters)
   "Categories of events a recording collects.
 `marks' is not here: `xl-perfetto-trace-mark' always records, because you
 asked for that mark explicitly."
@@ -388,9 +388,29 @@ recording never leaves a half-written trace behind."
 ;;; Commands
 ;;; ============================================================
 
+(defcustom xl-perfetto-trace-keys '(return)
+  "Special keys recorded as instants when they start a command.
+Any of `return', `tab', `escape'.  Printable keys are never recorded, so
+the trace holds no typed text."
+  :type '(set (const return) (const tab) (const escape))
+  :group 'xl-perfetto)
+
+(defun xl-perfetto--key-label (event)
+  "The label of EVENT when it is one of `xl-perfetto-trace-keys', else nil."
+  (let ((key (cond ((memq event '(return 13)) 'return)
+                   ((memq event '(tab 9)) 'tab)
+                   ((memq event '(escape 27)) 'escape))))
+    (and key (memq key xl-perfetto-trace-keys)
+         (pcase key ('return "RET") ('tab "TAB") ('escape "ESC")))))
+
 (defun xl-perfetto--pre-command ()
-  "Remember when the current command started."
+  "Remember when the current command started, and when a special key started it."
   (when (and xl-perfetto--recording (not xl-perfetto--inside))
+    (let ((label (and (memq 'keys xl-perfetto-trace-categories)
+                      (xl-perfetto--key-label last-command-event))))
+      (when label
+        (xl-perfetto--record "i" (format "key %s" label) "keys"
+                             (xl-perfetto--elapsed) nil 1 nil)))
     ;; A second pre without a post means a recursive edit or an earlier
     ;; span that never ended; the old start is dropped rather than used.
     (setq xl-perfetto--command-start (xl-perfetto--elapsed)
@@ -661,6 +681,29 @@ switches modes, and that would bury the mode changes that matter."
          (- (xl-perfetto--elapsed) start) 9
          (list :candidates candidates))))))
 
+(defun xl-perfetto--corfu-around (original &rest args)
+  "Record `corfu--update' around ORIGINAL, called with ARGS: the candidates
+of the in-buffer popup are computed here on every keystroke."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed)))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" "corfu--update" "completion" start
+         (- (xl-perfetto--elapsed) start) 9
+         (append (list :candidates (if (boundp 'corfu--total) corfu--total 0))
+                 (when xl-perfetto-trace-record-names
+                   (list :buffer (buffer-name)))))))))
+
+(defun xl-perfetto--install-corfu ()
+  "Advise `corfu--update' when corfu is loaded."
+  (when (fboundp 'corfu--update)
+    (advice-add 'corfu--update :around #'xl-perfetto--corfu-around)
+    (push (lambda ()
+            (advice-remove 'corfu--update #'xl-perfetto--corfu-around))
+          xl-perfetto--installed)))
+
 (defun xl-perfetto--install-vertico ()
   "Advise `vertico--update' when vertico is loaded."
   (when (fboundp 'vertico--update)
@@ -917,13 +960,30 @@ non-local exit still ends the span."
 ;;; Installation and teardown
 ;;; ============================================================
 
+(defun xl-perfetto--mx-around (original &rest args)
+  "Record the command that M-x runs as its own span, named \"M-x NAME\".
+The command loop sees only `execute-extended-command'; the command it runs
+is `this-command' once that returns."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed)))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" (format "M-x %s" (or this-command "?")) "commands" start
+         (- (xl-perfetto--elapsed) start) 1
+         (when xl-perfetto-trace-record-names
+           (list :buffer (buffer-name))))))))
+
 (defun xl-perfetto--install-commands ()
-  "Install the command hooks, first and last."
+  "Install the command hooks, first and last, and the M-x span."
   (add-hook 'pre-command-hook #'xl-perfetto--pre-command -100)
   (add-hook 'post-command-hook #'xl-perfetto--post-command 100)
+  (advice-add 'execute-extended-command :around #'xl-perfetto--mx-around)
   (push (lambda ()
           (remove-hook 'pre-command-hook #'xl-perfetto--pre-command)
-          (remove-hook 'post-command-hook #'xl-perfetto--post-command))
+          (remove-hook 'post-command-hook #'xl-perfetto--post-command)
+          (advice-remove 'execute-extended-command #'xl-perfetto--mx-around))
         xl-perfetto--installed))
 
 (defun xl-perfetto--install-timers ()
@@ -1011,6 +1071,7 @@ non-local exit still ends the span."
     (when (memq 'modes categories) (xl-perfetto--install-modes))
     (when (memq 'completion categories) (xl-perfetto--install-completion))
     (when (memq 'completion categories) (xl-perfetto--install-vertico))
+    (when (memq 'completion categories) (xl-perfetto--install-corfu))
     (when (memq 'files categories) (xl-perfetto--install-files))
     (when (or (memq 'processes categories)
               (memq 'counters categories))
