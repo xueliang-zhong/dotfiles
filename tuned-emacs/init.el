@@ -222,7 +222,7 @@ session."
 ;; also work when installed on their own.
 (add-to-list 'load-path (expand-file-name "tuned-emacs/lisp" xl-dotfiles))
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
-;; xueliang.el loads last, so its bindings win over the Spacemacs defaults.
+;; personal.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
 ;; `xl-dired': load on first use so startup does not pull in `dired',
 ;; `dired-x' and `evil-collection-dired'.
@@ -253,9 +253,16 @@ session."
 (autoload 'xl-package-install "xl-package-install" nil t)
 (require 'eln-opt)
 (eln-opt-auto-arm)
-;; No extension: `load' finds xueliang.el.  It is never byte-compiled, so there
+;; No extension: `load' finds personal.el.  It is never byte-compiled, so there
 ;; is no .elc that can go stale (its header has a no-byte-compile cookie).
-(load (expand-file-name "tuned-emacs/xueliang" xl-dotfiles))
+;; The profile stub may set `xl-load-example' (crafted-install with XL_EXAMPLE=1)
+;; to load the author's example/xueliang.el here instead of personal.el.
+(defvar xl-load-example nil
+  "Non-nil loads example/xueliang.el instead of personal.el.")
+(load (expand-file-name (if xl-load-example
+                            "tuned-emacs/example/xueliang"
+                          "tuned-emacs/personal")
+                        xl-dotfiles))
 
 ;; ============================================================
 ;; Keep the Package List Complete

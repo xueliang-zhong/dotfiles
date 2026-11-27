@@ -548,14 +548,14 @@ against the trusted roots and the opt-out cookie, and must be a reasonable size.
 
 (defun eln-opt-trusted-roots ()
   "Folders and files whose lisp may be compiled: elpa, Emacs's own lisp,
-our lisp/ folder, and our xueliang.el.  A root ending in a slash is a folder."
+our lisp/ folder, and our personal.el.  A root ending in a slash is a folder."
   (delq nil
         (list (and (boundp 'package-user-dir) (file-name-as-directory package-user-dir))
               (and (boundp 'lisp-directory) (file-name-as-directory lisp-directory))
               (and (bound-and-true-p xl-dotfiles)
                    (file-name-as-directory (expand-file-name "tuned-emacs/lisp" xl-dotfiles)))
               (and (bound-and-true-p xl-dotfiles)
-                   (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles)))))
+                   (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))))
 
 (defun eln-opt-trusted-file-p (file)
   "Non-nil if FILE's truename is under a trusted root.  A symlink that leaves
@@ -1895,7 +1895,7 @@ confirmation.  Returns the number of elns deleted, or nil when cancelled."
                         (and attrs (cons f (file-attribute-modification-time attrs)))))
                     (append (and (file-directory-p dir)
                                  (directory-files dir t "\\.el\\'"))
-                            (list (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles))))))))
+                            (list (expand-file-name "tuned-emacs/personal.el" xl-dotfiles))))))))
 
 (defun eln-opt--quiet-fingerprint ()
   "What a quiet state is about: this binary, the load path (package updates

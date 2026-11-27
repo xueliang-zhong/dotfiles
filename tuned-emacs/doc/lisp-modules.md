@@ -1,6 +1,6 @@
 # Lisp modules
 
-The modules in `lisp/` are loaded with `require`. Some of them, such as `xl-async`, `xl-spinner` and `xl-git-status`, can be installed without the rest of this layer. `xl-key-bindings` and `xueliang.el` depend on `xl-dotfiles` and on each other, so they are part of the layer, not standalone packages.
+The modules in `lisp/` are loaded with `require`. Some of them, such as `xl-async`, `xl-spinner` and `xl-git-status`, can be installed without the rest of this layer. `xl-key-bindings` and `personal.el` depend on `xl-dotfiles` and on each other, so they are part of the layer, not standalone packages.
 
 ## Key bindings: `lisp/xl-key-bindings.el`
 
@@ -12,9 +12,9 @@ Recreates the Spacemacs key habits that Crafted does not provide:
 - `fd` leaves insert state, evil-surround is on, and `SPC 1` to `SPC 9` select windows.
 - The home buffer (`SPC b h`) lists recent files and opens one by its number.
 - `SPC q r` restarts Emacs. The restart returns to the current file and point, and a dired buffer returns to its directory. From a temporary buffer with no file, it returns to the home buffer. The state is kept in `xl-restart-place.eld` under `user-emacs-directory` and is used once; cancelling a restart deletes it.
-- It creates `xl-leader-map`, which `xueliang.el` extends.
+- It creates `xl-leader-map`, which `personal.el` extends.
 
-It loads before `xueliang.el`, so personal bindings override these defaults (for example `SPC SPC` and `SPC x`).
+It loads before `personal.el`, so personal bindings override these defaults (for example `SPC SPC` and `SPC x`).
 
 ## Asynchronous Git status: `lisp/xl-git-status.el`
 
@@ -119,9 +119,9 @@ The following rules keep the window still; each has a test.
 
 Measured in a GUI Emacs with JetBrains Mono at 18 pt: from idle, through appearance, tinting, three frames and a label change, back to hidden, the mode line stayed 23 pixels tall, and the text height and `window-start` did not change.
 
-## Personal settings: `xueliang.el`
+## Personal settings: `personal.el` and `example/xueliang.el`
 
-Personal configuration, grouped by topic:
+`personal.el` is the file to edit. It starts empty, with comments that explain where to begin. `example/xueliang.el` is the author's full configuration, grouped by topic below; it loads instead of `personal.el` when the profile stub sets `xl-load-example` (the dotfiles `justfile` sets `XL_EXAMPLE=1` for its recipes; running `emacs-setup.sh` directly leaves it unset). Copy the parts you want into `personal.el`.
 
 - Platform, paths and fonts. All text faces use the selected font. The theme is set here. `~/.emacs-profiles/local.el` is loaded if it exists, and holds machine-specific paths. It is not in the repository.
 - macOS UK keyboard: Option-3 should type `#`, but Emacs treats Option as Meta and receives `M-3`. In insert, replace and Emacs states, in the minibuffer (including evil's `:` and search prompts) and in isearch, Option-3 types `#`. In normal state `M-3` keeps its numeric-prefix meaning.

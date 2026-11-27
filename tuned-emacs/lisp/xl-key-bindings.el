@@ -9,11 +9,11 @@
 ;; Crafted has no leader-key system; this file recreates the Spacemacs
 ;; defaults my fingers use: the SPC tree, `M-m' in insert/emacs state, the
 ;; `,' / `SPC m' major-mode leader, `fd' escape, surround and window numbers.
-;; Loaded by tuned-emacs/init.el before xueliang.el, so personal bindings
+;; Loaded by tuned-emacs/init.el before personal.el, so personal bindings
 ;; there win on conflicts (e.g. SPC SPC, SPC x, SPC g f).
 ;;
 ;; This is an adapter rather than a standalone package: it reads
-;; `xl-dotfiles' and calls commands defined in xueliang.el.
+;; `xl-dotfiles' and calls commands defined in xl-utils.el.
 
 ;;; Code:
 
@@ -39,7 +39,7 @@
 (defun xl-sk-copy-whole-buffer () "Copy the whole buffer." (interactive)
   (kill-new (buffer-string)) (message "Buffer copied"))
 (defun xl-sk-open-dotfile () "Open my personal Emacs config." (interactive)
-  (find-file (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles)))
+  (find-file (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))
 (defun xl-sk-relative-line-numbers () "Toggle relative line numbers." (interactive)
   (setq-local display-line-numbers
               (if (eq display-line-numbers 'relative) nil 'relative)))
@@ -262,6 +262,10 @@
                                         (lambda (_button) (find-file file)))
                             "\n"))
      xl-sk--home-files)))
+;; The home buffer lists recent files, so recentf must be on before it draws.
+;; Its size and cleanup settings are personal, in example/xueliang.el.
+(require 'recentf)
+(recentf-mode 1)
 (setq crafted-startup-module-list '(xl-sk-home-recentf))
 
 (defun xl-sk-home-tail (&optional _concise)

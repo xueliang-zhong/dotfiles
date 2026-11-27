@@ -75,7 +75,7 @@ The design is in [doc/eln-opt.md](doc/eln-opt.md).
 
 | Claim | How it is checked |
 | --- | --- |
-| The personal layer is small | Line counts of `init.el`, `early-init.el`, `lisp/xl-key-bindings.el` and `xueliang.el` (see the table in `doc/startup.md`). |
+| The personal layer is small | Line counts of `init.el`, `early-init.el`, `lisp/xl-key-bindings.el` and `personal.el` (see the table in `doc/startup.md`). |
 | Git does not block the UI | Reads and writes all run through `make-process`. The ERT tests assert that the loader is shown while the content has not arrived. |
 
 Not yet asynchronous, stated plainly: package installation and removal from `list-packages` (package transactions) still run synchronously. Archive refresh is asynchronous. Installation from the setup script is parallel; see `doc/startup.md`.
@@ -86,7 +86,8 @@ Not yet asynchronous, stated plainly: package installation and removal from `lis
 tuned-emacs/
 ├── early-init.el            Startup settings: GC, frame chrome, package archives
 ├── init.el                  Selects Crafted modules, installs packages, loads the layers
-├── xueliang.el              Personal settings (not published)
+├── personal.el             Your own settings; starts empty, with comments
+├── example/xueliang.el     The author's opinionated configuration (not loaded by default)
 ├── lisp/                    Modules loaded with `require'
 │   ├── xl-key-bindings.el       Spacemacs-style key bindings (SPC tree, M-m, ...)
 │   ├── xl-async.el              Asynchronous processes: ownership, slots, queues
@@ -180,8 +181,8 @@ The suites run in `emacs --batch`, without a graphical frame:
 | Goal | Where |
 | --- | --- |
 | Add or remove a package | `xl-packages` in `init.el` (do not list packages that Crafted already provides) |
-| Change completion (vertico, corfu, ...) | The completion section in `xueliang.el`; the Crafted switch is in `init.el` |
-| Change a personal key binding or command | `xueliang.el` |
+| Change completion (vertico, corfu, ...) | The completion section in `example/xueliang.el`; the Crafted switch is in `init.el` |
+| Change a personal key binding or command | `personal.el` (examples in `example/xueliang.el`) |
 | Change the Spacemacs-style default bindings | `lisp/xl-key-bindings.el` |
 | Add or remove a Crafted module | The `require` lines in `init.el` |
 | Upgrade Crafted | Change the commit in `frameworks.lock`, then run `emacs-crafted-install` |

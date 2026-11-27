@@ -193,7 +193,7 @@ It is what happens when the operation outlives `xl-spinner-show-delay'."
   (should (file-directory-p xl-crafted-home)))
 
 (ert-deftest xl-packages-are-listed-in-init ()
-  "`xl-packages' lives in `init.el'; `xueliang.el' does not define it."
+  "`xl-packages' lives in `init.el'; `personal.el' does not define it."
   (should (memq 'magit xl-packages))
   (should (memq 'org-superstar xl-packages))
   (should (memq 'evil-escape xl-packages))   ; Spacemacs habits are listed too
@@ -201,7 +201,7 @@ It is what happens when the operation outlives `xl-spinner-show-delay'."
   (should-not (memq 'corfu xl-packages))
   (should (equal (symbol-file 'xl-packages 'defvar)
                  (expand-file-name "tuned-emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles)))
+  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))
     (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
 
 (ert-deftest xl-org-packages-come-from-crafted ()
@@ -902,11 +902,11 @@ own final character is drawn."
     (should (equal '((grep "symbol-x") (rg "symbol-x")) called))))
 
 (ert-deftest xl-personal-file-is-framework-neutral ()
-  "`xueliang.el', `xl-utils.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
+  "`personal.el', `xl-utils.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("tuned-emacs/xueliang.el" "tuned-emacs/lisp/xl-utils.el"
+  (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/lisp/xl-utils.el"
                   "tuned-emacs/lisp/xl-git-status.el" "tuned-emacs/lisp/xl-git-commands.el"
                   "tuned-emacs/lisp/xl-perfetto-trace.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
@@ -920,7 +920,7 @@ allowed."
             (setq start (match-end 0))))))))
 
 (ert-deftest xl-init-loads-keys-before-personal-config ()
-  "Personal bindings must win, so `xueliang.el' has to load last."
+  "Personal bindings must win, so `personal.el' has to load last."
   (let ((init (expand-file-name "tuned-emacs/init.el" xl-dotfiles))
         keys-line status-line commands-line personal-line)
     (dolist (entry (xl-test--code-lines init))
@@ -930,7 +930,7 @@ allowed."
         (setq status-line (car entry)))
       (when (string-match-p "require 'xl-git-commands" (cdr entry))
         (setq commands-line (car entry)))
-      (when (string-match-p "tuned-emacs/xueliang\"" (cdr entry))
+      (when (string-match-p "tuned-emacs/personal\"" (cdr entry))
         (setq personal-line (car entry))))
     (should keys-line)
     (should status-line)
@@ -2375,7 +2375,7 @@ Porcelain without `-z' quoted it, and `git add' took the quotes literally."
               (should (string-match-p "\\`[0-9a-f]\\{40\\}\\'" shown))))
           ;; :Gblame is the vim-fugitive command name.
           (should (eq (cdr (assoc "Gblame" evil-ex-commands)) 'xl-gblame))
-          ;; The G* family lives in xl-git-commands.el, not in xueliang.el.
+          ;; The G* family lives in xl-git-commands.el, not in example/xueliang.el.
           (dolist (cmd '(Gstatus Gwrite Gcommit xl-gblame))
             (should (equal "xl-git-commands"
                            (file-name-sans-extension
@@ -3428,11 +3428,11 @@ the exit status."
         (should-not (file-exists-p file))))))
 
 (ert-deftest xl-open-dotfile-opens-the-personal-config ()
-  "`SPC f e d' opens tuned-emacs/xueliang.el."
+  "`SPC f e d' opens tuned-emacs/personal.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
       (xl-sk-open-dotfile))
-    (should (string-suffix-p "tuned-emacs/xueliang.el" opened))))
+    (should (string-suffix-p "tuned-emacs/personal.el" opened))))
 
 (ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
@@ -3501,11 +3501,11 @@ the exit status."
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
 
-;; xueliang.el is never compiled, so it cannot have a stale .elc: its header says so.
+;; personal.el is never compiled, so it cannot have a stale .elc: its header says so.
 (ert-deftest xl-personal-file-has-no-byte-compile-cookie ()
-  "`xueliang.el' carries no-byte-compile, so neither compile-lisp nor eln-opt makes an .elc."
+  "`personal.el' carries no-byte-compile, so neither compile-lisp nor eln-opt makes an .elc."
   (with-temp-buffer
-    (insert-file-contents (expand-file-name "tuned-emacs/xueliang.el" xl-dotfiles) nil 0 200)
+    (insert-file-contents (expand-file-name "tuned-emacs/personal.el" xl-dotfiles) nil 0 200)
     (should (string-match-p "no-byte-compile:[ \t]*t" (buffer-string)))))
 
 ;; eln-opt tier 1: our lisp runs as byte code exactly when a current .elc exists.

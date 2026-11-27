@@ -8,7 +8,8 @@ This document covers what happens when Emacs starts: the files involved, the ord
 | --- | ---: | --- |
 | `early-init.el` | 141 | Startup settings, package archives |
 | `init.el` | 234 | Crafted modules, package installation, load order |
-| `xueliang.el` | 493 | Personal settings |
+| `personal.el` | 28 | Your own settings; starts empty, with comments |
+| `example/xueliang.el` | 505 | The author's opinionated configuration, not loaded by default |
 | `lisp/xl-key-bindings.el` | 423 | Spacemacs-style key bindings |
 
 Counts are from `wc -l`.
@@ -35,7 +36,7 @@ Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files writte
 7. Crafted's defaults, completion, evil, Org and startup modules load. Completion covers vertico, consult, marginalia, orderless, embark, corfu and cape.
 8. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
 9. `tuned-emacs/lisp/` is added to the load path. `xl-key-bindings`, `xl-git-status`, `xl-git-commands` and the other modules load with `require`.
-10. `xueliang.el` loads last, so its bindings win over the defaults.
+10. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `xl-load-example`, which `crafted-install` writes when run with `XL_EXAMPLE=1`.
 11. Startup finishes and the Crafted home buffer appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
 
 Settings for Org, dired, magit and others go inside `with-eval-after-load`, so they run when the package is first used and do not slow startup.
@@ -87,5 +88,5 @@ Org files of at least 1 MB (`xueliang-org-big-buffer-size`, set in `lisp/xl-util
 
 - Packages install before any module or personal file loads, because they need them.
 - Crafted modules load before `xl-key-bindings.el`, because key bindings need evil to be loaded.
-- `xl-key-bindings.el` loads before `xueliang.el`, which adds personal bindings to the leader map. When two bindings collide, the later file wins.
+- `xl-key-bindings.el` loads before `personal.el`, which adds personal bindings to the leader map. When two bindings collide, the later file wins.
 - `evil-collection-key-blacklist` is set before the Crafted modules load, so evil-collection does not take `SPC` or `,`.

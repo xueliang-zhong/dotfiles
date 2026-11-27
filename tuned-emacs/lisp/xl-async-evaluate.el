@@ -429,7 +429,7 @@ Check `native-comp-available-p' first when that is possible."
   (when (symbolp file)
     (let* ((library (or (locate-library (symbol-name file))
                         ;; Loaded by path, not through `load-path' (such as
-                        ;; xueliang.el): find the file in `load-history'.
+                        ;; personal.el): find the file in `load-history'.
                         (cl-find-if
                          (lambda (f)
                            (string-match-p

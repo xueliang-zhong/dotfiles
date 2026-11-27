@@ -1,14 +1,14 @@
-;;; xl-utils.el --- my helper functions, behind the short bindings in xueliang.el -*- lexical-binding: t; -*-
+;;; xl-utils.el --- my helper functions, behind the short bindings in example/xueliang.el -*- lexical-binding: t; -*-
 
 ;; Commentary:
-;; The logic that backs my bindings and settings.  xueliang.el keeps the
+;; The logic that backs my bindings and settings.  example/xueliang.el keeps the
 ;; settings, key bindings and short combinations of functions; anything with
 ;; real logic (branches, loops, process calls, buffers) lives here.  Every
-;; function keeps its name, so bindings in xueliang.el and tests do not change.
+;; function keeps its name, so bindings in example/xueliang.el and tests do not change.
 
 ;;; Code:
 
-;; Set by xueliang.el; declared here so the byte compiler knows them.
+;; Set by example/xueliang.el; declared here so the byte compiler knows them.
 (defvar xl-dotfiles-dir)
 (defvar xl-links-file)
 (defvar xl-macism)
@@ -305,7 +305,7 @@ disappearing with the shell command's temporary buffer."
 ;; org-indent spinner - a single dot after org-indent's lighter while it works
 ;; ============================================================
 ;; org-indent initializes a buffer in idle slices (see `org-indent-agent-active-delay'
-;; in xueliang.el).  While a buffer is still on its list, a single-dot spinner
+;; in example/xueliang.el).  While a buffer is still on its list, a single-dot spinner
 ;; follows the lighter in the minor-mode list, so the work is visible.
 (require 'xl-spinner)
 (defvar org-indent-agentized-buffers)
