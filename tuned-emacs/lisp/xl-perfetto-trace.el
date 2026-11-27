@@ -32,7 +32,7 @@
 ;;
 ;; Trace your own code with:
 ;;
-;;   (xl-perfetto-with-span "eln-opt rank" (eln-opt-rank--compute dir))
+;;   (xl-perfetto-with-span "scan" (scan-dir dir))
 
 ;;; Code:
 
@@ -73,8 +73,8 @@ asked for that mark explicitly."
 (defcustom xl-perfetto-marker-file
   (expand-file-name "traces/recording.eld" user-emacs-directory)
   "File that says a recording runs, for other Emacs processes to follow.
-Written when a recording starts and deleted when it stops.  The eln-opt worker
-reads it between files and records alongside (see `xl-perfetto-follow-marker')."
+Written when a recording starts and deleted when it stops.  A follower process
+reads it between units of work and records alongside (see `xl-perfetto-follow-marker')."
   :type 'file
   :group 'xl-perfetto)
 
@@ -840,14 +840,11 @@ switches modes, and that would bury the mode changes that matter."
   "Return non-nil when FUNCTION may be advised without a trampoline.
 A C primitive on a native-comp Emacs would have its trampoline compiled
 synchronously by `advice-add', freezing the UI for about a second, so it
-is refused unless native compilation is unavailable or eln-opt says its
-trampoline is already cached."
+is refused unless native compilation is unavailable."
   (let ((definition (and (fboundp function) (indirect-function function))))
     (or (not (subr-primitive-p definition))
         (not (and (fboundp 'native-comp-available-p)
-                  (native-comp-available-p)))
-        (and (fboundp 'eln-opt--trampoline-cached-p)
-             (eln-opt--trampoline-cached-p function)))))
+                  (native-comp-available-p))))))
 
 (defun xl-perfetto--check-traceable (function)
   "Signal a `user-error' when FUNCTION cannot be traced."
@@ -1213,8 +1210,7 @@ Return the file name.  Does nothing but report when no recording runs."
   "Trace FUNCTION during this and every later recording.
 A Lisp API, not a command: call it from your own code or config.  The
 function gets an `:around' advice while recording.  C primitives are refused
-unless native compilation is unavailable or eln-opt has already cached their
-trampoline."
+unless native compilation is unavailable."
   (xl-perfetto--check-traceable function)
   (add-to-list 'xl-perfetto--traced-functions function)
   (if (not xl-perfetto--recording)

@@ -354,4 +354,4 @@ These were settled before the first version, for simplicity and stability.
 
 ## Open items
 
-- **Feature-cache notes from the design phase.** The `xl-async-jit-rank` module and its feature cache no longer exist, and `eln-opt.el` has no feature cache either. Nothing here needs follow-up unless a cache is reintroduced; see `eln-opt.md`, "Open questions".
+- **Feature-cache notes from the design phase.** The `xl-async-jit-rank` module and its feature cache no longer exist. Nothing here needs follow-up unless a cache is reintroduced.

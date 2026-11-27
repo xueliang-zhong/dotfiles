@@ -28,7 +28,7 @@ Record what Emacs does at the Lisp level over a period of time: commands, timers
 ## Principles
 
 1. **No changes to C code.**
-2. **No advice on C primitives.** Advising a C primitive (where `subr-primitive-p` is true) makes a native-compiled Emacs build a trampoline synchronously, which takes about 1 second and freezes the interface. This repository has been caught by that (see the trampoline section of [eln-opt.md](eln-opt.md)). So `make-process`, `set-process-filter`, `garbage-collect` and similar functions are never advised. `xl-perfetto-trace-function` also refuses C primitives (see "Functions the user names").
+2. **No advice on C primitives.** Advising a C primitive (where `subr-primitive-p` is true) makes a native-compiled Emacs build a trampoline synchronously, which takes about 1 second and freezes the interface. This repository has been caught by that. So `make-process`, `set-process-filter`, `garbage-collect` and similar functions are never advised. `xl-perfetto-trace-function` also refuses C primitives (see "Functions the user names").
 3. **Zero cost by default.** Every hook, advice, process-function wrapper and timer exists only between `xl-perfetto-trace-start` and `xl-perfetto-trace-stop`. Stopping removes all of them, including on error (`unwind-protect`).
 4. **Bounded.** Events go into a fixed-size ring buffer that overwrites the oldest events when full. A recording has a maximum length and stops automatically.
 5. **No I/O while recording.** The file is written once, at stop.
@@ -53,7 +53,7 @@ File: `tuned-emacs/lisp/xl-perfetto-trace.el`. Feature `xl-perfetto-trace`. Publ
 ### Macro for code
 
 ```elisp
-(xl-perfetto-with-span "eln-opt rank" (eln-opt-rank--compute dir))
+(xl-perfetto-with-span "scan" (scan-dir dir))
 ```
 
 When not recording, this costs one variable check and then runs BODY. When recording, it records a span, and a non-local exit also ends the span.
@@ -166,7 +166,7 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 ### 7. Functions the user names (`functions`)
 
 - **Mechanism.** `:around` advice named `xl-perfetto--function-advice`, so it can be removed precisely.
-- **Refusing C primitives.** If `(subr-primitive-p (indirect-function fn))` is true, tracing is refused by default, with the reason (trampolines). The exception: if `eln-opt--trampoline-cached-p` reports that the trampoline is already cached, or this Emacs has no native compilation (`native-comp-available-p` is nil), tracing is allowed.
+- **Refusing C primitives.** If `(subr-primitive-p (indirect-function fn))` is true, tracing is refused by default, with the reason (trampolines). The exception: this Emacs has no native compilation (`native-comp-available-p` is nil), and then tracing is allowed.
 - **Refusing the tracer's own functions** (prefix `xl-perfetto-`).
 - **Non-local exits.** The advice body uses `unwind-protect`, so the span ends on error, and the error propagates as usual.
 
@@ -226,35 +226,18 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 ## Writing the file
 
 - File name: `emacs-trace-<YYYYMMDD-HHMMSS>.json`, in `xl-perfetto-trace-directory`.
-- Method: write a temporary file and rename it, as `eln-opt--write-eld` does, so a partly written file is never seen.
+- Method: write a temporary file and rename it, so a partly written file is never seen.
 - Size: 100,000 events are about 15 to 25 MB, which Perfetto UI opens easily.
 - Opening: ui.perfetto.dev parses the file locally in the browser, so the file is not uploaded. The offline build of Perfetto also works without a network.
 
-## Following the eln-opt worker
+## Following from another process
 
-When the main Emacs starts recording, it writes a marker file `traces/recording.eld` (containing the recording directory, the start time and the limit), and deletes it at stop. The eln-opt background worker is a separate Emacs process. Between files (after its existing 5-second pause), it checks this marker. If the marker is present and not expired, the worker starts its own recording in the same directory, with a file name beginning `eln-opt-trace-`. When the marker disappears or expires, it stops and writes its file, and prints `ELN-OPT trace <file>` in the worker log. The main Emacs needs no knowledge of the worker, and uses no hooks, only direct calls.
+When the main Emacs starts recording, it writes a marker file `traces/recording.eld` (containing the recording directory, the start time and the limit), and deletes it at stop. A separate Emacs process can follow it: between units of work it calls `xl-perfetto-follow-marker` with a file prefix. While the marker is present and not expired, that process starts its own recording in the same directory, with file names beginning with the prefix. When the marker disappears or expires, it stops and writes its file. The main Emacs needs no knowledge of the follower, and uses no hooks, only direct calls.
 
 - The marker is part of the recording: `xl-perfetto--start` writes it and `xl-perfetto--stop` deletes it. Writing and deleting never make a recording fail.
 - An expired marker is treated as stale, so a crashed main Emacs does not leave a permanent marker.
-- While the worker is compiling a large file, it does not check the marker; it waits until that file finishes. A recording that starts late therefore misses the beginning.
-- The recording and worker tests bind `xl-perfetto-marker-file` to a temporary file, so they never touch the real marker.
-
-Spans recorded inside the worker (only when recording):
-
-| Name | Meaning |
-|---|---|
-| `eln-opt worker` | The whole run |
-| `reach: roots` / `lazy roots` / `graph` / `propagate` / `file scores` | Steps of the reachability analysis |
-| `reach analysis` | The whole analysis (only when the plan needs native candidates) |
-| `byte candidates` | Byte-compile candidates |
-| `byte compiling <file>` / `native compiling <file>` | Each file's compile |
-| `byte <defun>` | Each top-level form of a byte compile, named by the function it defines |
-| `warm new eln: <file>` | Warming a freshly made eln (loading it once so the system does its first check) |
-| `warm all eln` | The warming scan of the whole eln directory |
-
-Native compilation has no per-function entry: `native-compile` compiles a whole file at once, so native spans stop at file level. Top-level byte-compile forms (each `defun`) can be recorded per function, because `byte-compile-top-level` is a native-compiled Lisp function, not a C primitive, so advising it in the worker needs no trampoline.
-
-Measured (a batch main process recording, with the real worker command as the child, and the plan limited to one file): the worker's trace had 116 spans, of which graph building took 2.6 s, the whole analysis 6.5 s, and warming 1.0 s. The main and worker processes have different pids, so their files are two separate timelines in ui.perfetto.dev.
+- While a follower is busy with one unit of work, it does not check the marker; it waits until that unit finishes. A recording that starts late therefore misses the beginning.
+- The recording and follower tests bind `xl-perfetto-marker-file` to a temporary file, so they never touch the real marker.
 
 ## Performance budget
 
@@ -305,7 +288,7 @@ ERT. Every test runs in a temporary directory and confirms at the end that no in
 ## Possible future work
 
 - Merge external samplers: on Linux, put the output of `perf script` and the Elisp events in one trace (the clocks must be aligned).
-- Add `xl-perfetto-with-span` to the critical paths of eln-opt and xl-dired.
+- Add `xl-perfetto-with-span` to the critical paths of xl-dired.
 - Produce flame graphs from Emacs's built-in `profiler`. It has no timestamps, so it gives call trees only, not a timeline.
 - An on-demand snapshot: one command records for 10 seconds, stops by itself and opens the file.
 

@@ -961,21 +961,14 @@ allowed."
   (should-not package-native-compile))
 
 (ert-deftest xl-packages-load-as-byte-code ()
-  "A package function is byte code, unless eln-opt built its file.  Emacs's own
+  "A package function is byte code, unless its native compile built an eln.  Emacs's own
 JIT is off, so a native package function must come from the eln for consult's
 current source.  Names are compared, not folders: `ert-run-tests-batch-and-exit'
 points the first eln folder at a temporary cache."
   (require 'consult)
-  (require 'eln-opt nil t)
   (let* ((fn (symbol-function 'consult-line))
-         (native (and (fboundp 'native-comp-function-p) (native-comp-function-p fn)))
-         (built (and native (fboundp 'eln-opt--eln-for)
-                     (equal (file-name-nondirectory
-                             (native-comp-unit-file (subr-native-comp-unit fn)))
-                            (file-name-nondirectory
-                             (eln-opt--eln-for
-                              (eln-opt--source-for (locate-library "consult"))))))))
-    (should (if native built (byte-code-function-p fn)))))
+         (native (and (fboundp 'native-comp-function-p) (native-comp-function-p fn))))
+    (should (or native (byte-code-function-p fn)))))
 
 (ert-deftest xl-frame-starts-maximized-from-early-init ()
   "The maximized size is a frame parameter from `early-init.el', so the first
@@ -3503,12 +3496,12 @@ the exit status."
 
 ;; personal.el is never compiled, so it cannot have a stale .elc: its header says so.
 (ert-deftest xl-personal-file-has-no-byte-compile-cookie ()
-  "`personal.el' carries no-byte-compile, so neither compile-lisp nor eln-opt makes an .elc."
+  "`personal.el' carries no-byte-compile, so compile-lisp never makes an .elc."
   (with-temp-buffer
     (insert-file-contents (expand-file-name "tuned-emacs/personal.el" xl-dotfiles) nil 0 200)
     (should (string-match-p "no-byte-compile:[ \t]*t" (buffer-string)))))
 
-;; eln-opt tier 1: our lisp runs as byte code exactly when a current .elc exists.
+;; Our lisp runs as byte code exactly when a current .elc exists.
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))

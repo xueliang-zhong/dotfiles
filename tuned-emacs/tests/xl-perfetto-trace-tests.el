@@ -362,9 +362,7 @@ FIELD values are compared with `equal'."
       (should (equal "functions" (aref event 2))))
     ;; A C primitive would need a synchronously compiled trampoline.
     (when (and (fboundp 'native-comp-available-p)
-               (native-comp-available-p)
-               (not (and (fboundp 'eln-opt--trampoline-cached-p)
-                         (eln-opt--trampoline-cached-p 'make-process))))
+               (native-comp-available-p))
       (should-error (xl-perfetto-trace-function 'make-process)
                     :type 'user-error))
     ;; The recorder never traces itself.
@@ -500,30 +498,30 @@ its prefix, when the marker goes; it signals nothing on a bad marker."
          (xl-perfetto--recording nil))
     (unwind-protect
         (progn
-          (xl-perfetto-follow-marker "eln-opt-trace")
+          (xl-perfetto-follow-marker "follow-trace")
           (should-not xl-perfetto--recording)
           ;; The main Emacs announces a recording.
           (with-temp-file xl-perfetto-marker-file
             (prin1 (list :dir dir :started (float-time) :max 600) (current-buffer)))
-          (xl-perfetto-follow-marker "eln-opt-trace")
+          (xl-perfetto-follow-marker "follow-trace")
           (should xl-perfetto--recording)
           (should xl-perfetto--follower)
-          (should (equal xl-perfetto--file-prefix "eln-opt-trace"))
+          (should (equal xl-perfetto--file-prefix "follow-trace"))
           ;; The main Emacs stops: the marker goes, the follower writes its file.
           (delete-file xl-perfetto-marker-file)
-          (let ((file (xl-perfetto-follow-marker "eln-opt-trace")))
+          (let ((file (xl-perfetto-follow-marker "follow-trace")))
             (should-not xl-perfetto--recording)
-            (should (string-prefix-p "eln-opt-trace-" (file-name-nondirectory file)))
+            (should (string-prefix-p "follow-trace-" (file-name-nondirectory file)))
             (should (file-exists-p file)))
           ;; A marker past its time limit is stale: nothing starts.
           (with-temp-file xl-perfetto-marker-file
             (prin1 (list :dir dir :started (- (float-time) 1000) :max 60) (current-buffer)))
-          (xl-perfetto-follow-marker "eln-opt-trace")
+          (xl-perfetto-follow-marker "follow-trace")
           (should-not xl-perfetto--recording)
           ;; A damaged marker signals nothing.
           (with-temp-file xl-perfetto-marker-file (insert "(garbage"))
           (should-not (condition-case nil
-                          (progn (xl-perfetto-follow-marker "eln-opt-trace") nil)
+                          (progn (xl-perfetto-follow-marker "follow-trace") nil)
                         (error t)))
           (should-not xl-perfetto--recording))
       (when xl-perfetto--recording (xl-perfetto--stop))

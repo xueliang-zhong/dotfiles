@@ -17,6 +17,7 @@
 
 ;;; Code:
 
+(require 'evil nil t) ; evil-define-key below is a macro: loaded now, or it is compiled as a call
 (require 'seq)
 (autoload 'flymake-show-buffer-diagnostics "flymake" nil t) ; SPC e l before flymake loads
 

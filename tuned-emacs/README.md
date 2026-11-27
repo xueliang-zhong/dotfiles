@@ -2,16 +2,11 @@
 
 A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/SystemCrafters/crafted-emacs). It is a distribution in its own right, not just a Git tweak.
 
-**Key feature: eln-opt, a lightweight background async compilation.** Hot
-functions come from a reachability analysis of public data such as savehist and
-recentf. eln-opt aims to replace Emacs native compilation's default
-compile-everything policy with one that only compiles hot functions based on
-reachability analysis. Its startup cost is small. When Emacs is idle it only
-compares a fingerprint, and work happens only when the fingerprint changes.
+**Key feature: xl-warm, background native compilation of the code you use.** While Emacs is idle it compiles the files behind your commands, major modes and minor modes, so they can run as native code. Nothing you do not use is compiled.
 
 **Main features:**
 
-- **Background compilation (eln-opt).** The key feature described above. It is safe to interrupt, retry and switch off. See [doc/eln-opt.md](doc/eln-opt.md).
+- **Background compilation (xl-warm).** The key feature described above. See [Background compilation](#background-compilation).
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
 - **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
@@ -25,45 +20,21 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 `xl-` is the namespace of this project (`xl-key-bindings`, `xl-git-status`, `xl-spinner`). The configuration lives in the `tuned-emacs/` folder of the dotfiles repository.
 
-## Background compilation: no all-or-nothing choice
+## Background compilation
 
-**eln-opt is a lightweight background async compilation.** Hot functions come
-from a reachability analysis of public data such as savehist and recentf.
-eln-opt aims to replace Emacs native compilation's default compile-everything
-policy with one that only compiles hot functions based on reachability analysis.
-Its startup cost is small. When Emacs is idle it only compares a fingerprint,
-and work happens only when the fingerprint changes.
+xl-warm compiles, in the background, the files your own history uses. Once per
+session, after five seconds of idle time, it starts a child Emacs. The child
+native-compiles the source files of the commands in savehist, the modes of
+recentf files, and the minor modes that were enabled, and it records any
+failure until the source changes.
 
-Emacs 31 gives two ways to use native compilation, and both are awkward:
-
-- **All or nothing.** Emacs's native-compilation settings either compile every
-  file that loads, or none. Compiling every file spends CPU and disk on code
-  that is rarely run; compiling none leaves the code you use most running
-  without native compilation.
-- **Trampolines on the main thread.** When a function is advised or a C
-  primitive is redefined, Emacs compiles a trampoline for it synchronously.
-  That takes about a second and freezes the interface, and it happens in the
-  middle of work, the first time the advice is used.
-
-eln-opt removes the choice. You do not turn native compilation on or off, and
-you do not manage the compiled files:
-
-- **Native-compiles only the hot code**, ranked by how the code is reached from
-  the commands you use (not by file size). Only files whose expected gain
-  justifies the cost are compiled natively.
-- **Handles trampolines.** It predicts which C primitives your configuration
-  advises and builds their trampolines in the background worker, never in your
-  running session, so the first use does not freeze. `trampolines` rebuilds
-  them by hand.
-- **Works only when Emacs is idle**, one file at a time, at low priority, and
-  spaced out so it never competes with your work. Its results are used from the next start.
-- **Stays safe.** It compiles only files under trusted roots, skips a file after
-  it fails until its source changes, resumes after an interruption, and can be
-  switched off with `ELN_OPT=0`.
-
-You can see what it is doing and why with `M-x eln-opt-report`: the status of
-each file, its score, its size, and the command that forces a native compile.
-The design is in [doc/eln-opt.md](doc/eln-opt.md).
+- Only files under trusted roots are compiled: Emacs's library folder, the
+  package folder, the profile folder, and this distribution.
+- A file whose first line (or a local variable) says `no-native-compile` or
+  `no-byte-compile` is never compiled. Files over 1 MB are skipped.
+- `M-x xl-warm-report` shows each source, its size, its status and the command
+  that forces a compile. `M-x xl-warm-start` runs the compile now, and
+  `xl-warm-clean` removes compiled files while keeping the trampolines.
 
 ## Requirements
 
@@ -99,12 +70,11 @@ tuned-emacs/
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
 │   ├── xl-package-fetch.el      Parallel download and signature check of packages
-│   ├── eln-opt.el               Background byte and native compilation
+│   ├── xl-warm.el               Background native compilation of your history's files
 │   └── xl-utils.el              Small shared helpers
 ├── install/emacs-setup.sh   Install, check and run script (no `just' needed)
 ├── tests/                   ERT suites (see "Testing")
 ├── doc/                     Design notes and reference documents
-├── data/                    Generated data (eln-opt baseline)
 └── frameworks.lock          Crafted Emacs repository URL and pinned commit
 ```
 
@@ -154,7 +124,7 @@ Every `just` recipe has an equivalent in `install/emacs-setup.sh`:
 | `emacs-restore-spacemacs` | `restore-spacemacs` | Switch back to the old Spacemacs profile |
 | `emacs-try` | `try` | Start Emacs; arguments pass through |
 
-Other script commands: `eln-opt`, `eln-opt-compile`, `eln-opt-report`, `eln-opt-status`, `eln-opt-reset`, `compile-lisp`. They are described in [doc/eln-opt.md](doc/eln-opt.md).
+Other script command: `compile-lisp` (byte-compiles our own `lisp/` where stale).
 
 Environment variables: `EMACS`, `PROFILE`, `PROFILES`, `PROFILE_DIR`, `DOTFILES`, `XL_SKIP_DOTFILES=1` (skip `env.sh` in setup), `XL_FORCE_WINDOWS=1` (exercise the Windows flow on another OS).
 
@@ -170,7 +140,6 @@ The suites run in `emacs --batch`, without a graphical frame:
 | File | Covers |
 | --- | --- |
 | `tests/smoke-tests.el` | Profile structure, key bindings, startup settings, Org, Magit, GBlame, status queue, dired, completion, restart, and more |
-| `tests/eln-opt-tests.el` | Background compilation: eligibility, plans, the worker, the quiet state |
 | `tests/xl-async-tests.el`, `tests/xl-async-evaluate-tests.el` | Asynchronous process layer |
 | `tests/xl-dired-tests.el` | Asynchronous dired listings and previews |
 | `tests/xl-perfetto-trace-tests.el` | Trace recording and JSON output |
@@ -198,10 +167,8 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/startup.md](doc/startup.md) | Startup sequence, package installation and the parallel fetch, the load order |
 | [doc/lisp-modules.md](doc/lisp-modules.md) | The personal Lisp modules: Git status, G commands, key bindings, spinners, Org babel, dired, personal settings |
 | [doc/windows.md](doc/windows.md) | Windows setup, platform differences, line endings |
-| [doc/eln-opt.md](doc/eln-opt.md) | Background byte and native compilation |
 | [doc/xl-async.md](doc/xl-async.md) | The asynchronous process layer |
 | [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
 | [doc/xl-perfetto-trace-prompt.md](doc/xl-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
-| [doc/eln-opt-probes/README.md](doc/eln-opt-probes/README.md) | Benchmark probes for eln-opt |
 
 New documents go in `doc/`. Documents are written in English.

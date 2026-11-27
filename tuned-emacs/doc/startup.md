@@ -51,7 +51,7 @@ Settings for Org, dired, magit and others go inside `with-eval-after-load`, so t
 4. **Serial fallback** (`xl-install-packages`). Anything still missing runs through `package-install`, one package at a time.
 5. If packages are still missing, the keyring is rebuilt and the archives are refreshed once more. If that fails too, startup reports the missing packages and, if none of the archives offers them, says so. If gpg is unusable, signature checks are turned off for that one startup.
 
-Packages are installed the normal way: `package.el` byte-compiles each package during installation, on both install paths (the serial fallback and the parallel fetch). Native compilation is left to eln-opt, which runs in the background (see [eln-opt.md](eln-opt.md)).
+Packages are installed the normal way: `package.el` byte-compiles each package during installation, on both install paths (the serial fallback and the parallel fetch). Native compilation is left to xl-warm, which runs in the background after startup (see "Background compilation" in [README.md](../README.md)).
 
 Built-in libraries such as `lua-mode` are not installed from the archive, because `package-installed-p` already reports them as installed. Emacs ships them with byte-compiled files, so there is nothing to copy.
 
@@ -75,7 +75,7 @@ These are in `early-init.el`:
 
 - **GC**: the threshold is raised during startup and set back to 128 MB on `emacs-startup-hook`.
 - **Frame chrome**: the menu, tool and scroll bars are off before the first frame is drawn.
-- **Native compilation**: JIT compilation and package native compilation are off. Emacs's own core Lisp is native. Packages run as byte code and, after eln-opt runs, as native code. Advice on C primitives needs subr trampolines; `trampolines` builds them by hand.
+- **Native compilation**: JIT compilation and package native compilation are off. Emacs's own core Lisp is native. Packages run as byte code and, after xl-warm has compiled them, as native code. Advice on C primitives needs subr trampolines; `trampolines` builds them by hand.
 - **Package directories** are per Emacs version (`elpa-31.1`), so byte or native output never mixes between versions.
 - **evil** and its companions come from MELPA. The NonGNU release 1.15.0 fails on Emacs 30 and later.
 - **`crafted-early-init-config`** is not loaded. It loads 37 more files (`url`, `auth-source`, `json`, `eieio`, `cus-edit` and others) on every start. The package archives and priorities it sets are written out directly in `early-init.el` instead.

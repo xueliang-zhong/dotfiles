@@ -141,7 +141,7 @@
 ;; Kill ring survives restarts, like savehist keeps search history.  Text
 ;; properties are stripped before saving: propertized strings bloat the
 ;; history file and can fail to load.  Duplicate kills are not stored twice.
-;; Explicit on purpose: eln-opt ranks files from the `history' file that
+;; Explicit on purpose: xl-warm reads the `history' file that
 ;; savehist writes, so this must not depend on crafted's defaults.
 (require 'savehist)
 (add-to-list 'savehist-additional-variables 'kill-ring)

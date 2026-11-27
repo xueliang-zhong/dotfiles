@@ -243,18 +243,14 @@ session."
 (autoload 'xl-perfetto-trace-function "xl-perfetto-trace")
 (autoload 'xl-perfetto-untrace-function "xl-perfetto-trace")
 (autoload 'xl-perfetto-with-span "xl-perfetto-trace" nil nil 'macro)
-;; eln-opt: once this Emacs has stayed open a while and goes idle, compile in a
-;; background batch Emacs (timers only, no hooks): byte-compile what runs
-;; interpreted, then the hot files to native code (byte only without
-;; libgccjit).  See tuned-emacs/doc/eln-opt.md.
-;; The force-compile commands in `eln-opt-report' call these; load the file on first use.
+;; Helpers for asynchronous compiles and package installs; loaded on first use.
 (autoload 'xl-async-native-compile "xl-async-evaluate" nil t)
 (autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
 (autoload 'xl-package-install "xl-package-install" nil t)
-;; eln-opt is off for now: JIT (native-comp-jit-compilation) and package-native-compile
-;; in early-init.el do the native work.  The code stays in lisp/eln-opt.el.
-;; (require 'eln-opt)
-;; (eln-opt-auto-arm)
+;; xl-warm: once per session, after a second of idle time, a child Emacs compiles
+;; what your history uses (only when something is left).  M-x xl-warm-start runs it now.
+(require 'xl-warm)
+(xl-warm-arm)
 ;; No extension: `load' finds personal.el.  It is never byte-compiled, so there
 ;; is no .elc that can go stale (its header has a no-byte-compile cookie).
 ;; The profile stub may set `xl-load-example' (crafted-install with XL_EXAMPLE=1)

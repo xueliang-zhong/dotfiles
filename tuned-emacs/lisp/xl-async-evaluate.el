@@ -99,7 +99,7 @@ profile's startup code needs the state a normal start sets up, which a bare
 `-Q' load does not have."
   (if init-directory
       ;; Batch Emacs does not load the init files by itself, so they are
-      ;; loaded here in the order a normal start uses (as eln-opt did).
+      ;; loaded here in the order a normal start uses.
       (let ((dir (directory-file-name (expand-file-name init-directory))))
         (list (xl-async-evaluate--program) "--batch"
               "--init-directory" dir

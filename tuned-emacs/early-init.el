@@ -70,7 +70,7 @@ Returns the file written, or nil."
       crafted-init-auto-save-selected-packages nil)
 
 ;; Startup speed: no GC during init, back to a moderate threshold afterwards.
-;; (Not also clearing `file-name-handler-alist': eln-opt's batch loads would
+;; (Not also clearing `file-name-handler-alist': batch child Emacs loads would
 ;; then read `.el.gz' files raw, since the .gz handler is missing.)
 (setq gc-cons-threshold most-positive-fixnum)
 (add-hook 'emacs-startup-hook
@@ -91,11 +91,7 @@ Returns the file written, or nil."
 ;; needs a "trampoline", compiled once on the main thread and cached in
 ;; eln-cache; `just emacs-check' builds them in batch, before a GUI start.
 (setq load-prefer-newer t)
-;; Kill switch for eln-opt (eln-opt.md, "应急开关"): with ELN_OPT=0, every .eln is
-;; skipped and the .elc or .el files load instead.  Core Emacs stays native.
-(when (equal (getenv "ELN_OPT") "0")
-  (setq load-no-native t))   ; a stale .elc never shadows a newer .el (eln-opt tier 1)
-(setq native-comp-jit-compilation t   ; compile what is loaded, as it is used
+(setq native-comp-jit-compilation nil  ; no on-the-fly compiles: they block the main thread
       package-native-compile nil          ; do not pre-compile packages nobody uses
       native-comp-async-report-warnings-errors 'silent)
 
