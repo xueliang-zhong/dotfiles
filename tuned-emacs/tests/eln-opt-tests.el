@@ -1020,6 +1020,36 @@ worker with exactly those files; a no starts nothing."
           (should-not started))
       (delete-directory root t))))
 
+;; ---- A file that opts out of native compilation is never planned, whatever it is called ----
+
+(ert-deftest eln-opt-opted-out-file-is-never-planned-whatever-its-name ()
+  "The cookie decides: the same file with and without `no-native-compile' is
+refused and planned respectively, even as a mandatory row with a high score."
+  (let* ((root (file-name-as-directory (make-temp-file "eln-optout-" t)))
+         (xl-dotfiles root)
+         (lisp (expand-file-name "tuned-emacs/lisp/" root))
+         (optout (expand-file-name "zz-quiet.el" lisp))
+         (plain (expand-file-name "zz-plain.el" lisp)))
+    (unwind-protect
+        (progn
+          (make-directory lisp t)
+          (with-temp-file optout
+            (insert ";;; zz-quiet.el\n;; Local Variables:\n;; no-native-compile: t\n;; End:\n(defun zz-quiet-fn () 1)\n"))
+          (with-temp-file plain (insert ";;; zz-plain.el\n(defun zz-plain-fn () 1)\n"))
+          (let* ((row (lambda (path)
+                        (list :file (file-name-sans-extension (file-name-nondirectory path))
+                              :path path :score (+ eln-opt-min-score 10) :size 100
+                              :mandatory t :top nil :defuns nil)))
+                 (quiet-row (funcall row optout))
+                 (plain-row (funcall row plain)))
+            (should (string-match-p "opts out" (eln-opt--candidate-reason quiet-row)))
+            (should-not (eln-opt--candidate-p quiet-row))
+            (should (eln-opt--candidate-p plain-row))
+            (let ((plan (eln-opt--plan-from-rows (list quiet-row plain-row) 10)))
+              (should-not (seq-find (lambda (x) (string-match-p "zz-quiet" (format "%S" x))) plan))
+              (should (seq-find (lambda (x) (string-match-p "zz-plain" (format "%S" x))) plan)))))
+      (delete-directory root t))))
+
 (provide 'eln-opt-tests)
 ;;; The worker: built and failed, the plan, the compile loop
 
