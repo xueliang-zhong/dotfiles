@@ -2,11 +2,11 @@
 
 A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/SystemCrafters/crafted-emacs). It is a distribution in its own right, not just a Git tweak.
 
-**Key feature: xl-warm, background native compilation of the code you use.** While Emacs is idle it compiles the files behind your commands, major modes and minor modes, so they can run as native code. Nothing you do not use is compiled.
+**Key feature: xl-eln-opt, background native compilation of the code you use.** While Emacs is idle it compiles the files behind your commands, major modes and minor modes, so they can run as native code. Nothing you do not use is compiled.
 
 **Main features:**
 
-- **Background compilation (xl-warm).** The key feature described above. See [Background compilation](#background-compilation).
+- **Background compilation (xl-eln-opt).** The key feature described above. See [Background compilation](#background-compilation).
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
 - **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
@@ -22,7 +22,7 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 ## Background compilation
 
-xl-warm compiles, in the background, the files your own history uses. Once per
+xl-eln-opt compiles, in the background, the files your own history uses. Once per
 session, after five seconds of idle time, it starts a child Emacs. The child
 native-compiles the source files of the commands in savehist, the modes of
 recentf files, and the minor modes that were enabled, and it records any
@@ -32,9 +32,12 @@ failure until the source changes.
   package folder, the profile folder, and this distribution.
 - A file whose first line (or a local variable) says `no-native-compile` or
   `no-byte-compile` is never compiled. Files over 1 MB are skipped.
-- `M-x xl-warm-report` shows each source, its size, its status and the command
-  that forces a compile. `M-x xl-warm-start` runs the compile now, and
-  `xl-warm-clean` removes compiled files while keeping the trampolines.
+- `M-x xl-eln-opt-report` shows each source, its size, its status and the command
+  that forces a compile. `M-x xl-eln-opt-start` runs the compile now, and
+  `xl-eln-opt-clean` removes compiled files while keeping the trampolines.
+- Tracing: while `xl-perfetto-trace-start` records in the main Emacs, the child's run
+  is recorded as well, into `xl-eln-opt-trace-*.json` in the same folder. Each file
+  is a span named `native <file>`, inside `xl-eln-opt run`.
 
 ## Requirements
 
@@ -70,7 +73,7 @@ tuned-emacs/
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
 │   ├── xl-package-fetch.el      Parallel download and signature check of packages
-│   ├── xl-warm.el               Background native compilation of your history's files
+│   ├── xl-eln-opt.el               Background native compilation of your history's files
 │   └── xl-utils.el              Small shared helpers
 ├── install/emacs-setup.sh   Install, check and run script (no `just' needed)
 ├── tests/                   ERT suites (see "Testing")

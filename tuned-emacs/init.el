@@ -247,10 +247,10 @@ session."
 (autoload 'xl-async-native-compile "xl-async-evaluate" nil t)
 (autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
 (autoload 'xl-package-install "xl-package-install" nil t)
-;; xl-warm: once per session, after a second of idle time, a child Emacs compiles
-;; what your history uses (only when something is left).  M-x xl-warm-start runs it now.
-(require 'xl-warm)
-(xl-warm-arm)
+;; xl-eln-opt: once per session, after a second of idle time, a child Emacs compiles
+;; what your history uses (only when something is left).  M-x xl-eln-opt-start runs it now.
+(require 'xl-eln-opt)
+(xl-eln-opt-arm)
 ;; No extension: `load' finds personal.el.  It is never byte-compiled, so there
 ;; is no .elc that can go stale (its header has a no-byte-compile cookie).
 ;; The profile stub may set `xl-load-example' (crafted-install with XL_EXAMPLE=1)
