@@ -149,7 +149,7 @@ session."
     ;; Installing byte-compiles; load bytecomp now, not from inside some lexical
     ;; binding of its variables (that fails on Windows and some Linux builds).
     (require 'bytecomp)
-    (xl-report "refreshing package archives ... (this may take a few seconds)")
+    (xl-report "refreshing package archives ...")
     (xl-refresh-archives)
     ;; Parallel download and gpg check; whatever it cannot finish is left to
     ;; `xl-install-packages' below.

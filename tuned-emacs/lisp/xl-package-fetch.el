@@ -102,7 +102,7 @@ package that fails any step is skipped; the caller installs the rest."
          (fetched
           (progn
             (when (and descs (fboundp 'xl-report))
-              (xl-report "fetching package(s) in parallel -j %d ..." xl-fetch-max-jobs))
+              (xl-report "fetching & compiling package(s) in parallel -j %d ..." xl-fetch-max-jobs))
             (prog1
                 (xl-fetch--run
                  (cl-loop for url in urls for file in local for sig in sig-local

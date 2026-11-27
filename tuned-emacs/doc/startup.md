@@ -57,8 +57,8 @@ Built-in libraries such as `lua-mode` are not installed from the archive, becaus
 The progress messages look like this:
 
 ```
-refreshing package archives ... (this may take a few seconds)
-fetching packages in parallel -j 16 ...
+refreshing package archives ...
+fetching & compiling package(s) in parallel -j 16 ...
 fetched 38 package(s) in parallel
 ```
 
