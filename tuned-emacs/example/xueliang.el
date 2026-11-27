@@ -373,7 +373,7 @@
 ;; default slice is up to 2 s, which freezes Emacs for that long on a large file
 ;; (1.4 s on a 2 MB file).  A 0.1 s slice does the same work in short pieces.
 (with-eval-after-load 'org-indent
-  (setq org-indent-agent-active-delay '(0 0 100000)))
+  (setq org-indent-agent-active-delay '(0 0 60000)))
 
 ;; The single-dot spinner that shows org-indent working: see xl-utils.el.
 (with-eval-after-load 'org-indent (xueliang-org-indent-spinner-install))
