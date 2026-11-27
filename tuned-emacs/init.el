@@ -248,7 +248,7 @@ session."
 (autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
 (autoload 'xl-package-install "xl-package-install" nil t)
 ;; xl-eln-opt: once per session, after five seconds of idle time, a child Emacs
-;; native-compiles what your history uses (only when something is left).
+;; native-compiles what your history uses (it exits at once when nothing is left).
 ;; M-x xl-eln-opt-start runs it now.  See doc/xl-eln-opt.md.
 (require 'xl-eln-opt)
 (xl-eln-opt-arm)

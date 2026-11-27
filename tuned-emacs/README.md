@@ -30,9 +30,9 @@ package folder, the profile, or this distribution), and only if it does not opt
 out with `no-native-compile` or `no-byte-compile`. Files over 1 MB are skipped.
 A failed file is not retried until its source changes.
 
-- The child starts once per session, after five seconds of idle time, and only
-  when something is left to compile. `xl-eln-opt-mode` and `xl-eln-opt-idle`
-  change this.
+- The child starts once per session, after five seconds of idle time; it
+  compiles only what is left, and exits at once when nothing is. `xl-eln-opt-mode`
+  and `xl-eln-opt-idle` change this.
 - `xl-eln-opt-scope` chooses what is compiled by itself: commands, minor modes
   and recent files from your history, and the code from packages or from the
   distro. All are on by default.

@@ -7,7 +7,7 @@ Emacs can native-compile your Lisp in two ways, and both are poor fits for a per
 ## When it runs
 
 - `xl-eln-opt-arm` (called from `init.el`) starts one idle timer of `xl-eln-opt-idle` seconds (default 5.0). It does nothing in batch, or when `xl-eln-opt-mode` is 0.
-- The timer fires once per session. If no child from an earlier run is alive and the history yields at least one file to compile, it starts a child with `xl-eln-opt-start`. Otherwise it does nothing.
+- The timer fires once per session. If no child from an earlier run is alive, it starts a child with `xl-eln-opt-start`. The main Emacs reads no file for this: the child works out what there is to compile, and exits at once when there is nothing. This costs one background batch Emacs per session.
 - There is no polling and no hook on your commands. The main Emacs compiles nothing itself.
 
 ## Where the sources come from
@@ -30,7 +30,7 @@ Each source gets one verdict. The first rule that applies decides:
 1. Outside the trusted roots: skipped, "outside the trusted roots".
 2. Opted out: skipped, "opts out with `no-native-compile`" (or `no-byte-compile`).
 3. Larger than `xl-eln-opt-max-source-bytes` (1 MB, uncompressed): skipped, with the size and the limit.
-4. An `.eln` exists and is not older than the source: "native already".
+4. An `.eln` exists and is not older than the source: "native already". The `.eln` is looked for in the user's eln folder first, then in the folders of `native-comp-eln-load-path`, where Emacs keeps its own preloaded elns (`<version>/preloaded/`). A library that Emacs ships precompiled is therefore not compiled again.
 5. Failed before, and the source has not changed since: "failed at <time>: <reason>".
 6. Otherwise: "to compile".
 
@@ -42,8 +42,9 @@ A file opts out by setting `no-native-compile` or `no-byte-compile` to `t`. The 
 
 `xl-eln-opt-start` runs a batch Emacs with the profile's `early-init.el` and `init.el`, then calls `xl-eln-opt-run`:
 
+- The child never writes the user's state. Before `init.el` loads, `savehist-file`, `recentf-save-file`, `save-place-file`, `persistent-scratch-save-file` and `project-list-file` point at the null device, and after it loads the modes that save at exit are turned off. (`init.el` writes recentf while it loads, so the redirect must come first.) The report child does the same.
 - A pid file, `xl-warm/pid` in the profile, allows one run at a time. A zombie process (exited but not yet reaped) does not count as alive.
-- For each file, in history order: follow the trace marker (see Tracing), then `native-compile` to the `.eln` path given by `comp-el-to-eln-filename`. The file succeeds when the `.eln` exists afterwards.
+- For each file, in history order: follow the trace marker (see Tracing), then `native-compile` to the `.eln` path given by `comp-el-to-eln-filename`. The file succeeds when the `.eln` exists afterwards. The `.eln` files of earlier contents of the same file are then deleted: the name is a hash of the path plus a hash of the content, so an edit would otherwise leave the old `.eln` behind.
 - A failure (an error, or no `.eln` written) is recorded with the source, its modification time, the reason and the time. The record is kept in `xl-warm/failed.eld` until the source changes.
 - Because the child loads the profile, advice added at load time makes Emacs build the trampolines of advised C primitives in the child, so the main Emacs does not build them on its first use.
 

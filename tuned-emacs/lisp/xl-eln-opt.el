@@ -57,7 +57,7 @@ recentf.  Read, never evaluated; nil when absent."
                           ;; savehist and recentf write 'VALUE: unquote it.
                           (setq found (list (if (eq (car-safe v) 'quote) (cadr v) v)))))
                       (setq pairs (cddr pairs)))))))
-          (end-of-file nil))
+          (error nil))
         (car found)))))
 
 (defun xl-eln-opt--roots ()
@@ -115,7 +115,7 @@ Runs in `savehist-save-hook', so the list is written with the history."
                                 append (buffer-local-value 'local-minor-modes buf)))))
     (dolist (mode (delete-dups (delq nil modes)))
       (when (and (symbolp mode) (fboundp mode))
-        (add-to-history 'xl-eln-opt-minor-modes (symbol-name mode) 200 t)))))
+        (add-to-history 'xl-eln-opt-minor-modes (symbol-name mode) 200)))))
 
 (with-eval-after-load 'savehist
   (add-to-list 'savehist-additional-variables 'xl-eln-opt-minor-modes)
@@ -265,26 +265,53 @@ line of the local variables.  A file that says so is never compiled."
     (cond ((numberp e) (list e "earlier run" "?"))
           (e e))))
 
+(defun xl-eln-opt--existing-eln (src)
+  "The .eln Emacs would load for SRC, or nil.  Looks in the user's eln folder
+and in every folder of `native-comp-eln-load-path', where Emacs keeps its own
+preloaded elns under <version>/preloaded/."
+  (let* ((base (file-name-nondirectory (comp-el-to-eln-filename src)))
+         (version comp-native-version-dir))
+    (seq-some (lambda (dir)
+                (seq-find #'file-exists-p
+                          (list (expand-file-name base (expand-file-name version dir))
+                                (expand-file-name base
+                                                  (expand-file-name
+                                                   (concat version "/preloaded") dir)))))
+              native-comp-eln-load-path)))
+
+(defun xl-eln-opt--remove-stale (src)
+  "Delete the .eln files of SRC made from earlier contents of SRC.  The name is
+a hash of the path plus a hash of the content, so an edited file leaves its old
+.eln behind under another name."
+  (let* ((new (comp-el-to-eln-filename src))
+         (prefix (replace-regexp-in-string "-[0-9a-f]+\\.eln\\'" "-"
+                                           (file-name-nondirectory new))))
+    (dolist (f (directory-files (file-name-directory new) t
+                                (concat "\\`" (regexp-quote prefix) "[0-9a-f]+\\.eln\\'")))
+      (unless (equal f new)
+        (ignore-errors (delete-file f))))))
+
 (defun xl-eln-opt--verdict (src)
   "What happens to SRC, as (STATUS . WHY).  STATUS is `todo', `native',
-`failed' or `skip'; WHY says why, with the numbers that decided it."
+`failed' or `skip'; WHY says why, with the numbers that decided it.  The file
+is checked first, so a missing file is skipped and never signals an error."
   (require 'comp nil t)
-  (let ((eln (comp-el-to-eln-filename src)))
-    (cond
-     ((not (xl-eln-opt--trusted-p src)) (cons 'skip "outside the trusted roots"))
-     ((xl-eln-opt--opted-out-p src)
-      (cons 'skip (format "opts out with %s" (xl-eln-opt--opted-out-p src))))
-     ((> (xl-eln-opt--source-bytes src) xl-eln-opt-max-source-bytes)
-      (cons 'skip (format "source is %d KB, over the %d KB limit"
-                          (/ (xl-eln-opt--source-bytes src) 1024)
-                          (/ xl-eln-opt-max-source-bytes 1024))))
-     ((and (file-exists-p eln) (not (file-newer-than-file-p src eln)))
-      (cons 'native "native already"))
-     ((let ((e (xl-eln-opt--failed-entry src)))
-        (and e (= (car e) (xl-eln-opt--mtime src))))
-      (let ((e (xl-eln-opt--failed-entry src)))
-        (cons 'failed (format "failed at %s: %s" (nth 2 e) (nth 1 e)))))
-     (t (cons 'todo "to compile")))))
+  (cond
+   ((not (xl-eln-opt--trusted-p src)) (cons 'skip "outside the trusted roots"))
+   ((xl-eln-opt--opted-out-p src)
+    (cons 'skip (format "opts out with %s" (xl-eln-opt--opted-out-p src))))
+   ((> (xl-eln-opt--source-bytes src) xl-eln-opt-max-source-bytes)
+    (cons 'skip (format "source is %d KB, over the %d KB limit"
+                        (/ (xl-eln-opt--source-bytes src) 1024)
+                        (/ xl-eln-opt-max-source-bytes 1024))))
+   ((let ((eln (xl-eln-opt--existing-eln src)))
+      (and eln (not (file-newer-than-file-p src eln))))
+    (cons 'native "native already"))
+   ((let ((e (xl-eln-opt--failed-entry src)))
+      (and e (= (car e) (xl-eln-opt--mtime src))))
+    (let ((e (xl-eln-opt--failed-entry src)))
+      (cons 'failed (format "failed at %s: %s" (nth 2 e) (nth 1 e)))))
+   (t (cons 'todo "to compile"))))
 
 (defun xl-eln-opt--hard-skip-p (src)
   "Non-nil when SRC may never be compiled: outside the trusted roots, or opted
@@ -309,6 +336,21 @@ out.  The size limit is not hard: an explicit force request overrides it."
 
 (defun xl-eln-opt--unlock ()
   (ignore-errors (delete-file (xl-eln-opt--state "pid"))))
+
+(defvar savehist-file)
+(defvar recentf-save-file)
+
+(defun xl-eln-opt--quiet-child ()
+  "In the child: write no state when it exits.  The child has loaded the
+profile, so savehist, recentf and save-place are on, and they would save this
+process's copies over the user's files.  Called first in every child."
+  (when (fboundp 'savehist-mode) (savehist-mode -1))
+  (when (fboundp 'recentf-mode) (recentf-mode -1))
+  (when (fboundp 'save-place-mode) (save-place-mode -1))
+  ;; Belt and braces: with no file, nothing can be written, even by a timer.
+  (setq savehist-file nil
+        recentf-save-file nil
+        kill-emacs-hook nil))
 
 (defun xl-eln-opt-run (&optional files force)
   "In the child: compile the todo list one file at a time; record failures.
@@ -336,7 +378,7 @@ recorded too: it follows the marker between files (see
                     (progn
                       (native-compile src (comp-el-to-eln-filename src))
                       (if (file-exists-p (comp-el-to-eln-filename src))
-                          (cl-incf done)
+                          (progn (xl-eln-opt--remove-stale src) (cl-incf done))
                         (push (list src (xl-eln-opt--mtime src) "no .eln was written"
                                     (format-time-string "%Y-%m-%d %H:%M"))
                               failed)))
@@ -357,8 +399,7 @@ recorded too: it follows the marker between files (see
 (defcustom xl-eln-opt-mode 1
   "How xl-eln-opt runs by itself.
 0: only when you call `xl-eln-opt-start' (M-x).
-1: also once per session, after `xl-eln-opt-idle' seconds of idle time, if the
-history has files not yet native."
+1: also once per session, after `xl-eln-opt-idle' seconds of idle time."
   :type 'natnum
   :group 'xl-eln-opt)
 
@@ -387,18 +428,19 @@ its parent) is not running; `signal-process' alone cannot tell the two apart."
     (xl-eln-opt--alive-p pid)))
 
 (defun xl-eln-opt--idle ()
-  "The idle timer's function: start a child only if there is something to do."
+  "The idle timer's function: start a child, once per session.  The main Emacs
+reads no file here; the child decides what there is to compile, and exits at
+once when there is nothing."
   (setq xl-eln-opt--timer nil)
   (unless (or xl-eln-opt--checked (xl-eln-opt--running-p))
     (setq xl-eln-opt--checked t)
-    (when (xl-eln-opt--todo (xl-eln-opt--history-sources))
-      (xl-eln-opt-start))))
+    (xl-eln-opt-start)))
 
 ;;;###autoload
 (defun xl-eln-opt-arm ()
   "When `xl-eln-opt-mode' is 1: once per session, after `xl-eln-opt-idle' seconds of
-idle time, start a child if the history has files not yet native.  Does
-nothing in batch, or when the mode is 0."
+idle time, start a child that compiles what the history needs.  Does nothing
+in batch, or when the mode is 0."
   (when (and (> xl-eln-opt-mode 0) (not noninteractive)
              (not xl-eln-opt--checked) (not (timerp xl-eln-opt--timer)))
     (setq xl-eln-opt--timer (run-with-idle-timer xl-eln-opt-idle nil #'xl-eln-opt--idle))))
@@ -590,14 +632,9 @@ ready.  Nothing is compiled."
         (setq-local xl-eln-opt--busy-text "computing the report")
         (special-mode))
       (xl-spinner-mode-line-start "xl-eln-opt report" :also #'xl-eln-opt--draw-center)
-      (let* ((exe (expand-file-name invocation-name invocation-directory))
-             (profile (file-name-as-directory user-emacs-directory))
-             (proc (xl-async-start
-                    (list exe "--batch" "--init-directory" profile
-                          "-l" (expand-file-name "early-init.el" profile)
-                          "--eval" "(run-hooks (quote before-init-hook))"
-                          "-l" (expand-file-name "init.el" profile)
-                          "--eval" "(progn (require 'xl-eln-opt) (princ \"\\n<<XL-ELN-OPT-REPORT>>\\n\") (princ (xl-eln-opt--report-text)))")
+      (let* ((proc (xl-async-start
+                    (xl-eln-opt--child-args
+                     "--eval" "(progn (require 'xl-eln-opt) (xl-eln-opt--quiet-child) (princ \"\\n<<XL-ELN-OPT-REPORT>>\\n\") (princ (xl-eln-opt--report-text)))")
                     :name "xl-eln-opt-report")))
         (xl-async-own proc buf)
         (xl-async-slot proc 'xl-eln-opt-report)
@@ -606,17 +643,30 @@ ready.  Nothing is compiled."
 
 ;;; ---- Starting a child: the history, or an explicit list of files ----
 
+(defconst xl-eln-opt--child-prefix
+  '("--eval" "(setq savehist-file null-device recentf-save-file null-device save-place-file null-device persistent-scratch-save-file null-device project-list-file null-device)")
+  "Arguments that come before init.el in a child: the state files are written to
+the null device, so loading init.el (which writes recentf, for one) and exiting
+cannot change the user's files.")
+
+(defun xl-eln-opt--child-args (&rest tail)
+  "The command line of a child Emacs with the profile, then TAIL: the forms
+it evaluates after init.el."
+  (let* ((exe (expand-file-name invocation-name invocation-directory))
+         (profile (file-name-as-directory user-emacs-directory)))
+    (append (list exe "--batch" "--init-directory" profile
+                  "-l" (expand-file-name "early-init.el" profile)
+                  "--eval" "(run-hooks (quote before-init-hook))")
+            xl-eln-opt--child-prefix
+            (list "-l" (expand-file-name "init.el" profile))
+            tail)))
+
 (defun xl-eln-opt--spawn (files force)
   "Start a child that compiles FILES (or the history when nil)."
-  (let* ((exe (expand-file-name invocation-name invocation-directory))
-         (profile (file-name-as-directory user-emacs-directory))
-         (proc (xl-async-start
-                (list exe "--batch" "--init-directory" profile
-                      "-l" (expand-file-name "early-init.el" profile)
-                      "--eval" "(run-hooks (quote before-init-hook))"
-                      "-l" (expand-file-name "init.el" profile)
-                      "--eval" (format "(progn (require 'xl-eln-opt) (xl-eln-opt-run '%S %s))"
-                                       files (if force "t" "nil")))
+  (let* ((proc (xl-async-start
+                (xl-eln-opt--child-args
+                 "--eval" (format "(progn (require 'xl-eln-opt) (xl-eln-opt--quiet-child) (xl-eln-opt-run '%S %s))"
+                                  files (if force "t" "nil")))
                 :name "xl-eln-opt")))
     (xl-async-on-exit proc (lambda (p) (message "xl-eln-opt: finished (%s)" (xl-async-exit-code p))))
     (message "xl-eln-opt: started in the background")
