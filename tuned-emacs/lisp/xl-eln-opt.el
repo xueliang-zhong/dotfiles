@@ -380,6 +380,19 @@ a hash of the path plus a hash of the content, so an edited file leaves its old
       (unless (equal f new)
         (ignore-errors (delete-file f))))))
 
+(defun xl-eln-opt--native-current-p (src)
+  "Non-nil when SRC is native and Emacs will use it: an .eln not older than
+SRC and, for a .el, a .elc not older than SRC with the .eln newer than the
+.elc (the order `load' needs; see `xl-eln-opt--ensure-elc')."
+  (let ((eln (xl-eln-opt--existing-eln src)))
+    (and eln
+         (not (file-newer-than-file-p src eln))
+         (or (not (string-suffix-p ".el" src))
+             (let ((elc (concat src "c")))
+               (and (file-exists-p elc)
+                    (not (file-newer-than-file-p src elc))
+                    (not (file-newer-than-file-p elc eln))))))))
+
 (defun xl-eln-opt--verdict (src)
   "What happens to SRC, as (STATUS . WHY).  STATUS is `todo', `native',
 `failed' or `skip'; WHY says why, with the numbers that decided it.  The file
@@ -393,8 +406,7 @@ is checked first, so a missing file is skipped and never signals an error."
     (cons 'skip (format "source is %d KB, over the %d KB limit"
                         (/ (xl-eln-opt--source-bytes src) 1024)
                         (/ xl-eln-opt-max-source-bytes 1024))))
-   ((let ((eln (xl-eln-opt--existing-eln src)))
-      (and eln (not (file-newer-than-file-p src eln))))
+   ((xl-eln-opt--native-current-p src)
     (cons 'native "eln already"))
    ((let ((e (xl-eln-opt--failed-entry src)))
       (and e (= (car e) (xl-eln-opt--mtime src))))
@@ -449,6 +461,8 @@ While the main Emacs records with `xl-perfetto-trace-start', the run is
 recorded too: it follows the marker between files (see
 `xl-perfetto-follow-marker'), and each file is a span."
   (require 'comp)
+  ;; Only the child runs this: load the follower here, not at init.
+  (require 'xl-perfetto-trace)
   (if (not (xl-eln-opt--lock))
       (progn (message "xl-eln-opt: another run is alive") 0)
     (unwind-protect
@@ -558,11 +572,17 @@ in batch, or when the mode is 0."
   "The history entries as rows: (LABEL SOURCE WHY), in scope."
   (xl-eln-opt--rows))
 
-(defun xl-eln-opt--status-word (verdict)
+(defun xl-eln-opt--status-word (verdict src)
+  "What Emacs runs for SRC, as the status word: \"eln\" (native), \"elc\"
+(a current .elc, bytecode), \"lisp\" (the source, interpreted), \"failed\" or
+\"skipped\"."
   (pcase (car verdict)
     ('native "eln")
-    ('todo "to compile")
     ('failed "failed")
+    ('todo (let ((elc (concat (replace-regexp-in-string "\\.el\\(\\.gz\\)?\\'" "" src) ".elc")))
+             (if (and (file-exists-p elc) (not (file-newer-than-file-p src elc)))
+                 "elc"
+               "lisp")))
     (_ "skipped")))
 
 (defun xl-eln-opt--paint ()
@@ -602,13 +622,15 @@ in batch, or when the mode is 0."
            ((string-match-p "\\`\\S-" line)
             (let ((name-end (or (string-match " " line) (length line))))
               (add-face-text-property bol (+ bol name-end) 'font-lock-type-face))
-            (when (string-match "\\beln\\b\\|to compile\\|\\bfailed\\b\\|\\bskipped\\b" line)
-              (add-face-text-property (+ bol (match-beginning 0)) (+ bol (match-end 0))
-                                      (pcase (match-string 0 line)
-                                        ("eln" 'success)
-                                        ("to compile" 'warning)
-                                        ("skipped" 'shadow)
-                                        (_ 'error))))
+            (when (string-match "\\`\\S-+ +[0-9.]+ +\\(eln\\|elc\\|lisp\\|failed\\|skipped\\) " line)
+              (let ((word (match-beginning 1)))
+                (add-face-text-property (+ bol word) (+ bol (match-end 1))
+                                        (pcase (match-string 1 line)
+                                          ("eln" 'success)
+                                          ("elc" 'font-lock-keyword-face)
+                                          ("lisp" 'warning)
+                                          ("skipped" 'shadow)
+                                          (_ 'error)))))
             (when (string-match "(xl-eln-opt-compile-file" line)
               (add-face-text-property (+ bol (match-beginning 0)) eol 'shadow))))
           (forward-line 1))))))
@@ -642,7 +664,7 @@ printed in the last column of the report, so the suffix is not needed."
           (princ (format "%-28s %7.1f  %-10s  %-34s  (xl-eln-opt-compile-file \"%s\")\n"
                          (xl-eln-opt--short-name src)
                          (/ (xl-eln-opt--source-bytes src) 1024.0)
-                         (xl-eln-opt--status-word v)
+                         (xl-eln-opt--status-word v src)
                          (truncate-string-to-width (mapconcat #'identity from ", ") 34 nil nil "…")
                          (abbreviate-file-name src)))))
       (let ((skipped (seq-remove (lambda (v) (memq (cadr v) '(todo native))) verdicts)))

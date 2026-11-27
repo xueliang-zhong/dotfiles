@@ -30,7 +30,7 @@ Each source gets one verdict. The first rule that applies decides:
 1. Outside the trusted roots: skipped, "outside the trusted roots".
 2. Opted out: skipped, "opts out with `no-native-compile`" (or `no-byte-compile`).
 3. Larger than `xl-eln-opt-max-source-bytes` (1 MB, uncompressed): skipped, with the size and the limit.
-4. An `.eln` exists and is not older than the source: "eln already". The `.eln` is looked for in the user's eln folder first, then in the folders of `native-comp-eln-load-path`, where Emacs keeps its own preloaded elns (`<version>/preloaded/`). A library that Emacs ships precompiled is therefore not compiled again.
+4. An `.eln` exists and is not older than the source, and for a `.el` the `.elc` is not older than the source and the `.eln` is newer than the `.elc`: "eln already". An `.eln` without its `.elc` is not current: Emacs does not load it. The `.eln` is looked for in the user's eln folder first, then in the folders of `native-comp-eln-load-path`, where Emacs keeps its own preloaded elns (`<version>/preloaded/`). A library that Emacs ships precompiled is therefore not compiled again.
 5. Failed before, and the source has not changed since: "failed at <time>: <reason>".
 6. Otherwise: "to compile".
 
@@ -63,7 +63,7 @@ A forced compile ignores the failed list and the size limit. It does not ignore 
 `xl-eln-opt-report` starts a child that prints the report, and the buffer `*xl-eln-opt report*` shows a loader until the report arrives. Nothing is compiled.
 
 - Status line: how many sources come from the history, how many entries have no source, and how many files the next run compiles.
-- A table with one row per source: its name without `.el` or `.el.gz`, its size in KB, its status (eln, to compile, failed, skipped), the history entries that use it, and the force command with its full path.
+- A table with one row per source: its name without `.el` or `.el.gz`, its size in KB, its status (what Emacs runs for it: `eln` native, `elc` bytecode, `lisp` interpreted; or `failed`, `skipped`), the history entries that use it, and the force command with its full path.
 - "Not compiled, and why": the skipped and failed sources, with their reasons.
 - "Not yet compiled": history entries with no source, with the reason. An autoloaded command gets a hint, `(xl-eln-opt-compile 'name)`.
 
