@@ -267,6 +267,9 @@ cmd_compile_lisp() {
     require_emacs
     require_profile
     emacs_batch --eval "
+;; Load bytecomp before binding its variables: a lexical binding made before
+;; bytecomp is loaded makes its defvar fail on some builds (Windows).
+(require 'bytecomp)
 (let* ((dir (expand-file-name \"tuned-emacs\" \"$DOTFILES\"))
        (files (append (directory-files (expand-file-name \"lisp\" dir) t \"\\\\.el\\\\'\")
                       (list (expand-file-name \"xueliang.el\" dir))))

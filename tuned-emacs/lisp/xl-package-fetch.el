@@ -154,6 +154,9 @@ package that fails any step is skipped; the caller installs the rest."
                             (progn
                               (package-install-file file)
                               (cl-incf installed)
+                              ;; One dot per package installed (byte-compiled by package.el).
+                              (when (bound-and-true-p xl-progress)
+                                (external-debugging-output ?.))
                               ;; The marker package.el writes for good signatures.
                               (when checked
                                 (write-region "verified by xl-fetch-packages\n"
@@ -167,6 +170,8 @@ package that fails any step is skipped; the caller installs the rest."
                            (message "xl-fetch: %s failed: %s"
                                     (package-desc-full-name desc)
                                     (error-message-string err))))))
+          (when (and (bound-and-true-p xl-progress) (> installed 0))
+            (external-debugging-output ?\n))
           (when (and (fboundp 'xl-report) (> installed 0))
             (xl-report "fetched %d package(s) in parallel" installed))
           installed)

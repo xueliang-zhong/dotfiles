@@ -1686,7 +1686,10 @@ the child exits.  Its stdin is closed and it is stopped after
 string.  Success means Emacs will load the result on the next start."
   (condition-case e
       (if (eq kind 'byte)
-          (let ((r (let ((byte-compile-verbose nil)) (byte-compile-file src))))
+          (let ((r (progn
+                     ;; Load bytecomp before the lexical binding below.
+                     (require 'bytecomp)
+                     (let ((byte-compile-verbose nil)) (byte-compile-file src)))))
             (cond ((eq r 'no-byte-compile) "opts out with no-byte-compile")
                   ((not r) "byte-compile-file reported errors")
                   ((not (eln-opt--elc-current-p src)) "compiled, but no current .elc")))
