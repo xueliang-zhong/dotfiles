@@ -7,7 +7,8 @@
 
 ;;; Commentary:
 ;;
-;;   M-x tuned-eln-opt-start    compile the files of your history, in a child Emacs
+;;   M-x tuned-eln-opt-start    compile the files of your history, in a
+;;                              child Emacs
 ;;
 ;; The child reads savehist and recentf (as data, never evaluated), turns the
 ;; commands and modes into their source files, and native-compiles each one
@@ -132,12 +133,13 @@ Runs in `savehist-save-hook', so the list is written with the history."
 
 (defcustom tuned-eln-opt-scope '(savehist minor-modes recentf packages distro)
   "Which sources tuned-eln-opt compiles by itself.
-Where a source comes from: `savehist' (the commands you ran), `minor-modes' (the
-minor modes that were enabled), `recentf' (the major modes of your recent files
-and the recent Emacs Lisp files).  Where a file lies: `packages' (Emacs's own
-libraries, installed packages and the profile folder) or `distro' (tuned-emacs/).
-The explicit commands `tuned-eln-opt-compile' and `tuned-eln-opt-compile-file' ignore
-this option."
+Where a source comes from: `savehist' (the commands you ran),
+`minor-modes' (the minor modes that were enabled), `recentf' (the major
+modes of your recent files and the recent Emacs Lisp files).  Where a
+file lies: `packages' (Emacs's own libraries, installed packages and the
+profile folder) or `distro' (tuned-emacs/).  The explicit commands
+`tuned-eln-opt-compile' and `tuned-eln-opt-compile-file' ignore this
+option."
   :type '(set (const :tag "Commands in savehist" savehist)
               (const :tag "Minor modes that were enabled" minor-modes)
               (const :tag "Major modes and Lisp files in recentf" recentf)
@@ -248,8 +250,9 @@ SOURCE is nil when the entry has no source; WHY then says why."
   (float-time (file-attribute-modification-time (file-attributes file))))
 
 (defcustom tuned-eln-opt-max-source-bytes (* 1024 1024)
-  "Largest source, uncompressed, that tuned-eln-opt compiles.  Bigger ones are skipped
-and the report says so; a very large file takes long and may not pay off."
+  "Largest source, uncompressed, that tuned-eln-opt compiles.  Bigger
+ones are skipped and the report says so; a very large file takes long
+and may not pay off."
   :type 'natnum
   :group 'tuned-eln-opt)
 
@@ -552,9 +555,9 @@ once when there is nothing."
 
 ;;;###autoload
 (defun tuned-eln-opt-arm ()
-  "When `tuned-eln-opt-mode' is 1: once per session, after `tuned-eln-opt-idle' seconds of
-idle time, start a child that compiles what the history needs.  Does nothing
-in batch, or when the mode is 0."
+  "When `tuned-eln-opt-mode' is 1: once per session, after
+`tuned-eln-opt-idle' seconds of idle time, start a child that compiles
+what the history needs.  Does nothing in batch, or when the mode is 0."
   (when (and (> tuned-eln-opt-mode 0) (not noninteractive)
              (not tuned-eln-opt--checked) (not (timerp tuned-eln-opt--timer)))
     (setq tuned-eln-opt--timer (run-with-idle-timer tuned-eln-opt-idle nil #'tuned-eln-opt--idle))))

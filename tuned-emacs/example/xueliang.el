@@ -15,7 +15,7 @@
 ;; Machine-specific paths go in a local file that never enters the repo
 (let ((local (expand-file-name "~/.emacs-profiles/local.el")))
   (when (file-exists-p local) (load local nil t)))
-(require 'xueliang-utils)                 ; the logic behind these settings and bindings
+(require 'xueliang-utils)           ; the logic behind these settings and bindings
 
 ;; First installed font wins, so the same file works on macOS, Windows, Linux.
 ;; Every text face uses it: `fixed-pitch', `fixed-pitch-serif' and
@@ -530,7 +530,7 @@
   "<f5>"   #'xueliang-eshell-popup
   "<f6>"   #'consult-yank-pop
   "<f7>"   #'xueliang-just-make
-  "<f8>"   #'tuned-tagbar-toggle         ; Tagbar-like imenu sidebar
+  "<f8>"   #'tuned-tagbar-toggle      ; Tagbar-like imenu sidebar
   "<f9>"   #'xueliang-dired-sidebar
   "<f10>"  #'tuned-sk-home-buffer
   "<f11>"  #'xueliang-imenu-or-org-today
@@ -540,7 +540,8 @@
 ;; ============================================================
 ;; Leader keys - my overrides on top of the Spacemacs defaults
 ;; ============================================================
-;; Only my own commands here; Spacemacs-position keys are in tuned-key-bindings.el
+;; Only my own commands here; Spacemacs-position keys are in
+;; tuned-key-bindings.el
 (defun tuned-leader (&rest specs)
   "Bind KEY LABEL COMMAND triples from SPECS under the SPC leader."
   (while specs

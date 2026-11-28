@@ -43,9 +43,9 @@
 (require 'dired)
 (require 'seq)           ; seq-find, seq-take
 (require 'subr-x)        ; string-trim, string-empty-p
-(require 'tuned-async)     ; owned processes
-(require 'tuned-spinner)   ; the loader
-(require 'evil nil t)   ; optional: extra normal-state bindings
+(require 'tuned-async)   ; owned processes
+(require 'tuned-spinner) ; the loader
+(require 'evil nil t)    ; optional: extra normal-state bindings
 
 (defgroup tuned-dired nil
   "Asynchronous Dired-style file browser."

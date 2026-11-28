@@ -1,4 +1,4 @@
-;;; tuned-spinner-tests.el --- ERT tests for tuned-spinner -*- lexical-binding: t; -*-
+;;; tuned-spinner-tests.el --- Tests for tuned-spinner -*- lexical-binding: t; -*-
 ;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/tuned-spinner-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 

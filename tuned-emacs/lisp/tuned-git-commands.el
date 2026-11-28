@@ -12,11 +12,12 @@
 ;;   Gwrite   stage the current file
 ;;   Gcommit  commit the current file with an "Update <file>" message
 ;; All of them are also available as Ex commands (`:Gstatus', `:Gblame',
-;; `:Gwrite', `:Gcommit').  The status buffer itself lives in tuned-git-status.el.
+;; `:Gwrite', `:Gcommit').  The status buffer itself lives in
+;; tuned-git-status.el.
 
 ;;; Code:
 
-(require 'subr-x)     ; truncate-string-to-width
+(require 'subr-x)         ; truncate-string-to-width
 (require 'tuned-git-show) ; faces, `--show-commit' and, through it, the core
 (require 'tuned-async)    ; owned processes
 (require 'tuned-spinner)  ; the loader

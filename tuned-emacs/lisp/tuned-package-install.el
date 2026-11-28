@@ -64,9 +64,10 @@ and installs whatever is left, as the blocking path would."
 ;;;###autoload
 (defun tuned-package-install (name)
   "Install package NAME in a child Emacs, without blocking this one.
-The progress of the child is shown in `tuned-package-install-buffer-name', with a
-spinner in its mode line.  NAME is read with `completing-read', so completion
-frameworks such as Vertico and Consult apply."
+The progress of the child is shown in
+`tuned-package-install-buffer-name', with a spinner in its mode line.
+NAME is read with `completing-read', so completion frameworks such as
+Vertico and Consult apply."
   (interactive
    (progn
      (package--archives-initialize)

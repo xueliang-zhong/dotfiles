@@ -13,7 +13,8 @@
 ;;   ... use Emacs: type, switch buffers, run a command or two ...
 ;;   M-x tuned-perfetto-trace-stop
 ;;
-;; The result is a Chrome JSON trace written to `tuned-perfetto-trace-directory'.
+;; The result is a Chrome JSON trace written to
+;; `tuned-perfetto-trace-directory'.
 ;; Each category has its own track: commands, timers, process filters and
 ;; sentinels, GC, redisplay frames and font-lock, functions you asked to trace,
 ;; and your own marks.  `tuned-async' jobs get their own async tracks, and
@@ -81,8 +82,9 @@ asked for that mark explicitly."
 (defcustom tuned-perfetto-marker-file
   (expand-file-name "traces/recording.eld" user-emacs-directory)
   "File that says a recording runs, for other Emacs processes to follow.
-Written when a recording starts and deleted when it stops.  A follower process
-reads it between units of work and records alongside (see `tuned-perfetto-follow-marker')."
+Written when a recording starts and deleted when it stops.  A follower
+process reads it between units of work and records alongside (see
+`tuned-perfetto-follow-marker')."
   :type 'file
   :group 'tuned-perfetto)
 
@@ -259,8 +261,9 @@ feature is present, so an unloaded package costs nothing."
   `(progn
      (setq tuned-perfetto--probes
            (append tuned-perfetto--probes (list (list ',feature ,category ,install))))
-     ;; A feature already loaded is installed by `tuned-perfetto--install-probes'
-     ;; once.  This hook is only for one that arrives during a recording.
+     ;; A feature already loaded is installed by
+     ;; `tuned-perfetto--install-probes' once.  This hook is only for one
+     ;; that arrives during a recording.
      (unless (featurep ',feature)
        (with-eval-after-load ',feature
          (when (and tuned-perfetto--recording
@@ -282,7 +285,7 @@ sentence added to the generated docstring."
                    function))
          (docstring (format "Record a span on the %s track around %s.%s"
                             category target
-                            (if doc (concat "  " doc) ""))))
+                            (if doc (concat "\n" doc) ""))))
     `(defun ,name (original ,@arglist)
        ,docstring
        (if (or (not tuned-perfetto--recording) tuned-perfetto--inside ,skip-form)
@@ -665,8 +668,9 @@ the trace holds no typed text."
 ;;; tuned-async jobs
 ;;; ============================================================
 
-;; The probe that opens these events lives in tuned-perfetto-probes.el.  Stopping
-;; must still close whatever it left open when that file was not loaded.
+;; The probe that opens these events lives in tuned-perfetto-probes.el.
+;; Stopping must still close whatever it left open when that file was not
+;; loaded.
 (defun tuned-perfetto--close-async-events ()
   "Close every `tuned-async' job still open when the recording stops."
   (dolist (entry tuned-perfetto--async-open)
@@ -804,7 +808,8 @@ switches modes, and that would bury the mode changes that matter."
     (setq tuned-perfetto--save-hook-start (tuned-perfetto--elapsed))))
 
 (defun tuned-perfetto--save-hook-end (name)
-  "End the timing of the save hook NAME, started by `tuned-perfetto--save-hook-begin'."
+  "End the timing of the save hook NAME, started by
+`tuned-perfetto--save-hook-begin'."
   (when (and tuned-perfetto--recording
              (not tuned-perfetto--inside)
              tuned-perfetto--save-hook-start)

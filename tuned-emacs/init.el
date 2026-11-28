@@ -95,7 +95,8 @@
 ;; personal.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'tuned-key-bindings)
 ;; `tuned-dired' loads on first use, so startup does not pull in `dired',
-;; `dired-x' and `evil-collection-dired'; its autoloads come from tuned-autoloads.
+;; `dired-x' and `evil-collection-dired'; its autoloads come from
+;; tuned-autoloads.
 (require 'tuned-git-status)
 (require 'tuned-git-commands)
 ;; `tuned-org-babel-async' only advises `ob-core' and binds a key in `org-mode-map';
@@ -105,8 +106,9 @@
 (require 'tuned-consult-spinner) ; consult's async indicator, animated while a list runs
 ;; perfetto, the asynchronous compile and package-install helpers load on first
 ;; use; their autoloads come from tuned-autoloads.
-;; tuned-eln-opt: once per session, after five seconds of idle time, a child Emacs
-;; native-compiles what your history uses (it exits at once when nothing is left).
+;; tuned-eln-opt: once per session, after five seconds of idle time, a
+;; child Emacs native-compiles what your history uses (it exits at once
+;; when nothing is left).
 ;; M-x tuned-eln-opt-start runs it now.  See doc/tuned-eln-opt.md.
 (require 'tuned-eln-opt)
 (tuned-eln-opt-arm)

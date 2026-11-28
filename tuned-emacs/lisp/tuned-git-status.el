@@ -30,7 +30,7 @@
 
 (require 'subr-x)       ; string-trim-right
 (require 'seq)          ; seq-find, seq-remove
-(require 'tuned-async)     ; the shared loading indicator and write queue
+(require 'tuned-async)  ; the shared loading indicator and write queue
 (require 'tuned-spinner)
 (require 'tuned-git-core)
 (require 'tuned-git-show)

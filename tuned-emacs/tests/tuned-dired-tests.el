@@ -1,4 +1,4 @@
-;;; tuned-dired-tests.el --- ERT tests for tuned-dired -*- lexical-binding: t; -*-
+;;; tuned-dired-tests.el --- Tests for tuned-dired -*- lexical-binding: t; -*-
 ;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/tuned-dired-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 ;; Each test works in its own temporary folder.  The listings and previews

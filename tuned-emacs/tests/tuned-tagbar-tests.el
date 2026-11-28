@@ -1,4 +1,4 @@
-;;; tuned-tagbar-tests.el --- ERT tests for tuned-tagbar -*- lexical-binding: t; -*-
+;;; tuned-tagbar-tests.el --- Tests for tuned-tagbar -*- lexical-binding: t; -*-
 ;; Run: emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/tuned-tagbar-tests.el \
 ;;        -f ert-run-tests-batch-and-exit
 

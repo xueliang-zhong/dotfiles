@@ -25,28 +25,31 @@ The personal layer is small. Its design is in the documents under [doc/](doc/).
 
 ## Background compilation
 
-`tuned-eln-opt` compiles, in a child Emacs, the source of what your history uses.
-The sources are the commands in savehist, the minor modes that were enabled,
-the major modes of your recent files, and the recent Emacs Lisp files. Each file
-is native-compiled only if it lies under a trusted folder (Emacs's library, the
-package folder, the profile, or this distribution), and only if it does not opt
-out with `no-native-compile` or `no-byte-compile`. Files over 1 MB are skipped.
+`tuned-eln-opt` compiles, in a child Emacs, the source of what your
+history uses. The sources are the commands in savehist, the minor modes
+that were enabled, the major modes of your recent files, and the recent
+Emacs Lisp files. Each file is native-compiled only if it lies under a
+trusted folder (Emacs's library, the package folder, the profile, or
+this distribution), and only if it does not opt out with
+`no-native-compile` or `no-byte-compile`. Files over 1 MB are skipped.
 A failed file is not retried until its source changes.
 
-- The child starts once per session, after five seconds of idle time; it
-  compiles only what is left, and exits at once when nothing is. `tuned-eln-opt-mode`
-  and `tuned-eln-opt-idle` change this.
-- `tuned-eln-opt-scope` chooses what is compiled by itself: commands, minor modes
-  and recent files from your history, and the code from packages or from the
-  distro. All are on by default.
-- `M-x tuned-eln-opt-report` shows each source, its size, its status and the
-  command that forces a compile. Nothing is compiled by the report.
-- `M-x tuned-eln-opt-start` runs the compile now. `M-x tuned-eln-opt-compile-file` and
-  `M-x tuned-eln-opt-compile` force one file or one function.
-- `M-x tuned-eln-opt-clean` deletes the compiled files and keeps the subr
-  trampolines.
-- While `tuned-perfetto-trace-start` records, the child's run is recorded too, into
-  `tuned-eln-opt-trace-*.json` next to the main trace.
+- The child starts once per session, after five seconds of idle time;
+  it compiles only what is left, and exits at once when nothing is.
+  `tuned-eln-opt-mode` and `tuned-eln-opt-idle` change this.
+- `tuned-eln-opt-scope` chooses what is compiled by itself: commands,
+  minor modes and recent files from your history, and the code from
+  packages or from the distro. All are on by default.
+- `M-x tuned-eln-opt-report` shows each source, its size, its status and
+  the command that forces a compile. Nothing is compiled by the report.
+- `M-x tuned-eln-opt-start` runs the compile now.
+  `M-x tuned-eln-opt-compile-file` and `M-x tuned-eln-opt-compile` force
+  one file or one function.
+- `M-x tuned-eln-opt-clean` deletes the compiled files and keeps the
+  subr trampolines.
+- While `tuned-perfetto-trace-start` records, the child's run is
+  recorded too, into `tuned-eln-opt-trace-*.json` next to the main
+  trace.
 
 Everything is described in [doc/tuned-eln-opt.md](doc/tuned-eln-opt.md).
 
@@ -75,7 +78,7 @@ tuned-emacs/
 ├── personal.el             Your own settings; starts empty, with comments
 ├── example/                 The author's opinionated configuration (not loaded by default)
 │   ├── xueliang.el              The configuration itself
-│   └── xueliang-utils.el              Helpers behind the example's bindings
+│   └── xueliang-utils.el         Helpers behind the example's bindings
 ├── lisp/                    Modules loaded with `require'
 │   ├── tuned-key-bindings.el       Spacemacs-style key bindings (SPC tree, M-m, ...)
 │   ├── tuned-bootstrap.el          Package installation: refresh, fetch, retry

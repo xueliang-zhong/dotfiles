@@ -16,9 +16,10 @@
 "Evaluate FORM in a fresh child Emacs and return the process.
 ARGS may give `:load-path', a list of directories prepended to the
 child's load-path, and `:init-directory', a profile folder the child
-starts from, its init running as in a normal start.  CALLBACK, when given, is called once with the
-process; read the result with `tuned-async-evaluate-result'.  The output
-buffer is *async-buffer <pid>* and stays after the child ends.
+starts from, its init running as in a normal start.  CALLBACK, when
+given, is called once with the process; read the result with
+`tuned-async-evaluate-result'.  The output buffer is *async-buffer
+<pid>* and stays after the child ends.
 
 (fn FORM &optional CALLBACK &rest ARGS)")
 (register-definition-prefixes "tuned-async-evaluate" '("tuned-async-"))
@@ -91,9 +92,9 @@ penultimate step during initialization.
 ;;; Generated autoloads from tuned-eln-opt.el
 
 (autoload 'tuned-eln-opt-arm "tuned-eln-opt"
-"When `tuned-eln-opt-mode' is 1: once per session, after `tuned-eln-opt-idle' seconds of
-idle time, start a child that compiles what the history needs.  Does nothing
-in batch, or when the mode is 0.")
+"When `tuned-eln-opt-mode' is 1: once per session, after
+`tuned-eln-opt-idle' seconds of idle time, start a child that compiles
+what the history needs.  Does nothing in batch, or when the mode is 0.")
 (autoload 'tuned-eln-opt-report "tuned-eln-opt"
 "Show what tuned-eln-opt does with each source, in one table row per source.
 The report is computed in a child Emacs; the buffer shows a loader until it is
@@ -199,9 +200,10 @@ Check `native-comp-available-p' first when that is possible.
 
 (autoload 'tuned-package-install "tuned-package-install"
 "Install package NAME in a child Emacs, without blocking this one.
-The progress of the child is shown in `tuned-package-install-buffer-name', with a
-spinner in its mode line.  NAME is read with `completing-read', so completion
-frameworks such as Vertico and Consult apply.
+The progress of the child is shown in
+`tuned-package-install-buffer-name', with a spinner in its mode line.
+NAME is read with `completing-read', so completion frameworks such as
+Vertico and Consult apply.
 
 (fn NAME)" t)
 (register-definition-prefixes "tuned-package-install" '("tuned-package-install-"))
@@ -256,6 +258,7 @@ Drag the file from the Dired buffer into the page." t)
 
 (register-definition-prefixes "tuned-spinner" '("tuned-spinner-"))
 
+
 ;;; Generated autoloads from tuned-tagbar.el
 
 (autoload 'tuned-tagbar-open "tuned-tagbar"
@@ -267,7 +270,7 @@ Drag the file from the Dired buffer into the page." t)
 (autoload 'tuned-tagbar-toggle "tuned-tagbar"
 "Toggle the Tagbar-like imenu sidebar." t)
 (register-definition-prefixes "tuned-tagbar" '("tuned-tagbar-"))
-
+
 ;;; End of scraped data
 
 (provide 'tuned-autoloads)

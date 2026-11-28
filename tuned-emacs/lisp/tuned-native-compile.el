@@ -5,8 +5,8 @@
 ;; `tuned-async-native-compile' called without a callback comes here.  Requests
 ;; go into one queue, so only one child Emacs runs at a time, however fast the
 ;; requests come.  A file that is already queued or running is not queued again.
-;; The monitor buffer `*tuned-native-compile*' shows each job in turn, and its mode
-;; line has a spinner for the job that is running.
+;; The monitor buffer `*tuned-native-compile*' shows each job in turn, and its
+;; mode line has a spinner for the job that is running.
 
 ;;; Code:
 
@@ -111,9 +111,10 @@ Return the child process, which the queue waits for."
 
 (defun tuned-native-compile-request (file args)
   "Queue the native compilation of FILE with ARGS.
-Return a status line: whether the request started at once, waits behind the
-file being compiled, or was already queued or running.  It is returned, not
-printed, so an evaluation shows it once.  The child process runs when the queue reaches this request."
+Return a status line: whether the request started at once, waits behind
+the file being compiled, or was already queued or running.  It is
+returned, not printed, so an evaluation shows it once.  The child
+process runs when the queue reaches this request."
   (let* ((short (tuned-native-compile--short-name file))
          (ahead tuned-native-compile--pending)
          (status
@@ -136,8 +137,8 @@ printed, so an evaluation shows it once.  The child process runs when the queue 
 ;;; The public entry point
 ;;; ============================================================
 ;; `tuned-async-native-compile' lives here, beside the queue it feeds, so that
-;; the dependency points one way: tuned-native-compile needs tuned-async-evaluate,
-;; and the evaluator does not need the queue.
+;; the dependency points one way: tuned-native-compile needs
+;; tuned-async-evaluate, and the evaluator does not need the queue.
 
 (defun tuned-native-compile--source-of (library)
   "The source file behind LIBRARY, a path from `locate-library'.

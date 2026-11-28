@@ -197,7 +197,7 @@ It is what happens when the operation outlives `tuned-spinner-show-delay'."
   "`tuned-packages' lives in `init.el'; `personal.el' does not define it."
   (should (memq 'magit tuned-packages))
   (should (memq 'org-superstar tuned-packages))
-  (should (memq 'evil-escape tuned-packages))   ; Spacemacs habits are listed too
+  (should (memq 'evil-escape tuned-packages)) ; Spacemacs habits are listed too
   ;; The completion stack comes from Crafted, not from `tuned-packages'.
   (should-not (memq 'corfu tuned-packages))
   (should (equal (symbol-file 'tuned-packages 'defvar)

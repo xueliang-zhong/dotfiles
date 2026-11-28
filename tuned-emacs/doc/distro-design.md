@@ -4,9 +4,9 @@ How `tuned-emacs/` should be packaged so that it installs, upgrades and is
 configured like a mature Emacs distribution, while the code stays flat in
 `lisp/`. Also the steps to get there from today's tree.
 
-Status: proposal. Nothing here has been done yet. It builds on
-[refactoring-plan.md](refactoring-plan.md), whose eight steps and follow-up
-have landed.
+Status: proposal. Phase 1, the rename in [Naming](#naming), has landed; the
+rest is not started. It builds on [refactoring-plan.md](refactoring-plan.md),
+whose eight steps and follow-up have landed.
 
 ## Where we are
 
@@ -38,7 +38,7 @@ packaging around that code:
   slow-start recorder and the smoke tests keep checking it.
 - **One name.** Code, files, buffers, environment variables and the CLI all
   use `tuned` (`tuned-` for Lisp, `TUNED_` for the environment). The `xl-`
-  prefix is retired in phase 1; see [Naming](#naming).
+  prefix has been retired in phase 1; see [Naming](#naming).
 - **Every step lands with the tests green** and keeps behaviour unchanged for
   the author's setup.
 
@@ -247,9 +247,9 @@ How:
 Each phase is a few commits, each passing the tests. The author's daily setup
 works after every commit.
 
-1. **Rename `xl-` to `tuned-`.** As described in [Naming](#naming), before
-   any other phase, so every new file is born with its final name and no
-   later commit mixes a rename with a change.
+1. **Rename `xl-` to `tuned-` (done).** As described in [Naming](#naming),
+   before any other phase, so every new file is born with its final name and
+   no later commit mixes a rename with a change.
 2. **Packaging basics.** Add `VERSION`, `CHANGELOG.md`, `tuned-version`. Rename
    `frameworks.lock` to `crafted.lock`. Delete the three unused `doc/*.lock`.
    Add `bin/tuned` with today's subcommands under the new names, keeping

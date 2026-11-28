@@ -64,7 +64,8 @@ DOTFILES := replace(justfile_directory(), "\\", "/")
 PROFILE := "crafted"
 PROFILE_DIR := PROFILES / PROFILE
 # What the script reads from the environment, quoted for sh.
-# TUNED_EXAMPLE=1: this repo's own recipes load the author's example/xueliang.el.
+# TUNED_EXAMPLE=1: this repo's own recipes load the author's
+# example/xueliang.el.
 # The script run directly (tuned-emacs/install/emacs-setup.sh) leaves it unset
 # and gets personal.el, which is what other users should see.
 TUNED_ENV := "TUNED_EXAMPLE='1' EMACS='" + EMACS + "' PROFILE='" + PROFILE + "' PROFILES='" + PROFILES + "' PROFILE_DIR='" + PROFILE_DIR + "' DOTFILES='" + DOTFILES + "'"

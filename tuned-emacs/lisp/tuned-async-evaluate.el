@@ -346,9 +346,10 @@ DIRECTORIES is prepended to every request's load-path."
   "Evaluate FORM in a fresh child Emacs and return the process.
 ARGS may give `:load-path', a list of directories prepended to the
 child's load-path, and `:init-directory', a profile folder the child
-starts from, its init running as in a normal start.  CALLBACK, when given, is called once with the
-process; read the result with `tuned-async-evaluate-result'.  The output
-buffer is *async-buffer <pid>* and stays after the child ends."
+starts from, its init running as in a normal start.  CALLBACK, when
+given, is called once with the process; read the result with
+`tuned-async-evaluate-result'.  The output buffer is *async-buffer
+<pid>* and stays after the child ends."
   (tuned-async-evaluate--prune-buffers)
   (let ((proc (tuned-async-start
                (tuned-async-evaluate--command (plist-get args :init-directory))
