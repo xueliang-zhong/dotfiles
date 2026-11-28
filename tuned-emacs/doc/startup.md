@@ -34,7 +34,7 @@ Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files writte
 4. Emacs reads the stub `init.el`, which loads `tuned-emacs/init.el`.
 5. `init.el` checks the Emacs version, loads `custom.el` (where Customize writes), and loads `crafted-init-config`, which puts the Crafted module folder on the load path.
 6. `init.el` collects the packages to install: Crafted's completion, evil and Org packages, plus `tuned-packages`. It adds `tuned-emacs/lisp/` and `tuned-emacs/example/` to the load path, then calls `tuned-bootstrap` (see "Package installation").
-7. `lisp/tuned-autoloads.el`, generated from the `;;;###autoload` cookies, is loaded. Commands such as `tuned-dired`, `tuned-tagbar-toggle` and `tuned-perfetto-trace-start` stay undefined until first use.
+7. `lisp/tuned-autoloads.el`, generated from the `;;;###autoload` cookies, is loaded. Commands such as `tuned-dired`, `tuned-tagbar-toggle` and `tuned-perf-trace-start` stay undefined until first use.
 8. Crafted's defaults, completion, evil, Org and startup modules load. Completion covers vertico, consult, marginalia, orderless, embark, corfu and cape.
 9. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
 10. `tuned-key-bindings`, `tuned-git-status`, `tuned-git-commands` and the other modules load with `require`.

@@ -293,7 +293,7 @@ Behaviour that callers rely on (covered by existing tests): ON-DONE runs in OWNE
 
 Perfetto records asynchronous work by advising the entry point. The design moves the advice from `tuned-async-run` to `tuned-async-start`, because every process now starts there: a `b` event at the start and an `e` event in the finally handler, named by `:name`. That would make evaluate, the worker and native compile visible on the timeline, while compatibility calls are still recorded.
 
-**Current state:** `tuned-perfetto-trace.el` advises `tuned-async-start` (see `tuned-perfetto--async-around`), so jobs made directly, such as evaluate, the worker, package installs and native compiles, are recorded as well as those made through `tuned-async-run`.
+**Current state:** `tuned-perf-trace.el` advises `tuned-async-start` (see `tuned-perf--async-around`), so jobs made directly, such as evaluate, the worker, package installs and native compiles, are recorded as well as those made through `tuned-async-run`.
 
 ## Platforms
 

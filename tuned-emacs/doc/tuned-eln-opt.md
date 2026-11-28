@@ -73,7 +73,7 @@ A forced compile ignores the failed list and the size limit. It does not ignore 
 
 ## Tracing
 
-While `tuned-perfetto-trace-start` records in the main Emacs, a child run follows the recording with `tuned-perfetto-follow-marker` (prefix `tuned-eln-opt-trace`). The child writes its own `tuned-eln-opt-trace-*.json` into the same folder. The run is the span `tuned-eln-opt run`, and each file is a span named `native <file>`. The follow happens between files, so a file that is being compiled is not checked for the marker until it finishes. See [tuned-perfetto-trace.md](tuned-perfetto-trace.md).
+While `tuned-perf-trace-start` records in the main Emacs, a child run follows the recording with `tuned-perf-follow-marker` (prefix `tuned-eln-opt-trace`). The child writes its own `tuned-eln-opt-trace-*.json` into the same folder. The run is the span `tuned-eln-opt run`, and each file is a span named `native <file>`. The follow happens between files, so a file that is being compiled is not checked for the marker until it finishes. See [tuned-perf-trace.md](tuned-perf-trace.md).
 
 ## Customization
 

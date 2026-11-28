@@ -1,15 +1,15 @@
-# Brief: implement tuned-perfetto-trace.el
+# Brief: implement tuned-perf-trace.el
 
 This is the brief that was given to the implementing agent. The feature is now implemented; the brief is kept as a record of the constraints and the verification steps.
 
 ---
 
-You are working in the `~/workspace/dotfiles` repository. The task is to implement a new Emacs Lisp module, `tuned-emacs/lisp/tuned-perfetto-trace.el`. It records what Emacs does at the Lisp level over a period of time, writes a Chrome JSON trace file, and lets the user view the timeline at ui.perfetto.dev.
+You are working in the `~/workspace/dotfiles` repository. The task is to implement a new Emacs Lisp module, `tuned-emacs/lisp/tuned-perf-trace.el`. It records what Emacs does at the Lisp level over a period of time, writes a Chrome JSON trace file, and lets the user view the timeline at ui.perfetto.dev.
 
 ## Read these first
 
 1. `AGENTS.md`: the repository's code style and rules.
-2. `tuned-emacs/doc/tuned-perfetto-trace.md`: **the full design. Implement it as written.** Command names, variable names, event format, track numbers, lifecycle, test plan and acceptance criteria are all there. For any detail the design does not cover, choose a reasonable approach and list it in the final report.
+2. `tuned-emacs/doc/tuned-perf-trace.md`: **the full design. Implement it as written.** Command names, variable names, event format, track numbers, lifecycle, test plan and acceptance criteria are all there. For any detail the design does not cover, choose a reasonable approach and list it in the final report.
 3. `tuned-emacs/lisp/tuned-async.el`: the arguments of `tuned-async-run` (`:command`, `:name`, `:on-done`, `:slot`, `:owner`, `:timeout`), and `tuned-async-cancel`. You will add advice to `tuned-async-run`.
 4. `tuned-emacs/lisp/tuned-dired.el` and `tuned-emacs/tests/tuned-dired-tests.el`: what an `tuned-*` module and its tests should look like (file header, defgroup, defcustom, temporary directories in tests, and how tests wait).
 5. `cmd_test` in `tuned-emacs/install/emacs-setup.sh`: how the tests are run.
@@ -20,14 +20,14 @@ You are working in the `~/workspace/dotfiles` repository. The task is to impleme
 - **No advice on any C primitive** (a function for which `subr-primitive-p` is true, such as `make-process`, `set-process-filter` or `garbage-collect`). The reason is that native-comp trampolines are compiled synchronously and freeze the interface. Processes are wrapped with `add-function :around (process-filter proc)`. New processes are found by a timer that scans during recording; the design describes how.
 - **Zero cost when not recording.** Hooks, advice, timers and process-function wrappers exist only between start and stop. Stop must be idempotent and must always remove all instrumentation (`unwind-protect`). A failure in the middle of start must roll back.
 - **No content recorded.** No key sequences, buffer text, minibuffer input or process output.
-- Style: `lexical-binding: t`, 2-space indentation, kebab-case. Public names use the `tuned-perfetto-` prefix; internal names use `tuned-perfetto--`. Use only ordinary Emacs APIs. No framework-specific names such as `crafted-` or `spacemacs/` (a smoke test checks this).
+- Style: `lexical-binding: t`, 2-space indentation, kebab-case. Public names use the `tuned-perf-` prefix; internal names use `tuned-perf--`. Use only ordinary Emacs APIs. No framework-specific names such as `crafted-` or `spacemacs/` (a smoke test checks this).
 - Change only these files:
-  - create `tuned-emacs/lisp/tuned-perfetto-trace.el`
-  - create `tuned-emacs/tests/tuned-perfetto-trace-tests.el`
+  - create `tuned-emacs/lisp/tuned-perf-trace.el`
+  - create `tuned-emacs/tests/tuned-perf-trace-tests.el`
   - `tuned-emacs/install/emacs-setup.sh`: add a step to `cmd_test` that runs the new test file
   - `tuned-emacs/tests/smoke-tests.el`: add the new file to the file list in `tuned-personal-file-is-framework-neutral`
-  - `tuned-emacs/init.el`: add one line, `(require 'tuned-perfetto-trace)`
-  - `tuned-emacs/doc/tuned-perfetto-trace.md`: only write the measured results under "Performance budget", and change the status to implemented
+  - `tuned-emacs/init.el`: add one line, `(require 'tuned-perf-trace)`
+  - `tuned-emacs/doc/tuned-perf-trace.md`: only write the measured results under "Performance budget", and change the status to implemented
 - Do not change any other file. If the working tree has someone else's uncommitted changes, leave them alone, and do not commit them.
 - **Do not commit** unless the user explicitly asks. If the user asks for a commit, the last line of the message is `Signed-off-by: Xueliang Zhong <xueliang.zhong@gmail.com>`.
 
@@ -35,12 +35,12 @@ You are working in the `~/workspace/dotfiles` repository. The task is to impleme
 
 1. Byte-compilation produces no warnings, except "function not defined" warnings from optional dependencies:
    ```bash
-   emacs --batch -Q -L tuned-emacs/lisp -f batch-byte-compile tuned-emacs/lisp/tuned-perfetto-trace.el
+   emacs --batch -Q -L tuned-emacs/lisp -f batch-byte-compile tuned-emacs/lisp/tuned-perf-trace.el
    ```
    Delete the generated `.elc` afterwards.
 2. Run the new test on its own:
    ```bash
-   emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/tuned-perfetto-trace-tests.el -f ert-run-tests-batch-and-exit
+   emacs --batch -Q -L tuned-emacs/lisp -l tuned-emacs/tests/tuned-perf-trace-tests.el -f ert-run-tests-batch-and-exit
    ```
 3. Run every test suite:
    ```bash

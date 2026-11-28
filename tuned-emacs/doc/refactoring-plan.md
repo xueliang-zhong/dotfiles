@@ -69,7 +69,7 @@ upwards or form a cycle; the steps below remove them.
 ### ~~5. Generate autoloads instead of writing them by hand~~
 
 - `init.el` lists autoloads by hand: seven `tuned-dired` commands, seven
-  `tuned-perfetto-trace` entries, three async helpers.
+  `tuned-perf-trace` entries, three async helpers.
 - Put `;;;###autoload` cookies on those definitions. Have the setup and check
   steps run `loaddefs-generate` into `lisp/tuned-autoloads.el`, and have `init.el`
   load that one file.
@@ -93,23 +93,23 @@ upwards or form a cycle; the steps below remove them.
 Do this after the current perfetto work is committed.
 
 - The recorder knows every subsystem it traces: `tuned-async`, pyim, completion,
-  files, major modes. Each new one makes `tuned-perfetto-trace.el` larger
+  files, major modes. Each new one makes `tuned-perf-trace.el` larger
   (1793 lines).
 - Keep the ring, JSON output, recording state and an install registry in
-  `tuned-perfetto-trace`. Move each probe into a small file, or register it with an
-  `tuned-perfetto-define-probe` macro (feature, install, uninstall) that installs
+  `tuned-perf-trace`. Move each probe into a small file, or register it with an
+  `tuned-perf-define-probe` macro (feature, install, uninstall) that installs
   it inside `with-eval-after-load`.
 - Every span advice repeats the same shape:
 
   ```elisp
-  (if (or (not tuned-perfetto--recording) tuned-perfetto--inside)
+  (if (or (not tuned-perf--recording) tuned-perf--inside)
       (apply original args)
-    (let ((start (tuned-perfetto--elapsed)))
+    (let ((start (tuned-perf--elapsed)))
       (unwind-protect (apply original args)
-        (tuned-perfetto--record "X" NAME CATEGORY start ...))))
+        (tuned-perf--record "X" NAME CATEGORY start ...))))
   ```
 
-  An `tuned-perfetto-define-span-advice` macro would cover it.
+  An `tuned-perf-define-span-advice` macro would cover it.
 
 ### ~~8. Make `tuned-async` independent of `tuned-spinner`~~
 
@@ -128,14 +128,14 @@ A review of the eight commits added five more:
   the faces' user-facing names, and moved the status refresh registration
   behind a core setter.
 - `perfetto: name the target in generated span docstrings` made
-  `tuned-perfetto-define-span-advice` document what it records and around which
+  `tuned-perf-define-span-advice` document what it records and around which
   function, and tested every generated advice.
 - `emacs: give the generated autoloads one header` removed the generator's
   GNU Emacs preamble from `tuned-autoloads.el`.
 - `emacs: load tuned-async-evaluate on first use` stopped `tuned-eln-opt` from
   pulling the evaluator into startup.
 - `perfetto: move package probes out of the core` split the tuned-async,
-  vertico, corfu and pyim probes into `tuned-perfetto-probes.el`.
+  vertico, corfu and pyim probes into `tuned-perf-probes.el`.
 
 ## What not to do
 

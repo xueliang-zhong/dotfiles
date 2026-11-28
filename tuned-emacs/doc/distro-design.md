@@ -67,7 +67,7 @@ tuned-emacs/
 │   ├── tuned-dired.el  tuned-tagbar.el  tuned-org-babel-async.el
 │   ├── tuned-consult-spinner.el  tuned-consult-spell.el
 │   ├── tuned-eln-opt.el
-│   └── tuned-perfetto-trace.el  tuned-perfetto-probes.el
+│   └── tuned-perf-trace.el  tuned-perf-probes.el
 ├── templates/                What a new user starts from
 │   ├── config.el                 Empty, with the rules personal.el has today
 │   └── packages.el               Empty list, commented

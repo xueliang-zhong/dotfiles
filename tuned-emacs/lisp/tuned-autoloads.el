@@ -209,49 +209,49 @@ Vertico and Consult apply.
 (register-definition-prefixes "tuned-package-install" '("tuned-package-install-"))
 
 
-;;; Generated autoloads from tuned-perfetto-probes.el
+;;; Generated autoloads from tuned-perf-probes.el
 
-(register-definition-prefixes "tuned-perfetto-probes" '("tuned-perfetto--"))
+(register-definition-prefixes "tuned-perf-probes" '("tuned-perf--"))
 
 
-;;; Generated autoloads from tuned-perfetto-trace.el
+;;; Generated autoloads from tuned-perf-trace.el
 
-(autoload 'tuned-perfetto-with-span "tuned-perfetto-trace"
+(autoload 'tuned-perf-with-span "tuned-perf-trace"
 "Run BODY and, while recording, put it on the timeline as NAME.
 Outside a recording this is just BODY plus one variable check.  A
 non-local exit still ends the span.
 
 (fn NAME &rest BODY)" nil t)
-(autoload 'tuned-perfetto-trace-start "tuned-perfetto-trace"
+(autoload 'tuned-perf-trace-start "tuned-perf-trace"
 "Start recording Emacs Lisp activity.
 With a prefix argument, ask for the longest recording time in seconds
-instead of using `tuned-perfetto-trace-max-seconds'.  Starting while a
+instead of using `tuned-perf-trace-max-seconds'.  Starting while a
 recording runs only says so; it does not restart.
 
 (fn &optional MAX-SECONDS)" t)
-(autoload 'tuned-perfetto-trace-stop "tuned-perfetto-trace"
+(autoload 'tuned-perf-trace-stop "tuned-perf-trace"
 "Stop recording, remove all instrumentation and write the trace file.
 Return the file name.  Does nothing but report when no recording runs." t)
-(autoload 'tuned-perfetto-trace-function "tuned-perfetto-trace"
+(autoload 'tuned-perf-trace-function "tuned-perf-trace"
 "Trace FUNCTION during this and every later recording.
 A Lisp API, not a command: call it from your own code or config.  The
 function gets an `:around' advice while recording.  C primitives are refused
 unless native compilation is unavailable.
 
 (fn FUNCTION)")
-(autoload 'tuned-perfetto-untrace-function "tuned-perfetto-trace"
+(autoload 'tuned-perf-untrace-function "tuned-perf-trace"
 "Stop tracing FUNCTION, now and in later recordings.  A Lisp API.
 
 (fn FUNCTION)")
-(autoload 'tuned-perfetto-trace-mark "tuned-perfetto-trace"
+(autoload 'tuned-perf-trace-mark "tuned-perf-trace"
 "Put a mark named TEXT on the timeline.
-This is always recorded, whatever `tuned-perfetto-trace-categories' says.
+This is always recorded, whatever `tuned-perf-trace-categories' says.
 
 (fn TEXT)" t)
-(autoload 'tuned-perfetto-trace-open "tuned-perfetto-trace"
+(autoload 'tuned-perf-trace-open "tuned-perf-trace"
 "Open ui.perfetto.dev and show the latest trace file in Emacs.
 Drag the file from the Dired buffer into the page." t)
-(register-definition-prefixes "tuned-perfetto-trace" '("tuned-perfetto-"))
+(register-definition-prefixes "tuned-perf-trace" '("tuned-perf-"))
 
 
 ;;; Generated autoloads from tuned-spinner.el

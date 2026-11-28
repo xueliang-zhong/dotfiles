@@ -8,7 +8,7 @@ A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/Syst
 
 - **Background native compilation (tuned-eln-opt).** The key feature described above. See [Background compilation](#background-compilation).
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
-- **Perfetto trace profiling support.** `tuned-perfetto-trace` records commands, timers, process callbacks, GC, font-lock and redisplay frames (with jank and window/phase detail) as a Perfetto timeline, with zero cost when off. See [doc/tuned-perfetto-trace.md](doc/tuned-perfetto-trace.md).
+- **Perfetto trace profiling support.** `tuned-perf-trace` records commands, timers, process callbacks, GC, font-lock and redisplay frames (with jank and window/phase detail) as a Perfetto timeline, with zero cost when off. See [doc/tuned-perf-trace.md](doc/tuned-perf-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
 - **Async spell checking (tuned-consult-spell).** Buffer and region scans behind a consult list, using the installed `aspell`, `hunspell` or `ispell`. See [doc/tuned-consult-spell.md](doc/tuned-consult-spell.md).
 - **Tagbar-style imenu sidebar (tuned-tagbar).** `F8` shows the tags of the current buffer in a narrow right side window, grouped, foldable, with type icons and following point. The candidates come from Consult's imenu and Embark acts on the tag at point. See [doc/tuned-tagbar.md](doc/tuned-tagbar.md).
@@ -47,7 +47,7 @@ A failed file is not retried until its source changes.
   one file or one function.
 - `M-x tuned-eln-opt-clean` deletes the compiled files and keeps the
   subr trampolines.
-- While `tuned-perfetto-trace-start` records, the child's run is
+- While `tuned-perf-trace-start` records, the child's run is
   recorded too, into `tuned-eln-opt-trace-*.json` next to the main
   trace.
 
@@ -94,8 +94,8 @@ tuned-emacs/
 │   ├── tuned-tagbar.el             Tagbar-style imenu sidebar (F8)
 │   ├── tuned-org-babel-async.el    `:async yes' for Org source blocks
 │   ├── tuned-dired.el              Asynchronous dired listings and previews
-│   ├── tuned-perfetto-trace.el     Chrome JSON timelines of Lisp work
-│   ├── tuned-perfetto-probes.el    Its probes for tuned-async, vertico, corfu, pyim
+│   ├── tuned-perf-trace.el          Chrome JSON timelines of Lisp work
+│   ├── tuned-perf-probes.el         Its probes for tuned-async, vertico, corfu, pyim
 │   ├── tuned-package-fetch.el      Parallel download and signature check of packages
 │   ├── tuned-native-compile.el     Native-compile queue and its monitor
 │   ├── tuned-package-install.el    Asynchronous package install
@@ -175,7 +175,7 @@ The suites run in `emacs --batch`, without a graphical frame:
 | `tests/tuned-org-babel-async-tests.el` | `:async yes' Org blocks |
 | `tests/tuned-dired-tests.el` | Asynchronous dired listings and previews |
 | `tests/tuned-tagbar-tests.el` | Tagbar sections, jumping, folding, refresh and the Embark target |
-| `tests/tuned-perfetto-trace-tests.el` | Trace recording and JSON output |
+| `tests/tuned-perf-trace-tests.el` | Trace recording and JSON output |
 | `tests/tuned-package-fetch-tests.el` | Parallel job runner, dependency plan, unsigned-archive policy, gpg check |
 | `tests/tuned-consult-spell-tests.el` | Checker output parsing, word positions, region widening, program choice |
 
@@ -209,8 +209,8 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/windows.md](doc/windows.md) | Windows setup, platform differences, line endings |
 | [doc/tuned-async.md](doc/tuned-async.md) | The asynchronous process layer |
 | [doc/tuned-eln-opt.md](doc/tuned-eln-opt.md) | Background native compilation: sources, verdicts, the child, reports |
-| [doc/tuned-perfetto-trace.md](doc/tuned-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
-| [doc/tuned-perfetto-trace-prompt.md](doc/tuned-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
+| [doc/tuned-perf-trace.md](doc/tuned-perf-trace.md) | Chrome JSON timelines of Lisp work |
+| [doc/tuned-perf-trace-prompt.md](doc/tuned-perf-trace-prompt.md) | Prompt for generating trace-based investigations |
 | [doc/refactoring-plan.md](doc/refactoring-plan.md) | Architecture refactoring: target layers and the eight steps, all landed |
 | [doc/distro-design.md](doc/distro-design.md) | Proposed distribution packaging with a flat lisp/: user folder, CLI, doctor, versioning, migration phases |
 

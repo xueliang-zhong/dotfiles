@@ -329,7 +329,7 @@ Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
   (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/example/xueliang-utils.el"
                   "tuned-emacs/lisp/tuned-git-status.el" "tuned-emacs/lisp/tuned-git-commands.el"
-                  "tuned-emacs/lisp/tuned-perfetto-trace.el"))
+                  "tuned-emacs/lisp/tuned-perf-trace.el"))
     (dolist (entry (tuned-test--code-lines (expand-file-name file tuned-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))

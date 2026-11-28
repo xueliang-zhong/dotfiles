@@ -30,9 +30,9 @@
 
 ;; The trace macro and the follower are used in the child run; the child loads
 ;; the profile, which autoloads them too.  Byte-compiling needs them defined.
-(eval-when-compile (require 'tuned-perfetto-trace))
-(declare-function tuned-perfetto-follow-marker "tuned-perfetto-trace" (prefix))
-(declare-function tuned-perfetto-follow-finish "tuned-perfetto-trace" ())
+(eval-when-compile (require 'tuned-perf-trace))
+(declare-function tuned-perf-follow-marker "tuned-perf-trace" (prefix))
+(declare-function tuned-perf-follow-finish "tuned-perf-trace" ())
 
 (defgroup tuned-eln-opt nil
   "Native-compile the files of your history in a child Emacs."
@@ -465,20 +465,20 @@ process's copies over the user's files.  Called first in every child."
   "In the child: compile the todo list one file at a time; record failures.
 With FILES, compile those instead of the history; with FORCE, do not skip
 the files on the failed list.  Returns the number of files compiled.
-While the main Emacs records with `tuned-perfetto-trace-start', the run is
+While the main Emacs records with `tuned-perf-trace-start', the run is
 recorded too: it follows the marker between files (see
-`tuned-perfetto-follow-marker'), and each file is a span."
+`tuned-perf-follow-marker'), and each file is a span."
   (require 'comp)
   ;; Only the child runs this: load the follower here, not at init.
-  (require 'tuned-perfetto-trace)
+  (require 'tuned-perf-trace)
   (if (not (tuned-eln-opt--lock))
       (progn (message "tuned-eln-opt: another run is alive") 0)
     (unwind-protect
         ;; Start following before the run span: the span checks at entry
         ;; whether a recording is on, so the marker must be read first.
         (progn
-         (tuned-perfetto-follow-marker "tuned-eln-opt-trace")
-         (tuned-perfetto-with-span "tuned-eln-opt run"
+         (tuned-perf-follow-marker "tuned-eln-opt-trace")
+         (tuned-perf-with-span "tuned-eln-opt run"
           (let* ((todo (cond ((and files force)
                               (seq-remove #'tuned-eln-opt--hard-skip-p files))
                              (files (tuned-eln-opt--todo files))
@@ -487,8 +487,8 @@ recorded too: it follows the marker between files (see
                  (done 0))
             (dolist (src todo)
               ;; Between files: start or stop following the main recording.
-              (tuned-perfetto-follow-marker "tuned-eln-opt-trace")
-              (tuned-perfetto-with-span (format "native %s" (tuned-eln-opt--short-name src))
+              (tuned-perf-follow-marker "tuned-eln-opt-trace")
+              (tuned-perf-with-span (format "native %s" (tuned-eln-opt--short-name src))
                 (condition-case err
                     (progn
                       (tuned-eln-opt--ensure-elc src)
@@ -508,7 +508,7 @@ recorded too: it follows the marker between files (see
             (tuned-eln-opt--facts-save)
             (message "tuned-eln-opt: %d compiled, %d todo, %d failed" done (length todo) (length failed))
             done)))
-      (tuned-perfetto-follow-finish)
+      (tuned-perf-follow-finish)
       (tuned-eln-opt--unlock))))
 
 ;;; ---- Automatic: once per session, after Emacs has been idle ----
