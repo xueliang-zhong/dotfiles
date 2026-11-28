@@ -533,7 +533,7 @@
   "<f8>"   #'xl-tagbar-toggle         ; Tagbar-like imenu sidebar
   "<f9>"   #'xueliang-dired-sidebar
   "<f10>"  #'xl-sk-home-buffer
-  "<f11>"  #'xueliang-org-sort-upheading
+  "<f11>"  #'xueliang-imenu-or-org-today
   "<f12>"  #'xueliang-open-knowledge-links
   "C-<f4>" #'kill-buffer-and-window)
 
