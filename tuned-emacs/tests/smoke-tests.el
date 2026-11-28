@@ -117,16 +117,17 @@ A file-watch refresh waits `xl-git-status-refresh-delay' after the last
 event, so a pending one counts as work: otherwise the test looks before it
 has moved the buffer."
   (with-current-buffer buffer
-    (let ((end (+ (float-time) 10)))
+    (let ((key (xl-git-status--queue-key))
+          (end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
-                      (xl-async-queue-busy-p 'queue buffer)
+                      (xl-async-queue-busy-p key)
                       (xl-async-busy-p nil buffer)
                       (timerp (bound-and-true-p xl-git-status--watch-timer)))
                   (< (float-time) end))
-        (accept-process-output nil 0.05)))
-    (should buffer-read-only)
-    (should-not (xl-async-queue-busy-p 'queue buffer))
-    (should-not (xl-async-busy-p nil buffer))))
+        (accept-process-output nil 0.05))
+      (should buffer-read-only)
+      (should-not (xl-async-queue-busy-p key))
+      (should-not (xl-async-busy-p nil buffer)))))
 
 (defun xl-test--slot-show-now (buffer)
   "Make BUFFER's waiting mode-line loader appear now.
@@ -1409,7 +1410,7 @@ Both go when the status is rendered."
                   ;; Pretend the operation outlived the delay.
                   (xl-test--slot-show-now buffer)
                   (let ((end (+ (float-time) 10)))
-                    (while (and (xl-async-queue-busy-p 'queue)
+                    (while (and (xl-async-queue-busy-p (xl-git-status--queue-key))
                                 (< (float-time) end))
                       (accept-process-output nil 0.05)))
                   ;; The same loader carries on under a new label.
@@ -1567,31 +1568,34 @@ The staged file diff is unfolded so the restored line is visible."
 ;; open the window again; one that ends while the window is on screen refreshes it.
 (ert-deftest xl-git-status-drain-does-not-reopen-a-closed-status ()
   "The queue draining refreshes a status only when it is on screen."
-  (let ((buffer (generate-new-buffer " *git-status-drain-test*"))
-        (refreshed 0)
-        (popped 0))
-    (unwind-protect
-        (cl-letf (((symbol-function 'xl-git-status)
-                   (lambda (&rest _) (cl-incf refreshed)))
-                  ((symbol-function 'pop-to-buffer)
-                   (lambda (&rest _) (cl-incf popped)))
-                  ((symbol-function 'display-buffer)
-                   (lambda (&rest _) (cl-incf popped))))
-          (with-current-buffer buffer
-            (xl-spinner-mode-line-start "Pushing"))
-          ;; Closed: no refresh, no window, and the loader ends.
-          (xl-git-status--queue-drained buffer)
-          (should (= refreshed 0))
-          (should (= popped 0))
-          (with-current-buffer buffer
-            (should-not xl-git-status--queue-action))
-          ;; On screen: the status refreshes in place.
-          (cl-letf (((symbol-function 'get-buffer-window)
-                     (lambda (&rest _) 'window)))
-            (xl-git-status--queue-drained buffer))
-          (should (= refreshed 1))
-          (should (= popped 0)))
-      (kill-buffer buffer))))
+  (xl-test-with-temp-dir root
+    (let ((buffer (generate-new-buffer " *git-status-drain-test*"))
+          (refreshed 0)
+          (popped 0))
+      (unwind-protect
+          (cl-letf (((symbol-function 'xl-git-status)
+                     (lambda (&rest _) (cl-incf refreshed)))
+                    ((symbol-function 'pop-to-buffer)
+                     (lambda (&rest _) (cl-incf popped)))
+                    ((symbol-function 'display-buffer)
+                     (lambda (&rest _) (cl-incf popped))))
+            (with-current-buffer buffer
+              (xl-git-status-mode)
+              (setq default-directory (file-name-as-directory root))
+              (xl-spinner-mode-line-start "Pushing"))
+            ;; Closed: no refresh, no window, and the loader ends.
+            (xl-git-status--queue-drained (file-name-as-directory root))
+            (should (= refreshed 0))
+            (should (= popped 0))
+            (with-current-buffer buffer
+              (should-not xl-git-status--queue-action))
+            ;; On screen: the status refreshes in place.
+            (cl-letf (((symbol-function 'get-buffer-window)
+                       (lambda (&rest _) 'window)))
+              (xl-git-status--queue-drained (file-name-as-directory root)))
+            (should (= refreshed 1))
+            (should (= popped 0)))
+        (kill-buffer buffer)))))
 
 (ert-deftest xl-git-status-queues-operations-in-order ()
   "Rapid `s' presses run one git command at a time, then refresh once.
@@ -1612,7 +1616,7 @@ The loader is visible while the queue runs."
               (xl-git-status-stage)
               ;; The command returned with git still running: no blocking,
               ;; and no loader yet, because fast operations must not flicker.
-              (should (xl-async-busy-p 'queue))
+              (should (xl-async-queue-busy-p (xl-git-status--queue-key)))
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
               (should-not (xl-spinner-running-p))
@@ -2072,7 +2076,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (xl-git-status-fetch)
-              (should (xl-async-queue-busy-p 'queue)))
+              (should (xl-async-queue-busy-p (xl-git-status--queue-key))))
             (xl-test--wait-for-git-status buffer)
             ;; The branch stays where it was; only origin/<branch> moved.
             (should (equal before (xl-test--git-output repo "rev-parse" "HEAD")))
@@ -2119,7 +2123,8 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (should-error (xl-git-status-pull) :type 'user-error)
-              (should-not (xl-async-queue-busy-p 'queue)))))
+              (should-not (xl-async-queue-busy-p
+                           (xl-git-status--queue-key))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 
@@ -3271,6 +3276,83 @@ which Crafted still puts on `embark-collect-mode-hook'."
         (should (equal (cadadr calls) "Committed note.txt"))
         ;; Neither command cd's the buffer.
         (should (equal default-directory "/"))))))
+
+(ert-deftest xl-git-write-commands-join-the-repository-queue ()
+  "`Gwrite' and `Gcommit' queue their command instead of running it alone.
+The queue key is the repository, so they serialize with a pull."
+  (xl-test-with-temp-dir dir
+    (let ((file (expand-file-name "note.txt" dir))
+          jobs)
+      (cl-letf (((symbol-function 'xl-git-status--enqueue)
+                 (lambda (job) (push job jobs)))
+                ((symbol-function 'xl-async-run)
+                 (lambda (&rest _)
+                   (error "A G command must not run git alone"))))
+        (with-temp-buffer
+          (setq buffer-file-name file
+                default-directory dir)
+          (Gwrite))
+        (with-temp-buffer
+          (setq buffer-file-name file
+                default-directory dir)
+          (Gcommit)))
+      (setq jobs (nreverse jobs))
+      (should (= (length jobs) 2))
+      (should (equal (plist-get (nth 0 jobs) :attempts)
+                     (list (list "add" "--" file))))
+      (should (equal (plist-get (nth 0 jobs) :action) "Staged note.txt"))
+      (should (equal (plist-get (nth 1 jobs) :attempts)
+                     (list (list "commit" "-m" "Update note.txt"))))
+      (should (equal (plist-get (nth 1 jobs) :action) "Committed note.txt"))
+      (dolist (job jobs)
+        (should (equal (plist-get job :root)
+                       (file-name-as-directory (expand-file-name dir))))))))
+
+(ert-deftest xl-git-write-commands-run-in-order ()
+  "A Gwrite followed by a Gcommit commits the staged file.
+Both run on the repository queue, so the add finishes before the commit
+instead of the two racing over `.git/index.lock'."
+  (skip-unless (executable-find "git"))
+  (let ((dir (xl-test--git-repo)))
+    (unwind-protect
+        (let ((file (expand-file-name "file-0.txt" dir))
+              (key (xl-git-status--queue-key
+                    (file-name-as-directory dir))))
+          (xl-test--git-output dir "config" "user.email" "test@example.com")
+          (xl-test--git-output dir "config" "user.name" "Test")
+          (with-temp-file file
+            (insert "changed by the test\n"))
+          (with-temp-buffer
+            (setq buffer-file-name file
+                  default-directory dir)
+            (Gwrite)
+            (Gcommit))
+          (let ((deadline (+ (float-time) 30)))
+            (while (and (xl-async-queue-busy-p key)
+                        (< (float-time) deadline))
+              (accept-process-output nil 0.02)))
+          (should-not (xl-async-queue-busy-p key))
+          (should (equal (xl-test--git-output dir "log" "-1" "--format=%s")
+                         "Update file-0.txt"))
+          ;; The staged file was committed; the other edits are untouched.
+          (should-not (string-match-p
+                       "file-0\\.txt"
+                       (xl-test--git-output dir "status" "--porcelain"))))
+      (delete-directory dir t))))
+
+(ert-deftest xl-git-status-queue-key-is-per-repository ()
+  "The write queue key names the repository, however its path is written."
+  (let ((one (make-temp-file "xl-queue-key-one-" t))
+        (other (make-temp-file "xl-queue-key-two-" t)))
+    (unwind-protect
+        (let ((key (xl-git-status--queue-key one)))
+          (should (equal key (xl-git-status--queue-key
+                              (file-name-as-directory one))))
+          (should (equal key (xl-git-status--queue-key
+                              (expand-file-name "." one))))
+          (should-not (equal key (xl-git-status--queue-key other))))
+      (delete-directory one t)
+      (delete-directory other t))))
 
 (ert-deftest xl-just-commands-go-through-compile ()
   "`SPC c c' and the daily job run `just' asynchronously in a compile buffer.

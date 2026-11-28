@@ -82,7 +82,8 @@
 
 ;; The git processes belong to `xl-async': the four reads of a refresh run
 ;; in the slots `load-log', `load-status', `load-unstaged' and
-;; `load-staged', the staging and push operations in the queue `queue',
+;; `load-staged', the staging and push operations in one queue per
+;; repository (`xl-git-status--queue-key'), which the G commands share,
 ;; and `git show' in the commit buffer's slot `show'.
 
 (defvar-local xl-git-status--queue-action nil
@@ -160,7 +161,7 @@ more operations are queued; `xl-spinner' keeps it for its minimum time,
 so it never flashes."
   (setq xl-git-status--blank nil)
   (xl-git-status--draw-center nil)
-  (unless (xl-async-queue-busy-p 'queue)
+  (unless (xl-async-queue-busy-p (xl-git-status--queue-key))
     (xl-spinner-mode-line-stop)))
 
 (defun xl-git-status--start-spinner ()
@@ -589,6 +590,34 @@ OLD was."
 ;; Git processes
 ;; ============================================================
 
+(defun xl-git-status--queue-key (&optional root)
+  "Return the key of the write queue shared by ROOT's repository.
+Every Git command that writes the index or the refs of one repository
+takes this key, so they run one at a time: a pull and a Gwrite cannot
+fight over `.git/index.lock', and a Gwrite followed by a Gcommit runs in
+that order.  ROOT defaults to `default-directory'.  This is the only
+place that builds the key."
+  (cons (file-truename (file-name-as-directory (expand-file-name
+                                               (or root default-directory))))
+        'git-writes))
+
+(defun xl-git-status--buffer-for-root (root)
+  "Return the live status buffer showing ROOT's repository, or nil.
+Find it by directory, not by buffer name: two repositories with the
+same directory name would share a name."
+  (let ((root (file-truename (file-name-as-directory
+                              (expand-file-name root)))))
+    (seq-find (lambda (buffer)
+                (with-current-buffer buffer
+                  (and (derived-mode-p 'xl-git-status-mode)
+                       (not (xl-async-buffer-dying-p))
+                       (ignore-errors
+                         (equal (file-truename
+                                 (file-name-as-directory
+                                  (expand-file-name default-directory)))
+                                root)))))
+              (buffer-list))))
+
 (defun xl-git-status--git-command (args)
   "Return the full git command line for ARGS.
 `--no-optional-locks' stops a read such as `status' from rewriting
@@ -599,50 +628,63 @@ must write still lock as usual."
           args))
 
 (defun xl-git-status--enqueue (job)
-  "Queue JOB and start the queue if it is idle.
+  "Queue JOB on the write queue of its repository, given as :root.
 JOB is a plist with :root, :attempts (git argument lists, tried in
 order), :action (the message on success), :progress (the mode line
 label while it runs, defaulting to :action) and, for `git apply',
 :patch (the text to apply, sent on standard input).  `xl-async' runs
-one job at a time, so a rapid `s s s' stages in order instead of
-racing, and the status refreshes once when the queue drains.  The
-mode-line loader of `xl-spinner' names the running operation and how
+one job per repository at a time, so a rapid `s s s' stages in order
+instead of racing, a Gwrite waits for a running pull instead of failing
+on `index.lock', and the status refreshes once when the queue drains.
+The mode-line loader of `xl-spinner' names the running operation and how
 many wait behind it; fast local operations end before it appears.  It
-has no frame limit, because a push may take a while."
-  (let ((action (plist-get job :action))
-        (progress (or (plist-get job :progress) (plist-get job :action)))
-        (status-buffer (current-buffer)))
+has no frame limit, because a push may take a while.
+
+Only a status buffer shows the operation: a Gwrite from a file buffer
+starts no loader and is unowned, so closing the file buffer cannot kill
+a commit halfway through its hooks."
+  (let* ((root (plist-get job :root))
+         (status (and (derived-mode-p 'xl-git-status-mode) (current-buffer)))
+         (action (plist-get job :action))
+         (progress (or (plist-get job :progress) action)))
     (xl-async-enqueue
-     'queue
-     (list :directory (plist-get job :root)
+     (xl-git-status--queue-key root)
+     (list :directory root
+           :owner status
            :attempts (mapcar #'xl-git-status--git-command
                              (plist-get job :attempts))
            :stdin (plist-get job :patch)
            :on-start (lambda ()
-                       (setq xl-git-status--queue-action progress)
-                       (xl-spinner-mode-line-label (xl-git-status--queue-label)))
+                       (when (buffer-live-p status)
+                         (with-current-buffer status
+                           (setq xl-git-status--queue-action progress)
+                           (xl-spinner-mode-line-label
+                            (xl-git-status--queue-label root)))))
            :on-done (lambda (output code)
                       (if (zerop code)
                           (message "%s" action)
                         (message "%s failed: %s" action (string-trim output)))))
-     (lambda () (xl-git-status--queue-drained status-buffer))))
-  (xl-spinner-mode-line-start (xl-git-status--queue-label)))
+     (lambda () (xl-git-status--queue-drained root)))
+    (when status
+      (xl-spinner-mode-line-start (xl-git-status--queue-label root)))))
 
-(defun xl-git-status--queue-label ()
-  "Return the mode-line label of the operation queue.
+(defun xl-git-status--queue-label (&optional root)
+  "Return the mode-line label of ROOT's write queue.
 It names the running operation and, after it, how many wait."
-  (let ((waiting (xl-async-queue-length 'queue)))
+  (let ((waiting (xl-async-queue-length (xl-git-status--queue-key root))))
     (concat (or xl-git-status--queue-action "git")
             (if (> waiting 0) (format " +%d" waiting) ""))))
 
-(defun xl-git-status--queue-drained (buffer)
-  "Refresh BUFFER's status once its operation queue has run out of jobs.
+(defun xl-git-status--queue-drained (root)
+  "Refresh the status of ROOT once its write queue has run out of jobs.
+The drain belongs to the repository, not to the buffer that queued the
+last job, so it finds the status buffer showing ROOT by its directory.
 Only a status on screen is refreshed: a background push that finishes
 while the status window is closed must not open it again.  The refresh
 relabels the running loader \"Refreshing\" instead of ending it, so the
 mode line stays put until the new status is drawn.  A hidden status
 ends its loader here; opening it later refreshes it anyway."
-  (when (buffer-live-p buffer)
+  (when-let* ((buffer (xl-git-status--buffer-for-root root)))
     (with-current-buffer buffer
       (setq xl-git-status--queue-action nil)
       (if (get-buffer-window buffer t)
@@ -1392,13 +1434,14 @@ is included with each of its parents, so a new subdirectory is seen."
                           #'xl-git-status--auto-refresh buffer))))
 
 (defun xl-git-status--auto-refresh (buffer)
-  "Refresh BUFFER if it is on screen and the queue is idle.
+  "Refresh BUFFER if it is on screen and its repository queue is idle.
 A queue that is busy refreshes the status itself when it drains."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (setq xl-git-status--watch-timer nil)
       (when (and (get-buffer-window buffer t)
-                 (not (xl-async-queue-busy-p 'queue buffer)))
+                 (not (xl-async-queue-busy-p
+                       (xl-git-status--queue-key default-directory))))
         (xl-git-status)))))
 
 (defun xl-git-status--scan-watch-dirs (buffer root)

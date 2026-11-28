@@ -150,7 +150,7 @@ The suites run in `emacs --batch`, without a graphical frame:
 
 | File | Covers |
 | --- | --- |
-| `tests/smoke-tests.el` | Profile structure, key bindings, startup settings, Org, Magit, GBlame, status queue, dired, completion, restart, and more |
+| `tests/smoke-tests.el` | Profile structure, key bindings, startup settings, Org, Magit, GBlame, the Git write queue, dired, completion, restart, and more |
 | `tests/xl-async-tests.el`, `tests/xl-async-evaluate-tests.el` | Asynchronous process layer |
 | `tests/xl-dired-tests.el` | Asynchronous dired listings and previews |
 | `tests/xl-perfetto-trace-tests.el` | Trace recording and JSON output |
@@ -177,6 +177,7 @@ After a change, run `just emacs-check` (or the script equivalent).
 | --- | --- |
 | [doc/startup.md](doc/startup.md) | Startup sequence, package installation and the parallel fetch, the load order |
 | [doc/lisp-modules.md](doc/lisp-modules.md) | The personal Lisp modules: Git status, G commands, key bindings, spinners, Org babel, dired, personal settings |
+| [doc/xl-git-write-queue.md](doc/xl-git-write-queue.md) | One serial Git write queue per repository: Gwrite and Gcommit with pull |
 | [doc/windows.md](doc/windows.md) | Windows setup, platform differences, line endings |
 | [doc/xl-async.md](doc/xl-async.md) | The asynchronous process layer |
 | [doc/xl-eln-opt.md](doc/xl-eln-opt.md) | Background native compilation: sources, verdicts, the child, reports |

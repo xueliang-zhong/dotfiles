@@ -448,41 +448,33 @@ blocking.
 ;; ============================================================
 ;; The G* names match vim-fugitive's :Gwrite and :Gcommit, which are also
 ;; available as Ex commands.  Both act on the current file's directory, so
-;; they work from any buffer that visits a tracked file.
+;; they work from any buffer that visits a tracked file.  They queue their
+;; git commands on the repository, the same queue the status buffer uses
+;; for staging, push and pull, so the two never race over `.git/index.lock'
+;; and a Gwrite before a Gcommit always runs first.
 (defun xl-git-commands--file-directory ()
   "Return the current file's directory, or `default-directory'."
   (if buffer-file-name
       (file-name-directory (expand-file-name buffer-file-name))
     default-directory))
 
-(defun xl-git-commands--refresh-status (root)
-  "Refresh the status buffer showing ROOT, when it exists.  It is updated but
-not shown: Gwrite and Gcommit must not bring the status window up."
-  (when-let* ((repo (file-name-nondirectory (directory-file-name root)))
-              (buffer (get-buffer (format "*git-status: %s*" repo))))
-    (with-current-buffer buffer
-      (xl-git-status t))))
-
 (defun xl-git-commands--run (args action)
-  "Run git ARGS in the current file's folder in the background.
-Message ACTION on success, git's output on failure, and refresh the
-status buffer of the same repository.  A pre-commit hook that takes
-seconds no longer blocks Emacs.  The run is unowned: closing the file
-buffer must not kill a commit halfway through its hooks."
+  "Queue git ARGS on the current file's repository, message ACTION on success.
+The job joins the same queue as the status buffer's staging, push and
+pull, so a Gwrite cannot collide with a running pull over
+`.git/index.lock', and a Gwrite followed by a Gcommit runs in that
+order.  A pre-commit hook that takes seconds no longer blocks Emacs.
+The job is unowned: closing the file buffer must not kill a commit
+halfway through its hooks.  When it finishes, the queue's drain
+refreshes the repository's status buffer, if one exists, without
+showing it."
   (let* ((dir (xl-git-commands--file-directory))
          (root (or (locate-dominating-file dir ".git")
                    (file-name-as-directory (expand-file-name dir)))))
-    (xl-async-run
-     :name "xl-git-command"
-     :command (append '("git" "--no-pager" "-c" "core.quotepath=false") args)
-     :directory root
-     :owner nil
-     :on-done (lambda (output code)
-                (if (zerop code)
-                    (progn
-                      (message "%s" action)
-                      (xl-git-commands--refresh-status root))
-                  (message "%s failed: %s" action (string-trim output)))))))
+    (xl-git-status--enqueue
+     (list :root root
+           :attempts (list args)
+           :action action))))
 
 (defun Gwrite ()
   "Stage the current file, like vim-fugitive's :Gwrite."

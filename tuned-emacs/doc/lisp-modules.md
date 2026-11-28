@@ -28,7 +28,7 @@ A status summary that does not call Magit. It shows `Head:`, untracked files, un
 
 - `s` stages the hunk, file or section at point; `u` unstages; `X` discards (with a `y/n` prompt; this also deletes untracked files); `S` and `U` stage and unstage everything.
 - `p` opens a push menu, drawn with `set-transient-map` and which-key, with the target ref in the label. `p` pushes to the push remote, `u` to the upstream, and `e` to another remote, chosen in the minibuffer.
-- Every write operation goes through a single queue (`xl-git-status--queue`). Only one Git process runs at a time, so `s s s` runs in order. The loader appears only if an operation takes longer than `xl-git-status-queue-delay` (0.1 s).
+- Every write operation of a repository goes through one queue, keyed by the repository root (`xl-git-status--queue-key`), and `Gwrite`/`Gcommit` join the same queue. One Git write per repository runs at a time, so `s s s` runs in order and a `Gwrite` waits for a running pull instead of failing on `.git/index.lock`. The loader appears only if an operation takes longer than `xl-spinner-show-delay` (0.1 s).
 - The loader sits in the mode line, not the header line. A header line that appears and disappears moves the whole buffer by a line; the mode line stays put, so a slow push does not shift the window. It is at the far left, because `mode-line-process` is cut off when a split window is narrow.
 - After the queue drains, the status is refreshed once, silently.
 - After `s` or `u`, point stays on the same file or hunk. Hunks are matched by content, so renumbering does not move point. If the target disappears, point goes to the nearest heading.
@@ -47,7 +47,7 @@ Commands in the style of vim-fugitive:
 - `Gwrite` (`:Gwrite`) stages the current file.
 - `Gcommit` (`:Gcommit`) commits the current file with the message `Update <file name>`.
 
-`Gwrite` and `Gcommit` run `git` with `make-process` in the file's repository, then refresh that repository's status buffer. Failures are shown with `message`. A slow pre-commit hook therefore does not block Emacs, and the commands do not depend on evil.
+`Gwrite` and `Gcommit` queue their `git` command on the repository, the same queue the status buffer uses for staging, push and pull, then the queue's drain refreshes that repository's status buffer. Failures are shown with `message`. A slow pre-commit hook therefore does not block Emacs, the two cannot race over `.git/index.lock`, a `Gwrite` before a `Gcommit` always runs first, and the commands do not depend on evil.
 
 ## Shared async layer: `lisp/xl-async.el`
 
@@ -62,9 +62,9 @@ The status, GBlame, commit view and G commands each used to have their own `make
  :on-done (lambda (output code) ...))  ; called in the owner buffer
 ```
 
-Killing the owner buffer kills its process, and changing major mode does not lose ownership. `:owner nil` is for commands that should outlive their buffer, such as the `Gcommit` hook. `xl-async-enqueue` is a serial queue: one job at a time, and when a job fails the next command is tried. Status uses it for `s`, `u`, `X` and push.
+Killing the owner buffer kills its process, and changing major mode does not lose ownership. `:owner nil` is for commands that should outlive their buffer, such as the `Gcommit` hook. `xl-async-enqueue` is a serial queue: one job at a time, and when a job fails the next command is tried. A cons queue key is shared by every buffer that passes it, and a job may set its own `:owner` (or `nil`); the status buffer and the G commands use one key per repository. Status uses it for `s`, `u`, `X`, push, fetch, pull, `Gwrite` and `Gcommit`.
 
-See [xl-async.md](xl-async.md) for the design.
+See [xl-git-write-queue.md](xl-git-write-queue.md) for the repository queue, and [xl-async.md](xl-async.md) for the design of the async layer.
 
 ## Org source blocks: `lisp/xl-org-babel-async.el`
 
