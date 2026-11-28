@@ -244,6 +244,44 @@ default 0.008 is 125 frames per second, enough for a 120 Hz display."
 The list survives a recording, so a function traced once is traced by
 every following recording until `xl-perfetto-untrace-function'.")
 
+(defvar xl-perfetto--probes nil
+  "Registered probes, in installation order.
+Each entry is (FEATURE CATEGORY INSTALL).  CATEGORY nil means the probe
+runs for every recording.  A probe whose FEATURE is not loaded yet installs
+itself when the feature arrives during a recording.")
+
+(defmacro xl-perfetto-define-probe (feature category install)
+  "Register INSTALL as a probe that needs FEATURE and CATEGORY.
+CATEGORY nil means the probe is not tied to a trace category.  INSTALL is
+called when a recording starts, and again if FEATURE is loaded while one
+is running.  Probes live beside the recorder but only attach when their
+feature is present, so an unloaded package costs nothing."
+  `(progn
+     (setq xl-perfetto--probes
+           (append xl-perfetto--probes (list (list ',feature ,category ,install))))
+     (with-eval-after-load ',feature
+       (when (and xl-perfetto--recording
+                  (or (null ,category)
+                      (memq ,category xl-perfetto-trace-categories)))
+         (funcall ,install)))))
+
+(defmacro xl-perfetto-define-span-advice
+    (name function arglist call category track name-form &optional args-form skip-form)
+  "Define NAME as an :around span advice for FUNCTION.
+ARGLIST is the advice's arguments after the original; CALL invokes the
+original.  NAME-FORM and ARGS-FORM are evaluated after it, and SKIP-FORM,
+when given, runs the original without recording."
+  (declare (indent 6) (debug t))
+  `(defun ,name (original ,@arglist)
+     (if (or (not xl-perfetto--recording) xl-perfetto--inside ,skip-form)
+         ,call
+       (let ((start (xl-perfetto--elapsed)))
+         (unwind-protect
+             ,call
+           (xl-perfetto--record
+            "X" ,name-form ,category start
+            (- (xl-perfetto--elapsed) start) ,track ,args-form))))))
+
 (defvar xl-perfetto--function-origins (make-hash-table :test #'eq)
   "Map from an advised function object to the symbol that owns it.")
 
@@ -572,29 +610,17 @@ the trace holds no typed text."
 ;;; Processes
 ;;; ============================================================
 
-(defun xl-perfetto--process-filter-around (original process chunk)
-  "Time ORIGINAL, a filter of PROCESS receiving CHUNK."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (funcall original process chunk)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (funcall original process chunk)
-        (xl-perfetto--record
-         "X" (format "filter %s" (process-name process)) "processes"
-         start (- (xl-perfetto--elapsed) start) 3
-         (list :bytes (string-bytes chunk)))))))
+(xl-perfetto-define-span-advice xl-perfetto--process-filter-around
+  process (process chunk) (funcall original process chunk)
+  "processes" 3
+  (format "filter %s" (process-name process))
+  (list :bytes (string-bytes chunk)))
 
-(defun xl-perfetto--process-sentinel-around (original process event)
-  "Time ORIGINAL, a sentinel of PROCESS receiving EVENT."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (funcall original process event)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (funcall original process event)
-        (xl-perfetto--record
-         "X" (format "sentinel %s" (process-name process)) "processes"
-         start (- (xl-perfetto--elapsed) start) 3
-         (list :event event))))))
+(xl-perfetto-define-span-advice xl-perfetto--process-sentinel-around
+  process (process event) (funcall original process event)
+  "processes" 3
+  (format "sentinel %s" (process-name process))
+  (list :event event))
 
 (defun xl-perfetto--wrap-process (process)
   "Wrap PROCESS's filter and sentinel, once per recording."
@@ -767,34 +793,17 @@ switches modes, and that would bury the mode changes that matter."
 ;; through `completion-at-point', so it is timed on `vertico--update', the function
 ;; that recomputes and shows the candidates on each change of input.
 
-(defun xl-perfetto--vertico-around (original &rest args)
-  "Record `vertico--update' around ORIGINAL, called with ARGS, with its candidates."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed))
-          (candidates 0))
-      (unwind-protect
-          (apply original args)
-        (setq candidates (if (boundp 'vertico--total) vertico--total 0))
-        (xl-perfetto--record
-         "X" "vertico--update" "completion" start
-         (- (xl-perfetto--elapsed) start) 9
-         (list :candidates candidates))))))
+(xl-perfetto-define-span-advice xl-perfetto--vertico-around
+  vertico--update (&rest args) (apply original args)
+  "completion" 9 "vertico--update"
+  (list :candidates (if (boundp 'vertico--total) vertico--total 0)))
 
-(defun xl-perfetto--corfu-around (original &rest args)
-  "Record `corfu--update' around ORIGINAL, called with ARGS: the candidates
-of the in-buffer popup are computed here on every keystroke."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" "corfu--update" "completion" start
-         (- (xl-perfetto--elapsed) start) 9
-         (append (list :candidates (if (boundp 'corfu--total) corfu--total 0))
-                 (when xl-perfetto-trace-record-names
-                   (list :buffer (buffer-name)))))))))
+(xl-perfetto-define-span-advice xl-perfetto--corfu-around
+  corfu--update (&rest args) (apply original args)
+  "completion" 9 "corfu--update"
+  (append (list :candidates (if (boundp 'corfu--total) corfu--total 0))
+          (when xl-perfetto-trace-record-names
+            (list :buffer (buffer-name)))))
 
 (defun xl-perfetto--install-corfu ()
   "Advise `corfu--update' when corfu is loaded."
@@ -824,59 +833,27 @@ of the in-buffer popup are computed here on every keystroke."
 ;; no command runs until the text is inserted.
 ;; Only durations and candidate counts are recorded, never the pinyin or text.
 
-(defun xl-perfetto--pyim-input-around (original &rest args)
-  "Record a whole pyim composition around ORIGINAL, called with ARGS."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" "pyim-input-method" "input" start
-         (- (xl-perfetto--elapsed) start) 11
-         (append (list :mode (symbol-name major-mode))
-                 (when xl-perfetto-trace-record-names
-                   (list :buffer (buffer-name)))))))))
+(xl-perfetto-define-span-advice xl-perfetto--pyim-input-around
+  pyim-input-method (&rest args) (apply original args)
+  "input" 11 "pyim-input-method"
+  (append (list :mode (symbol-name major-mode))
+          (when xl-perfetto-trace-record-names
+            (list :buffer (buffer-name)))))
 
-(defun xl-perfetto--pyim-run-around (original &rest args)
-  "Record `pyim-process-run' around ORIGINAL, called with ARGS.
-The candidate count is the size of the list pyim just built."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed))
-          (candidates 0))
-      (unwind-protect
-          (apply original args)
-        (when (boundp 'pyim-process--candidates)
-          (setq candidates (length pyim-process--candidates)))
-        (xl-perfetto--record
-         "X" "pyim-process-run" "input" start
-         (- (xl-perfetto--elapsed) start) 11
-         (list :candidates candidates))))))
+(xl-perfetto-define-span-advice xl-perfetto--pyim-run-around
+  pyim-process-run (&rest args) (apply original args)
+  "input" 11 "pyim-process-run"
+  (list :candidates (if (boundp 'pyim-process--candidates)
+                        (length pyim-process--candidates)
+                      0)))
 
-(defun xl-perfetto--pyim-refresh-around (original &rest args)
-  "Record `pyim-page--refresh' around ORIGINAL, called with ARGS: the popup."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" "pyim-page--refresh" "input" start
-         (- (xl-perfetto--elapsed) start) 11)))))
+(xl-perfetto-define-span-advice xl-perfetto--pyim-refresh-around
+  pyim-page--refresh (&rest args) (apply original args)
+  "input" 11 "pyim-page--refresh")
 
-(defun xl-perfetto--pyim-select-around (original &rest args)
-  "Record `pyim-select-word' around ORIGINAL, called with ARGS: the commit.
-Its duration covers inserting the text and the `after-change' hooks that
-follow, which is what makes a commit feel slow."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" "pyim-select-word" "input" start
-         (- (xl-perfetto--elapsed) start) 11)))))
+(xl-perfetto-define-span-advice xl-perfetto--pyim-select-around
+  pyim-select-word (&rest args) (apply original args)
+  "input" 11 "pyim-select-word")
 
 (defun xl-perfetto--install-input ()
   "Advise pyim's entry points.  Loads pyim when it is installed."
@@ -1370,25 +1347,15 @@ is refused unless native compilation is unavailable."
   (when (advice-member-p #'xl-perfetto--function-advice function)
     (advice-remove function #'xl-perfetto--function-advice)))
 
-(defun xl-perfetto--function-advice (original &rest args)
-  "Record a span around ORIGINAL, called with ARGS.
-The symbol whose function is ORIGINAL is looked up so the event can name
-it; a non-local exit still ends the span and then propagates."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let* ((function (gethash original xl-perfetto--function-origins))
-           (name (or function "function"))
-           (start (xl-perfetto--elapsed))
-           (buffer (and xl-perfetto-trace-record-names (buffer-name)))
-           (file (and xl-perfetto-trace-record-names (buffer-file-name)))
-           (mode (symbol-name major-mode)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" name "functions" start (- (xl-perfetto--elapsed) start) 6
-         (append (list :mode mode)
-                 (when buffer (list :buffer buffer))
-                 (when file (list :file file))))))))
+(xl-perfetto-define-span-advice xl-perfetto--function-advice
+  emacs (&rest args) (apply original args)
+  "functions" 6
+  (or (gethash original xl-perfetto--function-origins) "function")
+  (append (list :mode (symbol-name major-mode))
+          (when xl-perfetto-trace-record-names
+            (list :buffer (buffer-name)))
+          (when xl-perfetto-trace-record-names
+            (list :file (buffer-file-name)))))
 
 ;;;###autoload
 (defmacro xl-perfetto-with-span (name &rest body)
@@ -1417,20 +1384,12 @@ non-local exit still ends the span."
 ;;; Installation and teardown
 ;;; ============================================================
 
-(defun xl-perfetto--mx-around (original &rest args)
-  "Record the command that M-x runs as its own span, named \"M-x NAME\".
-The command loop sees only `execute-extended-command'; the command it runs
-is `this-command' once that returns."
-  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
-      (apply original args)
-    (let ((start (xl-perfetto--elapsed)))
-      (unwind-protect
-          (apply original args)
-        (xl-perfetto--record
-         "X" (format "M-x %s" (or this-command "?")) "commands" start
-         (- (xl-perfetto--elapsed) start) 1
-         (when xl-perfetto-trace-record-names
-           (list :buffer (buffer-name))))))))
+(xl-perfetto-define-span-advice xl-perfetto--mx-around
+  execute-extended-command (&rest args) (apply original args)
+  "commands" 1
+  (format "M-x %s" (or this-command "?"))
+  (when xl-perfetto-trace-record-names
+    (list :buffer (buffer-name))))
 
 (defun xl-perfetto--install-commands ()
   "Install the command hooks, first and last, and the M-x span."
@@ -1556,25 +1515,41 @@ END at the back, so the span covers every other function in it.")
             (setq xl-perfetto--auto-stop-timer nil))
           xl-perfetto--installed)))
 
+;; Each probe names the feature it needs and the category that selects it.
+;; Built-in probes use the always-present `emacs' feature; optional packages
+;; attach only when they are loaded, and attach themselves if they load
+;; during a recording.
+(xl-perfetto-define-probe emacs 'commands #'xl-perfetto--install-commands)
+(xl-perfetto-define-probe timer 'timers #'xl-perfetto--install-timers)
+(xl-perfetto-define-probe emacs 'processes #'xl-perfetto--install-processes)
+(xl-perfetto-define-probe xl-async 'xl-async #'xl-perfetto--install-async)
+(xl-perfetto-define-probe emacs 'gc #'xl-perfetto--install-gc)
+(xl-perfetto-define-probe emacs 'redisplay #'xl-perfetto--install-redisplay)
+(xl-perfetto-define-probe emacs 'functions #'xl-perfetto--install-functions)
+(xl-perfetto-define-probe emacs 'modes #'xl-perfetto--install-modes)
+(xl-perfetto-define-probe emacs 'completion #'xl-perfetto--install-completion)
+(xl-perfetto-define-probe vertico 'completion #'xl-perfetto--install-vertico)
+(xl-perfetto-define-probe corfu 'completion #'xl-perfetto--install-corfu)
+;; `xl-perfetto--install-input' loads pyim itself, as before, so a recording
+;; made before pyim was first used still covers typing Chinese.
+(xl-perfetto-define-probe emacs 'input #'xl-perfetto--install-input)
+(xl-perfetto-define-probe emacs 'files #'xl-perfetto--install-files)
+;; The scan timer also refreshes the mode-line indicator, so it runs
+;; whatever categories are selected.
+(xl-perfetto-define-probe emacs nil #'xl-perfetto--install-scan)
+
+(defun xl-perfetto--install-probes ()
+  "Install every registered probe whose feature and category apply."
+  (dolist (probe xl-perfetto--probes)
+    (pcase-let ((`(,feature ,category ,install) probe))
+      (when (and (or (null category)
+                     (memq category xl-perfetto-trace-categories))
+                 (featurep feature))
+        (funcall install)))))
+
 (defun xl-perfetto--install ()
   "Install the instrumentation the selected categories ask for."
-  (let ((categories xl-perfetto-trace-categories))
-    (when (memq 'commands categories) (xl-perfetto--install-commands))
-    (when (memq 'timers categories) (xl-perfetto--install-timers))
-    (when (memq 'processes categories) (xl-perfetto--install-processes))
-    (when (memq 'xl-async categories) (xl-perfetto--install-async))
-    (when (memq 'gc categories) (xl-perfetto--install-gc))
-    (when (memq 'redisplay categories) (xl-perfetto--install-redisplay))
-    (when (memq 'functions categories) (xl-perfetto--install-functions))
-    (when (memq 'modes categories) (xl-perfetto--install-modes))
-    (when (memq 'completion categories) (xl-perfetto--install-completion))
-    (when (memq 'completion categories) (xl-perfetto--install-vertico))
-    (when (memq 'completion categories) (xl-perfetto--install-corfu))
-    (when (memq 'input categories) (xl-perfetto--install-input))
-    (when (memq 'files categories) (xl-perfetto--install-files))
-    ;; The scan timer also refreshes the mode-line indicator, so it runs
-    ;; whatever categories are selected.
-    (xl-perfetto--install-scan)))
+  (xl-perfetto--install-probes))
 
 (defun xl-perfetto--uninstall-all ()
   "Run every cleanup function, most recently installed first."

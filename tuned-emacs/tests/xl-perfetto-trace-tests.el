@@ -11,15 +11,17 @@
 (require 'xl-perfetto-trace)
 (require 'xl-async)
 
-;; pyim is not in this isolated suite (it runs with -Q).  A stub keeps the
-;; input category testable: the recorder only needs its four entry points.
-(unless (require 'pyim nil t)
-  (defvar pyim-process--candidates nil)
-  (defun pyim-input-method (&rest _) t)
-  (defun pyim-process-run () nil)
-  (defun pyim-page--refresh (&rest _) nil)
-  (defun pyim-select-word (&rest _) nil)
-  (provide 'pyim))
+;; The recorder only needs pyim's four entry points.  Replace them with
+;; stubs even when the real package is installed: the test must not enter the
+;; interactive input loop, whether it runs alone or with the profile's
+;; packages activated.
+(require 'pyim nil t)
+(defvar pyim-process--candidates nil)
+(defun pyim-input-method (&rest _) t)
+(defun pyim-process-run () nil)
+(defun pyim-page--refresh (&rest _) nil)
+(defun pyim-select-word (&rest _) nil)
+(provide 'pyim)
 
 (defun xlpt--wait (pred &optional seconds)
   "Run the event loop until PRED returns non-nil, or SECONDS pass."
