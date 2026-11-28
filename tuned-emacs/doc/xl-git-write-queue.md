@@ -1,8 +1,9 @@
 # One Git write queue per repository
 
 Status: implemented. `xl-async` gained explicit queue keys and a per-job
-owner; `xl-git-status` owns the key of a repository; `xl-git-commands`
-queues `Gwrite` and `Gcommit` on it.
+owner; `xl-git-core` owns the key of a repository and the queue;
+`xl-git-status` supplies the status loader and registers its refresh with
+the core; `xl-git-commands` queues `Gwrite` and `Gcommit` on the core.
 
 ## Problem
 
@@ -44,9 +45,9 @@ buffer's `default-directory` agree. A linked worktree has its own index,
 so its own key: two worktrees of one repository still write concurrently,
 which is correct.
 
-`xl-git-status--queue-key` is the only place that builds the key. Every
-queue operation must go through it; building a key by hand would silently
-create a second queue.
+`xl-git-status--queue-key` (in `xl-git-core`) is the only place that builds
+the key. Every queue operation must go through it; building a key by hand
+would silently create a second queue.
 
 ### Explicit keys in `xl-async`
 
@@ -94,7 +95,8 @@ command, and the queue moves on.
 ### Drain and refresh
 
 `ON-DRAIN` is per queue and a new push replaces it, so it cannot capture
-the buffer that enqueued. The Git drain therefore takes the root and finds
+the buffer that enqueued. The core's default drain calls the refresh
+function the status view registered; that function takes the root and finds
 the status buffer that shows it:
 
 - a visible status buffer reloads once, silently;
@@ -149,7 +151,7 @@ In `tests/xl-async-tests.el`:
 In `tests/smoke-tests.el`:
 
 - `Gwrite` and `Gcommit` pass `:root`, `:attempts` and `:action` to the
-  queue instead of starting a process themselves;
+  core queue instead of starting a process themselves;
 - in a real repository, `Gwrite` then `Gcommit` produces the commit
   `Update <file>` and leaves that file out of `git status`;
 - the queue key is equal for the same repository written with or without a

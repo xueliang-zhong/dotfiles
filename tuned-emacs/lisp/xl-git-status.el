@@ -2,7 +2,7 @@
 
 ;; Author: Xueliang Zhong
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "30.1"))
+;; Package-Requires: ((emacs "30.1") (xl-async "0.1.0") (xl-git-core "0.1.0") (xl-git-show "0.1.0"))
 ;; Keywords: tools, vc, convenience
 
 ;;; Commentary:
@@ -20,71 +20,28 @@
 ;; delay, with `p' for the push remote, `u' for the upstream and `e' for
 ;; anywhere else.
 ;;
-;; The vim-fugitive style G* commands (Gstatus, Gblame, Gwrite, Gcommit)
-;; live in xl-git-commands.el, which loads after this file.
+;; The Git processes, the parsing and the write queue live in
+;; xl-git-core.el; the faces, the diff insertion and the commit view live in
+;; xl-git-show.el.  This file draws the status, owns the mode and its keys,
+;; and keeps the visible buffer fresh.  The vim-fugitive style G* commands
+;; (Gstatus, Gblame, Gwrite, Gcommit) live in xl-git-commands.el.
 
 ;;; Code:
 
-(require 'subr-x)    ; string-trim-right
-(require 'seq)       ; seq-find, seq-remove
-(require 'xl-async) ; the shared loading indicator
+(require 'subr-x)       ; string-trim-right
+(require 'seq)          ; seq-find, seq-remove
+(require 'xl-async)     ; the shared loading indicator and write queue
+(require 'xl-spinner)
+(require 'xl-git-core)
+(require 'xl-git-show)
 (autoload 'file-notify-add-watch "filenotify")
 (autoload 'file-notify-rm-watch "filenotify")
 
-(defgroup xl-git-status nil
-  "Faces for `xl-git-status'."
-  :group 'tools)
-
-(defface xl-git-status-heading
-  '((t :inherit font-lock-keyword-face :weight bold))
-  "Face for Git status section headings."
-  :group 'xl-git-status)
-
-(defface xl-git-status-branch
-  '((t :inherit font-lock-keyword-face))
-  "Face for the current branch in a Git status buffer."
-  :group 'xl-git-status)
-
-(defface xl-git-status-file
-  '((t :inherit font-lock-function-name-face))
-  "Face for changed file names."
-  :group 'xl-git-status)
-
-(defface xl-git-status-status
-  '((t :inherit font-lock-string-face))
-  "Face for status labels such as \"modified\"."
-  :group 'xl-git-status)
-
-(defface xl-git-status-deleted
-  '((t :inherit font-lock-warning-face))
-  "Face for deleted and unmerged files."
-  :group 'xl-git-status)
-
-(defface xl-git-status-hash
-  '((t :inherit font-lock-variable-name-face))
-  "Face for commit hashes."
-  :group 'xl-git-status)
-
-(defface xl-git-status-ref
-  '((t :inherit font-lock-string-face :box t))
-  "Face for branch and tag decorations in the log."
-  :group 'xl-git-status)
-
-(defface xl-git-status-comment
-  '((t :inherit font-lock-comment-face))
-  "Face for status notes such as a clean working tree."
-  :group 'xl-git-status)
-
-(defface xl-git-status-hunk-heading
-  '((t :inherit diff-hunk-header))
-  "Face for diff hunk headings."
-  :group 'xl-git-status)
-
 ;; The git processes belong to `xl-async': the four reads of a refresh run
 ;; in the slots `load-log', `load-status', `load-unstaged' and
-;; `load-staged', the staging and push operations in one queue per
-;; repository (`xl-git-status--queue-key'), which the G commands share,
-;; and `git show' in the commit buffer's slot `show'.
+;; `load-staged', and the staging and push operations in the write queue of
+;; the repository, which xl-git-core owns and the G commands share.
+;; `git show' runs in the commit buffer's slot `show' in xl-git-show.
 
 (defvar-local xl-git-status--queue-action nil
   "What the queued operation is doing, for the mode line.")
@@ -118,6 +75,7 @@ it rather than on its heading).")
 
 (defvar-local xl-git-status--head-upstream nil
   "Upstream ref of the last render, e.g. \"origin/master\", or nil.")
+
 
 ;; ============================================================
 ;; Loading indicator
@@ -169,218 +127,6 @@ so it never flashes."
   (setq xl-git-status--blank t)
   (xl-spinner-mode-line-start "git status" :also #'xl-git-status--draw-center))
 
-;; ============================================================
-;; Parsing
-;; ============================================================
-
-(defun xl-git-status--label (char)
-  "Return a human-readable label for porcelain status CHAR."
-  (pcase char
-    (?M "modified")
-    (?A "new file")
-    (?D "deleted")
-    (?R "renamed")
-    (?C "copied")
-    (?U "unmerged")
-    (?? "untracked")
-    (_ "changed")))
-
-(defun xl-git-status--head-line (status)
-  "Return the `## branch' line of porcelain STATUS output.
-The output is NUL-separated (`-z'); a newline also ends the line."
-  (car (split-string status "[\0\n]")))
-
-(defun xl-git-status--branch (status)
-  "Return the branch name from porcelain STATUS output."
-  (let ((line (xl-git-status--head-line status)))
-    (cond
-     ((string-match "\\`## No commits yet on \\(.+\\)\\'" line)
-      (match-string 1 line))
-     ((string-match "\\`## HEAD (no branch)" line) "detached HEAD")
-     ((string-match "\\`## \\([^ \n]+\\)" line)
-      (let ((branch (match-string 1 line)))
-        (if (string-match "\\`\\(.*\\)\\.\\.\\." branch)
-            (match-string 1 branch)
-          branch)))
-     (t ""))))
-
-(defun xl-git-status--upstream (status)
-  "Return the upstream ref from porcelain STATUS output, or nil."
-  (let ((line (xl-git-status--head-line status)))
-    (when (string-match "\\`## [^ \n]+\\.\\.\\.\\([^ \n]+\\)" line)
-      (match-string 1 line))))
-
-(defun xl-git-status--subject (log)
-  "Return the newest commit's subject from LOG output."
-  (let ((line (car (split-string log "\n"))))
-    (if (string-match "\\`[0-9a-f]+ \\(?:([^)]*) \\)?\\(.*\\)\\'" line)
-        (match-string 1 line)
-      "")))
-
-(defun xl-git-status--entries (status)
-  "Return (STAGED UNSTAGED UNTRACKED) file entries from STATUS output.
-STATUS is `git status --porcelain=v1 --branch -z': NUL-separated
-records with raw paths.  Without `-z' git wraps a path with a space
-in quotes, which `git add' then takes literally."
-  (let ((records (cdr (split-string status "\0" t)))
-        staged unstaged untracked)
-    (while records
-      (let ((line (pop records)))
-        (when (>= (length line) 3)
-          (let ((x (aref line 0))
-                (y (aref line 1))
-                (path (substring line 3)))
-            ;; A rename or copy is followed by a record with the old path;
-            ;; act on the new one.
-            (when (or (memq x '(?R ?C)) (memq y '(?R ?C)))
-              (pop records))
-            (if (and (eq x ??) (eq y ??))
-                (push (cons "untracked" path) untracked)
-              (unless (memq x '(?\s ?! ??))
-                (push (cons (xl-git-status--label x) path) staged))
-              (unless (memq y '(?\s ?! ??))
-                (push (cons (xl-git-status--label y) path) unstaged)))))))
-    (list (nreverse staged) (nreverse unstaged) (nreverse untracked))))
-
-(defun xl-git-status--label-face (label)
-  "Return the face for status LABEL."
-  (pcase label
-    ((or "deleted" "unmerged") 'xl-git-status-deleted)
-    ((or "renamed" "copied") 'xl-git-status-file)
-    (_ 'xl-git-status-status)))
-
-;; ============================================================
-;; Diff view
-;; ============================================================
-
-(defun xl-git-status--split-diff (text)
-  "Split diff TEXT into its header and hunks.
-Return (HEADER HUNKS): HEADER is the text before the first hunk and
-HUNKS is a list of line lists, each starting with its `@@' line."
-  (let (header hunk hunks)
-    (dolist (line (split-string (string-trim-right text) "\n"))
-      (cond
-       ((string-prefix-p "@@" line)
-        (when hunk (push (nreverse hunk) hunks))
-        (setq hunk (list line)))
-       (hunk (push line hunk))
-       (t (push line header))))
-    (when hunk (push (nreverse hunk) hunks))
-    (list (mapconcat #'identity (nreverse header) "\n") (nreverse hunks))))
-
-(defun xl-git-status--diff-path (lines)
-  "Return the path a per-file diff, given as LINES, applies to, or nil.
-A rename or copy names it on its `rename to'/`copy to' line.
-Otherwise the `diff --git a/X b/X' line names the same X twice, which
-holds even when X has spaces; `diff --cc X' names it once."
-  (let ((first (car lines)))
-    (or (seq-some (lambda (line)
-                    (and (string-match "\\`\\(?:rename\\|copy\\) to \\(.*\\)\\'" line)
-                         (match-string 1 line)))
-                  (seq-take-while (lambda (line) (not (string-prefix-p "@@" line)))
-                                  (cdr lines)))
-        (and (string-prefix-p "diff --cc " first)
-             (substring first 10))
-        (let* ((rest (substring first (length "diff --git ")))
-               (n (/ (- (length rest) 5) 2))
-               (path (and (> n 0) (substring rest 2 (+ 2 n)))))
-          (and path
-               (string= rest (concat "a/" path " b/" path))
-               path)))))
-
-(defun xl-git-status--split-files (text)
-  "Split the diff TEXT of many files into a list of (PATH . DIFF).
-Each DIFF starts at its `diff --git' line, the same text `git diff --
-PATH' prints for that file alone.  A header whose path cannot be read
-\(a C-quoted name with control characters) is left out."
-  (let (chunks lines)
-    (dolist (line (split-string (string-trim-right text "\n+") "\n"))
-      (when (string-match-p "\\`diff --\\(?:git\\|cc\\) " line)
-        (when lines (push (nreverse lines) chunks))
-        (setq lines nil))
-      (when (or lines (string-match-p "\\`diff --\\(?:git\\|cc\\) " line))
-        (push line lines)))
-    (when lines (push (nreverse lines) chunks))
-    (delq nil
-          (mapcar (lambda (chunk)
-                    (when-let* ((path (xl-git-status--diff-path chunk)))
-                      (cons path (concat (mapconcat #'identity chunk "\n") "\n"))))
-                  (nreverse chunks)))))
-
-(defun xl-git-status--header-notes (header)
-  "Return the informative lines of a diff HEADER.
-The file name already appears on the section line, so drop the
-`diff --git', `index', `---' and `+++' lines."
-  (seq-remove (lambda (line)
-                (or (string-empty-p line)
-                    (string-match-p "\\`\\(?:diff --git \\|index \\|--- \\|\\+\\+\\+ \\)"
-                                    line)))
-              (split-string header "\n")))
-
-(defun xl-git-status--diff-line-face (line)
-  "Return the face for one LINE of a diff."
-  (if (string-empty-p line)
-      'diff-context
-    (pcase (aref line 0)
-      (?+ 'diff-added)
-      (?- 'diff-removed)
-      (_ 'diff-context))))
-
-(defun xl-git-status--insert-diff (status path text)
-  "Insert diff TEXT for PATH with STATUS as foldable hunk sections."
-  (let* ((parts (xl-git-status--split-diff text))
-         (header (car parts))
-         (hunks (cadr parts)))
-    (if (null hunks)
-        ;; Binary files and mode changes have no hunks, only header lines.
-        (dolist (line (xl-git-status--header-notes header))
-          (insert (propertize (concat line "\n") 'face 'diff-header)))
-      (let ((index 0))
-        (dolist (hunk hunks)
-          (setq index (1+ index))
-          (let* ((patch (concat (if (string-empty-p header) "" (concat header "\n"))
-                                (mapconcat #'identity hunk "\n") "\n"))
-                 (section (list :key (format "hunk:%s:%s:%d" status path index)
-                                :kind 'hunk
-                                :status status
-                                :path path
-                                :patch patch
-                                :hunk-text (mapconcat #'identity hunk "\n")
-                                :heading-start (point))))
-            (insert (propertize (concat (car hunk) "\n")
-                                'face 'xl-git-status-hunk-heading))
-            (plist-put section :content-start (point))
-            (dolist (line (cdr hunk))
-              (insert (propertize (concat line "\n")
-                                  'face (xl-git-status--diff-line-face line))))
-            (plist-put section :content-end (point))
-            (push section xl-git-status--sections)))))))
-
-(defun xl-git-status--insert-commit (line)
-  "Insert one LINE from `git log --oneline --decorate' with faces."
-  (if (not (string-match "\\`\\([0-9a-f]+\\) \\(?:(\\([^)]*\\)) \\)?\\(.*\\)\\'" line))
-      (insert (concat line "\n"))
-    ;; Capture the groups before `split-string' overwrites the match data.
-    (let* ((hash (match-string 1 line))
-           (refs-raw (match-string 2 line))
-           (subject (or (match-string 3 line) ""))
-           (refs (and refs-raw
-                      (seq-remove (lambda (ref)
-                                    (or (string-prefix-p "HEAD -> " ref)
-                                        (string-prefix-p "origin/HEAD -> " ref)
-                                        (string= ref "origin/HEAD")))
-                                  (split-string refs-raw ", " t))))
-           (text (concat
-                  (propertize hash 'face 'xl-git-status-hash)
-                  " "
-                  (if refs
-                      (concat (mapconcat (lambda (ref)
-                                           (propertize ref 'face 'xl-git-status-ref))
-                                         refs " ")
-                              " ")
-                    "")
-                  subject "\n")))
-      (insert (propertize text 'xl-git-status-commit hash)))))
 
 ;; ============================================================
 ;; Sections and folding
@@ -586,20 +332,6 @@ OLD was."
     (dolist (window (get-buffer-window-list (current-buffer) nil t))
       (set-window-point window target))))
 
-;; ============================================================
-;; Git processes
-;; ============================================================
-
-(defun xl-git-status--queue-key (&optional root)
-  "Return the key of the write queue shared by ROOT's repository.
-Every Git command that writes the index or the refs of one repository
-takes this key, so they run one at a time: a pull and a Gwrite cannot
-fight over `.git/index.lock', and a Gwrite followed by a Gcommit runs in
-that order.  ROOT defaults to `default-directory'.  This is the only
-place that builds the key."
-  (cons (file-truename (file-name-as-directory (expand-file-name
-                                               (or root default-directory))))
-        'git-writes))
 
 (defun xl-git-status--buffer-for-root (root)
   "Return the live status buffer showing ROOT's repository, or nil.
@@ -618,52 +350,27 @@ same directory name would share a name."
                                 root)))))
               (buffer-list))))
 
-(defun xl-git-status--git-command (args)
-  "Return the full git command line for ARGS.
-`--no-optional-locks' stops a read such as `status' from rewriting
-.git/index.  That rewrite is a change the auto refresh watches for, so
-without the flag each refresh would trigger the next one.  Commands that
-must write still lock as usual."
-  (append '("git" "--no-pager" "--no-optional-locks" "-c" "core.quotepath=false")
-          args))
-
 (defun xl-git-status--enqueue (job)
-  "Queue JOB on the write queue of its repository, given as :root.
-JOB is a plist with :root, :attempts (git argument lists, tried in
-order), :action (the message on success), :progress (the mode line
-label while it runs, defaulting to :action) and, for `git apply',
-:patch (the text to apply, sent on standard input).  `xl-async' runs
-one job per repository at a time, so a rapid `s s s' stages in order
-instead of racing, a Gwrite waits for a running pull instead of failing
-on `index.lock', and the status refreshes once when the queue drains.
-The mode-line loader of `xl-spinner' names the running operation and how
-many wait behind it; fast local operations end before it appears.  It
-has no frame limit, because a push may take a while.
-
+  "Queue JOB on the write queue of its repository, with the status loader.
+JOB is a plist with :root, :attempts, :action, :progress (the mode line
+label while it runs, defaulting to :action) and, for `git apply', :patch.
 Only a status buffer shows the operation: a Gwrite from a file buffer
-starts no loader and is unowned, so closing the file buffer cannot kill
-a commit halfway through its hooks."
+starts no loader and is unowned, so closing the file buffer cannot kill a
+commit halfway through its hooks.  The queue refreshes the status once it
+drains; see `xl-git-core-enqueue'."
   (let* ((root (plist-get job :root))
          (status (and (derived-mode-p 'xl-git-status-mode) (current-buffer)))
          (action (plist-get job :action))
          (progress (or (plist-get job :progress) action)))
-    (xl-async-enqueue
-     (xl-git-status--queue-key root)
-     (list :directory root
-           :owner status
-           :attempts (mapcar #'xl-git-status--git-command
-                             (plist-get job :attempts))
-           :stdin (plist-get job :patch)
-           :on-start (lambda ()
-                       (when (buffer-live-p status)
-                         (with-current-buffer status
-                           (setq xl-git-status--queue-action progress)
-                           (xl-spinner-mode-line-label
-                            (xl-git-status--queue-label root)))))
-           :on-done (lambda (output code)
-                      (if (zerop code)
-                          (message "%s" action)
-                        (message "%s failed: %s" action (string-trim output)))))
+    (xl-git-core-enqueue
+     (append job
+             (list :owner status
+                   :on-start (lambda ()
+                               (when (buffer-live-p status)
+                                 (with-current-buffer status
+                                   (setq xl-git-status--queue-action progress)
+                                   (xl-spinner-mode-line-label
+                                    (xl-git-status--queue-label root)))))))
      (lambda () (xl-git-status--queue-drained root)))
     (when status
       (xl-spinner-mode-line-start (xl-git-status--queue-label root)))))
@@ -690,20 +397,6 @@ ends its loader here; opening it later refreshes it anyway."
       (if (get-buffer-window buffer t)
           (save-selected-window (xl-git-status))
         (xl-spinner-mode-line-stop)))))
-
-(defun xl-git-status--git-string (root &rest args)
-  "Return the trimmed output of git ARGS run in ROOT, or nil.
-A failing command, or one that prints nothing, returns nil.  This
-runs synchronously and is only for the small config lookups the push
-menu needs; the status, diff and log reads, and every write, stay
-asynchronous."
-  (with-temp-buffer
-    (let ((default-directory root)
-          (code (apply #'call-process "git" nil t nil
-                       "--no-pager" "-c" "core.quotepath=false" args)))
-      (when (zerop code)
-        (let ((text (string-trim (buffer-string))))
-          (unless (string-empty-p text) text))))))
 
 ;; ============================================================
 ;; Operations
@@ -1003,116 +696,6 @@ push runs in the background queue."
       (message "Push %s to: p %s, u %s, e elsewhere"
                branch (or push "push remote") (or upstream "upstream")))))
 
-(defun xl-git-status--show-line-face (line)
-  "Return the face for one LINE of `git show' diff output."
-  (cond
-   ((string-prefix-p "@@" line) 'xl-git-status-hunk-heading)
-   ((string-prefix-p "+++" line) 'diff-header)
-   ((string-prefix-p "---" line) 'diff-header)
-   ((string-prefix-p "+" line) 'diff-added)
-   ((string-prefix-p "-" line) 'diff-removed)
-   ((string-match-p
-     "\\`\\(?:diff --\\(?:git\\|cc\\|combined\\) \\|index \\|new file mode \\|deleted file mode \\|old mode \\|new mode \\|similarity index \\|dissimilarity index \\|rename \\|copy \\|Binary files \\)"
-     line)
-    'diff-header)
-   (t 'diff-context)))
-
-(defun xl-git-status--insert-show-header-line (line)
-  "Insert one LINE of a `git show' commit header with faces."
-  (cond
-   ((string-match "\\`commit \\([0-9a-f]+\\)\\'" line)
-    (insert (propertize "commit " 'face 'xl-git-status-heading)
-            (propertize (match-string 1 line) 'face 'xl-git-status-hash)
-            "\n"))
-   ((string-match "\\`\\(Author\\|Date\\|Merge\\|Committer\\): *\\(.*\\)\\'" line)
-    (insert (propertize (concat (match-string 1 line) ":")
-                        'face 'xl-git-status-heading)
-            " " (match-string 2 line) "\n"))
-   (t (insert line "\n"))))
-
-(defun xl-git-status--insert-show (text)
-  "Insert `git show' output TEXT, styled like the status buffer.
-The commit header gets the status faces and every diff line the same
-added, removed, context and hunk-heading faces as the status hunks."
-  (let ((header t))
-    (dolist (line (split-string (string-trim-right text) "\n"))
-      (when (and header
-                 (string-match-p "\\`diff --\\(?:git\\|cc\\|combined\\) " line))
-        (setq header nil))
-      (if header
-          (xl-git-status--insert-show-header-line line)
-        (insert (propertize (concat line "\n")
-                            'face (xl-git-status--show-line-face line)))))))
-
-;; ============================================================
-;; Commit view
-;; ============================================================
-;; `git show' runs in the background: the buffer opens at once with the
-;; commit hash and a loader, and is filled when the diff arrives.  A new
-;; request for the same buffer (another commit, or the same hash again)
-;; discards the older answer.
-(defvar-local xl-git-status--show-spinner nil
-  "Overlay drawing the loader in this commit buffer.")
-
-(defun xl-git-status--show-draw (text)
-  "Show TEXT in this commit buffer's loader; nil removes it."
-  (if (and text (overlayp xl-git-status--show-spinner))
-      (overlay-put xl-git-status--show-spinner 'display text)
-    (when (overlayp xl-git-status--show-spinner)
-      (delete-overlay xl-git-status--show-spinner)
-      (setq xl-git-status--show-spinner nil))))
-
-(defun xl-git-status--show-teardown ()
-  "Stop this commit buffer's loader; `xl-async' kills its process."
-  (xl-spinner-stop))
-
-(defun xl-git-status--show-fetch (hash root)
-  "Fill this commit buffer with `git show' HASH, run in ROOT.
-The run takes the buffer's `show' slot, so a newer request cancels it."
-  (xl-async-run
-   :name "xl-git-show"
-   :command (list "git" "--no-pager" "show" "--no-color" hash)
-   :directory root
-   :slot 'show
-   :on-done (lambda (text code)
-              (xl-spinner-stop)
-              (let ((inhibit-read-only t))
-                (erase-buffer)
-                (if (zerop code)
-                    (xl-git-status--insert-show text)
-                  (insert (propertize "git show failed: " 'face 'error)
-                          (string-trim text) "\n")))
-              (goto-char (point-min))
-              (dolist (window (get-buffer-window-list (current-buffer) nil t))
-                (set-window-point window (point-min))))))
-
-(defun xl-git-status--show-commit (hash)
-  "Show commit HASH in a read-only buffer, with the status buffer's faces.
-The buffer opens at once and fills when `git show' answers."
-  (let* ((root default-directory)
-         (buffer (get-buffer-create (format "*git-show: %s*" hash))))
-    (with-current-buffer buffer
-      ;; The mode resets buffer-locals, but not `xl-async''s ownership:
-      ;; the fetch below still replaces an older one in the `show' slot.
-      (xl-git-show-mode)
-      (let ((inhibit-read-only t))
-        (erase-buffer)
-        (insert (propertize "commit " 'face 'xl-git-status-heading)
-                (propertize hash 'face 'xl-git-status-hash) "\n")
-        (let ((start (point)))
-          (insert "   ")
-          (setq xl-git-status--show-spinner (make-overlay start (point)))
-          (overlay-put xl-git-status--show-spinner
-                       'face 'xl-git-status-branch))
-        (insert "  " (propertize "Loading..." 'face 'xl-git-status-comment)
-                "\n"))
-      ;; A minute of frames at most, should git never answer.
-      (xl-spinner-start #'xl-git-status--show-draw :limit 600)
-      (add-hook 'kill-buffer-hook #'xl-git-status--show-teardown nil t)
-      (xl-git-status--show-fetch hash root)
-      (goto-char (point-min)))
-    (pop-to-buffer buffer)
-    buffer))
 
 (defun xl-git-status--hunk-line (section)
   "Return the file line that the hunk line at point corresponds to.
@@ -1164,6 +747,7 @@ On a hunk, open its file at the line the hunk line belongs to."
   "Return PROPERTY from the line at point."
   (or (get-text-property (point) property)
       (get-text-property (line-beginning-position) property)))
+
 
 ;; ============================================================
 ;; Rendering
@@ -1229,6 +813,7 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
         (xl-git-status--restore-point)
         (when first
           (message "Git status ready: %s" (buffer-name buffer)))))))
+
 
 (defun xl-git-status--diffs (unstaged staged)
   "Return a table of \"STATUS:PATH\" to diff from two whole-repo diffs.
@@ -1315,6 +900,7 @@ Dired and some other buffers use an abbreviated directory such as
 \"~/workspace/repo/\"; `git -C' does not expand \"~\"."
   (when-let* ((root (locate-dominating-file default-directory ".git")))
     (file-name-as-directory (expand-file-name root))))
+
 
 ;; ============================================================
 ;; Auto refresh
@@ -1545,6 +1131,12 @@ or shows the commit at point."
     "F" #'xl-git-status-pull
     (kbd "RET") #'xl-git-status-visit
     (kbd "<return>") #'xl-git-status-visit))
+
+(provide 'xl-git-status)
+
+;; The status view is the one that knows how to refresh a repository
+;; after a queued write; register it with the core.
+(setq xl-git-core--refresh-function #'xl-git-status--queue-drained)
 
 (provide 'xl-git-status)
 ;;; xl-git-status.el ends here

@@ -1513,7 +1513,7 @@ The queue key is the repository, so they serialize with a pull."
   (xl-test-with-temp-dir dir
     (let ((file (expand-file-name "note.txt" dir))
           jobs)
-      (cl-letf (((symbol-function 'xl-git-status--enqueue)
+      (cl-letf (((symbol-function 'xl-git-core-write)
                  (lambda (job) (push job jobs)))
                 ((symbol-function 'xl-async-run)
                  (lambda (&rest _)
@@ -1828,7 +1828,7 @@ Chinese."
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))
-    (dolist (case '((xl-git-status--entries "lisp/xl-git-status.el")))
+    (dolist (case '((xl-git-status--entries "lisp/xl-git-core.el")))
       (let* ((src (expand-file-name (cadr case) root))
              (elc (concat src "c"))
              (current (and (file-exists-p elc)

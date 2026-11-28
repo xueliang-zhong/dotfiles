@@ -17,8 +17,9 @@
 ;;; Code:
 
 (require 'subr-x)     ; truncate-string-to-width
-(require 'xl-git-status) ; status buffer, its faces and `--show-commit'
-(require 'xl-async)    ; the loader
+(require 'xl-git-show) ; faces, `--show-commit' and, through it, the core
+(require 'xl-async)    ; owned processes
+(declare-function xl-git-core-write "xl-git-core" (job))
 
 ;; ============================================================
 ;; GBlame - git blame on the left, like vim's :Gblame
@@ -471,7 +472,7 @@ showing it."
   (let* ((dir (xl-git-commands--file-directory))
          (root (or (locate-dominating-file dir ".git")
                    (file-name-as-directory (expand-file-name dir)))))
-    (xl-git-status--enqueue
+    (xl-git-core-write
      (list :root root
            :attempts (list args)
            :action action))))
@@ -494,6 +495,9 @@ showing it."
     (xl-git-commands--run (list "commit" "-m" (format "Update %s" name))
                           (format "Committed %s" name))))
 
+;; Gstatus is the one command here that opens the status view.  Its autoload
+;; keeps this file usable without loading the status buffer's rendering code.
+(autoload 'xl-git-status "xl-git-status")
 (defalias 'Gstatus 'xl-git-status)
 
 (with-eval-after-load 'evil
