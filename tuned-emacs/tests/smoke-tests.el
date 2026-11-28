@@ -2738,7 +2738,7 @@ that shows blame has the mode-line loader only."
 
 (ert-deftest xl-dired-schedules-a-preview-after-the-idle-delay ()
   "Point resting for `xl-dired-preview-idle' starts a preview."
-  (should (= xl-dired-preview-idle 0.1))
+  (should (= xl-dired-preview-idle 0.3))
   (with-temp-buffer
     (setq default-directory temporary-file-directory)
     (xl-dired-mode)

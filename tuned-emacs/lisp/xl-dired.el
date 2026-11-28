@@ -23,7 +23,7 @@
 ;;   l / RET     open the file in the other window, or cd here for a directory
 ;;   TAB         preview the entry at point in the other window
 ;;
-;; Pointing at a file for `xl-dired-preview-idle' seconds (0.1 s by default)
+;; Pointing at a file for `xl-dired-preview-idle' seconds (0.3 s by default)
 ;; starts the same preview.  File previews run `file' and then `head' in the
 ;; background, so they are bounded work even for a huge file.  Folders, `.'
 ;; and `..' have no preview: there is nothing to show, and entering them is
@@ -69,7 +69,7 @@ make Emacs wait for the whole file."
   :type 'natnum
   :group 'xl-dired)
 
-(defcustom xl-dired-preview-idle 0.1
+(defcustom xl-dired-preview-idle 0.3
   "Seconds point must rest on an entry before its preview starts."
   :type 'number
   :group 'xl-dired)
