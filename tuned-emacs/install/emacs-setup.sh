@@ -242,6 +242,14 @@ cmd_test() {
     emacs_batch --eval "(load \"$DOTFILES/tuned-emacs/example/xueliang.el\" nil t)" \
         -l "$DOTFILES/tuned-emacs/tests/smoke-tests.el" \
         -f ert-run-tests-batch-and-exit
+    # xl-async: ownership, slots, queues and cancellation, with real processes.
+    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
+        -l "$DOTFILES/tuned-emacs/tests/xl-async-tests.el" \
+        -f ert-run-tests-batch-and-exit
+    # xl-async-evaluate: evaluate, worker and native compile in a child Emacs.
+    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
+        -l "$DOTFILES/tuned-emacs/tests/xl-async-evaluate-tests.el" \
+        -f ert-run-tests-batch-and-exit
     # xl-dired: asynchronous listings and previews, with real processes.
     "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
         -l "$DOTFILES/tuned-emacs/tests/xl-dired-tests.el" \
