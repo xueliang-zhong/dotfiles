@@ -1,8 +1,8 @@
 # Lisp modules
 
-The modules in `lisp/` are loaded with `require`. Some of them, such as `xl-async`, `xl-spinner` and `xl-git-status`, can be installed without the rest of this layer. `xl-key-bindings` and `personal.el` depend on `xl-dotfiles` and on each other, so they are part of the layer, not standalone packages.
+The modules in `lisp/` are loaded with `require`. Some of them, such as `tuned-async`, `tuned-spinner` and `tuned-git-status`, can be installed without the rest of this layer. `tuned-key-bindings` and `personal.el` depend on `tuned-dotfiles` and on each other, so they are part of the layer, not standalone packages.
 
-## Key bindings: `lisp/xl-key-bindings.el`
+## Key bindings: `lisp/tuned-key-bindings.el`
 
 Recreates the Spacemacs key habits that Crafted does not provide:
 
@@ -11,26 +11,26 @@ Recreates the Spacemacs key habits that Crafted does not provide:
 - `,` and `SPC m` are the major-mode leaders. They work in Org and Emacs Lisp.
 - `fd` leaves insert state, evil-surround is on, and `SPC 1` to `SPC 9` select windows.
 - The home buffer (`SPC b h`) lists recent files and opens one by its number.
-- `SPC q r` restarts Emacs. The restart returns to the current file and point, and a dired buffer returns to its directory. From a temporary buffer with no file, it returns to the home buffer. The state is kept in `xl-restart-place.eld` under `user-emacs-directory` and is used once; cancelling a restart deletes it.
-- It creates `xl-leader-map`, which `personal.el` extends.
+- `SPC q r` restarts Emacs. The restart returns to the current file and point, and a dired buffer returns to its directory. From a temporary buffer with no file, it returns to the home buffer. The state is kept in `tuned-restart-place.eld` under `user-emacs-directory` and is used once; cancelling a restart deletes it.
+- It creates `tuned-leader-map`, which `personal.el` extends.
 
 It loads before `personal.el`, so personal bindings override these defaults (for example `SPC SPC` and `SPC x`).
 
-## Git core and views: `lisp/xl-git-core.el` and `lisp/xl-git-show.el`
+## Git core and views: `lisp/tuned-git-core.el` and `lisp/tuned-git-show.el`
 
 The Git feature is split by what each part knows:
 
-- `xl-git-core` parses porcelain and diff output, builds the Git command lines, runs the per-repository write queue and looks up small configuration values. It draws nothing, so it is the easiest part to test.
-- `xl-git-show` owns the faces, turns a diff into foldable hunks, and draws the asynchronous commit view (`git show`).
-- `xl-git-status` draws the status buffer, owns its mode and keys, and keeps the visible buffer fresh. It depends on the two modules above; the G commands depend only on `xl-git-show`.
+- `tuned-git-core` parses porcelain and diff output, builds the Git command lines, runs the per-repository write queue and looks up small configuration values. It draws nothing, so it is the easiest part to test.
+- `tuned-git-show` owns the faces, turns a diff into foldable hunks, and draws the asynchronous commit view (`git show`).
+- `tuned-git-status` draws the status buffer, owns its mode and keys, and keeps the visible buffer fresh. It depends on the two modules above; the G commands depend only on `tuned-git-show`.
 
-The status view registers its refresh function with the core, so a `Gwrite` or `Gcommit` can queue its write and have the status refreshed when the queue drains, without `xl-git-commands` loading the status module.
+The status view registers its refresh function with the core, so a `Gwrite` or `Gcommit` can queue its write and have the status refreshed when the queue drains, without `tuned-git-commands` loading the status module.
 
-## Asynchronous Git status: `lisp/xl-git-status.el`
+## Asynchronous Git status: `lisp/tuned-git-status.el`
 
 A status summary that does not call Magit. It shows `Head:`, untracked files, unstaged changes, staged changes (with hunks under each file) and the ten most recent commits, in the same order as `magit-status`.
 
-**Auto-refresh.** While the status window is visible, changes in the work tree refresh it without `g`. The watcher uses `file-notify`. macOS and Linux do not watch recursively, so the root, `.git`, and every directory containing a tracked or untracked file are watched separately. Lock files, editor backups and `.git` entries that do not affect status (objects, logs) are ignored. Changes are merged, and the refresh runs 0.5 seconds after the last change (`xl-git-status-refresh-delay`). Auto-refresh is skipped while the window is hidden or the Git queue is busy, and `xl-git-status-auto-refresh` turns it off. It has been tested in a GUI Emacs on macOS; the inotify path on Linux is not yet tested.
+**Auto-refresh.** While the status window is visible, changes in the work tree refresh it without `g`. The watcher uses `file-notify`. macOS and Linux do not watch recursively, so the root, `.git`, and every directory containing a tracked or untracked file are watched separately. Lock files, editor backups and `.git` entries that do not affect status (objects, logs) are ignored. Changes are merged, and the refresh runs 0.5 seconds after the last change (`tuned-git-status-refresh-delay`). Auto-refresh is skipped while the window is hidden or the Git queue is busy, and `tuned-git-status-auto-refresh` turns it off. It has been tested in a GUI Emacs on macOS; the inotify path on Linux is not yet tested.
 
 **Loader.** On first load, the mode line's leftmost slot and the centre of the window both show a spinner. The centre one is an overlay `before-string` at the start of the buffer and does not change the text. A status that is ready within 0.1 seconds shows no spinner. Later refreshes keep the old content on screen and replace it when the new content is ready, so there is no blank frame or `Loading...` flash. If a slow operation shows the loader, the label changes to `Refreshing` in the mode line and disappears when the render finishes.
 
@@ -38,7 +38,7 @@ A status summary that does not call Magit. It shows `Head:`, untracked files, un
 
 - `s` stages the hunk, file or section at point; `u` unstages; `X` discards (with a `y/n` prompt; this also deletes untracked files); `S` and `U` stage and unstage everything.
 - `p` opens a push menu, drawn with `set-transient-map` and which-key, with the target ref in the label. `p` pushes to the push remote, `u` to the upstream, and `e` to another remote, chosen in the minibuffer.
-- Every write operation of a repository goes through one queue, keyed by the repository root (`xl-git-core-queue-key`), and `Gwrite`/`Gcommit` join the same queue. One Git write per repository runs at a time, so `s s s` runs in order and a `Gwrite` waits for a running pull instead of failing on `.git/index.lock`. The loader appears only if an operation takes longer than `xl-spinner-show-delay` (0.1 s).
+- Every write operation of a repository goes through one queue, keyed by the repository root (`tuned-git-core-queue-key`), and `Gwrite`/`Gcommit` join the same queue. One Git write per repository runs at a time, so `s s s` runs in order and a `Gwrite` waits for a running pull instead of failing on `.git/index.lock`. The loader appears only if an operation takes longer than `tuned-spinner-show-delay` (0.1 s).
 - The loader sits in the mode line, not the header line. A header line that appears and disappears moves the whole buffer by a line; the mode line stays put, so a slow push does not shift the window. It is at the far left, because `mode-line-process` is cut off when a split window is narrow.
 - After the queue drains, the status is refreshed once, silently.
 - After `s` or `u`, point stays on the same file or hunk. Hunks are matched by content, so renumbering does not move point. If the target disappears, point goes to the nearest heading.
@@ -48,7 +48,7 @@ A status summary that does not call Magit. It shows `Head:`, untracked files, un
 
 Headings, status, file names, hashes, branch and tag names, and diff lines use the theme's `font-lock` and `diff-mode` colours.
 
-## Git commands: `lisp/xl-git-commands.el`
+## Git commands: `lisp/tuned-git-commands.el`
 
 Commands in the style of vim-fugitive:
 
@@ -59,12 +59,12 @@ Commands in the style of vim-fugitive:
 
 `Gwrite` and `Gcommit` queue their `git` command on the repository, the same queue the status buffer uses for staging, push and pull, then the queue's drain refreshes that repository's status buffer. Failures are shown with `message`. A slow pre-commit hook therefore does not block Emacs, the two cannot race over `.git/index.lock`, a `Gwrite` before a `Gcommit` always runs first, and the commands do not depend on evil.
 
-## Shared async layer: `lisp/xl-async.el`
+## Shared async layer: `lisp/tuned-async.el`
 
-The status, GBlame, commit view and G commands each used to have their own `make-process`, sentinel, output buffer and stale-result check. They now all use `xl-async-run`:
+The status, GBlame, commit view and G commands each used to have their own `make-process`, sentinel, output buffer and stale-result check. They now all use `tuned-async-run`:
 
 ```elisp
-(xl-async-run
+(tuned-async-run
  :command '("git" "blame" "--line-porcelain" "--" "init.el")
  :directory root
  :slot 'blame                          ; per-buffer slot: a new request cancels the old one
@@ -72,20 +72,20 @@ The status, GBlame, commit view and G commands each used to have their own `make
  :on-done (lambda (output code) ...))  ; called in the owner buffer
 ```
 
-Killing the owner buffer kills its process, and changing major mode does not lose ownership. `:owner nil` is for commands that should outlive their buffer, such as the `Gcommit` hook. `xl-async-enqueue` is a serial queue: one job at a time, and when a job fails the next command is tried. A cons queue key is shared by every buffer that passes it, and a job may set its own `:owner` (or `nil`); the status buffer and the G commands use one key per repository. Status uses it for `s`, `u`, `X`, push, fetch, pull, `Gwrite` and `Gcommit`.
+Killing the owner buffer kills its process, and changing major mode does not lose ownership. `:owner nil` is for commands that should outlive their buffer, such as the `Gcommit` hook. `tuned-async-enqueue` is a serial queue: one job at a time, and when a job fails the next command is tried. A cons queue key is shared by every buffer that passes it, and a job may set its own `:owner` (or `nil`); the status buffer and the G commands use one key per repository. Status uses it for `s`, `u`, `X`, push, fetch, pull, `Gwrite` and `Gcommit`.
 
-See [xl-git-write-queue.md](xl-git-write-queue.md) for the repository queue, and [xl-async.md](xl-async.md) for the design of the async layer.
+See [tuned-git-write-queue.md](tuned-git-write-queue.md) for the repository queue, and [tuned-async.md](tuned-async.md) for the design of the async layer.
 
-`xl-async` runs processes and draws nothing. A caller that shows a loader requires `xl-spinner` as well; the process layer no longer loads the UI layer on its behalf.
+`tuned-async` runs processes and draws nothing. A caller that shows a loader requires `tuned-spinner` as well; the process layer no longer loads the UI layer on its behalf.
 
-## Org source blocks: `lisp/xl-org-babel-async.el`
+## Org source blocks: `lisp/tuned-org-babel-async.el`
 
 `:async yes` on a source block runs it in the background, and `C-c C-c` returns at once. Without the header argument, blocks run synchronously as before. Blocks with `:session` cannot run asynchronously, so they run synchronously with a message.
 
 Output has two stages, so long output does not slow editing:
 
-- While running, all output goes to `*Org Babel Output: file:line*`. Below the block only the last `xl-org-babel-live-lines` (default 20) lines are shown.
-- After the run, the result written to the file is the first `xl-org-babel-result-lines` (default 200) lines, followed by a note. The full output stays in the output buffer.
+- While running, all output goes to `*Org Babel Output: file:line*`. Below the block only the last `tuned-org-babel-live-lines` (default 20) lines are shown.
+- After the run, the result written to the file is the first `tuned-org-babel-result-lines` (default 200) lines, followed by a note. The full output stays in the output buffer.
 
 The result location is a marker, so text edited above it while the block runs does not misplace the result. If the block is deleted, the result stays only in the output buffer. `C-c C-k` cancels the block at point and keeps the output so far. Running the block again cancels the run in progress. `:timeout SECONDS` stops the process after the timeout.
 
@@ -93,43 +93,43 @@ A running block shows a spinner on its `#+RESULTS:` line (an overlay, so the fil
 
 Blocks run in parallel and are not queued. Blocks that depend on each other must be ordered by hand.
 
-`xl-async.el` gained two options for this: `:on-output` (called for each chunk of output) and `:timeout` (kills the process and exits with 124, as coreutils `timeout` does).
+`tuned-async.el` gained two options for this: `:on-output` (called for each chunk of output) and `:timeout` (kills the process and exits with 124, as coreutils `timeout` does).
 
-## Consult spinner: `lisp/xl-consult-spinner.el`
+## Consult spinner: `lisp/tuned-consult-spinner.el`
 
-Asynchronous consult lists such as `consult-ripgrep` and `consult-find` show a status character before the prompt: `*` while running and `:` when done. This module replaces the running character with a pulsing dot (`·` `•` `●` `•`, one frame every 0.15 s, a 0.6 s cycle; `. o O o` when the font cannot draw dots). The frames come from `xl-spinner.el`. The width does not change, so typed text does not move. It wraps `consult--async-indicator`, so only asynchronous lists are affected.
+Asynchronous consult lists such as `consult-ripgrep` and `consult-find` show a status character before the prompt: `*` while running and `:` when done. This module replaces the running character with a pulsing dot (`·` `•` `●` `•`, one frame every 0.15 s, a 0.6 s cycle; `. o O o` when the font cannot draw dots). The frames come from `tuned-spinner.el`. The width does not change, so typed text does not move. It wraps `consult--async-indicator`, so only asynchronous lists are affected.
 
-## Tagbar sidebar: `lisp/xl-tagbar.el`
+## Tagbar sidebar: `lisp/tuned-tagbar.el`
 
 `F8` opens a Tagbar-like sidebar: a dedicated side window on the right that lists the imenu tags of the buffer in the watched window, grouped into sections such as Functions and Variables.
 
-- The candidates, sections and faces come from `consult-imenu` (`consult-imenu--items`); `consult-imenu--jump` performs the jump. Any mode with an imenu backend works, including Org headings. Sections and tags get a type icon: functions, variables, macros, types, packages and more, drawn from the Nerd Font (`xl-tagbar-nerd-font`) when it is available and from Unicode symbols otherwise.
-- `RET` or `mouse-1` jumps, `n`/`p` preview the next/previous tag while keeping the tagbar selected, `TAB` folds a section, `g` refreshes and `q` closes. `C-.` runs `embark-act` on the bare tag name (`xl-tagbar--embark-target`).
+- The candidates, sections and faces come from `consult-imenu` (`consult-imenu--items`); `consult-imenu--jump` performs the jump. Any mode with an imenu backend works, including Org headings. Sections and tags get a type icon: functions, variables, macros, types, packages and more, drawn from the Nerd Font (`tuned-tagbar-nerd-font`) when it is available and from Unicode symbols otherwise.
+- `RET` or `mouse-1` jumps, `n`/`p` preview the next/previous tag while keeping the tagbar selected, `TAB` folds a section, `g` refreshes and `q` closes. `C-.` runs `embark-act` on the bare tag name (`tuned-tagbar--embark-target`).
 - The list rebuilds after 0.3 s of idle editing, at once on save or revert, and when the watched window switches buffers. The tag enclosing point is highlighted and kept visible.
 - The watched window is the one selected when the tagbar opens. Focus never moves when the sidebar opens, refreshes or follows point.
 
-Details: [xl-tagbar.md](xl-tagbar.md).
+Details: [tuned-tagbar.md](tuned-tagbar.md).
 
-## Spell checking: `lisp/xl-consult-spell.el`
+## Spell checking: `lisp/tuned-consult-spell.el`
 
 A consult front-end over the ispell-compatible checker that is installed: `aspell`, `hunspell` or `ispell`. The list behaves like `consult-line`: results appear when the asynchronous scan finishes, typing narrows them, preview follows the selection, and `RET` jumps.
 
-- `xl-consult-spell` scans the whole buffer, including unsaved text; `xl-consult-spell-region` scans the active region, widened to whole lines.
-- The checker runs in list mode (`aspell list`, `hunspell -l`, `ispell -l`) through `xl-async-run`. List mode reports words without positions, so the words are found again in the buffer in the order the checker printed them.
+- `tuned-consult-spell` scans the whole buffer, including unsaved text; `tuned-consult-spell-region` scans the active region, widened to whole lines.
+- The checker runs in list mode (`aspell list`, `hunspell -l`, `ispell -l`) through `tuned-async-run`. List mode reports words without positions, so the words are found again in the buffer in the order the checker printed them.
 - The list is for navigation. Correct the word at point with `ispell-word` (`M-$`); list mode does not return suggestions.
-- `xl-consult-spell-doctor` reports the selected program, its path and version, and the install hints when nothing was found.
+- `tuned-consult-spell-doctor` reports the selected program, its path and version, and the install hints when nothing was found.
 - Project-wide scans are intentionally not supported: one checker process per file is slow and the reconstructed positions become less reliable.
 
-The module never uses a shell string: commands are argument lists, output is decoded as UTF-8, and a trailing CR from Windows output is removed before a word is used. Details: [xl-consult-spell.md](xl-consult-spell.md).
+The module never uses a shell string: commands are argument lists, output is decoded as UTF-8, and a trailing CR from Windows output is removed before a word is used. Details: [tuned-consult-spell.md](tuned-consult-spell.md).
 
-## Shared loader: `lisp/xl-spinner.el`
+## Shared loader: `lisp/tuned-spinner.el`
 
 The goal is a loader that is visible but does not move the screen. It has two layers.
 
 **Kernel.** Only the clock and the frame counter. The caller decides where to draw. The commit view uses it to draw in an overlay on an empty buffer, so nothing is pushed aside.
 
 ```elisp
-(xl-spinner-start
+(tuned-spinner-start
  (lambda (text)                       ; text is nil when stopping; the callee clears it
    (overlay-put my-overlay 'display text))
  :limit 600)                          ; optional: at most 600 frames (one minute at 0.1 s)
@@ -138,35 +138,35 @@ The goal is a loader that is visible but does not move the screen. It has two la
 **Mode-line slot.** For buffers that already have content: status refreshes and the write queue, GBlame and the package menu. It sits at the far left of the mode line, where a narrow split cannot cut it off. Inserting a line in the buffer would push the content down, so it is never placed in the buffer.
 
 ```elisp
-(xl-spinner-mode-line-install)              ; once, in the major mode
-(xl-spinner-mode-line-start "Pushing main") ; appears after 0.1 s
-(xl-spinner-mode-line-label "Refreshing")   ; change the label
-(xl-spinner-mode-line-stop)                 ; or (xl-spinner-mode-line-stop "git blame failed: ...")
+(tuned-spinner-mode-line-install)              ; once, in the major mode
+(tuned-spinner-mode-line-start "Pushing main") ; appears after 0.1 s
+(tuned-spinner-mode-line-label "Refreshing")   ; change the label
+(tuned-spinner-mode-line-stop)                 ; or (tuned-spinner-mode-line-stop "git blame failed: ...")
 ```
 
 The following rules keep the window still; each has a test.
 
-- **Frames use only glyphs from the mode line's own font.** A glyph missing from the font is borrowed from a fallback font, and on a GUI that can make the mode line taller, so the loader makes the window jump. In tests with JetBrains Mono, Braille characters and `▰` made the mode line grow from 23 to 24 pixels. The default `xl-spinner-style` is `auto`: on a GUI, dots (`●··`, `·●·`, `··●`) are used only when `char-displayable-p` says the mode-line font can draw them, otherwise ASCII `[|] [/] [-] [\]`. In a terminal, dots are used only in a UTF-8 locale with single-width characters. Set `xl-spinner-style` to `ascii` if the terminal font lacks dots.
-- **Wait 0.1 s before showing, then keep the loader at least 0.3 s** (`xl-spinner-show-delay`, `xl-spinner-min-duration`). An operation that finishes before the delay never shows anything, and a very short one does not flash.
+- **Frames use only glyphs from the mode line's own font.** A glyph missing from the font is borrowed from a fallback font, and on a GUI that can make the mode line taller, so the loader makes the window jump. In tests with JetBrains Mono, Braille characters and `▰` made the mode line grow from 23 to 24 pixels. The default `tuned-spinner-style` is `auto`: on a GUI, dots (`●··`, `·●·`, `··●`) are used only when `char-displayable-p` says the mode-line font can draw them, otherwise ASCII `[|] [/] [-] [\]`. In a terminal, dots are used only in a UTF-8 locale with single-width characters. Set `tuned-spinner-style` to `ascii` if the terminal font lacks dots.
+- **Wait 0.1 s before showing, then keep the loader at least 0.3 s** (`tuned-spinner-show-delay`, `tuned-spinner-min-duration`). An operation that finishes before the delay never shows anything, and a very short one does not flash.
 - **The slot only grows while busy.** Changing the label from `Pushing main to origin` to `Refreshing` pads with spaces, so the buffer name does not move. A new operation during the linger time reuses the same loader and only changes the label.
-- **Colour, not size, makes it noticeable.** The dot uses the `xl-spinner` face, which inherits the theme's keyword colour. While busy, the mode-line background is tinted 20% toward that colour (`xl-spinner-tint`; set it to nil to turn this off). Box and height do not change, and terminals with fewer than 256 colours get no tint.
-- **0.1 s per frame** (`xl-spinner-interval`). It is visibly moving without flickering, and it sends half the redraw traffic of a 0.05 s interval over SSH.
+- **Colour, not size, makes it noticeable.** The dot uses the `tuned-spinner` face, which inherits the theme's keyword colour. While busy, the mode-line background is tinted 20% toward that colour (`tuned-spinner-tint`; set it to nil to turn this off). Box and height do not change, and terminals with fewer than 256 colours get no tint.
+- **0.1 s per frame** (`tuned-spinner-interval`). It is visibly moving without flickering, and it sends half the redraw traffic of a 0.05 s interval over SSH.
 
 Measured in a GUI Emacs with JetBrains Mono at 18 pt: from idle, through appearance, tinting, three frames and a label change, back to hidden, the mode line stayed 23 pixels tall, and the text height and `window-start` did not change.
 
-## Package installation and child Emacs: `lisp/xl-bootstrap.el`, `lisp/xl-native-compile.el`, `lisp/xl-package-install.el`
+## Package installation and child Emacs: `lisp/tuned-bootstrap.el`, `lisp/tuned-native-compile.el`, `lisp/tuned-package-install.el`
 
-`init.el` is a manifest. The install path lives in `xl-bootstrap`: it refreshes the archives only when a selected package is missing, fetches and checks packages in parallel (`xl-package-fetch`), falls back to `package-install`, retries after rebuilding the keyring, and installs the packages that live only in Git.
+`init.el` is a manifest. The install path lives in `tuned-bootstrap`: it refreshes the archives only when a selected package is missing, fetches and checks packages in parallel (`tuned-package-fetch`), falls back to `package-install`, retries after rebuilding the keyring, and installs the packages that live only in Git.
 
-Every child Emacs is built by `xl-async-child-command` in `xl-async-evaluate.el`, so the `--batch --init-directory` and init-loading order exist once. `xl-native-compile` owns the native-compilation queue, its monitor buffer and `xl-async-native-compile`; it depends on the evaluator, not the other way round. `xl-package-install` installs one package in a child Emacs and shows its progress in a monitor buffer.
+Every child Emacs is built by `tuned-async-child-command` in `tuned-async-evaluate.el`, so the `--batch --init-directory` and init-loading order exist once. `tuned-native-compile` owns the native-compilation queue, its monitor buffer and `tuned-async-native-compile`; it depends on the evaluator, not the other way round. `tuned-package-install` installs one package in a child Emacs and shows its progress in a monitor buffer.
 
-## Autoloads: `lisp/xl-autoloads.el`
+## Autoloads: `lisp/tuned-autoloads.el`
 
 The file is generated by `emacs-setup.sh autoloads` from the `;;;###autoload` cookies in `lisp/`; setup and check run it. `init.el` loads the generated file instead of listing autoloads by hand. Do not edit it. Its standard generator preamble is replaced with the project's own header, so the file does not claim to be part of GNU Emacs.
 
 ## Personal settings: `personal.el` and `example/xueliang.el`
 
-`personal.el` is the file to edit. It starts empty, with comments that explain where to begin. `example/xueliang.el` is the author's full configuration, grouped by topic below; it loads instead of `personal.el` when the profile stub sets `xl-load-example` (the dotfiles `justfile` sets `XL_EXAMPLE=1` for its recipes; running `emacs-setup.sh` directly leaves it unset). Copy the parts you want into `personal.el`. `example/xl-utils.el` holds the logic behind the example's bindings and settings; `init.el` adds `example/` to `load-path` so a copy of the example can keep using it.
+`personal.el` is the file to edit. It starts empty, with comments that explain where to begin. `example/xueliang.el` is the author's full configuration, grouped by topic below; it loads instead of `personal.el` when the profile stub sets `tuned-load-example` (the dotfiles `justfile` sets `TUNED_EXAMPLE=1` for its recipes; running `emacs-setup.sh` directly leaves it unset). Copy the parts you want into `personal.el`. `example/xueliang-utils.el` holds the logic behind the example's bindings and settings; `init.el` adds `example/` to `load-path` so a copy of the example can keep using it.
 
 - Platform, paths and fonts. All text faces use the selected font. The theme is set here. `~/.emacs-profiles/local.el` is loaded if it exists, and holds machine-specific paths. It is not in the repository.
 - macOS UK keyboard: Option-3 should type `#`, but Emacs treats Option as Meta and receives `M-3`. In insert, replace and Emacs states, in the minibuffer (including evil's `:` and search prompts) and in isearch, Option-3 types `#`. In normal state `M-3` keeps its numeric-prefix meaning.

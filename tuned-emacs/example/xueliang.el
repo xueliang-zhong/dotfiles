@@ -3,19 +3,19 @@
 ;; ============================================================
 ;; Platform, Paths and Appearance
 ;; ============================================================
-(defconst xl-mac-p (eq system-type 'darwin))
-(defconst xl-win-p (eq system-type 'windows-nt))
+(defconst tuned-mac-p (eq system-type 'darwin))
+(defconst tuned-win-p (eq system-type 'windows-nt))
 ;; The same font weight looks different per platform: `semi-bold' is right on
 ;; macOS, while Windows needs `medium' to get the same visual weight.
-(defconst xl-font-weight (if xl-win-p 'medium 'semi-bold))
-(defvar xl-dotfiles-dir "~/workspace/dotfiles/")
-(defvar xl-links-file "~/workspace/xzhong-links.txt")
-(defvar xl-mindmap-dir "~/workspace/mindmap/")
-(defvar xl-yi-file "~/workspace/life-notes/YI/YI.el")
+(defconst tuned-font-weight (if tuned-win-p 'medium 'semi-bold))
+(defvar xueliang-dotfiles-dir "~/workspace/dotfiles/")
+(defvar xueliang-links-file "~/workspace/xzhong-links.txt")
+(defvar tuned-mindmap-dir "~/workspace/mindmap/")
+(defvar tuned-yi-file "~/workspace/life-notes/YI/YI.el")
 ;; Machine-specific paths go in a local file that never enters the repo
 (let ((local (expand-file-name "~/.emacs-profiles/local.el")))
   (when (file-exists-p local) (load local nil t)))
-(require 'xl-utils)                 ; the logic behind these settings and bindings
+(require 'xueliang-utils)                 ; the logic behind these settings and bindings
 
 ;; First installed font wins, so the same file works on macOS, Windows, Linux.
 ;; Every text face uses it: `fixed-pitch', `fixed-pitch-serif' and
@@ -27,13 +27,13 @@
   (when-let* ((font (seq-find (lambda (f) (find-font (font-spec :name f)))
                               '("JetBrains Mono" "Menlo" "Consolas" "DejaVu Sans Mono"))))
     (dolist (face '(default fixed-pitch fixed-pitch-serif variable-pitch))
-      (set-face-attribute face nil :family font :weight xl-font-weight))
+      (set-face-attribute face nil :family font :weight tuned-font-weight))
     (set-face-attribute 'default nil
                         :height (if (eq system-type 'windows-nt) 120 180)))
   (setq-default line-spacing 0.06)
   ;; Direct Chinese and symbol fallback on MacOS: avoids a slow full
   ;; system-font scan when drawing at the first time
-  (when xl-mac-p
+  (when tuned-mac-p
     (set-fontset-font t 'han (font-spec :family "PingFang SC"))
     (set-fontset-font t 'cjk-misc (font-spec :family "PingFang SC"))
     (set-fontset-font t '(#x4dc0 . #x4dff) (font-spec :family "Apple Symbols")))
@@ -53,9 +53,9 @@
 (set-face-attribute 'trailing-whitespace nil :foreground 'unspecified :background 'unspecified)
 (set-face-attribute 'which-key-separator-face nil :background 'unspecified)
 ;; make sure M-x works on MacOS
-(when xl-mac-p (keymap-global-set "s-x" #'execute-extended-command))
+(when tuned-mac-p (keymap-global-set "s-x" #'execute-extended-command))
 
-(when xl-mac-p
+(when tuned-mac-p
   (with-eval-after-load 'evil
     (dolist (map (list evil-insert-state-map
                        evil-replace-state-map
@@ -69,8 +69,8 @@
   (keymap-set isearch-mode-map "M-3" #'xueliang-isearch-insert-hash))
 
 ;; Priority Suggestions: 1 = high, 2 = medium, 3 = low
-(xl-idle-require 'org    0.5)
-(xl-idle-require 'eshell 1.0)
+(xueliang-idle-require 'org    0.5)
+(xueliang-idle-require 'eshell 1.0)
 
 ;; Other useful things to do when idle
 (run-with-idle-timer 1800 t 'garbage-collect)
@@ -141,7 +141,7 @@
 ;; Kill ring survives restarts, like savehist keeps search history.  Text
 ;; properties are stripped before saving: propertized strings bloat the
 ;; history file and can fail to load.  Duplicate kills are not stored twice.
-;; Explicit on purpose: xl-eln-opt reads the `history' file that
+;; Explicit on purpose: tuned-eln-opt reads the `history' file that
 ;; savehist writes, so this must not depend on crafted's defaults.
 (require 'savehist)
 (add-to-list 'savehist-additional-variables 'kill-ring)
@@ -168,7 +168,7 @@
 (defface xueliang-yank-flash '((t (:background "#e0af68" :foreground "#1a1b26")))
   "Face for flashing yanked text." :group 'faces)
 ;; IME: back to the English layout when leaving insert state (macOS + macism)
-(defvar xl-macism (or (executable-find "macism")
+(defvar xueliang-macism (or (executable-find "macism")
                       (car (file-expand-wildcards "~/.local/bin/macism"))))
 
 (with-eval-after-load 'evil
@@ -202,7 +202,7 @@
   (dolist (cmd '("sp" "split")) (evil-ex-define-cmd cmd #'xueliang-split-below))
 
   (advice-add 'evil-yank :after #'xueliang-flash-yanked-text)
-  (when xl-macism (add-hook 'evil-insert-state-exit-hook #'xueliang-ime-english)))
+  (when xueliang-macism (add-hook 'evil-insert-state-exit-hook #'xueliang-ime-english)))
 
 ;; ============================================================
 ;; Vertico Stack - modern minibuffer completion
@@ -242,7 +242,7 @@
 ;; delay every keystroke queried every completion backend: 20 ms in a large
 ;; Org file, 20 to 40 ms in Emacs Lisp.  A pause is what the popup is for;
 ;; fast typing, Chinese input commits included, now runs no completion.
-(setq corfu-auto-delay (if xl-win-p 0.2 0.15)
+(setq corfu-auto-delay (if tuned-win-p 0.2 0.15)
       corfu-auto-prefix 2 ;; 2 works better for org-tempo '<s'
       ;; Corfu stays in buffers; the minibuffer ':' uses vertico
       global-corfu-minibuffer nil
@@ -416,7 +416,7 @@
   ;; Face settings: headings same size and weight as body text
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4 org-level-5
                   org-level-6 org-link org-table))
-    (set-face-attribute face nil :bold nil :height 1.0 :weight xl-font-weight))
+    (set-face-attribute face nil :bold nil :height 1.0 :weight tuned-font-weight))
   ;; `spacemacs-theme-org-highlight' is enabled only to avoid nil face specs;
   ;; keep headings without the theme's background highlight.
   (dolist (face '(org-level-1 org-level-2 org-level-3 org-level-4))
@@ -429,7 +429,7 @@
 (with-eval-after-load 'org-indent
   (setq org-indent-agent-active-delay '(0 0 60000)))
 
-;; The single-dot spinner that shows org-indent working: see xl-utils.el.
+;; The single-dot spinner that shows org-indent working: see xueliang-utils.el.
 (with-eval-after-load 'org-indent (xueliang-org-indent-spinner-install))
 
 (defun xueliang-org-setup ()
@@ -458,15 +458,15 @@
 ;; Added, changed and deleted lines show in the left margin, updated on save
 ;; and after magit operations.  Loaded when idle, so it never slows startup;
 ;; the margin appears a moment after the first file opens.
-(xl-idle-require 'diff-hl 1.0)
+(xueliang-idle-require 'diff-hl 1.0)
 (with-eval-after-load 'diff-hl
   (global-diff-hl-mode 1)
   (add-hook 'dired-mode-hook #'diff-hl-dired-mode)                 ; changed files
   (add-hook 'magit-post-refresh-hook #'diff-hl-magit-post-refresh)) ; refresh after magit
 ;; SPC g n / p jump between hunks, SPC g h shows the hunk at point
-(keymap-set xl-leader-map "g n" '("next hunk" . diff-hl-next-hunk))
-(keymap-set xl-leader-map "g p" '("previous hunk" . diff-hl-previous-hunk))
-(keymap-set xl-leader-map "g h" '("show hunk" . diff-hl-show-hunk))
+(keymap-set tuned-leader-map "g n" '("next hunk" . diff-hl-next-hunk))
+(keymap-set tuned-leader-map "g p" '("previous hunk" . diff-hl-previous-hunk))
+(keymap-set tuned-leader-map "g h" '("show hunk" . diff-hl-show-hunk))
 
 (defun xueliang-eshell-popup ()
   "Open eshell below, in the current file's directory, ready for input." (interactive)
@@ -491,11 +491,11 @@
 
 ;; My one liner commands
 (defun xueliang-find-file-in-dotfiles () (interactive)
-  (let ((default-directory xl-dotfiles-dir)) (call-interactively #'find-file)))
+  (let ((default-directory xueliang-dotfiles-dir)) (call-interactively #'find-file)))
 (defun xueliang-replace-tab-trailing-spaces () (interactive)
   (untabify (point-min) (point-max)) (delete-trailing-whitespace))
 (defun xueliang-dired-jump () (interactive)
-  (xl-dired default-directory) (dired-hide-details-mode -1) (hl-line-mode 1))
+  (tuned-dired default-directory) (dired-hide-details-mode -1) (hl-line-mode 1))
 (defun xueliang-just-make ()
   "Run `just all' in the dotfiles, asynchronously."
   (interactive)
@@ -530,9 +530,9 @@
   "<f5>"   #'xueliang-eshell-popup
   "<f6>"   #'consult-yank-pop
   "<f7>"   #'xueliang-just-make
-  "<f8>"   #'xl-tagbar-toggle         ; Tagbar-like imenu sidebar
+  "<f8>"   #'tuned-tagbar-toggle         ; Tagbar-like imenu sidebar
   "<f9>"   #'xueliang-dired-sidebar
-  "<f10>"  #'xl-sk-home-buffer
+  "<f10>"  #'tuned-sk-home-buffer
   "<f11>"  #'xueliang-imenu-or-org-today
   "<f12>"  #'xueliang-open-knowledge-links
   "C-<f4>" #'kill-buffer-and-window)
@@ -540,20 +540,20 @@
 ;; ============================================================
 ;; Leader keys - my overrides on top of the Spacemacs defaults
 ;; ============================================================
-;; Only my own commands here; Spacemacs-position keys are in xl-key-bindings.el
-(defun xl-leader (&rest specs)
+;; Only my own commands here; Spacemacs-position keys are in tuned-key-bindings.el
+(defun tuned-leader (&rest specs)
   "Bind KEY LABEL COMMAND triples from SPECS under the SPC leader."
   (while specs
-    (keymap-set xl-leader-map (pop specs) (cons (pop specs) (pop specs)))))
+    (keymap-set tuned-leader-map (pop specs) (cons (pop specs) (pop specs)))))
 
-(xl-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
+(tuned-leader "b s" "scratch window" #'xueliang-open-scratch-buffer-window
            "c c" "just all"       #'xueliang-just-make
            "f p" "dotfiles"       #'xueliang-find-file-in-dotfiles
-           "g b" "blame"          #'xl-gblame
-           "g g" "git status"     #'xl-git-status-window)
+           "g b" "blame"          #'tuned-gblame
+           "g g" "git status"     #'xueliang-git-status-window)
 
 ;; ============================================================
 ;; Personal modules outside this repo
 ;; ============================================================
-(when (file-exists-p xl-yi-file)
-  (load xl-yi-file nil t))
+(when (file-exists-p tuned-yi-file)
+  (load tuned-yi-file nil t))

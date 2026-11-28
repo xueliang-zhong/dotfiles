@@ -10,32 +10,32 @@
 (require 'seq)
 (require 'cl-lib)
 
-(defmacro xl-test-with-temp-dir (var &rest body)
+(defmacro tuned-test-with-temp-dir (var &rest body)
   "Bind VAR to a fresh temporary directory and run BODY."
   (declare (indent 1))
-  `(let ((,var (make-temp-file "xl-test-" t)))
+  `(let ((,var (make-temp-file "tuned-test-" t)))
      (unwind-protect
          (progn ,@body)
        (ignore-errors (delete-directory ,var t)))))
 
-(defun xl-test--read-file (path)
+(defun tuned-test--read-file (path)
   "Return the contents of PATH as a string."
   (with-temp-buffer
     (insert-file-contents path)
     (buffer-string)))
 
-(defun xl-test--code-lines (path)
+(defun tuned-test--code-lines (path)
   "Return non-comment lines of PATH, each as (LINE-NUMBER . TEXT)."
   (let ((n 0) lines)
-    (dolist (line (split-string (xl-test--read-file path) "\n"))
+    (dolist (line (split-string (tuned-test--read-file path) "\n"))
       (setq n (1+ n))
       (unless (string-match-p "\\`[[:space:]]*;" line)
         (push (cons n line) lines)))
     (nreverse lines)))
 
-(defun xl-test--git-repo ()
+(defun tuned-test--git-repo ()
   "Create a temporary git repo with commits, edits and an untracked file."
-  (let ((dir (make-temp-file "xl-test-git-" t))
+  (let ((dir (make-temp-file "tuned-test-git-" t))
         (git (executable-find "git")))
     (unless git
       (error "git is not installed"))
@@ -56,16 +56,16 @@
         (insert "new\n")))
     dir))
 
-(defun xl-test--git-output (dir &rest args)
+(defun tuned-test--git-output (dir &rest args)
   "Run git ARGS in DIR and return its trimmed output."
   (with-temp-buffer
     (let ((code (apply #'call-process "git" nil t nil "-C" dir args)))
       (should (zerop code))
       (string-trim (buffer-string)))))
 
-(defun xl-test--git-repo-hunks ()
+(defun tuned-test--git-repo-hunks ()
   "Create a repository whose file.txt has two separate unstaged hunks."
-  (let ((dir (make-temp-file "xl-test-git-hunks-" t))
+  (let ((dir (make-temp-file "tuned-test-git-hunks-" t))
         (git (executable-find "git")))
     (unless git
       (error "git is not installed"))
@@ -87,9 +87,9 @@
                     (format "line %d\n" i))))))
     dir))
 
-(defun xl-test--git-repo-blame ()
+(defun tuned-test--git-repo-blame ()
   "Create a repository where file.txt spans two commits plus one edit."
-  (let ((dir (make-temp-file "xl-test-git-blame-" t))
+  (let ((dir (make-temp-file "tuned-test-git-blame-" t))
         (git (executable-find "git")))
     (unless git
       (error "git is not installed"))
@@ -111,113 +111,113 @@
         (insert "ONE\ntwo\nTHREE\nFOUR\n")))
     dir))
 
-(defun xl-test--wait-for-git-status (buffer)
+(defun tuned-test--wait-for-git-status (buffer)
   "Wait until the Git status BUFFER has rendered and its queue is empty.
-A file-watch refresh waits `xl-git-status-refresh-delay' after the last
+A file-watch refresh waits `tuned-git-status-refresh-delay' after the last
 event, so a pending one counts as work: otherwise the test looks before it
 has moved the buffer."
   (with-current-buffer buffer
-    (let ((key (xl-git-core-queue-key))
+    (let ((key (tuned-git-core-queue-key))
           (end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
-                      (xl-async-queue-busy-p key)
-                      (xl-async-busy-p nil buffer)
-                      (timerp (bound-and-true-p xl-git-status--watch-timer)))
+                      (tuned-async-queue-busy-p key)
+                      (tuned-async-busy-p nil buffer)
+                      (timerp (bound-and-true-p tuned-git-status--watch-timer)))
                   (< (float-time) end))
         (accept-process-output nil 0.05))
       (should buffer-read-only)
-      (should-not (xl-async-queue-busy-p key))
-      (should-not (xl-async-busy-p nil buffer)))))
+      (should-not (tuned-async-queue-busy-p key))
+      (should-not (tuned-async-busy-p nil buffer)))))
 
-(defun xl-test--slot-show-now (buffer)
+(defun tuned-test--slot-show-now (buffer)
   "Make BUFFER's waiting mode-line loader appear now.
-It is what happens when the operation outlives `xl-spinner-show-delay'."
+It is what happens when the operation outlives `tuned-spinner-show-delay'."
   (with-current-buffer buffer
-    (let ((timer (plist-get xl-spinner--slot :show-timer)))
+    (let ((timer (plist-get tuned-spinner--slot :show-timer)))
       (when (timerp timer) (cancel-timer timer)))
-    (xl-spinner--slot-show buffer)))
+    (tuned-spinner--slot-show buffer)))
 
-(defun xl-test--wait-for-slot (buffer)
+(defun tuned-test--wait-for-slot (buffer)
   "Wait until BUFFER's mode-line loader has gone, minimum time included."
   (let ((end (+ (float-time) 10)))
-    (while (and (xl-spinner-mode-line-busy-p buffer)
+    (while (and (tuned-spinner-mode-line-busy-p buffer)
                 (< (float-time) end))
       (accept-process-output nil 0.05)))
-  (should-not (xl-spinner-mode-line-busy-p buffer)))
+  (should-not (tuned-spinner-mode-line-busy-p buffer)))
 
-(defun xl-test--wait-for-gblame (buffer)
+(defun tuned-test--wait-for-gblame (buffer)
   "Wait until the GBlame BUFFER has finished loading."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (xl-async-busy-p 'blame buffer)
+      (while (and (tuned-async-busy-p 'blame buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (xl-async-busy-p 'blame buffer))))
+    (should-not (tuned-async-busy-p 'blame buffer))))
 
-(defun xl-test--wait-for-git-show (buffer)
+(defun tuned-test--wait-for-git-show (buffer)
   "Wait until the commit BUFFER has finished loading."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (xl-async-busy-p 'show buffer)
+      (while (and (tuned-async-busy-p 'show buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (xl-async-busy-p 'show buffer))))
+    (should-not (tuned-async-busy-p 'show buffer))))
 
-(defun xl-test--wait-for-xl-dired (buffer)
-  "Wait until the `xl-dired' BUFFER has its asynchronous listing."
+(defun tuned-test--wait-for-tuned-dired (buffer)
+  "Wait until the `tuned-dired' BUFFER has its asynchronous listing."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (xl-async-busy-p 'listing buffer)
+      (while (and (tuned-async-busy-p 'listing buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (xl-async-busy-p 'listing buffer))))
+    (should-not (tuned-async-busy-p 'listing buffer))))
 
-(defun xl-test--wait-for-xl-preview (buffer)
-  "Wait until the `xl-dired' preview BUFFER has rendered."
+(defun tuned-test--wait-for-tuned-preview (buffer)
+  "Wait until the `tuned-dired' preview BUFFER has rendered."
   (with-current-buffer buffer
     (let ((end (+ (float-time) 10)))
-      (while (and (xl-async-busy-p 'preview buffer)
+      (while (and (tuned-async-busy-p 'preview buffer)
                   (< (float-time) end))
         (accept-process-output nil 0.05)))
-    (should-not (xl-async-busy-p 'preview buffer))))
+    (should-not (tuned-async-busy-p 'preview buffer))))
 
 ;;; ============================================================
 ;;; Profile and file structure
 ;;; ============================================================
 
-(ert-deftest xl-profile-is-loaded ()
+(ert-deftest tuned-profile-is-loaded ()
   "The stubs handed control to the dotfiles, and Emacs is new enough."
   (should (>= emacs-major-version 30))
-  (should (bound-and-true-p xl-dotfiles))
-  (should (bound-and-true-p xl-crafted-home))
-  (should (file-directory-p xl-dotfiles))
-  (should (file-directory-p xl-crafted-home)))
+  (should (bound-and-true-p tuned-dotfiles))
+  (should (bound-and-true-p tuned-crafted-home))
+  (should (file-directory-p tuned-dotfiles))
+  (should (file-directory-p tuned-crafted-home)))
 
-(ert-deftest xl-packages-are-listed-in-init ()
-  "`xl-packages' lives in `init.el'; `personal.el' does not define it."
-  (should (memq 'magit xl-packages))
-  (should (memq 'org-superstar xl-packages))
-  (should (memq 'evil-escape xl-packages))   ; Spacemacs habits are listed too
-  ;; The completion stack comes from Crafted, not from `xl-packages'.
-  (should-not (memq 'corfu xl-packages))
-  (should (equal (symbol-file 'xl-packages 'defvar)
-                 (expand-file-name "tuned-emacs/init.el" xl-dotfiles)))
-  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/personal.el" xl-dotfiles)))
-    (should-not (string-match-p "defconst xl-packages" (cdr entry)))))
+(ert-deftest tuned-packages-are-listed-in-init ()
+  "`tuned-packages' lives in `init.el'; `personal.el' does not define it."
+  (should (memq 'magit tuned-packages))
+  (should (memq 'org-superstar tuned-packages))
+  (should (memq 'evil-escape tuned-packages))   ; Spacemacs habits are listed too
+  ;; The completion stack comes from Crafted, not from `tuned-packages'.
+  (should-not (memq 'corfu tuned-packages))
+  (should (equal (symbol-file 'tuned-packages 'defvar)
+                 (expand-file-name "tuned-emacs/init.el" tuned-dotfiles)))
+  (dolist (entry (tuned-test--code-lines (expand-file-name "tuned-emacs/personal.el" tuned-dotfiles)))
+    (should-not (string-match-p "defconst tuned-packages" (cdr entry)))))
 
-(ert-deftest xl-org-packages-come-from-crafted ()
+(ert-deftest tuned-org-packages-come-from-crafted ()
   "Crafted's Org packages, including Denote, stay selected and installed."
   (dolist (pkg '(denote org-appear))
     (should (memq pkg package-selected-packages))
     (should (package-installed-p pkg))))
 
-(ert-deftest xl-packages-are-selected-and-installed ()
-  "Everything in `xl-packages' is requested by `init.el' and present on disk."
-  (dolist (pkg xl-packages)
+(ert-deftest tuned-packages-are-selected-and-installed ()
+  "Everything in `tuned-packages' is requested by `init.el' and present on disk."
+  (dolist (pkg tuned-packages)
     (should (memq pkg package-selected-packages))
     (should (package-installed-p pkg))))
 
-(ert-deftest xl-completion-packages-come-from-crafted ()
+(ert-deftest tuned-completion-packages-come-from-crafted ()
   "crafted-completion selects the completion stack; it stays selected and
 installed after the theme load, so `package-autoremove' keeps it."
   (require 'package)
@@ -228,52 +228,52 @@ installed after the theme load, so `package-autoremove' keeps it."
       (should (package-installed-p pkg))
       (should-not (memq pkg removable)))))
 
-(ert-deftest xl-package-install-refreshes-a-stale-cache ()
+(ert-deftest tuned-package-install-refreshes-a-stale-cache ()
   "The install path refreshes the archives before installing.
 `package-install-selected-packages' only refreshes an empty cache; an old
 one made transient's dependency compat 31.1 look unavailable."
-  (let ((package-selected-packages '(xl-test-pkg))
+  (let ((package-selected-packages '(tuned-test-pkg))
         (installed nil)
         events)
     (cl-letf (((symbol-function 'package-installed-p)
-               (lambda (pkg) (and (eq pkg 'xl-test-pkg) installed)))
+               (lambda (pkg) (and (eq pkg 'tuned-test-pkg) installed)))
               ((symbol-function 'package-refresh-contents)
                (lambda (&rest _) (push 'refresh events)))
               ((symbol-function 'package-install)
                (lambda (pkg &rest _)
                  (push (list 'install pkg) events)
                  (setq installed t))))
-      (xl-install-missing-packages))
+      (tuned-install-missing-packages))
     ;; Pushed newest first: the refresh ran before the install.
-    (should (equal '((install xl-test-pkg) refresh) events))))
+    (should (equal '((install tuned-test-pkg) refresh) events))))
 
-(ert-deftest xl-package-install-reports-what-is-still-missing ()
+(ert-deftest tuned-package-install-reports-what-is-still-missing ()
   "A package that stays unavailable stops startup with its name."
-  (let ((package-selected-packages '(xl-test-missing)))
+  (let ((package-selected-packages '(tuned-test-missing)))
     (cl-letf (((symbol-function 'package-installed-p) #'ignore)
               ((symbol-function 'package-refresh-contents) #'ignore)
               ((symbol-function 'package-install) #'ignore)
-              ((symbol-function 'xl-refresh-package-keyring) #'ignore))
-      (should-error (xl-install-missing-packages) :type 'error))))
+              ((symbol-function 'tuned-refresh-package-keyring) #'ignore))
+      (should-error (tuned-install-missing-packages) :type 'error))))
 
-(ert-deftest xl-package-keyring-is-rebuilt ()
+(ert-deftest tuned-package-keyring-is-rebuilt ()
   "A stale package.el GPG home is deleted and the bundled keyring imported."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((package-gnupghome-dir (expand-file-name "gnupg" dir))
           (package-check-signature t)
           imported)
       (make-directory package-gnupghome-dir t)
       (cl-letf (((symbol-function 'package-import-keyring)
                  (lambda (file) (setq imported file))))
-        (xl-refresh-package-keyring))
+        (tuned-refresh-package-keyring))
       (should-not (file-directory-p package-gnupghome-dir))
       (should (string-suffix-p "package-keyring.gpg" imported)))))
 
-(ert-deftest xl-autoloads-point-to-real-definitions ()
-  "Every entry in lisp/xl-autoloads.el names a definition in its library.
+(ert-deftest tuned-autoloads-point-to-real-definitions ()
+  "Every entry in lisp/tuned-autoloads.el names a definition in its library.
 A stale generated file, or a cookie on a definition that was renamed,
 fails here."
-  (let ((file (expand-file-name "tuned-emacs/lisp/xl-autoloads.el" xl-dotfiles))
+  (let ((file (expand-file-name "tuned-emacs/lisp/tuned-autoloads.el" tuned-dotfiles))
         (count 0))
     (should (file-exists-p file))
     (with-temp-buffer
@@ -305,7 +305,7 @@ fails here."
 
 
 
-(ert-deftest xl-search-project-at-point-uses-grep-without-ripgrep ()
+(ert-deftest tuned-search-project-at-point-uses-grep-without-ripgrep ()
   "`SPC *' searches with ripgrep when it is installed, with grep when not."
   (require 'consult)
   (let (called)
@@ -322,15 +322,15 @@ fails here."
         (xueliang-search-project-at-point)))
     (should (equal '((grep "symbol-x") (rg "symbol-x")) called))))
 
-(ert-deftest xl-personal-file-is-framework-neutral ()
-  "`personal.el', `xl-utils.el', `xl-git-status.el' and `xl-git-commands.el' use plain Emacs APIs.
+(ert-deftest tuned-personal-file-is-framework-neutral ()
+  "`personal.el', `xueliang-utils.el', `tuned-git-status.el' and `tuned-git-commands.el' use plain Emacs APIs.
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/example/xl-utils.el"
-                  "tuned-emacs/lisp/xl-git-status.el" "tuned-emacs/lisp/xl-git-commands.el"
-                  "tuned-emacs/lisp/xl-perfetto-trace.el"))
-    (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))
+  (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/example/xueliang-utils.el"
+                  "tuned-emacs/lisp/tuned-git-status.el" "tuned-emacs/lisp/tuned-git-commands.el"
+                  "tuned-emacs/lisp/tuned-perfetto-trace.el"))
+    (dolist (entry (tuned-test--code-lines (expand-file-name file tuned-dotfiles)))
       (let ((line (cdr entry)))
         (should-not (string-match-p "crafted-" line))
         (should-not (string-match-p "spacemacs/" line))
@@ -340,16 +340,16 @@ allowed."
                             '("doom-themes" "doom-tokyo-night")))
             (setq start (match-end 0))))))))
 
-(ert-deftest xl-init-loads-keys-before-personal-config ()
+(ert-deftest tuned-init-loads-keys-before-personal-config ()
   "Personal bindings must win, so `personal.el' has to load last."
-  (let ((init (expand-file-name "tuned-emacs/init.el" xl-dotfiles))
+  (let ((init (expand-file-name "tuned-emacs/init.el" tuned-dotfiles))
         keys-line status-line commands-line personal-line)
-    (dolist (entry (xl-test--code-lines init))
-      (when (string-match-p "require 'xl-key-bindings" (cdr entry))
+    (dolist (entry (tuned-test--code-lines init))
+      (when (string-match-p "require 'tuned-key-bindings" (cdr entry))
         (setq keys-line (car entry)))
-      (when (string-match-p "require 'xl-git-status" (cdr entry))
+      (when (string-match-p "require 'tuned-git-status" (cdr entry))
         (setq status-line (car entry)))
-      (when (string-match-p "require 'xl-git-commands" (cdr entry))
+      (when (string-match-p "require 'tuned-git-commands" (cdr entry))
         (setq commands-line (car entry)))
       (when (string-match-p "tuned-emacs/personal\"" (cdr entry))
         (setq personal-line (car entry))))
@@ -361,7 +361,7 @@ allowed."
     (should (< status-line commands-line))
     (should (< commands-line personal-line))))
 
-(ert-deftest xl-early-init-settings ()
+(ert-deftest tuned-early-init-settings ()
   "Startup-time settings from `early-init.el' are in effect."
   (should-not crafted-package-perform-stale-archive-check)
   (should-not crafted-init-auto-save-customized)
@@ -375,17 +375,17 @@ allowed."
   (should (equal (cdr (assq 'menu-bar-lines default-frame-alist)) 0))
   (should (equal (cdr (assq 'tool-bar-lines default-frame-alist)) 0)))
 
-(ert-deftest xl-native-comp-jit-is-off ()
+(ert-deftest tuned-native-comp-jit-is-off ()
   "Packages run as byte code: no JIT, and no native compile when installed."
   (when (boundp 'native-comp-jit-compilation)
     (should-not native-comp-jit-compilation))
   (should-not package-native-compile))
 
-(ert-deftest xl-async-evaluate-loads-on-first-use ()
+(ert-deftest tuned-async-evaluate-loads-on-first-use ()
   "Starting the profile does not load the child-Emacs evaluator."
-  (should-not (featurep 'xl-async-evaluate)))
+  (should-not (featurep 'tuned-async-evaluate)))
 
-(ert-deftest xl-packages-load-as-byte-code ()
+(ert-deftest tuned-packages-load-as-byte-code ()
   "A package function is byte code, unless its native compile built an eln.  Emacs's own
 JIT is off, so a native package function must come from the eln for consult's
 current source.  Names are compared, not folders: `ert-run-tests-batch-and-exit'
@@ -395,45 +395,45 @@ points the first eln folder at a temporary cache."
          (native (and (fboundp 'native-comp-function-p) (native-comp-function-p fn))))
     (should (or native (byte-code-function-p fn)))))
 
-(ert-deftest xl-frame-starts-maximized-from-early-init ()
+(ert-deftest tuned-frame-starts-maximized-from-early-init ()
   "The maximized size is a frame parameter from `early-init.el', so the first
 frame is created maximized; `init.el' must not set it after the frame exists."
   (should (eq (cdr (assq 'fullscreen default-frame-alist)) 'maximized))
-  (dolist (entry (xl-test--code-lines (expand-file-name "tuned-emacs/init.el" xl-dotfiles)))
+  (dolist (entry (tuned-test--code-lines (expand-file-name "tuned-emacs/init.el" tuned-dotfiles)))
     (should-not (string-match-p "set-frame-parameter.*fullscreen" (cdr entry))))
   (should (cl-some (lambda (entry)
                      (string-match-p "push '(fullscreen . maximized) default-frame-alist"
                                      (cdr entry)))
-                   (xl-test--code-lines
-                    (expand-file-name "tuned-emacs/early-init.el" xl-dotfiles)))))
+                   (tuned-test--code-lines
+                    (expand-file-name "tuned-emacs/early-init.el" tuned-dotfiles)))))
 
 ;;; ============================================================
 ;;; Leader keys and function keys
 ;;; ============================================================
 
-(ert-deftest xl-leader-is-reachable ()
-  "SPC in normal state and M-m in insert state open `xl-leader-map'."
-  (should (eq (keymap-lookup evil-normal-state-map "SPC") xl-leader-map))
-  (should (eq (keymap-lookup evil-motion-state-map "SPC") xl-leader-map))
-  (should (eq (keymap-lookup evil-visual-state-map "SPC") xl-leader-map))
-  (should (eq (keymap-lookup evil-insert-state-map "M-m") xl-leader-map))
-  (should (eq (keymap-lookup evil-emacs-state-map "M-m") xl-leader-map)))
+(ert-deftest tuned-leader-is-reachable ()
+  "SPC in normal state and M-m in insert state open `tuned-leader-map'."
+  (should (eq (keymap-lookup evil-normal-state-map "SPC") tuned-leader-map))
+  (should (eq (keymap-lookup evil-motion-state-map "SPC") tuned-leader-map))
+  (should (eq (keymap-lookup evil-visual-state-map "SPC") tuned-leader-map))
+  (should (eq (keymap-lookup evil-insert-state-map "M-m") tuned-leader-map))
+  (should (eq (keymap-lookup evil-emacs-state-map "M-m") tuned-leader-map)))
 
-(defun xl-test--collect-commands (map)
+(defun tuned-test--collect-commands (map)
   "Return every command bound in MAP, descending into prefix keymaps."
   (let (commands)
     (map-keymap
      (lambda (_event def)
        (cond
         ((keymapp def)
-         (setq commands (append (xl-test--collect-commands def) commands)))
+         (setq commands (append (tuned-test--collect-commands def) commands)))
         ;; Prefix keys are often stored as ("label" keymap ...).
         ((and (consp def) (keymapp (cdr def)))
-         (setq commands (append (xl-test--collect-commands (cdr def)) commands)))
+         (setq commands (append (tuned-test--collect-commands (cdr def)) commands)))
         ((and (consp def) (eq (car def) 'menu-item))
          (let ((cmd (nth 2 def)))
            (cond ((keymapp cmd)
-                  (setq commands (append (xl-test--collect-commands cmd) commands)))
+                  (setq commands (append (tuned-test--collect-commands cmd) commands)))
                  ((commandp cmd) (push cmd commands)))))
         ((and (consp def) (commandp (cdr def)))
          (push (cdr def) commands))
@@ -441,55 +441,55 @@ frame is created maximized; `init.el' must not set it after the frame exists."
      map)
     commands))
 
-(ert-deftest xl-leader-commands-exist ()
+(ert-deftest tuned-leader-commands-exist ()
   "Every command reachable from the SPC tree is a real command.
-A typo in `xl-sk-bind' or `xl-leader' then fails here instead of at the
+A typo in `tuned-sk-bind' or `tuned-leader' then fails here instead of at the
 keypress.  Prefix keymaps are walked recursively."
-  (let ((commands (xl-test--collect-commands xl-leader-map)))
+  (let ((commands (tuned-test--collect-commands tuned-leader-map)))
     (should (> (length commands) 80))
     (dolist (cmd (delete-dups commands))
       (should (commandp cmd))
       (should (fboundp cmd)))))
 
-(ert-deftest xl-leader-bindings ()
+(ert-deftest tuned-leader-bindings ()
   "The Spacemacs positions and my personal overrides are both present."
   (dolist (spec '(("SPC" . consult-buffer)
                   ("RET" . consult-buffer)
                   ("*" . xueliang-search-project-at-point)
                   ("/" . consult-line)
                   ("x" . execute-extended-command)
-                  ("a d" . xl-dired)
+                  ("a d" . tuned-dired)
                   ("f f" . find-file)
                   ("f r" . consult-recent-file)
-                  ("f j" . xl-dired-jump)
+                  ("f j" . tuned-dired-jump)
                   ("f p" . xueliang-find-file-in-dotfiles)
                   ("h d a" . describe-symbol)
                   ("i s" . xueliang-insert-snippet)
                   ("i S" . xueliang-new-snippet)
                   ("b b" . consult-buffer)
-                  ("b h" . xl-sk-home-buffer)
-                  ("e t" . xl-consult-spell)
-                  ("e r" . xl-consult-spell-region)
+                  ("b h" . tuned-sk-home-buffer)
+                  ("e t" . tuned-consult-spell)
+                  ("e r" . tuned-consult-spell-region)
                   ("b s" . xueliang-open-scratch-buffer-window)
                   ("g s" . magit-status)
-                  ("g g" . xl-git-status-window)
-                  ("g b" . xl-gblame)
+                  ("g g" . xueliang-git-status-window)
+                  ("g b" . tuned-gblame)
                   ("g f" . project-find-file)
                   ("j j" . avy-goto-char-timer)
-                  ("j d" . xl-dired-jump)
+                  ("j d" . tuned-dired-jump)
                   ("p s" . xueliang-search-project)
-                  ("q r" . xl-sk-restart-emacs)
+                  ("q r" . tuned-sk-restart-emacs)
                   ("r l" . vertico-repeat)
                   ("r y" . consult-yank-pop)
                   ("s s" . consult-line)
                   ("w v" . xueliang-split-right)
                   ("w s" . xueliang-split-below)
-                  ("T n" . xl-sk-cycle-theme)
+                  ("T n" . tuned-sk-cycle-theme)
                   ("1" . winum-select-window-1)
                   ("9" . winum-select-window-9)))
-    (should (eq (keymap-lookup xl-leader-map (car spec)) (cdr spec)))))
+    (should (eq (keymap-lookup tuned-leader-map (car spec)) (cdr spec)))))
 
-(ert-deftest xl-search-project-at-point ()
+(ert-deftest tuned-search-project-at-point ()
   "SPC * passes the whole symbol at point to `consult-ripgrep'."
   (with-temp-buffer
     (set-syntax-table emacs-lisp-mode-syntax-table)
@@ -507,7 +507,7 @@ keypress.  Prefix keymaps are walked recursively."
         (xueliang-search-project-at-point)
         (should (equal args '(nil nil)))))))
 
-(ert-deftest xl-function-keys ()
+(ert-deftest tuned-function-keys ()
   "F2-F12 keep the vim/Neovim habits; F2 is the Chinese input toggle.
 F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
   (dolist (spec '(("<f2>" . xueliang-toggle-chinese-input)
@@ -515,9 +515,9 @@ F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
                   ("<f5>" . xueliang-eshell-popup)
                   ("<f6>" . consult-yank-pop)
                   ("<f7>" . xueliang-just-make)
-                  ("<f8>" . xl-tagbar-toggle)
+                  ("<f8>" . tuned-tagbar-toggle)
                   ("<f9>" . xueliang-dired-sidebar)
-                  ("<f10>" . xl-sk-home-buffer)
+                  ("<f10>" . tuned-sk-home-buffer)
                   ("<f11>" . xueliang-imenu-or-org-today)
                   ("<f12>" . xueliang-open-knowledge-links)
                   ("C-<f4>" . kill-buffer-and-window)))
@@ -525,22 +525,22 @@ F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
 
 ;; Text modes add ispell to completion; corfu would run it on every committed
 ;; character (about 230 ms a query), so the automatic list must not have it.
-(ert-deftest xl-text-modes-skip-ispell-in-automatic-completion ()
+(ert-deftest tuned-text-modes-skip-ispell-in-automatic-completion ()
   "No text mode lists `ispell-completion-at-point' among the completion functions."
   (dolist (mode '(text-mode markdown-mode org-mode))
     (with-temp-buffer
       (funcall mode)
       (should-not (memq 'ispell-completion-at-point completion-at-point-functions)))))
 
-(ert-deftest xl-help-key-uses-describe-symbol ()
+(ert-deftest tuned-help-key-uses-describe-symbol ()
   "C-h a completes symbols instead of asking for an apropos pattern."
   (should (eq (keymap-lookup help-map "a") #'describe-symbol))
   (should (eq (keymap-lookup global-map "C-h a") #'describe-symbol)))
 
-(ert-deftest xl-mac-option-3-types-hash ()
+(ert-deftest tuned-mac-option-3-types-hash ()
   "On macOS UK layouts Option-3 (M-3) inserts # where text is entered.
 The normal state keeps M-3 as `digit-argument'."
-  (skip-unless xl-mac-p)
+  (skip-unless tuned-mac-p)
   (dolist (map (list evil-insert-state-map evil-replace-state-map
                      evil-emacs-state-map minibuffer-local-map
                      evil-command-line-map evil-ex-completion-map
@@ -563,27 +563,27 @@ The normal state keeps M-3 as `digit-argument'."
       (xueliang-isearch-insert-hash))
     (should (equal char ?#))))
 
-(ert-deftest xl-major-mode-leaders ()
+(ert-deftest tuned-major-mode-leaders ()
   "`,` and SPC m resolve by major mode; unknown modes keep evil's `,'."
   (with-temp-buffer
     (org-mode)
-    (should (eq (xl-sk--major-map) xl-org-leader-map)))
+    (should (eq (tuned-sk--major-map) tuned-org-leader-map)))
   (with-temp-buffer
     (emacs-lisp-mode)
-    (should (eq (xl-sk--major-map) xl-elisp-leader-map)))
+    (should (eq (tuned-sk--major-map) tuned-elisp-leader-map)))
   (with-temp-buffer
     (fundamental-mode)
-    (should-not (xl-sk--major-map))
-    (should (eq (xl-sk--comma) #'evil-repeat-find-char-reverse)))
+    (should-not (tuned-sk--major-map))
+    (should (eq (tuned-sk--comma) #'evil-repeat-find-char-reverse)))
   (with-temp-buffer
     (org-mode)
-    (should (eq (xl-sk--comma) xl-org-leader-map))))
+    (should (eq (tuned-sk--comma) tuned-org-leader-map))))
 
 ;;; ============================================================
 ;;; Org: settings, faces and buffer setup
 ;;; ============================================================
 
-(ert-deftest xl-org-settings ()
+(ert-deftest tuned-org-settings ()
   "Org options that differ from Crafted's defaults."
   (require 'org)
   (should (equal org-ellipsis " ▶"))
@@ -603,11 +603,11 @@ The normal state keeps M-3 as `digit-argument'."
                  "https://www.scales-chords.com/chord/piano/%s"))
   (should (member "FOCUS(f)" (cdr (car org-todo-keywords))))
   (should (equal (face-attribute 'org-level-1 :height) 1.0))
-  (should (eq (face-attribute 'org-level-1 :weight) xl-font-weight)))
+  (should (eq (face-attribute 'org-level-1 :weight) tuned-font-weight)))
 
-(ert-deftest xl-org-buffer-setup ()
+(ert-deftest tuned-org-buffer-setup ()
   "Opening an Org file runs local setup and keeps long lines unwrapped."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "note.org" dir)))
       (with-temp-file file
         (insert "* Heading\nSome text\n** Child\n- item\n"))
@@ -627,7 +627,7 @@ The normal state keeps M-3 as `digit-argument'."
                              #'org-open-at-point)))
           (kill-buffer buf))))))
 
-(ert-deftest xl-org-structure-template-expands ()
+(ert-deftest tuned-org-structure-template-expands ()
   "`<s' + TAB inserts a source block, also from insert state.
 The other TAB command would insert two spaces, so it delegates to
 `org-tempo' before falling back, like `org-cycle' in normal state."
@@ -643,7 +643,7 @@ The other TAB command would insert two spaces, so it delegates to
 ;;; Magit
 ;;; ============================================================
 
-(ert-deftest xl-magit-movement-keys ()
+(ert-deftest tuned-magit-movement-keys ()
   "h/j/k/l move in Magit without losing their vim meaning."
   (require 'magit)
   (should (eq (keymap-lookup magit-mode-map "h") #'evil-backward-char))
@@ -651,10 +651,10 @@ The other TAB command would insert two spaces, so it delegates to
   (should (eq (keymap-lookup magit-mode-map "k") #'magit-previous-line))
   (should (eq (keymap-lookup magit-mode-map "l") #'evil-forward-char)))
 
-(ert-deftest xl-magit-status-buffer ()
+(ert-deftest tuned-magit-status-buffer ()
   "Magit status opens and shows the head branch even without log sections."
   (skip-unless (executable-find "git"))
-  (let ((repo (xl-test--git-repo)))
+  (let ((repo (tuned-test--git-repo)))
     (unwind-protect
         (progn
           (require 'magit-status)
@@ -675,9 +675,9 @@ The other TAB command would insert two spaces, so it delegates to
 ;;; Dired and Eshell
 ;;; ============================================================
 
-(ert-deftest xl-dired-buffer-setup ()
+(ert-deftest tuned-dired-buffer-setup ()
   "Dired uses human-readable listings and vim-style h/l/RET."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((buf (dired-noselect dir)))
       (unwind-protect
           (with-current-buffer buf
@@ -691,37 +691,37 @@ The other TAB command would insert two spaces, so it delegates to
               (should (eq (keymap-lookup normal "RET") #'xueliang-dired-open))))
         (kill-buffer buf)))))
 
-(ert-deftest xl-dired-mode-setup-and-keys ()
-  "`xl-dired' looks like Dired and uses the async preview keys."
+(ert-deftest tuned-dired-mode-setup-and-keys ()
+  "`tuned-dired' looks like Dired and uses the async preview keys."
   (with-temp-buffer
     (setq default-directory temporary-file-directory)
-    (xl-dired-mode)
-    (should (derived-mode-p 'xl-dired-mode))
-    (should (eq (keymap-lookup xl-dired-mode-map "TAB")
-                #'xl-dired-preview))
-    (should (eq (keymap-lookup xl-dired-mode-map "RET")
-                #'xl-dired-open))
-    (let ((normal (evil-get-auxiliary-keymap xl-dired-mode-map 'normal t)))
-      (should (eq (keymap-lookup normal "h") #'xl-dired-up-directory))
-      (should (eq (keymap-lookup normal "l") #'xl-dired-open))
-      (should (eq (keymap-lookup normal "RET") #'xl-dired-open))
-      (should (eq (lookup-key normal (kbd "TAB")) #'xl-dired-preview)))))
+    (tuned-dired-mode)
+    (should (derived-mode-p 'tuned-dired-mode))
+    (should (eq (keymap-lookup tuned-dired-mode-map "TAB")
+                #'tuned-dired-preview))
+    (should (eq (keymap-lookup tuned-dired-mode-map "RET")
+                #'tuned-dired-open))
+    (let ((normal (evil-get-auxiliary-keymap tuned-dired-mode-map 'normal t)))
+      (should (eq (keymap-lookup normal "h") #'tuned-dired-up-directory))
+      (should (eq (keymap-lookup normal "l") #'tuned-dired-open))
+      (should (eq (keymap-lookup normal "RET") #'tuned-dired-open))
+      (should (eq (lookup-key normal (kbd "TAB")) #'tuned-dired-preview)))))
 
-(ert-deftest xl-dired-lists-a-directory-asynchronously ()
-  "`xl-dired' starts `ls' in the background and shows the loader first."
-  (xl-test-with-temp-dir dir
+(ert-deftest tuned-dired-lists-a-directory-asynchronously ()
+  "`tuned-dired' starts `ls' in the background and shows the loader first."
+  (tuned-test-with-temp-dir dir
     (with-temp-file (expand-file-name "hello.txt" dir)
       (insert "hello\n"))
-    (let ((buffer (xl-dired-noselect dir)))
+    (let ((buffer (tuned-dired-noselect dir)))
       (unwind-protect
           (progn
-            (should (xl-async-busy-p 'listing buffer))
+            (should (tuned-async-busy-p 'listing buffer))
             (with-current-buffer buffer
-              (should (xl-spinner-mode-line-busy-p))
+              (should (tuned-spinner-mode-line-busy-p))
               (should (zerop (buffer-size))))
-            (xl-test--wait-for-xl-dired buffer)
+            (tuned-test--wait-for-tuned-dired buffer)
             (with-current-buffer buffer
-              (should (derived-mode-p 'xl-dired-mode))
+              (should (derived-mode-p 'tuned-dired-mode))
               (should (save-excursion
                         (goto-char (point-min))
                         (search-forward "hello.txt" nil t)))
@@ -730,162 +730,162 @@ The other TAB command would insert two spaces, so it delegates to
                              (file-name-as-directory dir)))))
         (when (buffer-live-p buffer) (kill-buffer buffer))))))
 
-(ert-deftest xl-dired-refresh-keeps-the-old-listing-until-ls-answers ()
+(ert-deftest tuned-dired-refresh-keeps-the-old-listing-until-ls-answers ()
   "`g' starts a new `ls' and does not empty the window while it runs."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (with-temp-file (expand-file-name "hello.txt" dir)
       (insert "hello\n"))
-    (let ((buffer (xl-dired-noselect dir)))
+    (let ((buffer (tuned-dired-noselect dir)))
       (unwind-protect
           (progn
-            (xl-test--wait-for-xl-dired buffer)
+            (tuned-test--wait-for-tuned-dired buffer)
             (with-current-buffer buffer
               (let ((before (buffer-string)))
                 (revert-buffer)
-                (should (xl-async-busy-p 'listing buffer))
+                (should (tuned-async-busy-p 'listing buffer))
                 (should (equal before (buffer-string)))
-                (xl-test--wait-for-xl-dired buffer))))
+                (tuned-test--wait-for-tuned-dired buffer))))
         (when (buffer-live-p buffer) (kill-buffer buffer))))))
 
-(ert-deftest xl-dired-cd-uses-the-current-window ()
+(ert-deftest tuned-dired-cd-uses-the-current-window ()
   "Opening a directory replaces the listing in the selected window."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((sub (expand-file-name "sub" dir)))
       (make-directory sub)
       (with-temp-file (expand-file-name "hello.txt" sub)
         (insert "hello\n"))
       (save-window-excursion
         (delete-other-windows)
-        (let ((buffer (xl-dired-noselect dir)))
+        (let ((buffer (tuned-dired-noselect dir)))
           (unwind-protect
               (progn
                 (switch-to-buffer buffer)
-                (xl-test--wait-for-xl-dired buffer)
+                (tuned-test--wait-for-tuned-dired buffer)
                 (goto-char (point-min))
                 (should (re-search-forward " sub$" nil t))
                 (goto-char (match-beginning 0))
                 (let ((window (selected-window))
                       (count (length (window-list))))
-                  (xl-dired-open)
+                  (tuned-dired-open)
                   (should (eq (selected-window) window))
                   (should (= (length (window-list)) count))
-                  (should (derived-mode-p 'xl-dired-mode))
+                  (should (derived-mode-p 'tuned-dired-mode))
                   (should (equal (file-name-as-directory
                                   (expand-file-name default-directory))
                                  (file-name-as-directory sub)))
-                  (xl-test--wait-for-xl-dired buffer)
+                  (tuned-test--wait-for-tuned-dired buffer)
                   (goto-char (point-min))
                   (should (search-forward "hello.txt" nil t))))
             (when (buffer-live-p buffer) (kill-buffer buffer))))))))
 
-(ert-deftest xl-dired-opens-a-file-in-the-other-window ()
-  "RET/l in `xl-dired' selects the file in the other window."
-  (xl-test-with-temp-dir dir
+(ert-deftest tuned-dired-opens-a-file-in-the-other-window ()
+  "RET/l in `tuned-dired' selects the file in the other window."
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "hello.txt" dir)))
       (with-temp-file file (insert "hello\n"))
       (save-window-excursion
         (delete-other-windows)
-        (let ((buffer (xl-dired-noselect dir)))
+        (let ((buffer (tuned-dired-noselect dir)))
           (unwind-protect
               (progn
                 (switch-to-buffer buffer)
-                (xl-test--wait-for-xl-dired buffer)
+                (tuned-test--wait-for-tuned-dired buffer)
                 (goto-char (point-min))
                 (should (search-forward "hello.txt" nil t))
                 (goto-char (match-beginning 0))
                 (let ((dired-window (selected-window)))
-                  (xl-dired-open)
+                  (tuned-dired-open)
                   (should-not (eq (selected-window) dired-window))
                   (should (equal (expand-file-name (buffer-file-name))
                                  (expand-file-name file)))))
             (when (buffer-live-p buffer) (kill-buffer buffer))
             (when (get-file-buffer file) (kill-buffer (get-file-buffer file)))))))))
 
-(ert-deftest xl-dired-preview-loads-a-text-file-asynchronously ()
+(ert-deftest tuned-dired-preview-loads-a-text-file-asynchronously ()
   "TAB previews a text file through the async `head' pipeline."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "hello.txt" dir)))
       (with-temp-file file (insert "alpha\nbeta\n"))
-      (let ((buffer (xl-dired-noselect dir)))
+      (let ((buffer (tuned-dired-noselect dir)))
         (unwind-protect
             (progn
               (switch-to-buffer buffer)
-              (xl-test--wait-for-xl-dired buffer)
+              (tuned-test--wait-for-tuned-dired buffer)
               (goto-char (point-min))
               (should (search-forward "hello.txt" nil t))
               (goto-char (match-beginning 0))
               (cl-letf (((symbol-function 'display-buffer)
                          (lambda (candidate &rest _) candidate)))
-                (xl-dired-preview))
-              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
-                (xl-test--wait-for-xl-preview preview)
+                (tuned-dired-preview))
+              (let ((preview (get-buffer tuned-dired-preview-buffer-name)))
+                (tuned-test--wait-for-tuned-preview preview)
                 (with-current-buffer preview
                   (should buffer-read-only)
                   (should (string-match-p "alpha" (buffer-string)))
                   (should (string-match-p "beta" (buffer-string))))))
           (when (buffer-live-p buffer) (kill-buffer buffer))
-          (when (get-buffer xl-dired-preview-buffer-name)
-            (kill-buffer xl-dired-preview-buffer-name)))))))
+          (when (get-buffer tuned-dired-preview-buffer-name)
+            (kill-buffer tuned-dired-preview-buffer-name)))))))
 
-(ert-deftest xl-dired-folders-have-no-preview ()
+(ert-deftest tuned-dired-folders-have-no-preview ()
   "TAB on a folder shows no preview: the windows stay as they are."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((sub (expand-file-name "sub" dir)))
       (make-directory sub)
-      (let ((buffer (xl-dired-noselect dir)))
+      (let ((buffer (tuned-dired-noselect dir)))
         (unwind-protect
             (progn
               (switch-to-buffer buffer)
-              (xl-test--wait-for-xl-dired buffer)
-              (when (get-buffer xl-dired-preview-buffer-name)
-                (kill-buffer xl-dired-preview-buffer-name))
+              (tuned-test--wait-for-tuned-dired buffer)
+              (when (get-buffer tuned-dired-preview-buffer-name)
+                (kill-buffer tuned-dired-preview-buffer-name))
               (goto-char (point-min))
               (should (re-search-forward " sub$" nil t))
               (goto-char (match-beginning 0))
-              (xl-dired-preview)
-              (should-not (get-buffer xl-dired-preview-buffer-name)))
+              (tuned-dired-preview)
+              (should-not (get-buffer tuned-dired-preview-buffer-name)))
           (when (buffer-live-p buffer) (kill-buffer buffer))
-          (when (get-buffer xl-dired-preview-buffer-name)
-            (kill-buffer xl-dired-preview-buffer-name)))))))
+          (when (get-buffer tuned-dired-preview-buffer-name)
+            (kill-buffer tuned-dired-preview-buffer-name)))))))
 
-(ert-deftest xl-dired-preview-says-when-a-file-is-binary ()
+(ert-deftest tuned-dired-preview-says-when-a-file-is-binary ()
   "A binary or data file gets a hex dump with a note, not raw bytes."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "data.bin" dir)))
       (with-temp-file file (insert "\0\1\2data"))
-      (let ((buffer (xl-dired-noselect dir)))
+      (let ((buffer (tuned-dired-noselect dir)))
         (unwind-protect
             (progn
               (switch-to-buffer buffer)
-              (xl-test--wait-for-xl-dired buffer)
+              (tuned-test--wait-for-tuned-dired buffer)
               (goto-char (point-min))
               (should (search-forward "data.bin" nil t))
               (goto-char (match-beginning 0))
               (cl-letf (((symbol-function 'display-buffer)
                          (lambda (candidate &rest _) candidate)))
-                (xl-dired-preview))
-              (let ((preview (get-buffer xl-dired-preview-buffer-name)))
-                (xl-test--wait-for-xl-preview preview)
+                (tuned-dired-preview))
+              (let ((preview (get-buffer tuned-dired-preview-buffer-name)))
+                (tuned-test--wait-for-tuned-preview preview)
                 (with-current-buffer preview
                   (should (string-match-p "Binary file" (buffer-string)))
                   (should (string-match-p "^00000000  " (buffer-string)))
                   (should-not (string-match-p "\0" (buffer-string))))))
           (when (buffer-live-p buffer) (kill-buffer buffer))
-          (when (get-buffer xl-dired-preview-buffer-name)
-            (kill-buffer xl-dired-preview-buffer-name)))))))
+          (when (get-buffer tuned-dired-preview-buffer-name)
+            (kill-buffer tuned-dired-preview-buffer-name)))))))
 
-(ert-deftest xl-dired-schedules-a-preview-after-the-idle-delay ()
-  "Point resting for `xl-dired-preview-idle' starts a preview."
-  (should (= xl-dired-preview-idle 60))
+(ert-deftest tuned-dired-schedules-a-preview-after-the-idle-delay ()
+  "Point resting for `tuned-dired-preview-idle' starts a preview."
+  (should (= tuned-dired-preview-idle 60))
   (with-temp-buffer
     (setq default-directory temporary-file-directory)
-    (xl-dired-mode)
-    (xl-dired--schedule-preview)
-    (should (timerp xl-dired--hover-timer))
-    (cancel-timer xl-dired--hover-timer)
-    (setq xl-dired--hover-timer nil)))
+    (tuned-dired-mode)
+    (tuned-dired--schedule-preview)
+    (should (timerp tuned-dired--hover-timer))
+    (cancel-timer tuned-dired--hover-timer)
+    (setq tuned-dired--hover-timer nil)))
 
-(ert-deftest xl-eshell-setup ()
+(ert-deftest tuned-eshell-setup ()
   "Eshell starts in insert state with terminal-like keys."
   (let ((buf (eshell)))
     (unwind-protect
@@ -913,7 +913,7 @@ The other TAB command would insert two spaces, so it delegates to
 ;;; Completion and global behaviour
 ;;; ============================================================
 
-(ert-deftest xl-completion-stack ()
+(ert-deftest tuned-completion-stack ()
   "The Vertico completion stack is active and configured."
   (should (featurep 'vertico))
   (should vertico-mode)
@@ -956,7 +956,7 @@ The other TAB command would insert two spaces, so it delegates to
   ;; Dabbrev must not scan every buffer of the same mode on each keystroke.
   (should (eq cape-dabbrev-buffer-function #'current-buffer)))
 
-(ert-deftest xl-minibuffer-keeps-orderless ()
+(ert-deftest tuned-minibuffer-keeps-orderless ()
   "Buffers match by prefix; the minibuffer still gets orderless matching."
   (should (memq #'xueliang-minibuffer-orderless minibuffer-setup-hook))
   (with-temp-buffer
@@ -965,7 +965,7 @@ The other TAB command would insert two spaces, so it delegates to
 
 ;; Chinese input runs inside Emacs (pyim), so the macOS IME never sits
 ;; between a key press and the command loop.
-(ert-deftest xl-chinese-input-is-pyim ()
+(ert-deftest tuned-chinese-input-is-pyim ()
   "pyim is the input method, with the dictionary and popup configured."
   (should (equal default-input-method "pyim"))
   (should (assoc "pyim" input-method-alist))
@@ -982,7 +982,7 @@ The other TAB command would insert two spaces, so it delegates to
   (should (memq 'xueliang-pyim-english-p
                 pyim-english-input-switch-functions)))
 
-(ert-deftest xl-chinese-input-shows-in-the-frame-title ()
+(ert-deftest tuned-chinese-input-shows-in-the-frame-title ()
   "The frame title says (中文拼音) while pyim is the buffer's input method."
   (should (equal frame-title-format
                  '((:eval (xueliang-chinese-input-title)) "%b")))
@@ -994,7 +994,7 @@ The other TAB command would insert two spaces, so it delegates to
   (should (memq #'xueliang-refresh-frame-title input-method-activate-hook))
   (should (memq #'xueliang-refresh-frame-title input-method-deactivate-hook)))
 
-(ert-deftest xl-pyim-keeps-commands-english ()
+(ert-deftest tuned-pyim-keeps-commands-english ()
   "pyim types Chinese only where text is typed.
 The minibuffer, isearch and Evil normal/visual state must keep their
 single-key commands."
@@ -1011,7 +1011,7 @@ single-key commands."
               ((symbol-function 'evil-replace-state-p) (lambda () t)))
       (should-not (xueliang-pyim-english-p)))))
 
-(ert-deftest xl-chinese-input-toggle-says-which ()
+(ert-deftest tuned-chinese-input-toggle-says-which ()
   "F2 toggles pyim, forces the OS layout to English, and reports the input."
   (with-temp-buffer
     (let (messages (os-switched nil))
@@ -1035,7 +1035,7 @@ single-key commands."
         (xueliang-toggle-chinese-input))
       (should (equal (car messages) "English")))))
 
-(ert-deftest xl-dabbrev-skips-chinese-and-large-buffers ()
+(ert-deftest tuned-dabbrev-skips-chinese-and-large-buffers ()
   "Automatic dabbrev would scan the buffer and offer whole Chinese sentences."
   (require 'cape)
   (with-temp-buffer
@@ -1054,7 +1054,7 @@ single-key commands."
       (insert (make-string xueliang-cape-dabbrev-max-buffer-size ?x))
       (should-not (xueliang-cape-dabbrev)))))
 
-(ert-deftest xl-corfu-popup-follows-the-theme ()
+(ert-deftest tuned-corfu-popup-follows-the-theme ()
   "Corfu's stock near-black popup is repainted with the active theme.
 Batch mode has no display, so feed the function concrete theme colors and
 check where each one lands."
@@ -1076,7 +1076,7 @@ check where each one lands."
   (should (equal (face-attribute 'corfu-border :background) "#5d4d7a"))
   (should (equal (face-attribute 'corfu-bar :background) "#686868")))
 
-(ert-deftest xl-embark-collect-after-consult-3-4 ()
+(ert-deftest tuned-embark-collect-after-consult-3-4 ()
   "Embark Collect works despite Crafted's stale Consult hook.
 `embark-export' falls back to Collect for types without a dedicated
 exporter (imenu), and Consult 3.4 removed `consult-preview-at-point-mode',
@@ -1106,15 +1106,15 @@ which Crafted still puts on `embark-collect-mode-hook'."
                 (should (eq embark--type 'imenu))))
           (when (buffer-live-p buf) (kill-buffer buf)))))))
 
-(ert-deftest xl-ivy-stack-is-retired ()
+(ert-deftest tuned-ivy-stack-is-retired ()
   "The old Ivy stack is gone from the package list, the UI and the selection."
   (dolist (pkg '(ivy counsel swiper ivy-rich))
-    (should-not (memq pkg xl-packages))
+    (should-not (memq pkg tuned-packages))
     (should-not (memq pkg package-selected-packages)))
   (should-not (featurep 'ivy))
   (should-not (featurep 'counsel)))
 
-(ert-deftest xl-global-editing-settings ()
+(ert-deftest tuned-global-editing-settings ()
   "Indentation, wrapping and process settings shared with Neovim."
   (should-not indent-tabs-mode)
   (should (= tab-width 2))
@@ -1130,37 +1130,37 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (equal backup-directory-alist
                  `(("." . ,(expand-file-name "backups" user-emacs-directory))))))
 
-(ert-deftest xl-theme-is-loaded ()
+(ert-deftest tuned-theme-is-loaded ()
   "One of the two configured dark themes is active."
   (should (seq-intersection custom-enabled-themes
                             '(spacemacs-dark doom-tokyo-night))))
 
-(ert-deftest xl-idle-require-disabled-for-nonpositive-priority ()
+(ert-deftest xueliang-idle-require-disabled-for-nonpositive-priority ()
   "Priority 0 or below leaves no timer and returns nil."
   (let ((before (length timer-idle-list)))
-    (should-not (xl-idle-require 'org 0))
-    (should-not (xl-idle-require 'org -1))
+    (should-not (xueliang-idle-require 'org 0))
+    (should-not (xueliang-idle-require 'org -1))
     (should (= before (length timer-idle-list)))))
 
-(ert-deftest xl-idle-require-registers-one-shot-timer ()
+(ert-deftest xueliang-idle-require-registers-one-shot-timer ()
   "A positive priority registers a cancellable idle timer."
   (let* ((before (length timer-idle-list))
-         (timer (xl-idle-require 'seq 5)))
+         (timer (xueliang-idle-require 'seq 5)))
     (should (timerp timer))
     (should (= (1+ before) (length timer-idle-list)))
     (cancel-timer timer)
     (should (= before (length timer-idle-list)))))
 
-(ert-deftest xl-tab-inserts-two-spaces-without-corfu ()
+(ert-deftest tuned-tab-inserts-two-spaces-without-corfu ()
   "TAB keeps my two-space indent when no completion popup is open."
   (with-temp-buffer
     (xueliang-tab-or-corfu-next)
     (should (equal (buffer-string) "  "))))
 
-(ert-deftest xl-snippets ()
+(ert-deftest tuned-snippets ()
   "`SPC i s' lists yasnippets for the current mode in Vertico."
-  (should (memq 'yasnippet xl-packages))
-  (should (memq 'yasnippet-snippets xl-packages))
+  (should (memq 'yasnippet tuned-packages))
+  (should (memq 'yasnippet-snippets tuned-packages))
   (should (package-installed-p 'yasnippet))
   (should (package-installed-p 'yasnippet-snippets))
   (should (equal yas-prompt-functions '(yas-completing-prompt)))
@@ -1173,16 +1173,16 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (xueliang-insert-snippet))
     (should inserted)))
 
-(ert-deftest xl-create-missing-directories-before-save ()
+(ert-deftest tuned-create-missing-directories-before-save ()
   "Saving into a new folder creates the parents, like `mkdir -p'."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "a/b/c.txt" dir)))
       (with-temp-buffer
         (setq buffer-file-name file)
         (xueliang-create-missing-directories-h)
         (should (file-directory-p (file-name-directory file)))))))
 
-(ert-deftest xl-read-in-order-keeps-input-order ()
+(ert-deftest tuned-read-in-order-keeps-input-order ()
   "My link/line pickers opt out of the completion UI's sorting."
   (cl-letf (((symbol-function 'completing-read)
              (lambda (_prompt collection &rest _)
@@ -1191,32 +1191,32 @@ which Crafted still puts on `embark-collect-mode-hook'."
                    '(metadata (display-sort-function . identity)
                               (cycle-sort-function . identity))))))
 
-(ert-deftest xl-relative-line-numbers-toggle ()
+(ert-deftest tuned-relative-line-numbers-toggle ()
   "SPC t r toggles relative line numbers in the current buffer."
   (with-temp-buffer
-    (xl-sk-relative-line-numbers)
+    (tuned-sk-relative-line-numbers)
     (should (eq display-line-numbers 'relative))
-    (xl-sk-relative-line-numbers)
+    (tuned-sk-relative-line-numbers)
     (should-not display-line-numbers)))
 
-(ert-deftest xl-home-buffer ()
+(ert-deftest tuned-home-buffer ()
   "The home buffer lists at most nine recent files and ends with startup time."
-  (xl-sk-home-buffer)
+  (tuned-sk-home-buffer)
   (should (get-buffer "*Crafted Emacs*"))
   (with-current-buffer "*Crafted Emacs*"
     (should (string-match-p
              "Open Dotfiles\n\n\n\nEmacs loaded in [0-9]+\\.[0-9][0-9] seconds[ \t\n]*\\'"
              (buffer-string))))
-  (should (<= (length xl-sk--home-files) 9))
-  (should (listp xl-sk--home-files)))
+  (should (<= (length tuned-sk--home-files) 9))
+  (should (listp tuned-sk--home-files)))
 
-(ert-deftest xl-restart-comes-back-to-the-same-file ()
+(ert-deftest tuned-restart-comes-back-to-the-same-file ()
   "Restarting saves the file and point, and the next start restores them."
-  (let* ((file (make-temp-file "xl-restart-file-" nil ".txt"))
-         (state (make-temp-file "xl-restart-state-" nil ".eld"))
-         (xl-sk-restart-file state)
-         (xl-sk-restart--pending nil)
-         (xl-sk-restart--buffer nil)
+  (let* ((file (make-temp-file "tuned-restart-file-" nil ".txt"))
+         (state (make-temp-file "tuned-restart-state-" nil ".eld"))
+         (tuned-sk-restart-file state)
+         (tuned-sk-restart--pending nil)
+         (tuned-sk-restart--buffer nil)
          (buffer nil))
     (unwind-protect
         (progn
@@ -1226,16 +1226,16 @@ which Crafted still puts on `embark-collect-mode-hook'."
           (with-current-buffer buffer
             (goto-char (point-min))
             (forward-line 4)               ; line 5
-            (let ((place (xl-sk--save-restart-place)))
+            (let ((place (tuned-sk--save-restart-place)))
               (should (equal file (plist-get place :file)))
               (should (= 5 (line-number-at-pos (plist-get place :point))))))
           (should (file-exists-p state))
           ;; The next start picks the file and consumes the saved place.
-          (let ((restored (xl-sk-initial-buffer-choice)))
+          (let ((restored (tuned-sk-initial-buffer-choice)))
             (should (eq restored buffer))
             (should-not (file-exists-p state))
             (set-window-buffer (selected-window) restored)
-            (xl-sk--restore-restart-place)
+            (tuned-sk--restore-restart-place)
             (with-current-buffer restored
               (should (= 5 (line-number-at-pos (point)))))
             (should (= (with-current-buffer restored (point))
@@ -1244,43 +1244,43 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (ignore-errors (delete-file file))
       (ignore-errors (delete-file state)))))
 
-(ert-deftest xl-restart-from-a-temporary-buffer-goes-home ()
+(ert-deftest tuned-restart-from-a-temporary-buffer-goes-home ()
   "A buffer without a file saves nothing, and cancelling cleans up."
-  (let* ((state (make-temp-file "xl-restart-state-" nil ".eld"))
-         (xl-sk-restart-file state))
+  (let* ((state (make-temp-file "tuned-restart-state-" nil ".eld"))
+         (tuned-sk-restart-file state))
     (unwind-protect
         (progn
           (with-temp-file state (insert "(:file \"/tmp/gone\" :point 1)"))
           (with-temp-buffer
-            (should-not (xl-sk--save-restart-place)))
+            (should-not (tuned-sk--save-restart-place)))
           (should-not (file-exists-p state))
           ;; A restart that is cancelled must not leave a place behind.
           (with-temp-buffer
             (cl-letf (((symbol-function 'restart-emacs)
                        (lambda () (interactive))))
-              (xl-sk-restart-emacs)))
+              (tuned-sk-restart-emacs)))
           (should-not (file-exists-p state))
           ;; With nothing saved the home screen is the initial buffer.
-          (should (eq initial-buffer-choice #'xl-sk-initial-buffer-choice))
+          (should (eq initial-buffer-choice #'tuned-sk-initial-buffer-choice))
           (cl-letf (((symbol-function 'crafted-startup-screen)
                      (lambda () 'home)))
-            (should (eq 'home (xl-sk-initial-buffer-choice)))))
+            (should (eq 'home (tuned-sk-initial-buffer-choice)))))
       (ignore-errors (delete-file state)))))
 
-(ert-deftest xl-restart-remembers-a-dired-directory ()
+(ert-deftest tuned-restart-remembers-a-dired-directory ()
   "A dired buffer is a real place, not a temporary one."
-  (let* ((dir (make-temp-file "xl-restart-dired-" t))
-         (state (make-temp-file "xl-restart-state-" nil ".eld"))
-         (xl-sk-restart-file state)
+  (let* ((dir (make-temp-file "tuned-restart-dired-" t))
+         (state (make-temp-file "tuned-restart-state-" nil ".eld"))
+         (tuned-sk-restart-file state)
          (buffer nil))
     (unwind-protect
         (progn
           (setq buffer (dired-noselect dir))
           (set-window-buffer (selected-window) buffer)
           (with-current-buffer buffer
-            (let ((place (xl-sk--save-restart-place)))
+            (let ((place (tuned-sk--save-restart-place)))
               (should (plist-get place :dired)))
-            (let ((restored (xl-sk-initial-buffer-choice)))
+            (let ((restored (tuned-sk-initial-buffer-choice)))
               (should (eq restored buffer))
               (with-current-buffer restored
                 (should (derived-mode-p 'dired-mode))))))
@@ -1293,7 +1293,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
 ;;; Kill ring, redisplay, ffap and the small Crafted defaults
 ;;; ============================================================
 
-(ert-deftest xl-kill-ring-is-saved-by-savehist ()
+(ert-deftest tuned-kill-ring-is-saved-by-savehist ()
   "The kill ring is in savehist's list and saved without text properties."
   (require 'savehist)
   (should (memq 'kill-ring savehist-additional-variables))
@@ -1303,31 +1303,31 @@ which Crafted still puts on `embark-collect-mode-hook'."
     (should (equal kill-ring '("kept" "plain")))
     (should-not (get-text-property 0 'face (car kill-ring)))))
 
-(ert-deftest xl-redisplay-and-ffap-settings ()
+(ert-deftest tuned-redisplay-and-ffap-settings ()
   "Typing skips fontification under input; ffap does no host lookups."
   (should redisplay-skip-fontification-on-input)
   (should (eq ffap-machine-p-known 'reject)))
 
-(ert-deftest xl-crafted-small-defaults ()
+(ert-deftest tuned-crafted-small-defaults ()
   "Mode line column, compact mode line, imenu rescan and compile scrolling."
   (should column-number-mode)
   (should (eq mode-line-compact 'long))
   (should imenu-auto-rescan)
   (should (eq compilation-scroll-output 'first-error)))
 
-(ert-deftest xl-git-gutter-is-wired ()
+(ert-deftest tuned-git-gutter-is-wired ()
   "diff-hl is selected, its keys sit under SPC g, and its hooks are set."
-  (should (memq 'diff-hl xl-packages))
+  (should (memq 'diff-hl tuned-packages))
   (should (package-installed-p 'diff-hl))
-  (should (eq (keymap-lookup xl-leader-map "g n") 'diff-hl-next-hunk))
-  (should (eq (keymap-lookup xl-leader-map "g p") 'diff-hl-previous-hunk))
-  (should (eq (keymap-lookup xl-leader-map "g h") 'diff-hl-show-hunk)))
+  (should (eq (keymap-lookup tuned-leader-map "g n") 'diff-hl-next-hunk))
+  (should (eq (keymap-lookup tuned-leader-map "g p") 'diff-hl-previous-hunk))
+  (should (eq (keymap-lookup tuned-leader-map "g h") 'diff-hl-show-hunk)))
 
 ;;; ============================================================
-;;; Coverage: functions in xueliang.el and xl-key-bindings.el
+;;; Coverage: functions in xueliang.el and tuned-key-bindings.el
 ;;; ============================================================
 
-(defun xl-test--capture-message (thunk)
+(defun tuned-test--capture-message (thunk)
   "Run THUNK and return the last message it printed, or nil."
   (let (last)
     (cl-letf (((symbol-function 'message)
@@ -1335,15 +1335,15 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (funcall thunk))
     last))
 
-(ert-deftest xl-sum-numbers-in-region ()
+(ert-deftest tuned-sum-numbers-in-region ()
   "`xueliang-sum-numbers-in-region' adds whitespace-separated numbers."
   (with-temp-buffer
     (insert "1 2 3\n")
-    (should (equal (xl-test--capture-message
+    (should (equal (tuned-test--capture-message
                     (lambda () (xueliang-sum-numbers-in-region (point-min) (point-max))))
                    "Sum: 6"))))
 
-(ert-deftest xl-replace-tab-trailing-spaces ()
+(ert-deftest tuned-replace-tab-trailing-spaces ()
   "Tabs become spaces and trailing blanks are removed from the whole buffer."
   (with-temp-buffer
     (insert "a\tb   \nc\t\n")
@@ -1353,7 +1353,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
     (should-not (string-match-p "[ \t]+$" (buffer-string)))
     (should (string-match-p "\\`a b\nc" (buffer-string)))))
 
-(ert-deftest xl-complete-line-replaces-with-picked-line ()
+(ert-deftest tuned-complete-line-replaces-with-picked-line ()
   "`xueliang-complete-line' swaps the current line for the one picked."
   (with-temp-buffer
     (insert "alpha\nbeta\n")
@@ -1363,53 +1363,53 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (xueliang-complete-line))
     (should (equal (buffer-string) "beta\nbeta\n"))))
 
-(ert-deftest xl-cd-current-dir-follows-the-file ()
+(ert-deftest tuned-cd-current-dir-follows-the-file ()
   "`xueliang-cd-current-dir' makes the file's folder the default directory."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (with-temp-buffer
       (setq buffer-file-name (expand-file-name "note.txt" dir))
       (let ((default-directory "/"))
         (xueliang-cd-current-dir)
         (should (file-equal-p default-directory dir))))))
 
-(ert-deftest xl-cycle-theme-moves-to-next-and-wraps ()
-  "`SPC T n' loads the next theme in `xl-sk-themes', wrapping at the end."
+(ert-deftest tuned-cycle-theme-moves-to-next-and-wraps ()
+  "`SPC T n' loads the next theme in `tuned-sk-themes', wrapping at the end."
   (let (loaded)
     (cl-letf (((symbol-function 'load-theme)
                (lambda (theme &rest _) (setq loaded theme)))
               ((symbol-function 'disable-theme) #'ignore))
       (let ((custom-enabled-themes '(spacemacs-dark)))
-        (xl-sk-cycle-theme)
+        (tuned-sk-cycle-theme)
         (should (eq loaded 'doom-tokyo-night)))
-      (let ((custom-enabled-themes (last xl-sk-themes)))
-        (xl-sk-cycle-theme)
-        (should (eq loaded (car xl-sk-themes)))))))
+      (let ((custom-enabled-themes (last tuned-sk-themes)))
+        (tuned-sk-cycle-theme)
+        (should (eq loaded (car tuned-sk-themes)))))))
 
-(ert-deftest xl-copy-whole-buffer-and-file-path ()
+(ert-deftest tuned-copy-whole-buffer-and-file-path ()
   "`SPC y' style copies: whole buffer text, and the file path."
   (with-temp-buffer
     (insert "hello buffer")
-    (xl-sk-copy-whole-buffer)
+    (tuned-sk-copy-whole-buffer)
     (should (equal (current-kill 0) "hello buffer")))
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (with-temp-buffer
       (setq buffer-file-name (expand-file-name "path.txt" dir))
-      (xl-sk-copy-file-path)
+      (tuned-sk-copy-file-path)
       (should (equal (current-kill 0) (expand-file-name "path.txt" dir))))))
 
-(ert-deftest xl-home-recentf-lists-nine-unique-files ()
+(ert-deftest tuned-home-recentf-lists-nine-unique-files ()
   "The home buffer shows at most nine distinct recent files."
-  (let* ((files (append (mapcar (lambda (i) (format "/tmp/xl-test-%02d.txt" i))
+  (let* ((files (append (mapcar (lambda (i) (format "/tmp/tuned-test-%02d.txt" i))
                                 (number-sequence 1 11))
-                        '("/tmp/xl-test-01.txt")))
+                        '("/tmp/tuned-test-01.txt")))
          (recentf-list files))
     (with-temp-buffer
-      (xl-sk-home-recentf)
-      (should (= (length xl-sk--home-files) 9))
-      (should (= (length (delete-dups (copy-sequence xl-sk--home-files)))
-                 (length xl-sk--home-files))))))
+      (tuned-sk-home-recentf)
+      (should (= (length tuned-sk--home-files) 9))
+      (should (= (length (delete-dups (copy-sequence tuned-sk--home-files)))
+                 (length tuned-sk--home-files))))))
 
-(ert-deftest xl-split-windows-open-the-new-window ()
+(ert-deftest tuned-split-windows-open-the-new-window ()
   "`SPC w v' and `SPC w s' split the window and move into the new one."
   (save-window-excursion
     (let ((before (length (window-list))))
@@ -1419,13 +1419,13 @@ which Crafted still puts on `embark-collect-mode-hook'."
       (xueliang-split-below)
       (should (= (length (window-list)) (1+ before))))))
 
-(ert-deftest xl-flash-yank-is-advised ()
+(ert-deftest tuned-flash-yank-is-advised ()
   "Yanking in evil flashes the region (interactive yanks only)."
   (should (advice-member-p #'xueliang-flash-yanked-text 'evil-yank))
   ;; Non-interactive calls (from code) must not pulse.
   (should-not (xueliang-flash-yanked-text (point-min) (point-min))))
 
-(ert-deftest xl-org-open-at-point-is-advised ()
+(ert-deftest tuned-org-open-at-point-is-advised ()
   "Org links open in a split through the RET advice."
   (should (advice-member-p #'xueliang-org-open-at-point-split-advice 'org-open-at-point)))
 
@@ -1433,8 +1433,8 @@ which Crafted still puts on `embark-collect-mode-hook'."
 ;;; Coverage: hooks and modes the config relies on
 ;;; ============================================================
 
-(ert-deftest xl-global-modes-are-on ()
-  "Persistence and housekeeping modes from `xueliang.el' and `xl-key-bindings.el'."
+(ert-deftest tuned-global-modes-are-on ()
+  "Persistence and housekeeping modes from `xueliang.el' and `tuned-key-bindings.el'."
   (should (bound-and-true-p savehist-mode))
   (should (bound-and-true-p recentf-mode))
   (should (bound-and-true-p save-place-mode))
@@ -1444,32 +1444,32 @@ which Crafted still puts on `embark-collect-mode-hook'."
   (should (bound-and-true-p global-evil-surround-mode))
   (should-not (bound-and-true-p global-hl-line-mode)))
 
-(ert-deftest xl-evil-habit-settings ()
+(ert-deftest tuned-evil-habit-settings ()
   "Vim-like evil options that differ from the defaults."
   (should (equal evil-escape-key-sequence "fd"))
   (should evil-want-fine-undo)
   (should evil-want-Y-yank-to-eol))
 
-(ert-deftest xl-save-hooks-create-folders ()
+(ert-deftest tuned-save-hooks-create-folders ()
   "The folder-creating save hook is installed globally, not only in some modes."
   (should (memq #'xueliang-create-missing-directories-h
                 (default-value 'before-save-hook))))
 
-(ert-deftest xl-mode-hooks-are-installed ()
+(ert-deftest tuned-mode-hooks-are-installed ()
   "Major-mode setup hooks point at my setup functions."
   (should (memq #'xueliang-org-setup (default-value 'org-mode-hook)))
   (should (memq #'xueliang-eshell-setup (default-value 'eshell-mode-hook)))
   (should (memq #'xueliang-elisp-completion-setup
                 (default-value 'emacs-lisp-mode-hook))))
 
-(ert-deftest xl-diff-hl-hooks-after-load ()
+(ert-deftest tuned-diff-hl-hooks-after-load ()
   "Loading diff-hl turns the global gutter on and hooks dired and magit."
   (require 'diff-hl)
   (should (bound-and-true-p global-diff-hl-mode))
   (should (memq #'diff-hl-dired-mode (default-value 'dired-mode-hook)))
   (should (memq #'diff-hl-magit-post-refresh (default-value 'magit-post-refresh-hook))))
 
-(ert-deftest xl-magit-display-settings ()
+(ert-deftest tuned-magit-display-settings ()
   "Magit splits in the current window's direction and refines the current hunk."
   (require 'magit)
   (should (eq magit-display-buffer-function #'display-buffer))
@@ -1479,29 +1479,29 @@ which Crafted still puts on `embark-collect-mode-hook'."
 ;;; Coverage: the SPC tree and its prefix groups
 ;;; ============================================================
 
-(ert-deftest xl-leader-prefix-groups-exist ()
+(ert-deftest tuned-leader-prefix-groups-exist ()
   "Each Spacemacs group under SPC is a keymap, so which-key can show it."
   (dolist (group '("b" "c" "f" "g" "h" "i" "j" "p" "q" "r" "s" "t" "T" "w"))
-    (should (keymapp (keymap-lookup xl-leader-map group)))))
+    (should (keymapp (keymap-lookup tuned-leader-map group)))))
 
-(ert-deftest xl-leader-window-and-golden-ratio-keys ()
+(ert-deftest tuned-leader-window-and-golden-ratio-keys ()
   "Window keys and the golden ratio toggle sit where Spacemacs puts them."
-  (should (eq (keymap-lookup xl-leader-map "w g") 'golden-ratio))
-  (should (eq (keymap-lookup xl-leader-map "w v") 'xueliang-split-right))
-  (should (eq (keymap-lookup xl-leader-map "w s") 'xueliang-split-below)))
+  (should (eq (keymap-lookup tuned-leader-map "w g") 'golden-ratio))
+  (should (eq (keymap-lookup tuned-leader-map "w v") 'xueliang-split-right))
+  (should (eq (keymap-lookup tuned-leader-map "w s") 'xueliang-split-below)))
 
 ;;; ============================================================
 ;;; Coverage: commands that shell out, open files or split windows
 ;;; ============================================================
 
-(ert-deftest xl-git-helpers-run-the-right-command ()
+(ert-deftest tuned-git-helpers-run-the-right-command ()
   "`Gwrite' stages the file and `Gcommit' commits it with a fixed message."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (with-temp-buffer
       (setq buffer-file-name (expand-file-name "note.txt" dir))
       (let ((default-directory "/")
             calls)
-        (cl-letf (((symbol-function 'xl-git-commands--run)
+        (cl-letf (((symbol-function 'tuned-git-commands--run)
                    (lambda (args action) (push (list args action) calls))))
           (Gwrite)
           (Gcommit))
@@ -1513,15 +1513,15 @@ which Crafted still puts on `embark-collect-mode-hook'."
         ;; Neither command cd's the buffer.
         (should (equal default-directory "/"))))))
 
-(ert-deftest xl-git-write-commands-join-the-repository-queue ()
+(ert-deftest tuned-git-write-commands-join-the-repository-queue ()
   "`Gwrite' and `Gcommit' queue their command instead of running it alone.
 The queue key is the repository, so they serialize with a pull."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "note.txt" dir))
           jobs)
-      (cl-letf (((symbol-function 'xl-git-core-write)
+      (cl-letf (((symbol-function 'tuned-git-core-write)
                  (lambda (job) (push job jobs)))
-                ((symbol-function 'xl-async-run)
+                ((symbol-function 'tuned-async-run)
                  (lambda (&rest _)
                    (error "A G command must not run git alone"))))
         (with-temp-buffer
@@ -1544,18 +1544,18 @@ The queue key is the repository, so they serialize with a pull."
         (should (equal (plist-get job :root)
                        (file-name-as-directory (expand-file-name dir))))))))
 
-(ert-deftest xl-git-write-commands-run-in-order ()
+(ert-deftest tuned-git-write-commands-run-in-order ()
   "A Gwrite followed by a Gcommit commits the staged file.
 Both run on the repository queue, so the add finishes before the commit
 instead of the two racing over `.git/index.lock'."
   (skip-unless (executable-find "git"))
-  (let ((dir (xl-test--git-repo)))
+  (let ((dir (tuned-test--git-repo)))
     (unwind-protect
         (let ((file (expand-file-name "file-0.txt" dir))
-              (key (xl-git-core-queue-key
+              (key (tuned-git-core-queue-key
                     (file-name-as-directory dir))))
-          (xl-test--git-output dir "config" "user.email" "test@example.com")
-          (xl-test--git-output dir "config" "user.name" "Test")
+          (tuned-test--git-output dir "config" "user.email" "test@example.com")
+          (tuned-test--git-output dir "config" "user.name" "Test")
           (with-temp-file file
             (insert "changed by the test\n"))
           (with-temp-buffer
@@ -1564,33 +1564,33 @@ instead of the two racing over `.git/index.lock'."
             (Gwrite)
             (Gcommit))
           (let ((deadline (+ (float-time) 30)))
-            (while (and (xl-async-queue-busy-p key)
+            (while (and (tuned-async-queue-busy-p key)
                         (< (float-time) deadline))
               (accept-process-output nil 0.02)))
-          (should-not (xl-async-queue-busy-p key))
-          (should (equal (xl-test--git-output dir "log" "-1" "--format=%s")
+          (should-not (tuned-async-queue-busy-p key))
+          (should (equal (tuned-test--git-output dir "log" "-1" "--format=%s")
                          "Update file-0.txt"))
           ;; The staged file was committed; the other edits are untouched.
           (should-not (string-match-p
                        "file-0\\.txt"
-                       (xl-test--git-output dir "status" "--porcelain"))))
+                       (tuned-test--git-output dir "status" "--porcelain"))))
       (delete-directory dir t))))
 
-(ert-deftest xl-git-status-queue-key-is-per-repository ()
+(ert-deftest tuned-git-status-queue-key-is-per-repository ()
   "The write queue key names the repository, however its path is written."
-  (let ((one (make-temp-file "xl-queue-key-one-" t))
-        (other (make-temp-file "xl-queue-key-two-" t)))
+  (let ((one (make-temp-file "tuned-queue-key-one-" t))
+        (other (make-temp-file "tuned-queue-key-two-" t)))
     (unwind-protect
-        (let ((key (xl-git-core-queue-key one)))
-          (should (equal key (xl-git-core-queue-key
+        (let ((key (tuned-git-core-queue-key one)))
+          (should (equal key (tuned-git-core-queue-key
                               (file-name-as-directory one))))
-          (should (equal key (xl-git-core-queue-key
+          (should (equal key (tuned-git-core-queue-key
                               (expand-file-name "." one))))
-          (should-not (equal key (xl-git-core-queue-key other))))
+          (should-not (equal key (tuned-git-core-queue-key other))))
       (delete-directory one t)
       (delete-directory other t))))
 
-(ert-deftest xl-just-commands-go-through-compile ()
+(ert-deftest tuned-just-commands-go-through-compile ()
   "`SPC c c' and the daily job run `just' asynchronously in a compile buffer.
 `&' in an evil ex command hid the output; `compile' streams it and keeps
 the exit status."
@@ -1604,13 +1604,13 @@ the exit status."
     (should (equal (mapcar #'car calls)
                    '("just all" "just daily-websites")))
     (dolist (call calls)
-      (should (file-equal-p (cdr call) (expand-file-name xl-dotfiles-dir))))))
+      (should (file-equal-p (cdr call) (expand-file-name xueliang-dotfiles-dir))))))
 
-(ert-deftest xl-ime-switches-to-english-layout ()
+(ert-deftest tuned-ime-switches-to-english-layout ()
   "Leaving insert state starts macism with the British layout, without waiting.
 The switch takes about 75 ms; blocking ESC on it was the lag after typing
 Chinese."
-  (let ((xl-macism "macism") args)
+  (let ((xueliang-macism "macism") args)
     (cl-letf (((symbol-function 'make-process)
                (lambda (&rest a) (setq args a) nil)))
       (xueliang-ime-english))
@@ -1619,19 +1619,19 @@ Chinese."
                    '("macism" "com.apple.keylayout.British")))
     (should (plist-get args :noquery)))
   ;; No macism installed (Windows): nothing is started.
-  (let ((xl-macism nil)
+  (let ((xueliang-macism nil)
         (started nil))
     (cl-letf (((symbol-function 'make-process)
                (lambda (&rest _) (setq started t))))
       (xueliang-ime-english))
     (should-not started)))
 
-(ert-deftest xl-knowledge-links-open-the-picked-url ()
+(ert-deftest tuned-knowledge-links-open-the-picked-url ()
   "`F12' opens the first URL in the picked line of the links file."
   (require 'org)
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let* ((links (expand-file-name "links.txt" dir))
-           (xl-links-file links)
+           (xueliang-links-file links)
            opened)
       (with-temp-file links
         (insert "plain note\nhttps://example.com/a\n"))
@@ -1642,7 +1642,7 @@ Chinese."
         (xueliang-open-knowledge-links))
       (should (equal opened "https://example.com/a")))))
 
-(ert-deftest xl-eshell-popup-splits-then-opens-eshell ()
+(ert-deftest tuned-eshell-popup-splits-then-opens-eshell ()
   "`F5' cds to the file's folder, splits below and starts eshell there."
   (let (steps)
     (cl-letf (((symbol-function 'xueliang-cd-current-dir)
@@ -1656,34 +1656,34 @@ Chinese."
       (xueliang-eshell-popup))
     (should (equal (nreverse steps) '(cd split eshell append)))))
 
-(ert-deftest xl-dired-jump-calls-xl-dired ()
-  "`xueliang-dired-jump' opens the file's folder with `xl-dired'."
+(ert-deftest tuned-dired-jump-calls-tuned-dired ()
+  "`xueliang-dired-jump' opens the file's folder with `tuned-dired'."
   (let (jumped)
-    (cl-letf (((symbol-function 'xl-dired)
+    (cl-letf (((symbol-function 'tuned-dired)
                (lambda (&rest _) (setq jumped t)))
               ((symbol-function 'dired-hide-details-mode) #'ignore))
       (xueliang-dired-jump))
     (should jumped)))
 
-(ert-deftest xl-dired-sidebar-toggle-closes-existing-sidebar ()
+(ert-deftest tuned-dired-sidebar-toggle-closes-existing-sidebar ()
   "Calling the sidebar command again removes the async dired window on the left."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (save-window-excursion
       (delete-other-windows)
       (let ((left (selected-window)))
-        (set-window-buffer left (xl-dired-noselect dir))
+        (set-window-buffer left (tuned-dired-noselect dir))
         (let ((right (split-window-right)))
-          (set-window-buffer right (get-buffer-create "xl-test-other"))
+          (set-window-buffer right (get-buffer-create "tuned-test-other"))
           (select-window right)
           (let ((before (length (window-list))))
             (xueliang-dired-sidebar)
             (should (= (length (window-list)) (1- before)))))))
     (dolist (buffer (buffer-list))
-      (when (string-prefix-p "*xl-dired:" (buffer-name buffer))
+      (when (string-prefix-p "*tuned-dired:" (buffer-name buffer))
         (kill-buffer buffer)))
-    (kill-buffer (get-buffer-create "xl-test-other"))))
+    (kill-buffer (get-buffer-create "tuned-test-other"))))
 
-(ert-deftest xl-dired-open-uses-the-other-window ()
+(ert-deftest tuned-dired-open-uses-the-other-window ()
   "`l' and RET in dired open the file in the other window."
   (let (called)
     (cl-letf (((symbol-function 'dired-find-file-other-window)
@@ -1692,9 +1692,9 @@ Chinese."
         (xueliang-dired-open)))
     (should called)))
 
-(ert-deftest xl-scratch-window-opens-right-split ()
+(ert-deftest tuned-scratch-window-opens-right-split ()
   "`SPC b s' shows the scratch buffer on the right and reuses its window."
-  (let ((source (get-buffer-create "*xl-scratch-source*")))
+  (let ((source (get-buffer-create "*tuned-scratch-source*")))
     (unwind-protect
         (save-window-excursion
           (delete-other-windows)
@@ -1712,7 +1712,7 @@ Chinese."
               (should (eq (selected-window) scratch-window)))))
       (kill-buffer source))))
 
-(ert-deftest xl-persistent-scratch-is-configured ()
+(ert-deftest tuned-persistent-scratch-is-configured ()
   "Scratch notes persist in interactive sessions, never in batch runs."
   (should (featurep 'persistent-scratch))
   (should (equal persistent-scratch-save-file
@@ -1724,47 +1724,47 @@ Chinese."
   (with-current-buffer (get-scratch-buffer-create)
     (should-not persistent-scratch-mode)))
 
-(ert-deftest xl-git-status-window-prefers-vertical-split ()
+(ert-deftest xueliang-git-status-window-prefers-vertical-split ()
   "`SPC g g' sets a low split threshold locally, then opens Git status."
   (let (opened)
-    (cl-letf (((symbol-function 'xl-git-status)
+    (cl-letf (((symbol-function 'tuned-git-status)
                (lambda () (setq opened t)))
               ((symbol-function 'turn-on-diff-hl-mode)
                (lambda () nil)))
       (with-temp-buffer
-        (xl-git-status-window)
+        (xueliang-git-status-window)
         (should (= split-width-threshold 10))))
     (should opened)))
 
-(ert-deftest xl-delete-this-file-needs-confirmation ()
+(ert-deftest tuned-delete-this-file-needs-confirmation ()
   "`SPC f D' deletes the file only after a yes; a no keeps it."
-  (xl-test-with-temp-dir dir
+  (tuned-test-with-temp-dir dir
     (let ((file (expand-file-name "gone.txt" dir)))
       (with-temp-file file (insert "x"))
       (with-current-buffer (find-file-noselect file)
         (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) nil)))
-          (xl-sk-delete-this-file))
+          (tuned-sk-delete-this-file))
         (should (file-exists-p file))
         (cl-letf (((symbol-function 'yes-or-no-p) (lambda (_) t)))
-          (xl-sk-delete-this-file))
+          (tuned-sk-delete-this-file))
         (should-not (file-exists-p file))))))
 
-(ert-deftest xl-open-dotfile-opens-the-personal-config ()
+(ert-deftest tuned-open-dotfile-opens-the-personal-config ()
   "`SPC f e d' opens tuned-emacs/personal.el."
   (let (opened)
     (cl-letf (((symbol-function 'find-file) (lambda (f &rest _) (setq opened f))))
-      (xl-sk-open-dotfile))
+      (tuned-sk-open-dotfile))
     (should (string-suffix-p "tuned-emacs/personal.el" opened))))
 
-(ert-deftest xl-find-file-in-dotfiles-starts-in-the-repo ()
+(ert-deftest tuned-find-file-in-dotfiles-starts-in-the-repo ()
   "`SPC f p' searches from the dotfiles folder."
   (let (seen)
     (cl-letf (((symbol-function 'find-file)
                (lambda (&rest _) (interactive) (setq seen default-directory))))
       (xueliang-find-file-in-dotfiles))
-    (should (file-equal-p seen xl-dotfiles-dir))))
+    (should (file-equal-p seen xueliang-dotfiles-dir))))
 
-(ert-deftest xl-org-enter-falls-back-to-evil-ret ()
+(ert-deftest tuned-org-enter-falls-back-to-evil-ret ()
   "RET on plain Org text is evil's RET, not an Org link open."
   (let (ret)
     (cl-letf (((symbol-function 'evil-ret) (lambda (&rest _) (setq ret t))))
@@ -1775,7 +1775,7 @@ Chinese."
         (xueliang-org-open-at-point)))
     (should ret)))
 
-(ert-deftest xl-tab-completes-when-corfu-popup-is-open ()
+(ert-deftest tuned-tab-completes-when-corfu-popup-is-open ()
   "TAB moves down the Corfu list instead of inserting spaces."
   (require 'corfu)
   (let (moved)
@@ -1790,51 +1790,51 @@ Chinese."
 ;;; Coverage: small helpers, macros and aliases
 ;;; ============================================================
 
-(ert-deftest xl-insert-hash-types-a-hash ()
+(ert-deftest tuned-insert-hash-types-a-hash ()
   "The Option-3 helper inserts `#' in any platform's buffer."
   (with-temp-buffer
     (xueliang-insert-hash)
     (should (equal (buffer-string) "#"))))
 
-(ert-deftest xl-require-silently-reports-missing-features ()
+(ert-deftest tuned-require-silently-reports-missing-features ()
   "`xueliang-require-silently' is quiet and returns nil for a missing feature."
   (should (xueliang-require-silently 'seq))
-  (should-not (xueliang-require-silently 'xl-no-such-feature-for-tests)))
+  (should-not (xueliang-require-silently 'tuned-no-such-feature-for-tests)))
 
-(ert-deftest xl-sk-bind-binds-keys-and-skips-prefix-only ()
-  "`xl-sk-bind' binds KEY LABEL DEF triples and ignores a nil DEF."
+(ert-deftest tuned-sk-bind-binds-keys-and-skips-prefix-only ()
+  "`tuned-sk-bind' binds KEY LABEL DEF triples and ignores a nil DEF."
   (let ((map (make-sparse-keymap)))
-    (xl-sk-bind map "a b" "label" #'ignore "c" "prefix" nil)
+    (tuned-sk-bind map "a b" "label" #'ignore "c" "prefix" nil)
     (should (eq (keymap-lookup map "a b") #'ignore))
     ;; The prefix-only "c" may get a which-key label, but never a command.
     (should-not (eq (keymap-lookup map "c") #'ignore))
     (should-not (functionp (keymap-lookup map "c")))))
 
-(ert-deftest xl-elisp-completion-merges-sources ()
+(ert-deftest tuned-elisp-completion-merges-sources ()
   "Emacs Lisp buffers get one merged completion function, not the bare list."
   (with-temp-buffer
     (xueliang-elisp-completion-setup)
     (should (functionp (car completion-at-point-functions)))
     (should (eq (cadr completion-at-point-functions) t))))
 
-(ert-deftest xl-command-aliases-point-at-the-right-commands ()
+(ert-deftest tuned-command-aliases-point-at-the-right-commands ()
   "The personal one-word aliases resolve to their Emacs commands."
   (should (eq (indirect-function 'xueliang-what-face) (indirect-function 'describe-face)))
   (should (eq (indirect-function 'xueliang-cap-region) (indirect-function 'capitalize-region)))
   (should (eq (indirect-function 'xueliang-org-sort) (indirect-function 'org-sort))))
 
 ;; personal.el is never compiled, so it cannot have a stale .elc: its header says so.
-(ert-deftest xl-personal-file-has-no-byte-compile-cookie ()
+(ert-deftest tuned-personal-file-has-no-byte-compile-cookie ()
   "`personal.el' carries no-byte-compile, so compile-lisp never makes an .elc."
   (with-temp-buffer
-    (insert-file-contents (expand-file-name "tuned-emacs/personal.el" xl-dotfiles) nil 0 200)
+    (insert-file-contents (expand-file-name "tuned-emacs/personal.el" tuned-dotfiles) nil 0 200)
     (should (string-match-p "no-byte-compile:[ \t]*t" (buffer-string)))))
 
 ;; Our lisp runs as byte code exactly when a current .elc exists.
-(ert-deftest xl-own-lisp-is-compiled-when-built ()
+(ert-deftest tuned-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
-  (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))
-    (dolist (case '((xl-git-core-entries "lisp/xl-git-core.el")))
+  (let ((root (expand-file-name "tuned-emacs" tuned-dotfiles)))
+    (dolist (case '((tuned-git-core-entries "lisp/tuned-git-core.el")))
       (let* ((src (expand-file-name (cadr case) root))
              (elc (concat src "c"))
              (current (and (file-exists-p elc)
@@ -1846,14 +1846,14 @@ Chinese."
 
 ;; Startup must not run compilers: ffap computes include folders with gcc,
 ;; clang and g++ unless its variables are already set (12 s once on macOS).
-(ert-deftest xl-startup-ffap-runs-no-compiler ()
+(ert-deftest tuned-startup-ffap-runs-no-compiler ()
   "Init loads ffap (through Embark) with the preset include folders."
   (should (featurep 'ffap))
   (should (equal ffap-c-path '("/usr/include" "/usr/local/include")))
   (should (equal ffap-c++-path ffap-c-path)))
 
 ;; The slow-start recorder writes its log only when init was slow.
-(ert-deftest xl-slow-start-report-only-when-slow ()
+(ert-deftest tuned-slow-start-report-only-when-slow ()
   "A start over the threshold writes the log with the longest stretch first;
 a fast one writes nothing."
   (let* ((log (make-temp-file "startup-slow" nil ".log"))
@@ -1862,22 +1862,22 @@ a fast one writes nothing."
     (unwind-protect
         (progn
           (delete-file log)
-          (let ((xl-slow-start-seconds 100)
-                (xl--start-loads (list (cons (float-time) "/x/b.elc"))))
+          (let ((tuned-slow-start-seconds 100)
+                (tuned--start-loads (list (cons (float-time) "/x/b.elc"))))
             (setq after-init-time (current-time))
-            (should-not (xl--slow-start-report log))
+            (should-not (tuned--slow-start-report log))
             (should-not (file-exists-p log)))
           (let* ((t0 (float-time before-init-time))
-                 (xl-slow-start-seconds 1)
-                 (xl--start-loads (list (cons (+ t0 9) "/x/slow.elc")
+                 (tuned-slow-start-seconds 1)
+                 (tuned--start-loads (list (cons (+ t0 9) "/x/slow.elc")
                                         (cons (+ t0 1) "/x/fast.elc"))))
-            (should (equal (xl--slow-start-report log) log))
+            (should (equal (tuned--slow-start-report log) log))
             (with-temp-buffer
               (insert-file-contents log)
               (should (re-search-forward "stretch, at, file):\n *8\\.000 s .*slow\\.elc" nil t)))))
       (when (file-exists-p log) (delete-file log))
       ;; The report removes the recorder; the test leaves it as it found it.
-      (add-hook 'after-load-functions #'xl--note-load))))
+      (add-hook 'after-load-functions #'tuned--note-load))))
 
 (provide 'smoke-tests)
 ;;; smoke-tests.el ends here

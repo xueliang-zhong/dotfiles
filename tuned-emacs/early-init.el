@@ -1,28 +1,28 @@
 ;;; early-init.el --- Crafted Emacs profile -*- lexical-binding: t; -*-
 ;; Loaded by the stub in ~/.emacs-profiles/crafted/early-init.el, which
-;; defines `xl-dotfiles' and `xl-crafted-home'.
+;; defines `tuned-dotfiles' and `tuned-crafted-home'.
 
 ;; Slow-start recorder: the time each file finishes loading.  When init takes
-;; more than `xl-slow-start-seconds', the longest stretches, the fresh .eln
+;; more than `tuned-slow-start-seconds', the longest stretches, the fresh .eln
 ;; files and our files loaded from source go to startup-slow.log, so a slow
 ;; start that cannot be reproduced on demand still leaves evidence.  Otherwise
 ;; the list is dropped.  Cost: one cons per loaded file.
-(defvar xl-slow-start-seconds 3)
-(defvar xl--start-loads nil "(TIME . FILE) for each finished load, newest first.")
-(defun xl--note-load (file) (push (cons (float-time) file) xl--start-loads))
-(add-hook 'after-load-functions #'xl--note-load)
+(defvar tuned-slow-start-seconds 3)
+(defvar tuned--start-loads nil "(TIME . FILE) for each finished load, newest first.")
+(defun tuned--note-load (file) (push (cons (float-time) file) tuned--start-loads))
+(add-hook 'after-load-functions #'tuned--note-load)
 
-(defun xl--slow-start-report (&optional log)
+(defun tuned--slow-start-report (&optional log)
   "Write the startup record to LOG (startup-slow.log) if init was slow.
 Returns the file written, or nil."
-  (remove-hook 'after-load-functions #'xl--note-load)
+  (remove-hook 'after-load-functions #'tuned--note-load)
   (let* ((init (float-time (time-subtract after-init-time before-init-time)))
          (log (or log (expand-file-name "startup-slow.log" user-emacs-directory)))
-         (events (reverse xl--start-loads))
+         (events (reverse tuned--start-loads))
          (prev (float-time before-init-time))
          gaps)
-    (setq xl--start-loads nil)
-    (when (> init xl-slow-start-seconds)
+    (setq tuned--start-loads nil)
+    (when (> init tuned-slow-start-seconds)
       (ignore-errors
         (dolist (e events)
           (push (list (- (car e) prev) (- (car e) (float-time before-init-time)) (cdr e)) gaps)
@@ -45,7 +45,7 @@ Returns the file written, or nil."
                      comp-loaded-comp-units-h))
           (insert "\nOur files loaded from source:\n")
           (dolist (e events)
-            (when (and (string-prefix-p (expand-file-name "tuned-emacs/" xl-dotfiles) (cdr e))
+            (when (and (string-prefix-p (expand-file-name "tuned-emacs/" tuned-dotfiles) (cdr e))
                        (string-suffix-p ".el" (cdr e)))
               (insert "  " (cdr e) "\n")))
           (insert "\nEvery load (at, file):\n")
@@ -53,7 +53,7 @@ Returns the file written, or nil."
             (insert (format "  %7.3f  %s\n" (- (car e) (float-time before-init-time)) (cdr e)))))
         (message "Slow start: %.1f s; details in %s" init log)
         log))))
-(add-hook 'emacs-startup-hook #'xl--slow-start-report)
+(add-hook 'emacs-startup-hook #'tuned--slow-start-report)
 
 ;; ffap works out its C and C++ include folders when it loads, by running
 ;; gcc, clang and g++ (`ffap--c-path').  Embark loads ffap during init, and on

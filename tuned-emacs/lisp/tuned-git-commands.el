@@ -1,0 +1,510 @@
+;;; tuned-git-commands.el --- Async Vim-fugitive style Git commands  -*- lexical-binding: t; -*-
+
+;; Author: Xueliang Zhong
+;; Version: 0.1.0
+;; Package-Requires: ((emacs "30.1") (tuned-git-status "0.1.0"))
+;; Keywords: tools, vc, convenience
+
+;;; Commentary:
+;; The G* commands, in the spirit of vim-fugitive:
+;;   Gstatus  show the status buffer from tuned-git-status.el
+;;   Gblame   toggle the blame window on the left of the current file
+;;   Gwrite   stage the current file
+;;   Gcommit  commit the current file with an "Update <file>" message
+;; All of them are also available as Ex commands (`:Gstatus', `:Gblame',
+;; `:Gwrite', `:Gcommit').  The status buffer itself lives in tuned-git-status.el.
+
+;;; Code:
+
+(require 'subr-x)     ; truncate-string-to-width
+(require 'tuned-git-show) ; faces, `--show-commit' and, through it, the core
+(require 'tuned-async)    ; owned processes
+(require 'tuned-spinner)  ; the loader
+(declare-function tuned-git-core-write "tuned-git-core" (job))
+
+;; ============================================================
+;; GBlame - git blame on the left, like vim's :Gblame
+;; ============================================================
+;; `tuned-gblame' (SPC g b, or :Gblame) shows one line of blame for
+;; every line of the current file in a narrow window on the left:
+;; abbreviated commit, author and date, aligned with the file.  Different
+;; commits get different hash colours, so the boundaries between commits
+;; stand out; uncommitted lines stay dim.  The window follows the source
+;; window while scrolling, highlights the line at point, refreshes after
+;; saving, and closes with `q'.  RET on a blame line shows that commit.
+;;
+;; `git blame' runs asynchronously: the window is filled at once with one
+;; placeholder line per source line, so scrolling and point still line up,
+;; and the mode-line loader of `tuned-spinner' says the data is on its way.
+;; A refresh keeps the old lines visible until the new ones arrive, so
+;; saving never makes the blame window flicker.  The process runs in the
+;; GBlame buffer's `blame' slot of `tuned-async', so a newer request or a
+;; killed buffer throws an older answer away.
+(defface tuned-gblame-current-line
+  '((t :inherit highlight))
+  "Face for the line at point in the GBlame window."
+  :group 'faces)
+
+(defvar-local tuned-gblame--buffer nil
+  "GBlame buffer of this source buffer, when GBlame is open.")
+(defvar-local tuned-gblame--root nil
+  "Repository root of the source buffer's file.")
+(defvar-local tuned-gblame--file nil
+  "Absolute name of the file being blamed.")
+
+(defvar-local tuned-gblame--source nil
+  "Source buffer of this GBlame buffer.")
+(defvar-local tuned-gblame--highlight nil
+  "Overlay marking the source line in this GBlame buffer.")
+
+(defvar-local tuned-gblame--blank nil
+  "Non-nil while this GBlame buffer holds only placeholder lines.")
+
+(defvar-local tuned-gblame--center nil
+  "Overlay drawing the loader in the middle of a blank GBlame window.")
+
+(defun tuned-gblame--draw-center (frame)
+  "Draw FRAME in the middle of this GBlame window while it is blank.
+nil, or a buffer that already shows blame, removes it.  The loader is a
+`before-string' on an empty placeholder line, so no line is added and
+the window stays aligned with the source file."
+  (if (not (and frame tuned-gblame--blank))
+      (when (overlayp tuned-gblame--center)
+        (delete-overlay tuned-gblame--center)
+        (setq tuned-gblame--center nil))
+    (when-let* ((window (get-buffer-window (current-buffer) t)))
+      (let* ((text (concat frame "  git blame…"))
+             (pad (max 0 (/ (- (window-body-width window) (string-width text)) 2)))
+             (pos (save-excursion
+                    (goto-char (window-start window))
+                    (forward-line (/ (window-body-height window) 2))
+                    (line-beginning-position))))
+        (unless (overlayp tuned-gblame--center)
+          (setq tuned-gblame--center (make-overlay pos pos)))
+        (move-overlay tuned-gblame--center pos pos)
+        (overlay-put tuned-gblame--center 'before-string
+                     (concat (make-string pad ?\s) text))))))
+
+(defun tuned-gblame--start-spinner ()
+  "Show the loader in this GBlame buffer's mode-line slot.
+The blame window is narrow, so the loader sits at the left edge of the
+mode line, which is not truncated.  It runs until the blame answers.
+While the window is still blank, the same frames are drawn in its middle
+too, on the slot's clock."
+  (tuned-spinner-mode-line-start "git blame" :also #'tuned-gblame--draw-center))
+
+(defun tuned-gblame--stop-spinner ()
+  "End the loader in this GBlame buffer's mode-line slot."
+  (tuned-spinner-mode-line-stop))
+
+(defun tuned-gblame--placeholders (lines)
+  "Fill this GBlame buffer with LINES empty lines.
+One line per source line keeps scrolling and point aligned while the
+blame is still loading.  A later render replaces them."
+  (setq tuned-gblame--blank t)
+  (let ((inhibit-read-only t))
+    (erase-buffer)
+    (dotimes (_ lines) (insert "\n"))
+    (when (overlayp tuned-gblame--highlight)
+      (delete-overlay tuned-gblame--highlight))
+    (setq tuned-gblame--highlight (make-overlay (point-min) (point-min)))
+    (overlay-put tuned-gblame--highlight 'face 'tuned-gblame-current-line)))
+
+(defun tuned-gblame--render (records)
+  "Replace this GBlame buffer with blame RECORDS.
+Keep point on the same line, so a refresh does not jump."
+  ;; The blame is in: the middle loader goes at once, even while the
+  ;; mode line keeps its loader for its minimum time.
+  (setq tuned-gblame--blank nil)
+  (tuned-gblame--draw-center nil)
+  (let ((inhibit-read-only t)
+        (line (line-number-at-pos)))
+    (erase-buffer)
+    (tuned-gblame--insert records)
+    (goto-char (point-min))
+    (when (overlayp tuned-gblame--highlight)
+      (delete-overlay tuned-gblame--highlight))
+    (setq tuned-gblame--highlight (make-overlay (point) (point)))
+    (overlay-put tuned-gblame--highlight 'face 'tuned-gblame-current-line)
+    (goto-char (point-min))
+    (forward-line (1- (max 1 line)))))
+
+(defun tuned-gblame--resync ()
+  "Align the GBlame window with its source window after a render."
+  (when (and (buffer-live-p tuned-gblame--source)
+             (get-buffer-window (current-buffer) t))
+    (with-current-buffer tuned-gblame--source
+      (tuned-gblame--sync (get-buffer-window tuned-gblame--source t)))))
+
+(defun tuned-gblame--fail (output)
+  "Report a failed `git blame' in this GBlame buffer, showing OUTPUT.
+The mode line keeps the error, so the message stays visible while the
+placeholders remain for alignment."
+  (let* ((text (string-trim output))
+         (reason (if (string-empty-p text)
+                     "unknown error"
+                   (car (split-string text "\n")))))
+    (tuned-spinner-mode-line-stop
+     (propertize (format "git blame failed: %s" reason) 'face 'error))))
+
+(defun tuned-gblame--teardown ()
+  "Stop the loader and the process of this GBlame buffer."
+  (tuned-gblame--stop-spinner)
+  (tuned-async-cancel 'blame))
+
+(defun tuned-gblame--parse (output)
+  "Return blame records (LINE HASH AUTHOR TIME) parsed from OUTPUT.
+OUTPUT is the text of `git blame --line-porcelain'."
+  (let (records
+        (line nil) (hash nil) (author nil) (time nil))
+    (dolist (text (split-string output "\n"))
+      (cond
+       ((string-match "\\`\\([0-9a-f]+\\) [0-9]+ \\([0-9]+\\)" text)
+        (setq hash (match-string 1 text)
+              line (string-to-number (match-string 2 text))
+              author nil
+              time nil))
+       ((string-prefix-p "author " text)
+        (setq author (substring text 7)))
+       ((string-prefix-p "author-time " text)
+        (setq time (string-to-number (substring text 12))))
+       ;; The tab-prefixed line is the content and ends a record.
+       ((and hash (string-prefix-p "\t" text))
+        (push (list line hash (or author "?") time) records)
+        (setq hash nil))))
+    records))
+
+(defun tuned-gblame--pad (text width)
+  "Return TEXT padded with spaces to WIDTH display columns."
+  (concat text (make-string (max 0 (- width (string-width text))) ?\s)))
+
+(defvar tuned-gblame-hash-faces
+  '(font-lock-keyword-face        ; blue
+    font-lock-warning-face        ; orange
+    font-lock-string-face         ; green
+    font-lock-function-name-face  ; magenta
+    font-lock-doc-face            ; brown
+    font-lock-constant-face       ; purple
+    font-lock-type-face)          ; pink
+  "Faces that colour different commits in a GBlame window.
+A commit gets the next face the first time it appears in the file, so
+commits next to each other are easy to tell apart.  The faces inherit
+from the active theme; set this to nil to colour every hash with
+`tuned-git-status-hash'.")
+
+(defun tuned-gblame--format (record face)
+  "Return the display line for one blame RECORD.
+Its hash is coloured with FACE."
+  (pcase-let ((`(,_ ,hash ,author ,time) record))
+    (let ((short (substring hash 0 (min 8 (length hash))))
+          (author (truncate-string-to-width author 18 nil nil "…"))
+          (date (if time (format-time-string "%Y-%m-%d" time) "")))
+      (concat (propertize short 'face face)
+              " "
+              (tuned-gblame--pad author 18)
+              " "
+              (propertize date 'face 'tuned-git-status-comment)))))
+
+(defun tuned-gblame--insert (records)
+  "Insert one line per source line for blame RECORDS.
+Different commits get different hash colours, so the boundaries between
+commits are easy to see."
+  (let ((table (make-hash-table :test #'eql))
+        (faces (vconcat tuned-gblame-hash-faces))
+        (face-of (make-hash-table :test #'equal))
+        (next 0)
+        (lines 0))
+    (dolist (record records)
+      (puthash (car record) record table)
+      (setq lines (max lines (car record))))
+    (dotimes (i lines)
+      (let* ((record (gethash (1+ i) table))
+             (hash (and record (cadr record)))
+             (face (cond
+                    ((null record) nil)
+                    ;; An uncommitted line gets no colour of its own.
+                    ((string-match-p "\\`0+\\'" hash)
+                     'tuned-git-status-comment)
+                    ((gethash hash face-of))
+                    ((zerop (length faces))
+                     'tuned-git-status-hash)
+                    (t
+                     (let ((face (aref faces (mod next (length faces)))))
+                       (setq next (1+ next))
+                       (puthash hash face face-of)
+                       face))))
+             (start (point)))
+        (insert (if record (tuned-gblame--format record face) "") "\n")
+        (when record
+          (add-text-properties start (1- (point))
+                               (list 'tuned-gblame-hash hash)))))))
+
+(defun tuned-gblame--fill (buffer root file)
+  "Start filling BUFFER with the blame of FILE in ROOT.
+The git process runs asynchronously: the buffer shows one placeholder
+line per source line and a loader until the output arrives."
+  (with-current-buffer buffer
+    (unless (> (buffer-size) 0)
+      (tuned-gblame--placeholders
+       (if (buffer-live-p tuned-gblame--source)
+           (with-current-buffer tuned-gblame--source
+             (count-lines (point-min) (point-max)))
+         0)))
+    (tuned-gblame--start-spinner)
+    (tuned-async-run
+     :name "tuned-gblame"
+     :command (append '("git" "--no-pager" "-c" "core.quotepath=false"
+                        "blame" "--line-porcelain" "--")
+                      (list (file-relative-name file root)))
+     :directory root
+     :slot 'blame
+     :on-done (lambda (output code)
+                (tuned-gblame--stop-spinner)
+                (if (zerop code)
+                    (progn
+                      (tuned-gblame--render (tuned-gblame--parse output))
+                      (tuned-gblame--resync))
+                  (tuned-gblame--fail output))))))
+
+(defun tuned-gblame--sync (&optional window _new-start)
+  "Align the GBlame window with WINDOW and follow its point.
+WINDOW defaults to the selected window; `window-scroll-functions' also
+passes the new window start."
+  (let* ((source-window (or window (selected-window)))
+         (source (window-buffer source-window))
+         (blame (buffer-local-value 'tuned-gblame--buffer source))
+         (blame-window (and (buffer-live-p blame)
+                            (get-buffer-window blame t))))
+    (when (and blame-window (window-live-p source-window)
+               (eq source (current-buffer)))
+      (let ((top (save-excursion
+                   (goto-char (window-start source-window))
+                   (line-number-at-pos)))
+            (line (save-excursion
+                    (goto-char (window-point source-window))
+                    (line-number-at-pos))))
+        (with-current-buffer blame
+          (let* ((height (max 1 (window-body-height blame-window)))
+                 ;; Keep the blame window's point inside the visible lines:
+                 ;; otherwise redisplay scrolls back to point-min and the
+                 ;; window never appears to follow the source window.
+                 (target (if (and (>= line top) (< line (+ top height)))
+                             line
+                           top)))
+            (when tuned-gblame--highlight
+              (goto-char (point-min))
+              (forward-line (1- line))
+              (move-overlay tuned-gblame--highlight
+                            (line-beginning-position)
+                            (line-end-position)))
+            (goto-char (point-min))
+            (forward-line (1- top))
+            (set-window-start blame-window (point) t)
+            (goto-char (point-min))
+            (forward-line (1- target))
+            (set-window-point blame-window (point))))))))
+
+(defun tuned-gblame--refresh ()
+  "Redraw this source buffer's GBlame window, if it is open."
+  (when (and (buffer-live-p tuned-gblame--buffer)
+             tuned-gblame--root
+             tuned-gblame--file)
+    (tuned-gblame--fill tuned-gblame--buffer
+                           tuned-gblame--root tuned-gblame--file)
+    (when-let* ((window (get-buffer-window (current-buffer) t)))
+      (tuned-gblame--sync window))))
+
+(defun tuned-gblame--cleanup ()
+  "Forget this GBlame buffer in its source buffer."
+  (when (buffer-live-p tuned-gblame--source)
+    (with-current-buffer tuned-gblame--source
+      (setq tuned-gblame--buffer nil)
+      (remove-hook 'post-command-hook #'tuned-gblame--sync t)
+      (remove-hook 'window-scroll-functions #'tuned-gblame--sync t)
+      (remove-hook 'after-save-hook #'tuned-gblame--refresh t)
+      (remove-hook 'kill-buffer-hook #'tuned-gblame--close t))))
+
+(defun tuned-gblame--close ()
+  "Close this source buffer's GBlame window.
+Return non-nil when a GBlame buffer was open."
+  (when (buffer-live-p tuned-gblame--buffer)
+    (let ((window (get-buffer-window tuned-gblame--buffer t)))
+      (when (window-live-p window)
+        (delete-window window)))
+    (kill-buffer tuned-gblame--buffer)
+    t))
+
+(defun tuned-gblame-quit ()
+  "Close the GBlame window."
+  (interactive)
+  (let ((source tuned-gblame--source))
+    (if (buffer-live-p source)
+        (with-current-buffer source
+          (tuned-gblame--close))
+      (when-let* ((window (get-buffer-window (current-buffer) t)))
+        (delete-window window))
+      (kill-buffer (current-buffer)))))
+
+(defun tuned-gblame-refresh ()
+  "Re-run git blame for the current GBlame window."
+  (interactive)
+  (let ((source tuned-gblame--source))
+    (unless (buffer-live-p source)
+      (user-error "The source buffer is gone"))
+    (with-current-buffer source
+      (tuned-gblame--refresh))))
+
+(defun tuned-gblame-show-commit ()
+  "Show the commit that last touched the line at point."
+  (interactive)
+  (let ((hash (get-text-property (line-beginning-position)
+                                 'tuned-gblame-hash)))
+    (cond
+     ((null hash) (user-error "No blame information on this line"))
+     ((string-match-p "\\`0+\\'" hash)
+      (user-error "This line is not committed yet"))
+     ((fboundp 'tuned-git-show-commit)
+      (let ((default-directory (or tuned-gblame--root default-directory)))
+        (tuned-git-show-commit hash)))
+     (t (message "Commit %s" hash)))))
+
+(defun tuned-gblame ()
+  "Toggle a git blame window on the left of the current file.
+Each line shows the abbreviated commit, author and date, aligned with
+the file; the window follows the file's scrolling and point.  It is an
+ordinary split, so `C-w C-w' focuses it and `:only'/`C-w c' close it.
+`git blame' runs in the background: the window opens at once with a
+loader at the left of its mode line, and saving refreshes it without
+blocking.
+`RET' shows the commit at point, `g' refreshes, `q' closes the window."
+  (interactive)
+  (unless buffer-file-name
+    (user-error "This buffer is not visiting a file"))
+  (if (and (buffer-live-p tuned-gblame--buffer)
+           (get-buffer-window tuned-gblame--buffer t))
+      (progn
+        (tuned-gblame--close)
+        (message "GBlame closed"))
+    ;; The buffer may survive a window closed with :only, C-w c or :q.
+    ;; Drop it before opening a fresh one.
+    (tuned-gblame--close)
+    (let* ((source (current-buffer))
+           (file (file-truename buffer-file-name))
+           (root (locate-dominating-file file ".git")))
+      (unless root
+        (user-error "Not inside a Git repository"))
+      (setq root (file-name-as-directory (expand-file-name root)))
+      (let ((blame (get-buffer-create
+                    (format "*GBlame: %s*" (file-name-nondirectory file)))))
+        (with-current-buffer blame
+          (tuned-gblame-mode)
+          (setq tuned-gblame--source source
+                tuned-gblame--root root
+                tuned-gblame--file file)
+          (add-hook 'kill-buffer-hook #'tuned-gblame--cleanup nil t)
+          (add-hook 'kill-buffer-hook #'tuned-gblame--teardown nil t))
+        (tuned-gblame--fill blame root file)
+        (with-current-buffer source
+          (setq tuned-gblame--root root
+                tuned-gblame--file file
+                tuned-gblame--buffer blame)
+          (add-hook 'post-command-hook #'tuned-gblame--sync nil t)
+          (add-hook 'window-scroll-functions #'tuned-gblame--sync nil t)
+          (add-hook 'after-save-hook #'tuned-gblame--refresh nil t)
+          (add-hook 'kill-buffer-hook #'tuned-gblame--close nil t))
+        (display-buffer blame
+                        '((display-buffer-in-direction)
+                          (direction . left)
+                          (window-width . 44)))
+        (with-current-buffer source
+          (tuned-gblame--sync (get-buffer-window source t)))))))
+
+(defvar-keymap tuned-gblame-mode-map
+  :doc "Keymap for `tuned-gblame-mode'."
+  :parent special-mode-map
+  "RET" #'tuned-gblame-show-commit
+  "<return>" #'tuned-gblame-show-commit
+  "g" #'tuned-gblame-refresh
+  "q" #'tuned-gblame-quit)
+
+(define-derived-mode tuned-gblame-mode special-mode "GBlame"
+  "Major mode for `tuned-gblame' buffers."
+  (setq-local truncate-lines t)
+  ;; The blame window is narrow: keep the loader at the left edge of the
+  ;; mode line, where it is not truncated.
+  (tuned-spinner-mode-line-install))
+
+;; Evil's normal state would otherwise take RET, g and q first.
+(require 'evil nil t) ; a macro below: loaded now, or it is compiled as a call
+(with-eval-after-load 'evil
+  (evil-define-key 'normal tuned-gblame-mode-map
+    (kbd "RET") #'tuned-gblame-show-commit
+    (kbd "<return>") #'tuned-gblame-show-commit
+    "g" #'tuned-gblame-refresh
+    "q" #'tuned-gblame-quit)
+  ;; Same command as vim-fugitive's :Gblame
+  (evil-ex-define-cmd "Gblame" #'tuned-gblame))
+
+;; ============================================================
+;; Vim-fugitive style commands
+;; ============================================================
+;; The G* names match vim-fugitive's :Gwrite and :Gcommit, which are also
+;; available as Ex commands.  Both act on the current file's directory, so
+;; they work from any buffer that visits a tracked file.  They queue their
+;; git commands on the repository, the same queue the status buffer uses
+;; for staging, push and pull, so the two never race over `.git/index.lock'
+;; and a Gwrite before a Gcommit always runs first.
+(defun tuned-git-commands--file-directory ()
+  "Return the current file's directory, or `default-directory'."
+  (if buffer-file-name
+      (file-name-directory (expand-file-name buffer-file-name))
+    default-directory))
+
+(defun tuned-git-commands--run (args action)
+  "Queue git ARGS on the current file's repository, message ACTION on success.
+The job joins the same queue as the status buffer's staging, push and
+pull, so a Gwrite cannot collide with a running pull over
+`.git/index.lock', and a Gwrite followed by a Gcommit runs in that
+order.  A pre-commit hook that takes seconds no longer blocks Emacs.
+The job is unowned: closing the file buffer must not kill a commit
+halfway through its hooks.  When it finishes, the queue's drain
+refreshes the repository's status buffer, if one exists, without
+showing it."
+  (let* ((dir (tuned-git-commands--file-directory))
+         (root (or (locate-dominating-file dir ".git")
+                   (file-name-as-directory (expand-file-name dir)))))
+    (tuned-git-core-write
+     (list :root root
+           :attempts (list args)
+           :action action))))
+
+(defun Gwrite ()
+  "Stage the current file, like vim-fugitive's :Gwrite."
+  (interactive)
+  (unless buffer-file-name
+    (user-error "This buffer is not visiting a file"))
+  (let ((file (expand-file-name buffer-file-name)))
+    (tuned-git-commands--run (list "add" "--" file)
+                          (format "Staged %s" (file-name-nondirectory file)))))
+
+(defun Gcommit ()
+  "Commit the current file, like vim-fugitive's :Gcommit."
+  (interactive)
+  (unless buffer-file-name
+    (user-error "This buffer is not visiting a file"))
+  (let ((name (file-name-nondirectory buffer-file-name)))
+    (tuned-git-commands--run (list "commit" "-m" (format "Update %s" name))
+                          (format "Committed %s" name))))
+
+;; Gstatus is the one command here that opens the status view.  Its autoload
+;; keeps this file usable without loading the status buffer's rendering code.
+(autoload 'tuned-git-status "tuned-git-status")
+(defalias 'Gstatus 'tuned-git-status)
+
+(with-eval-after-load 'evil
+  (evil-ex-define-cmd "Gstatus" #'Gstatus)
+  (evil-ex-define-cmd "Gwrite" #'Gwrite)
+  (evil-ex-define-cmd "Gcommit" #'Gcommit))
+
+(provide 'tuned-git-commands)
+;;; tuned-git-commands.el ends here

@@ -2,7 +2,7 @@
 
 ;;; Commentary:
 
-;; init.el loads this file last, after xl-key-bindings, so anything
+;; init.el loads this file last, after tuned-key-bindings, so anything
 ;; you set here wins over the defaults.  It starts empty on purpose:
 ;; the defaults come from Crafted and from tuned-emacs/lisp/, and you
 ;; add your own choices here.
