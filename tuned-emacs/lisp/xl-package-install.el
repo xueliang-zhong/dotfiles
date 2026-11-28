@@ -14,6 +14,7 @@
 (require 'subr-x)
 (require 'package)
 (require 'xl-async)
+(require 'xl-async-evaluate)
 (require 'xl-spinner)
 
 (defvar xl-package-install-buffer-name "*xl-package-install*"
@@ -27,16 +28,12 @@
   "The command of a child Emacs that installs package NAME with this profile.
 It loads the profile the way a normal start does, then fetches NAME in parallel
 and installs whatever is left, as the blocking path would."
-  (let* ((exe (expand-file-name invocation-name invocation-directory))
-         (profile (file-name-as-directory user-emacs-directory))
-         (form `(progn (require 'xl-package-fetch)
-                       (xl-fetch-packages (list ',name))
-                       (xl-install-packages (list ',name)))))
-    (list exe "--batch" "--init-directory" profile
-          "-l" (expand-file-name "early-init.el" profile)
-          "--eval" "(run-hooks (quote before-init-hook))"
-          "-l" (expand-file-name "init.el" profile)
-          "--eval" (format "%S" form))))
+  (let ((form `(progn (require 'xl-package-fetch)
+                      (xl-fetch-packages (list ',name))
+                      (xl-install-packages (list ',name)))))
+    (xl-async-child-command
+     :init-directory user-emacs-directory
+     :form (format "%S" form))))
 
 (defun xl-package-install--append (buffer text)
   "Append TEXT to BUFFER, keeping the end of the buffer in view."

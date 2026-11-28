@@ -276,7 +276,7 @@ session."
 (autoload 'xl-perfetto-untrace-function "xl-perfetto-trace")
 (autoload 'xl-perfetto-with-span "xl-perfetto-trace" nil nil 'macro)
 ;; Helpers for asynchronous compiles and package installs; loaded on first use.
-(autoload 'xl-async-native-compile "xl-async-evaluate" nil t)
+(autoload 'xl-async-native-compile "xl-native-compile" nil t)
 (autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
 (autoload 'xl-package-install "xl-package-install" nil t)
 ;; xl-eln-opt: once per session, after five seconds of idle time, a child Emacs

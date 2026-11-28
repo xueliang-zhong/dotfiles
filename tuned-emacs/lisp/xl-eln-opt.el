@@ -21,6 +21,7 @@
 (require 'cl-lib)
 (require 'seq)
 (require 'xl-async)
+(require 'xl-async-evaluate)
 
 ;; The trace macro and the follower are used in the child run; the child loads
 ;; the profile, which autoloads them too.  Byte-compiling needs them defined.
@@ -769,14 +770,10 @@ cannot change the user's files.")
 (defun xl-eln-opt--child-args (&rest tail)
   "The command line of a child Emacs with the profile, then TAIL: the forms
 it evaluates after init.el."
-  (let* ((exe (expand-file-name invocation-name invocation-directory))
-         (profile (file-name-as-directory user-emacs-directory)))
-    (append (list exe "--batch" "--init-directory" profile
-                  "-l" (expand-file-name "early-init.el" profile)
-                  "--eval" "(run-hooks (quote before-init-hook))")
-            xl-eln-opt--child-prefix
-            (list "-l" (expand-file-name "init.el" profile))
-            tail)))
+  (xl-async-child-command
+   :init-directory user-emacs-directory
+   :before-init xl-eln-opt--child-prefix
+   :after-init tail))
 
 (defun xl-eln-opt--spawn (files force)
   "Start a child that compiles FILES (or the history when nil)."

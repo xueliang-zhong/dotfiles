@@ -16,8 +16,10 @@
 ;;
 ;; `xl-async-evaluate' sends one request and closes the input.
 ;; `xl-async-worker-start' keeps the child alive and answers requests in
-;; order, so state persists between them.  `xl-async-native-compile' is
-;; `(native-compile FILE)' sent to a fresh child.
+;; order, so state persists between them.  `xl-async-child-command' builds
+;; the command line every child Emacs of this config uses; native
+;; compilation (xl-native-compile.el) is `(native-compile FILE)' sent to a
+;; fresh child.
 ;;
 ;; The output buffer is *async-buffer <pid>*, kept after the task ends.
 ;; Only the ten most recent such buffers are kept; older finished ones
@@ -86,10 +88,41 @@ never deleted."
 ;;; Starting children and pruning their buffers
 ;;; ============================================================
 
-(defun xl-async-evaluate--program ()
-  "The Emacs binary used for child processes."
-  (or xl-async-evaluate-program
-      (expand-file-name invocation-name invocation-directory)))
+(defun xl-async-child-command (&rest args)
+  "Return the command line of a child Emacs.
+ARGS is a plist:
+
+  :program         the Emacs binary, default `xl-async-evaluate-program'
+                   and then this Emacs
+  :init-directory  a profile folder; the child starts from it as a normal
+                   start does, loading early-init.el and init.el.  Without
+                   it the child is bare (`-Q').
+  :before-init     arguments inserted before init.el (profile children only),
+                   such as settings that must apply while init runs
+  :after-init      arguments appended after the init files
+  :form            a Lisp form string evaluated after the init files
+
+Every child Emacs of this config is built here, so the command line and the
+order of its parts exist once."
+  (let* ((program (or (plist-get args :program)
+                      xl-async-evaluate-program
+                      (expand-file-name invocation-name invocation-directory)))
+         (init-directory (plist-get args :init-directory))
+         (form (plist-get args :form))
+         (tail (append (plist-get args :after-init)
+                       (and form (list "--eval" form)))))
+    (if init-directory
+        ;; Batch Emacs does not load the init files by itself, so they are
+        ;; loaded here in the order a normal start uses.
+        (let ((dir (directory-file-name (expand-file-name init-directory))))
+          (append (list program "--batch"
+                        "--init-directory" dir
+                        "-l" (expand-file-name "early-init.el" dir)
+                        "--eval" "(run-hooks (quote before-init-hook))")
+                  (plist-get args :before-init)
+                  (list "-l" (expand-file-name "init.el" dir))
+                  tail))
+      (append (list program "-Q" "--batch") tail))))
 
 (defun xl-async-evaluate--command (&optional init-directory)
   "The command line of a child that serves requests on stdin.
@@ -97,18 +130,9 @@ Without INIT-DIRECTORY the child is bare (`-Q').  With it, the child starts
 the way this Emacs does, with that profile's init, and then serves: the
 profile's startup code needs the state a normal start sets up, which a bare
 `-Q' load does not have."
-  (if init-directory
-      ;; Batch Emacs does not load the init files by itself, so they are
-      ;; loaded here in the order a normal start uses.
-      (let ((dir (directory-file-name (expand-file-name init-directory))))
-        (list (xl-async-evaluate--program) "--batch"
-              "--init-directory" dir
-              "-l" (expand-file-name "early-init.el" dir)
-              "--eval" "(run-hooks (quote before-init-hook))"
-              "-l" (expand-file-name "init.el" dir)
-              "--eval" xl-async-evaluate--bootstrap))
-    (list (xl-async-evaluate--program) "-Q" "--batch" "--eval"
-          xl-async-evaluate--bootstrap)))
+  (xl-async-child-command
+   :init-directory init-directory
+   :form xl-async-evaluate--bootstrap))
 
 (defun xl-async-evaluate--async-buffer-p (buffer)
   "Return non-nil when BUFFER is an *async-buffer <pid>*."
@@ -317,6 +341,7 @@ DIRECTORIES is prepended to every request's load-path."
 ;;; Evaluate
 ;;; ============================================================
 
+;;;###autoload
 (defun xl-async-evaluate (form &optional callback &rest args)
   "Evaluate FORM in a fresh child Emacs and return the process.
 ARGS may give `:load-path', a list of directories prepended to the
@@ -385,86 +410,6 @@ The child exits after the request it is running.  Return WORKER."
   (process-put worker 'xl-async-evaluate-requests nil)
   (xl-async-close-input worker)
   worker)
-
-;;; ============================================================
-;;; Native compilation
-;;; ============================================================
-
-(declare-function xl-native-compile-request "xl-native-compile" (file args))
-
-(defun xl-async-evaluate--source-of (library)
-  "The source file behind LIBRARY, a path from `locate-library'.
-Returns the .el next to it, or the .el.gz Emacs ships for its own libraries;
-nil when neither exists."
-  (let ((base (replace-regexp-in-string
-               "\\.\\(elc\\|el\\(\\.gz\\)?\\)\\'" "" library)))
-    (cl-some (lambda (ext)
-               (let ((file (concat base ext)))
-                 (and (file-exists-p file) file)))
-             '(".el" ".el.gz"))))
-
-(defun xl-async-native-compile (file &optional callback &rest args)
-  "Compile FILE with `native-compile' in a fresh child Emacs.
-FILE is a source file, or a feature symbol such as `consult', which is
-resolved with `locate-library' to its source (.el or .el.gz).  A symbol is
-compiled with this Emacs's profile, so that package macros resolve.
-ARGS may give `:load-path', a list of directories the child needs to
-read FILE's dependencies, and `:profile', a profile folder whose
-early-init and init the child loads first.  The profile is needed for
-files that require other parts of the configuration or use package
-macros.  CALLBACK, when given, is called once with
-the process, as `xl-async-evaluate' does; `xl-async-evaluate-result'
-then holds (:ok ELN-PATH) or (:error MESSAGE).  Without CALLBACK, the
-compilation is queued and shown in the monitor buffer `*xl-native-compile*'
-\(see xl-native-compile.el): one child at a time, a file queued once, and a
-spinner for the running one.  Then the return value is a status line, such as
-`busy compiling X; Y waits behind 1 other request(s)'.
-
-Without native compilation this signals a `user-error' and starts
-nothing, so CALLBACK is never called with anything but a process.
-Check `native-comp-available-p' first when that is possible."
-  (unless (and (fboundp 'native-comp-available-p)
-               (native-comp-available-p))
-    (user-error "xl-async-native-compile: native compilation is not available"))
-  (when (symbolp file)
-    (let* ((library (or (locate-library (symbol-name file))
-                        ;; Loaded by path, not through `load-path' (such as
-                        ;; personal.el): find the file in `load-history'.
-                        (cl-find-if
-                         (lambda (f)
-                           (string-match-p
-                            (format "/%s\\.el\\(c\\|\\.gz\\)?\\'"
-                                    (regexp-quote (symbol-name file)))
-                            f))
-                         (delq nil (mapcar #'car load-history)))))
-           (source (and library (xl-async-evaluate--source-of library))))
-      (unless source
-        (user-error "xl-async-native-compile: no source file for `%s'" file))
-      (setq file source)
-      (unless (plist-get args :profile)
-        (setq args (plist-put args :profile user-emacs-directory)))))
-  (if callback
-      (xl-async-native-compile--start file args callback)
-    ;; Without a callback, the compilation goes to the queue and its monitor.
-    (require 'xl-native-compile)
-    (xl-native-compile-request file args)))
-
-(defun xl-async-native-compile--start (file args callback)
-  "Start the child that native-compiles FILE with ARGS; return its process.
-CALLBACK, when non-nil, is called once with the process when it ends."
-  ;; With :profile, the child starts from that profile, as a normal start
-  ;; does, so the file's requires and package macros resolve.
-  (let ((profile (plist-get args :profile)))
-    ;; The child must write its .eln where this Emacs looks for it, so the
-    ;; child takes this Emacs's `native-comp-eln-load-path' (set after its
-    ;; init, which may change it).
-    (apply #'xl-async-evaluate
-           (list 'progn
-                 (list 'setq 'native-comp-eln-load-path
-                       (list 'quote native-comp-eln-load-path))
-                 (list 'native-compile file))
-           callback
-           (append (and profile (list :init-directory profile)) args))))
 
 (provide 'xl-async-evaluate)
 ;;; xl-async-evaluate.el ends here
