@@ -192,6 +192,11 @@ frameworks such as Vertico and Consult apply.
 (register-definition-prefixes "xl-package-install" '("xl-package-install-"))
 
 
+;;; Generated autoloads from xl-perfetto-probes.el
+
+(register-definition-prefixes "xl-perfetto-probes" '("xl-perfetto--"))
+
+
 ;;; Generated autoloads from xl-perfetto-trace.el
 
 (autoload 'xl-perfetto-with-span "xl-perfetto-trace"

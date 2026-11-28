@@ -613,6 +613,7 @@ FIELD values are compared with `equal'."
 
 (ert-deftest xl-perfetto-advice-docstrings-name-their-targets ()
   "Every span advice the macro defines has a docstring naming its target."
+  (require 'xl-perfetto-probes)
   (dolist (pair '((xl-perfetto--process-filter-around . "process-filter")
                   (xl-perfetto--process-sentinel-around . "process-sentinel")
                   (xl-perfetto--vertico-around . "vertico--update")

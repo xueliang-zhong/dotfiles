@@ -87,6 +87,7 @@ tuned-emacs/
 │   ├── xl-org-babel-async.el    `:async yes' for Org source blocks
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
+│   ├── xl-perfetto-probes.el    Its probes for xl-async, vertico, corfu, pyim
 │   ├── xl-package-fetch.el      Parallel download and signature check of packages
 │   ├── xl-native-compile.el     Native-compile queue and its monitor
 │   ├── xl-package-install.el    Asynchronous package install
