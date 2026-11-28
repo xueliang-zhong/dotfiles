@@ -10,6 +10,8 @@ A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/Syst
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
 - **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC, font-lock and redisplay frames (with jank and window/phase detail) as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
+- **Async spell checking (xl-consult-spell).** Buffer and region scans behind a consult list, using the installed `aspell`, `hunspell` or `ispell`. See [doc/xl-consult-spell.md](doc/xl-consult-spell.md).
+- **Tagbar-style imenu sidebar (xl-tagbar).** `F8` shows the tags of the current buffer in a narrow right side window, grouped, foldable and following point. The candidates come from Consult's imenu and Embark acts on the tag at point. See [doc/xl-tagbar.md](doc/xl-tagbar.md).
 - **Chinese input inside Emacs (pyim).** `F2` toggles a Lisp input method instead of the macOS IME, so no keypress waits for a system round trip; candidates appear at point through posframe.
 - **Shared asynchronous layer.** One composable process API (`xl-async`) runs Git, dired listings and previews, Org `:async` source blocks, and background Lisp evaluation.
 - **Unified spinner animation UI for all async tasks.** One loader design (`xl-spinner`) shows every asynchronous task: the mode-line spinner, the centre loader, and the progress lines of background work.
@@ -52,6 +54,7 @@ Everything is described in [doc/xl-eln-opt.md](doc/xl-eln-opt.md).
 
 - Emacs 30 or later (developed and tested on Emacs 31.1).
 - `git`, `curl` and `gpg` for package installation. `gpg` is needed for signature checks on GNU ELPA.
+- `aspell`, `hunspell` or `ispell` for `xl-consult-spell`; Emacs has no built-in dictionary.
 - `just` is optional. Every `just emacs-*` recipe is a thin wrapper around `install/emacs-setup.sh`.
 
 ## What is guaranteed, and what is not
@@ -84,6 +87,8 @@ tuned-emacs/
 │   ├── xl-git-status.el         Status rendering, mode and auto refresh
 │   ├── xl-git-commands.el       Gstatus, Gblame, Gwrite, Gcommit
 │   ├── xl-consult-spinner.el    Spinner for asynchronous consult lists
+│   ├── xl-consult-spell.el      Spell checks in a consult list
+│   ├── xl-tagbar.el             Tagbar-style imenu sidebar (F8)
 │   ├── xl-org-babel-async.el    `:async yes' for Org source blocks
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
@@ -166,8 +171,10 @@ The suites run in `emacs --batch`, without a graphical frame:
 | `tests/xl-git-status-tests.el`, `tests/xl-git-commands-tests.el` | Git status, auto refresh, the write queue, GBlame |
 | `tests/xl-org-babel-async-tests.el` | `:async yes' Org blocks |
 | `tests/xl-dired-tests.el` | Asynchronous dired listings and previews |
+| `tests/xl-tagbar-tests.el` | Tagbar sections, jumping, folding, refresh and the Embark target |
 | `tests/xl-perfetto-trace-tests.el` | Trace recording and JSON output |
 | `tests/xl-package-fetch-tests.el` | Parallel job runner, dependency plan, unsigned-archive policy, gpg check |
+| `tests/xl-consult-spell-tests.el` | Checker output parsing, word positions, region widening, program choice |
 
 Every `tests/xl-*-tests.el` runs on its own, without the profile, and every
 suite is loaded by a glob so a new module needs no script change.
@@ -193,6 +200,8 @@ After a change, run `just emacs-check` (or the script equivalent).
 | --- | --- |
 | [doc/startup.md](doc/startup.md) | Startup sequence, package installation and the parallel fetch, the load order |
 | [doc/lisp-modules.md](doc/lisp-modules.md) | The personal Lisp modules: Git status, G commands, key bindings, spinners, Org babel, dired, personal settings |
+| [doc/xl-consult-spell.md](doc/xl-consult-spell.md) | Async buffer and region spell checks in a consult list |
+| [doc/xl-tagbar.md](doc/xl-tagbar.md) | The Tagbar-style imenu sidebar: keys, refresh, folding, Embark |
 | [doc/xl-git-write-queue.md](doc/xl-git-write-queue.md) | One serial Git write queue per repository: Gwrite and Gcommit with pull |
 | [doc/windows.md](doc/windows.md) | Windows setup, platform differences, line endings |
 | [doc/xl-async.md](doc/xl-async.md) | The asynchronous process layer |

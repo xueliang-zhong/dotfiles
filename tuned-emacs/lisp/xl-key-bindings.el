@@ -95,6 +95,8 @@
   "e" "errors" nil
   "e n" "next error" #'next-error  "e p" "previous error" #'previous-error
   "e l" "list errors" #'flymake-show-buffer-diagnostics
+  "e t" "spell: buffer" #'xl-consult-spell
+  "e r" "spell: region" #'xl-consult-spell-region
 
   "f" "files" nil
   "f f" "find file"     #'find-file

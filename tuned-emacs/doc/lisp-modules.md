@@ -99,6 +99,29 @@ Blocks run in parallel and are not queued. Blocks that depend on each other must
 
 Asynchronous consult lists such as `consult-ripgrep` and `consult-find` show a status character before the prompt: `*` while running and `:` when done. This module replaces the running character with a pulsing dot (`·` `•` `●` `•`, one frame every 0.15 s, a 0.6 s cycle; `. o O o` when the font cannot draw dots). The frames come from `xl-spinner.el`. The width does not change, so typed text does not move. It wraps `consult--async-indicator`, so only asynchronous lists are affected.
 
+## Tagbar sidebar: `lisp/xl-tagbar.el`
+
+`F8` opens a Tagbar-like sidebar: a dedicated side window on the right that lists the imenu tags of the buffer in the watched window, grouped into sections such as Functions and Variables.
+
+- The candidates, sections and faces come from `consult-imenu` (`consult-imenu--items`); `consult-imenu--jump` performs the jump. Any mode with an imenu backend works, including Org headings.
+- `RET` or `mouse-1` jumps, `n`/`p` preview the next/previous tag while keeping the tagbar selected, `TAB` folds a section, `g` refreshes and `q` closes. `C-.` runs `embark-act` on the bare tag name (`xl-tagbar--embark-target`).
+- The list rebuilds after 0.3 s of idle editing, at once on save or revert, and when the watched window switches buffers. The tag enclosing point is highlighted and kept visible.
+- The watched window is the one selected when the tagbar opens. Focus never moves when the sidebar opens, refreshes or follows point.
+
+Details: [xl-tagbar.md](xl-tagbar.md).
+
+## Spell checking: `lisp/xl-consult-spell.el`
+
+A consult front-end over the ispell-compatible checker that is installed: `aspell`, `hunspell` or `ispell`. The list behaves like `consult-line`: results appear when the asynchronous scan finishes, typing narrows them, preview follows the selection, and `RET` jumps.
+
+- `xl-consult-spell` scans the whole buffer, including unsaved text; `xl-consult-spell-region` scans the active region, widened to whole lines.
+- The checker runs in list mode (`aspell list`, `hunspell -l`, `ispell -l`) through `xl-async-run`. List mode reports words without positions, so the words are found again in the buffer in the order the checker printed them.
+- The list is for navigation. Correct the word at point with `ispell-word` (`M-$`); list mode does not return suggestions.
+- `xl-consult-spell-doctor` reports the selected program, its path and version, and the install hints when nothing was found.
+- Project-wide scans are intentionally not supported: one checker process per file is slow and the reconstructed positions become less reliable.
+
+The module never uses a shell string: commands are argument lists, output is decoded as UTF-8, and a trailing CR from Windows output is removed before a word is used. Details: [xl-consult-spell.md](xl-consult-spell.md).
+
 ## Shared loader: `lisp/xl-spinner.el`
 
 The goal is a loader that is visible but does not move the screen. It has two layers.

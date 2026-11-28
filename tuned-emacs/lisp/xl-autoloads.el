@@ -29,6 +29,21 @@ buffer is *async-buffer <pid>* and stays after the child ends.
 (register-definition-prefixes "xl-bootstrap" '("xl-"))
 
 
+;;; Generated autoloads from xl-consult-spell.el
+
+(autoload 'xl-consult-spell "xl-consult-spell"
+"Spell-check the current buffer asynchronously in a consult list.
+The checker runs in list mode; its words become consult candidates.
+RET jumps to an occurrence; correct it with `ispell-word'." t)
+(autoload 'xl-consult-spell-region "xl-consult-spell"
+"Spell-check the region between BEG and END.
+
+(fn BEG END)" t)
+(autoload 'xl-consult-spell-doctor "xl-consult-spell"
+"Show which ispell-compatible spell checker Emacs can use." t)
+(register-definition-prefixes "xl-consult-spell" '("xl-consult-spell-"))
+
+
 ;;; Generated autoloads from xl-consult-spinner.el
 
 (register-definition-prefixes "xl-consult-spinner" '("xl-consult-spinner-"))
@@ -240,7 +255,7 @@ Drag the file from the Dired buffer into the page." t)
 ;;; Generated autoloads from xl-spinner.el
 
 (register-definition-prefixes "xl-spinner" '("xl-spinner-"))
-
+
 ;;; End of scraped data
 
 (provide 'xl-autoloads)

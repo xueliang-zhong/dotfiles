@@ -313,10 +313,26 @@ cmd_compile_lisp() {
 "
 }
 
+# Report the ispell-compatible checker without failing the check.  See
+# doc/xl-consult-spell.md.
+cmd_spell_check() {
+    local found=0 program path
+    for program in aspell hunspell ispell; do
+        if path=$(command -v "$program" 2>/dev/null); then
+            say "[spell] $program: $path"
+            found=1
+        fi
+    done
+    if [ "$found" -eq 0 ]; then
+        say "[spell] no ispell-compatible checker found; install aspell or hunspell for xl-consult-spell"
+    fi
+}
+
 cmd_check() {
     cmd_autoloads
     cmd_smoke
     cmd_test
+    cmd_spell_check
 }
 
 # When config advises a C primitive (evil: select-window, read-key-sequence,
