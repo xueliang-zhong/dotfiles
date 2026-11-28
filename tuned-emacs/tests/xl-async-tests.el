@@ -33,6 +33,10 @@
 
 ;;; Layer 0: core
 
+(ert-deftest xl-async-does-not-load-the-ui-layer ()
+  "The process layer does not depend on xl-spinner; callers require both."
+  (should-not (featurep 'xl-spinner)))
+
 (ert-deftest xl-async-on-exit-runs-exactly-once ()
   "The sentinel and the reaper both finish the task; on-exit runs once."
   (let ((proc (xl-async-start '("sh" "-c" "exit 0")))

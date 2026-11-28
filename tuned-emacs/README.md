@@ -68,22 +68,30 @@ Not yet asynchronous, stated plainly: package installation and removal from `lis
 ```
 tuned-emacs/
 ├── early-init.el            Startup settings: GC, frame chrome, package archives
-├── init.el                  Selects Crafted modules, installs packages, loads the layers
+├── init.el                  The manifest: Crafted modules, packages, layers
 ├── personal.el             Your own settings; starts empty, with comments
-├── example/xueliang.el     The author's opinionated configuration (not loaded by default)
+├── example/                 The author's opinionated configuration (not loaded by default)
+│   ├── xueliang.el              The configuration itself
+│   └── xl-utils.el              Helpers behind the example's bindings
 ├── lisp/                    Modules loaded with `require'
 │   ├── xl-key-bindings.el       Spacemacs-style key bindings (SPC tree, M-m, ...)
+│   ├── xl-bootstrap.el          Package installation: refresh, fetch, retry
 │   ├── xl-async.el              Asynchronous processes: ownership, slots, queues
 │   ├── xl-spinner.el            Shared loader: kernel and mode-line slot
-│   ├── xl-git-status.el         Asynchronous Git status buffer, commit view
+│   ├── xl-async-evaluate.el     Child Emacs command lines and evaluation
+│   ├── xl-git-core.el           Git processes and parsing
+│   ├── xl-git-show.el           Diff and commit views, faces
+│   ├── xl-git-status.el         Status rendering, mode and auto refresh
 │   ├── xl-git-commands.el       Gstatus, Gblame, Gwrite, Gcommit
 │   ├── xl-consult-spinner.el    Spinner for asynchronous consult lists
 │   ├── xl-org-babel-async.el    `:async yes' for Org source blocks
 │   ├── xl-dired.el              Asynchronous dired listings and previews
 │   ├── xl-perfetto-trace.el     Chrome JSON timelines of Lisp work
 │   ├── xl-package-fetch.el      Parallel download and signature check of packages
+│   ├── xl-native-compile.el     Native-compile queue and its monitor
+│   ├── xl-package-install.el    Asynchronous package install
 │   ├── xl-eln-opt.el            Background native compilation of what you use
-│   └── xl-utils.el              Small shared helpers
+│   └── xl-autoloads.el          Generated autoloads (do not edit)
 ├── install/emacs-setup.sh   Install, check and run script (no `just' needed)
 ├── tests/                   ERT suites (see "Testing")
 ├── doc/                     Design notes and reference documents
@@ -99,7 +107,7 @@ just emacs-mac-setup                                  # with just
 bash tuned-emacs/install/emacs-setup.sh setup-macos   # without just
 ```
 
-The setup runs five steps: copy the dotfiles, clone Crafted at the pinned commit and write the profile stubs, install the packages, byte-compile the personal Lisp, and point `~/.emacs.d` at the Crafted profile. Step 5 needs Emacs to be closed. If it is running, rerun `just emacs-make-default` after quitting it.
+The setup runs six steps: copy the dotfiles, clone Crafted at the pinned commit and write the profile stubs, install the packages, generate the autoloads, byte-compile the personal Lisp, and point `~/.emacs.d` at the Crafted profile. The last step needs Emacs to be closed. If it is running, rerun `just emacs-make-default` after quitting it.
 
 Start Emacs with `just emacs-try`, `bash tuned-emacs/install/emacs-setup.sh try`, or the Dock icon.
 
@@ -130,13 +138,13 @@ Every `just` recipe has an equivalent in `install/emacs-setup.sh`:
 | `emacs-crafted-install` | `crafted-install` | Clone Crafted and write the profile stubs |
 | `emacs-smoke` | `smoke` | Load the whole profile in batch mode |
 | `emacs-test` | `test` | Run all ERT suites |
-| `emacs-check` | `check` | `smoke` and `test` together |
+| `emacs-check` | `check` | `autoloads`, `smoke` and `test` together |
 | `emacs-trampolines-cache-setup` | `trampolines` | Build advice trampolines by hand |
 | `emacs-make-default` | `make-default` | Point `~/.emacs.d` at the Crafted profile |
 | `emacs-restore-spacemacs` | `restore-spacemacs` | Switch back to the old Spacemacs profile |
 | `emacs-try` | `try` | Start Emacs; arguments pass through |
 
-Other script command: `compile-lisp` (byte-compiles our own `lisp/` where stale).
+Other script commands: `autoloads` (regenerate `lisp/xl-autoloads.el`) and `compile-lisp` (byte-compile our own `lisp/` where stale).
 
 Environment variables: `EMACS`, `PROFILE`, `PROFILES`, `PROFILE_DIR`, `DOTFILES`, `XL_SKIP_DOTFILES=1` (skip `env.sh` in setup), `XL_FORCE_WINDOWS=1` (exercise the Windows flow on another OS).
 
@@ -151,11 +159,17 @@ The suites run in `emacs --batch`, without a graphical frame:
 
 | File | Covers |
 | --- | --- |
-| `tests/smoke-tests.el` | Profile structure, key bindings, startup settings, Org, Magit, GBlame, the Git write queue, dired, completion, restart, and more |
-| `tests/xl-async-tests.el`, `tests/xl-async-evaluate-tests.el` | Asynchronous process layer |
+| `tests/smoke-tests.el` | Profile structure, key bindings, startup settings, Org, Magit, dired, completion, restart, and more |
+| `tests/xl-async-tests.el`, `tests/xl-async-compat-tests.el`, `tests/xl-async-evaluate-tests.el` | Asynchronous process layer, compatibility API and child Emacs |
+| `tests/xl-spinner-tests.el`, `tests/xl-consult-spinner-tests.el` | Loader frames and mode-line slot, consult indicator |
+| `tests/xl-git-status-tests.el`, `tests/xl-git-commands-tests.el` | Git status, auto refresh, the write queue, GBlame |
+| `tests/xl-org-babel-async-tests.el` | `:async yes' Org blocks |
 | `tests/xl-dired-tests.el` | Asynchronous dired listings and previews |
 | `tests/xl-perfetto-trace-tests.el` | Trace recording and JSON output |
 | `tests/xl-package-fetch-tests.el` | Parallel job runner, dependency plan, unsigned-archive policy, gpg check |
+
+Every `tests/xl-*-tests.el` runs on its own, without the profile, and every
+suite is loaded by a glob so a new module needs no script change.
 
 ## Common changes
 
@@ -184,6 +198,6 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/xl-eln-opt.md](doc/xl-eln-opt.md) | Background native compilation: sources, verdicts, the child, reports |
 | [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
 | [doc/xl-perfetto-trace-prompt.md](doc/xl-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
-| [doc/refactoring-plan.md](doc/refactoring-plan.md) | Proposed architecture refactoring: target layers and eight steps |
+| [doc/refactoring-plan.md](doc/refactoring-plan.md) | Architecture refactoring: target layers and the eight steps, all landed |
 
 New documents go in `doc/`. Documents are written in English.

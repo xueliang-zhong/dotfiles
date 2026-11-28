@@ -43,7 +43,8 @@
 (require 'dired)
 (require 'seq)           ; seq-find, seq-take
 (require 'subr-x)        ; string-trim, string-empty-p
-(require 'xl-async)     ; owned processes and the loader
+(require 'xl-async)     ; owned processes
+(require 'xl-spinner)   ; the loader
 (require 'evil nil t)   ; optional: extra normal-state bindings
 
 (defgroup xl-dired nil

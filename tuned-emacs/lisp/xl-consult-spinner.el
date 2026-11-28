@@ -24,6 +24,7 @@
 
 (require 'cl-lib)
 (require 'xl-async)
+(require 'xl-spinner)
 
 (declare-function consult--async-indicator "consult")
 

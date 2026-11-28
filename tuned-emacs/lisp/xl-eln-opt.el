@@ -21,6 +21,7 @@
 (require 'cl-lib)
 (require 'seq)
 (require 'xl-async)
+(require 'xl-spinner)
 (require 'xl-async-evaluate)
 
 ;; The trace macro and the follower are used in the child run; the child loads

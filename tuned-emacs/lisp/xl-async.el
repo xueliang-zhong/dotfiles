@@ -40,12 +40,12 @@
 ;; Menu, the Babel async blocks and the perfetto recorder: the
 ;; core primitives, the behaviors composed from them, and the compatibility
 ;; functions the existing callers use.  The loader lives in xl-spinner.el;
-;; requiring it here keeps the old `(require 'xl-async)' working.
+;; a caller that shows one requires both modules, so the process layer does
+;; not depend on the UI layer.
 
 ;;; Requirements
 
 (require 'seq)
-(require 'xl-spinner)
 
 (defconst xl-async-reap-interval 0.25
   "Seconds between checks that a finished process's sentinel has run.")

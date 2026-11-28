@@ -19,6 +19,7 @@
 (require 'subr-x)     ; truncate-string-to-width
 (require 'xl-git-show) ; faces, `--show-commit' and, through it, the core
 (require 'xl-async)    ; owned processes
+(require 'xl-spinner)  ; the loader
 (declare-function xl-git-core-write "xl-git-core" (job))
 
 ;; ============================================================

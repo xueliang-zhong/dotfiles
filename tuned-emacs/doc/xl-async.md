@@ -7,9 +7,11 @@ Status: implemented (commit `aae1e6c` and later). The original `xl-async-run` in
 | File | Contents |
 |---|---|
 | `lisp/xl-async.el` | Layers 0 and 1, and the compatibility layer (`xl-async-run`, `xl-async-enqueue`, `xl-async-cancel`, ...) |
-| `lisp/xl-spinner.el` | The loader, split out of `xl-async.el`. `xl-async.el` still requires it, so an existing `(require 'xl-async)` gets the loader too. |
-| `lisp/xl-async-evaluate.el` | Layer 2: evaluate, worker, native compile |
+| `lisp/xl-spinner.el` | The loader, separate from the process layer. Callers that draw a loader require both files. |
+| `lisp/xl-async-evaluate.el` | Layer 2: evaluate, worker, and the child Emacs command line |
+| `lisp/xl-native-compile.el` | Native-compile queue, monitor, and `xl-async-native-compile` |
 | `tests/xl-async-tests.el` | Tests for layers 0 and 1 |
+| `tests/xl-async-compat-tests.el` | Tests for the compatibility layer |
 | `tests/xl-async-evaluate-tests.el` | Tests for layer 2 |
 
 All public names use the `xl-async-` prefix. The `async-` prefix belongs to the emacs-async package (used by helm and dired-async), which also defines `async-start`. Private functions of layer 2 use `xl-async-evaluate--` and `xl-async-worker--`, so they do not collide with `xl-async--`.
@@ -46,7 +48,7 @@ Keyword use across the callers of `xl-async-run`: `:command` 17, `:on-done` 15, 
 ## Structure
 
 ```
-Layer 2  applications   xl-async-evaluate   xl-async-worker   xl-async-native-compile
+Layer 2  applications   xl-async-evaluate   xl-async-worker   native compile (xl-native-compile)
                         compatibility: xl-async-run  xl-async-enqueue  xl-async-cancel ...
 Layer 1  behaviours     xl-async-timeout  xl-async-own  xl-async-slot  xl-async-queue-push
 Layer 0  core           xl-async-start  xl-async-on-output  xl-async-on-exit  xl-async-finally
@@ -285,7 +287,7 @@ Behaviour that callers rely on (covered by existing tests): ON-DONE runs in OWNE
 
 ## Loader split
 
-`xl-spinner-*` does not depend on processes, so it lives in `lisp/xl-spinner.el` (`provide 'xl-spinner`). `xl-async.el` still requires it, so an existing `(require 'xl-async)` still gets the loader. New callers can require `xl-spinner` directly. The loader code itself did not change.
+`xl-spinner-*` does not depend on processes, so it lives in `lisp/xl-spinner.el` (`provide 'xl-spinner`). The process layer no longer requires it: `xl-async.el` draws nothing, and every caller that shows a loader (`xl-git-status`, `xl-dired`, `xl-org-babel-async`, `xl-eln-opt`, ...) requires `xl-spinner` itself. The dependency now points one way, process -> UI is gone.
 
 ## Observation (perfetto)
 
