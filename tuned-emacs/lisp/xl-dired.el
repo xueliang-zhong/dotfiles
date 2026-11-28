@@ -249,6 +249,7 @@ load is empty and shows the loader in both the mode line and its middle."
   "Return a buffer name for DIRECTORY."
   (format "*xl-dired: %s*" (abbreviate-file-name directory)))
 
+;;;###autoload
 (defun xl-dired-noselect (directory)
   "Return an `xl-dired-mode' buffer for DIRECTORY without selecting it.
 The listing starts asynchronously.  An existing `xl-dired' buffer for
@@ -296,17 +297,20 @@ window and does not leave a trail of buffers behind."
         (dired-sort-set-mode-line)
         (xl-dired--load)))))
 
+;;;###autoload
 (defun xl-dired (directory)
   "Visit DIRECTORY in this window with asynchronous Dired listings."
   (interactive (list (read-directory-name "XL Dired: " nil nil t)))
   (xl-dired--cd (or directory default-directory)))
 
+;;;###autoload
 (defun xl-dired-jump ()
   "Open the current file's directory, or this Dired buffer's directory."
   (interactive)
   (xl-dired (or (and buffer-file-name (file-name-directory buffer-file-name))
                 default-directory)))
 
+;;;###autoload
 (defun xl-dired-up-directory ()
   "Move to the parent directory in this window."
   (interactive)
@@ -320,6 +324,7 @@ window and does not leave a trail of buffers behind."
            (inhibit-same-window . t))))
     (find-file-other-window file)))
 
+;;;###autoload
 (defun xl-dired-open ()
   "Open the entry at point.
 A file goes to the other window.  A directory is `cd' in this window."
@@ -664,6 +669,7 @@ of it is asynchronous.  A folder has no preview, so nothing is loaded."
   (xl-spinner-stop)
   (xl-async-cancel 'preview))
 
+;;;###autoload
 (defun xl-dired-preview-quit ()
   "Close the preview window."
   (interactive)
@@ -684,6 +690,7 @@ still being visible."
     (setq xl-dired--preview-file entry)
     (xl-dired-preview--load entry)))
 
+;;;###autoload
 (defun xl-dired-preview ()
   "Preview the file at point in the other window, asynchronously.
 This is the TAB command.  A file shows its first lines in the preview
@@ -737,6 +744,7 @@ Every command restarts it, so only a still cursor triggers the load."
   "q"        #'quit-window
   "g"        #'revert-buffer)
 
+;;;###autoload
 (define-derived-mode xl-dired-mode dired-mode "XL-Dired"
   "Dired with asynchronous listings and asynchronous previews.
 The buffer uses Dired's own insertion, faces and file operations; only

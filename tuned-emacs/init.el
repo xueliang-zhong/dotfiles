@@ -52,6 +52,11 @@
 (require 'xl-bootstrap)
 (xl-bootstrap)
 
+;; Autoloads are generated from the `;;;###autoload' cookies in lisp/ by
+;; `emacs-setup.sh autoloads' (setup and check run it).  Loading the one
+;; generated file keeps the commands' definitions and their autoloads in step.
+(load (expand-file-name "tuned-emacs/lisp/xl-autoloads" xl-dotfiles) nil t)
+
 ;; ============================================================
 ;; Crafted Modules - the parts of Crafted I use
 ;; ============================================================
@@ -89,12 +94,8 @@
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; personal.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
-;; `xl-dired': load on first use so startup does not pull in `dired',
-;; `dired-x' and `evil-collection-dired'.
-(dolist (cmd '(xl-dired xl-dired-jump xl-dired-open xl-dired-up-directory
-               xl-dired-preview xl-dired-preview-quit xl-dired-mode))
-  (autoload cmd "xl-dired" nil t))
-(autoload 'xl-dired-noselect "xl-dired")
+;; `xl-dired' loads on first use, so startup does not pull in `dired',
+;; `dired-x' and `evil-collection-dired'; its autoloads come from xl-autoloads.
 (require 'xl-git-status)
 (require 'xl-git-commands)
 ;; `xl-org-babel-async' only advises `ob-core' and binds a key in `org-mode-map';
@@ -102,16 +103,8 @@
 (with-eval-after-load 'org
   (require 'xl-org-babel-async))
 (require 'xl-consult-spinner) ; consult's async indicator, animated while a list runs
-(dolist (cmd '(xl-perfetto-trace-start xl-perfetto-trace-stop
-               xl-perfetto-trace-mark xl-perfetto-trace-open))
-  (autoload cmd "xl-perfetto-trace" nil t))
-(autoload 'xl-perfetto-trace-function "xl-perfetto-trace")
-(autoload 'xl-perfetto-untrace-function "xl-perfetto-trace")
-(autoload 'xl-perfetto-with-span "xl-perfetto-trace" nil nil 'macro)
-;; Helpers for asynchronous compiles and package installs; loaded on first use.
-(autoload 'xl-async-native-compile "xl-native-compile" nil t)
-(autoload 'xl-async-evaluate "xl-async-evaluate" nil t)
-(autoload 'xl-package-install "xl-package-install" nil t)
+;; perfetto, the asynchronous compile and package-install helpers load on first
+;; use; their autoloads come from xl-autoloads.
 ;; xl-eln-opt: once per session, after five seconds of idle time, a child Emacs
 ;; native-compiles what your history uses (it exits at once when nothing is left).
 ;; M-x xl-eln-opt-start runs it now.  See doc/xl-eln-opt.md.

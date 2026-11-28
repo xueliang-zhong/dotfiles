@@ -6,11 +6,12 @@ This document covers what happens when Emacs starts: the files involved, the ord
 
 | File | Lines | Role |
 | --- | ---: | --- |
-| `early-init.el` | 141 | Startup settings, package archives |
-| `init.el` | 234 | Crafted modules, package installation, load order |
-| `personal.el` | 28 | Your own settings; starts empty, with comments |
-| `example/xueliang.el` | 505 | The author's opinionated configuration, not loaded by default |
-| `lisp/xl-key-bindings.el` | 423 | Spacemacs-style key bindings |
+| `early-init.el` | 137 | Startup settings, package archives |
+| `init.el` | 138 | The manifest: Crafted modules, packages, load order |
+| `personal.el` | 32 | Your own settings; starts empty, with comments |
+| `example/xueliang.el` | 559 | The author's opinionated configuration, not loaded by default |
+| `lisp/xl-key-bindings.el` | 428 | Spacemacs-style key bindings |
+| `lisp/xl-bootstrap.el` | 195 | Package installation: refresh, fetch, retry |
 
 Counts are from `wc -l`.
 
@@ -32,18 +33,19 @@ Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files writte
 3. Emacs runs `before-init-hook`. Crafted checks whether its package list is empty and refreshes if it is.
 4. Emacs reads the stub `init.el`, which loads `tuned-emacs/init.el`.
 5. `init.el` checks the Emacs version, loads `custom.el` (where Customize writes), and loads `crafted-init-config`, which puts the Crafted module folder on the load path.
-6. `init.el` collects the packages to install: Crafted's completion, evil and Org packages, plus `xl-packages`. Missing packages are installed (see "Package installation").
-7. Crafted's defaults, completion, evil, Org and startup modules load. Completion covers vertico, consult, marginalia, orderless, embark, corfu and cape.
-8. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
-9. `tuned-emacs/lisp/` is added to the load path. `xl-key-bindings`, `xl-git-status`, `xl-git-commands` and the other modules load with `require`.
-10. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `xl-load-example`, which `crafted-install` writes when run with `XL_EXAMPLE=1`.
-11. Startup finishes and the Crafted home buffer appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
+6. `init.el` collects the packages to install: Crafted's completion, evil and Org packages, plus `xl-packages`. It adds `tuned-emacs/lisp/` and `tuned-emacs/example/` to the load path, then calls `xl-bootstrap` (see "Package installation").
+7. `lisp/xl-autoloads.el`, generated from the `;;;###autoload` cookies, is loaded. Commands such as `xl-dired` and `xl-perfetto-trace-start` stay undefined until first use.
+8. Crafted's defaults, completion, evil, Org and startup modules load. Completion covers vertico, consult, marginalia, orderless, embark, corfu and cape.
+9. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
+10. `xl-key-bindings`, `xl-git-status`, `xl-git-commands` and the other modules load with `require`.
+11. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `xl-load-example`, which `crafted-install` writes when run with `XL_EXAMPLE=1`.
+12. Startup finishes and the Crafted home buffer appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
 
 Settings for Org, dired, magit and others go inside `with-eval-after-load`, so they run when the package is first used and do not slow startup.
 
 ## Package installation
 
-`init.el` installs missing packages before any module needs them. The steps are:
+`init.el` calls `xl-bootstrap` (`lisp/xl-bootstrap.el`) before any module needs a package. The steps are:
 
 1. If any selected package is missing, refresh the archives with `package-refresh-contents`. This is the only network access on a normal start, and it happens only when a package is missing. The configuration turns off automatic refresh at startup, and `package-install-selected-packages` refreshes only when the cache is empty, so an old cache could report a new dependency as unavailable. Refreshing whenever something is missing avoids that.
 2. **Parallel fetch** (`lisp/xl-package-fetch.el`). The missing packages and their dependencies are planned with `package-compute-transaction`. Each archive file and its `.sig` are downloaded with `curl`, up to twice the CPU count at once. The signatures are then checked with `gpg --verify`, also in parallel. Each package that passes is unpacked from its local file with `package-install-file`, in dependency order.
@@ -82,7 +84,7 @@ These are in `early-init.el`:
 - **ffap** does not run the compiler at startup. The C header paths that ffap computes at load time run `gcc`, `clang` and `g++`; on macOS these are Xcode shims that occasionally stall. Two variables, `ffap-c-path` and `ffap-c++-path`, are predefined to `/usr/include` and `/usr/local/include`, so the `defvar` initialisers are skipped. The cost is that `#include <...>` lookups search only those two directories.
 - **Slow-start record.** Each finished load is timed. If startup takes longer than `xl-slow-start-seconds` (3 s), the slowest stretches, recent `.eln` files, our own files loaded from source and the full load order are written to `~/.emacs.d/startup-slow.log`. Fast starts write nothing.
 
-Org files of at least 1 MB (`xueliang-org-big-buffer-size`, set in `lisp/xl-utils.el`) open unfolded. Folding every heading costs about 340 ms on a 5 MB file with 12000 headings. A `#+STARTUP:` line in the file still overrides this. org-indent-mode stays on for these files.
+Org files of at least 1 MB (`xueliang-org-big-buffer-size`, set in `example/xl-utils.el`) open unfolded. Folding every heading costs about 340 ms on a 5 MB file with 12000 headings. A `#+STARTUP:` line in the file still overrides this. org-indent-mode stays on for these files.
 
 ## Why the order matters
 

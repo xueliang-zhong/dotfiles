@@ -1390,6 +1390,7 @@ it; a non-local exit still ends the span and then propagates."
                  (when buffer (list :buffer buffer))
                  (when file (list :file file))))))))
 
+;;;###autoload
 (defmacro xl-perfetto-with-span (name &rest body)
   "Run BODY and, while recording, put it on the timeline as NAME.
 Outside a recording this is just BODY plus one variable check.  A
@@ -1759,6 +1760,7 @@ break the work it watches."
   (when (and xl-perfetto--follower xl-perfetto--recording)
     (ignore-errors (xl-perfetto--stop))))
 
+;;;###autoload
 (defun xl-perfetto-trace-start (&optional max-seconds)
   "Start recording Emacs Lisp activity.
 With a prefix argument, ask for the longest recording time in seconds
@@ -1776,6 +1778,7 @@ recording runs only says so; it does not restart."
                (substitute-command-keys
                 "\\[xl-perfetto-trace-stop]")))))
 
+;;;###autoload
 (defun xl-perfetto-trace-stop ()
   "Stop recording, remove all instrumentation and write the trace file.
 Return the file name.  Does nothing but report when no recording runs."
@@ -1790,6 +1793,7 @@ Return the file name.  Does nothing but report when no recording runs."
                  file xl-perfetto--last-count xl-perfetto--last-dropped))
       file)))
 
+;;;###autoload
 (defun xl-perfetto-trace-function (function)
   "Trace FUNCTION during this and every later recording.
 A Lisp API, not a command: call it from your own code or config.  The
@@ -1807,6 +1811,7 @@ unless native compilation is unavailable."
             xl-perfetto--installed)
       (message "xl-perfetto: tracing %s" function))))
 
+;;;###autoload
 (defun xl-perfetto-untrace-function (function)
   "Stop tracing FUNCTION, now and in later recordings.  A Lisp API."
   (setq xl-perfetto--traced-functions
@@ -1814,6 +1819,7 @@ unless native compilation is unavailable."
   (xl-perfetto--remove-function-advice function)
   (message "xl-perfetto: no longer tracing %s" function))
 
+;;;###autoload
 (defun xl-perfetto-trace-mark (text)
   "Put a mark named TEXT on the timeline.
 This is always recorded, whatever `xl-perfetto-trace-categories' says."
@@ -1840,6 +1846,7 @@ This is always recorded, whatever `xl-perfetto-trace-categories' says."
         (car (sort files (lambda (first second)
                            (file-newer-than-file-p first second)))))))
 
+;;;###autoload
 (defun xl-perfetto-trace-open ()
   "Open ui.perfetto.dev and show the latest trace file in Emacs.
 Drag the file from the Dired buffer into the page."

@@ -269,6 +269,37 @@ one made transient's dependency compat 31.1 look unavailable."
       (should-not (file-directory-p package-gnupghome-dir))
       (should (string-suffix-p "package-keyring.gpg" imported)))))
 
+(ert-deftest xl-autoloads-point-to-real-definitions ()
+  "Every entry in lisp/xl-autoloads.el names a definition in its library.
+A stale generated file, or a cookie on a definition that was renamed,
+fails here."
+  (let ((file (expand-file-name "tuned-emacs/lisp/xl-autoloads.el" xl-dotfiles))
+        (count 0))
+    (should (file-exists-p file))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (goto-char (point-min))
+      (while (re-search-forward
+              "^(autoload '\\([^ \n]+\\) \"\\([^\"]+\\)\"" nil t)
+        (let* ((name (match-string 1))
+               (library (match-string 2))
+               (source (locate-library library)))
+          (setq count (1+ count))
+          (should source)
+          ;; Prefer the source: an .elc is binary and hides the definition.
+          (when (and source (string-suffix-p ".elc" source))
+            (setq source (string-remove-suffix "c" source)))
+          (should (file-exists-p source))
+          (with-temp-buffer
+            (insert-file-contents source)
+            (goto-char (point-min))
+            (should (re-search-forward
+                     (concat "(\\(?:defun\\|defmacro\\|defsubst\\|"
+                             "define-derived-mode\\|define-minor-mode\\) "
+                             (regexp-quote name) "[ \n)]")
+                     nil t))))))
+    (should (> count 0))))
+
 ;;; ============================================================
 ;;; Package Menu loader
 

@@ -1481,6 +1481,7 @@ A queue that is busy refreshes the status itself when it drains."
     (cancel-timer xl-git-status--watch-timer))
   (setq xl-git-status--watch-timer nil))
 
+;;;###autoload
 (defun xl-git-status (&optional no-display)
   "Show the Git status and recent log of the current repository.
 With NO-DISPLAY, update the status buffer without showing it in a window.
