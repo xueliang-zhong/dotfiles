@@ -238,15 +238,24 @@
 ;; ============================================================
 ;; Crafted's completion module turns on corfu (auto popup, cycling, docs
 ;; beside it).  Mine: pop up after two characters, which also keeps
-;; org-tempo's `<s' + TAB working.  On Windows querying the backends is
-;; slower, so wait for a short pause too; fast typing then never runs
-;; completion at all.
-(setq corfu-auto-delay (if xl-win-p 0.2 0)
+;; org-tempo's `<s' + TAB working, and only after a short pause.  With no
+;; delay every keystroke queried every completion backend: 20 ms in a large
+;; Org file, 20 to 40 ms in Emacs Lisp.  A pause is what the popup is for;
+;; fast typing, Chinese input commits included, now runs no completion.
+(setq corfu-auto-delay (if xl-win-p 0.2 0.15)
       corfu-auto-prefix 2 ;; 2 works better for org-tempo '<s'
       ;; Corfu stays in buffers; the minibuffer ':' uses vertico
       global-corfu-minibuffer nil
       ;; no auto popup in shells and REPLs (eshell: TAB shows it on demand)
       global-corfu-modes '((not eshell-mode comint-mode inferior-emacs-lisp-mode) t))
+
+;; Orderless is a search style: it matches every candidate.  In a buffer the
+;; backends hand it hundreds per keystroke (1844 Emacs Lisp symbols for a
+;; two-letter prefix), and orderless tripled the cost (20 ms against 6 ms).
+;; Multi-word search pays off in the minibuffer (M-x, find-file, ...), so
+;; buffers match by prefix and the minibuffer keeps orderless.
+(setq completion-styles '(basic))
+(add-hook 'minibuffer-setup-hook #'xueliang-minibuffer-orderless)
 
 ;; Text modes (org, markdown, text) put `ispell-completion-at-point' in
 ;; `completion-at-point-functions'.  Each query starts a spell checker
@@ -267,7 +276,11 @@
 ;; Crafted adds cape-dabbrev and cape-file with `add-to-list', which changes
 ;; the buffer current at load time: *scratch* (lisp-interaction-mode has its
 ;; own local value), not the global default.  Add them globally here.
-(add-hook 'completion-at-point-functions #'cape-dabbrev t)
+;; `xueliang-cape-dabbrev' skips CJK words (where dabbrev's candidates are
+;; whole sentences) and very large buffers (where the scan is slow), so it
+;; replaces Crafted's plain `cape-dabbrev'.
+(remove-hook 'completion-at-point-functions #'cape-dabbrev)
+(add-hook 'completion-at-point-functions #'xueliang-cape-dabbrev t)
 (add-hook 'completion-at-point-functions #'cape-file t)
 
 ;; TAB moves down the popup via `xueliang-tab-or-corfu-next' (bound in
@@ -281,6 +294,33 @@
 (with-eval-after-load 'corfu (xueliang-corfu-theme-faces))
 
 (add-hook 'emacs-lisp-mode-hook #'xueliang-elisp-completion-setup)
+
+;; ============================================================
+;; Chinese input - pyim, in Lisp instead of the macOS IME
+;; ============================================================
+;; The macOS Chinese IME handles each key inside Emacs's C key handler,
+;; synchronously; the first key after switching languages waited for it
+;; (about 200 ms, and a Lisp trace cannot see the wait).  pyim runs the
+;; input method in Lisp: no system round trip, and the tracer sees every
+;; step.  Its stock dictionary is small (about 100,000 words, from
+;; libpinyin), so candidates are plainer than Apple's; a larger dictionary
+;; or the Rime backend can be added later.  Keep the macOS input source on
+;; English (see `xueliang-ime-english'): an active system IME would consume
+;; the keys before pyim ever sees them.
+(require 'pyim-basedict)                 ; registers the dictionary, lazily
+(pyim-basedict-enable)
+(setq default-input-method "pyim"
+      pyim-default-scheme 'quanpin
+      pyim-page-length 9
+      ;; candidate popup at point in a child frame; the minibuffer if missing
+      pyim-page-tooltip '(posframe minibuffer)
+      ;; searching the buffer for words stalls on large Org files
+      pyim-candidates-search-buffer-p nil)
+;; F2 turns it on and off (C-\ works too, it is Emacs's own binding).
+;; `xueliang-pyim-english-p' passes keys through in the minibuffer, in
+;; isearch and in Evil normal/visual state, so commands stay commands.
+(setq-default pyim-english-input-switch-functions
+              '(xueliang-pyim-english-p))
 
 ;; ============================================================
 ;; Snippets - SPC i s, like the Spacemacs auto-completion layer
@@ -467,10 +507,10 @@
 (keymap-set help-map "a" #'describe-symbol)
 
 ;; ============================================================
-;; Function keys - match with vim/nvim
+;; Function keys - match with vim/nvim, plus F2 for Chinese input
 ;; ============================================================
 (define-keymap :keymap global-map
-  "<f2>"   #'consult-imenu
+  "<f2>"   #'xueliang-toggle-chinese-input ; pyim on/off, see above
   "<f3>"   #'consult-imenu
   "<f4>"   #'evil-window-delete
   "<f5>"   #'xueliang-eshell-popup

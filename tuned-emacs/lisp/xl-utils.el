@@ -99,7 +99,43 @@ line can be switched off without deleting it."
    (t (insert "  "))))
 
 (defun xueliang-ime-english ()
-  (call-process xl-macism nil 0 nil "com.apple.keylayout.British"))
+  "Switch the macOS input source to the British layout, without waiting.
+`macism' needs about 75 ms (it starts a process and asks the system to
+switch), and `call-process' put that time between ESC and normal state:
+every insert-state exit froze for that long after typing Chinese.  Nothing
+depends on the result, so start the process and return."
+  (when xl-macism
+    (make-process :name "xueliang-macism" :noquery t :buffer nil
+                  :command (list xl-macism "com.apple.keylayout.British"))))
+
+;; ============================================================
+;; Chinese input - pyim behind one key
+;; ============================================================
+;; pyim runs the input method in Emacs Lisp, so the macOS IME never has to
+;; talk to Emacs while a key is being read.  These helpers keep it out of the
+;; way where the keys are commands rather than text.
+(declare-function evil-insert-state-p "evil")
+(declare-function evil-replace-state-p "evil")
+
+(defun xueliang-pyim-english-p ()
+  "Non-nil when pyim should pass keys through as English.
+Chinese is for typing text: pyim stays out of the minibuffer, out of
+isearch, and out of every Evil state except insert and replace."
+  (or (minibufferp)
+      (bound-and-true-p isearch-mode)
+      (and (bound-and-true-p evil-mode)
+           (not (or (evil-insert-state-p) (evil-replace-state-p))))))
+
+(defun xueliang-toggle-chinese-input ()
+  "Turn pyim on or off and say which one is active (F2).
+Turning it on also switches the macOS input source to English: a system
+IME left active would consume the keys before pyim sees them."
+  (interactive)
+  (toggle-input-method)
+  (if (equal current-input-method "pyim")
+      (progn (xueliang-ime-english)
+             (message "中文输入 (pyim)"))
+    (message "English")))
 
 ;; Golden ratio: the candidate list takes 38.2% of the frame height, like
 ;; the F9 sidebar.  Computed for every minibuffer, so a resized frame gets
@@ -107,6 +143,16 @@ line can be switched off without deleting it."
 (defun xueliang-vertico-golden-count ()
   "Size the Vertico list to the golden ratio of the frame height."
   (setq-local vertico-count (max 5 (round (* 0.382 (frame-height))))))
+
+;; Orderless is a search style: it matches every candidate.  In a buffer the
+;; backends hand it hundreds per keystroke (1844 Emacs Lisp symbols for a
+;; two-letter prefix), and it cost three times as much as prefix matching
+;; (20 ms against 6 ms).  Multi-word search pays off in the minibuffer
+;; (M-x, find-file, ...), so buffers keep the global prefix style and the
+;; minibuffer switches to orderless.
+(defun xueliang-minibuffer-orderless ()
+  "Match minibuffer candidates with orderless, then plain prefix matching."
+  (setq-local completion-styles '(orderless basic)))
 
 ;; Project search: ripgrep where it is installed, grep where it is not (on
 ;; Windows, by default).  consult-grep is asynchronous too, so the same
@@ -145,14 +191,47 @@ INITIAL is the text the search starts with."
     (set-face-attribute 'corfu-bar nil
                         :background (face-attribute 'shadow :foreground nil 'default))))
 
+;; ============================================================
+;; Dabbrev for CJK and large buffers
+;; ============================================================
+;; `cape-dabbrev' scans the whole buffer for every candidate list, so the
+;; query grows with the file: 20 ms in a 1.2 MB Org file, and it runs after
+;; every committed character when the Chinese input method is composing.  In
+;; Chinese a "word" has no spaces around it, so the only candidates are whole
+;; sentences: useless and slow.  Skip both cases.  `M-/' completes on demand.
+(defvar xueliang-cape-dabbrev-max-buffer-size 200000
+  "Buffers larger than this do not complete from dabbrev automatically.
+Above this size the full-buffer scan costs several milliseconds per
+keystroke; set it higher only if the popup matters more than the lag.")
+
+(declare-function cape-dabbrev "cape")
+(declare-function cape-capf-super "cape")
+(declare-function cape-file "cape")
+
+(defun xueliang--cjk-word-char-p (char)
+  "Non-nil when CHAR is a word character of a CJK script."
+  (and char
+       (memq (char-syntax char) '(?w ?_))
+       (memq (aref char-script-table char)
+             '(han kana bopomofo hangul cjk-misc))))
+
+(defun xueliang-cape-dabbrev ()
+  "Complete from buffer words, where that is cheap and useful.
+Acts like `cape-dabbrev' except after a Chinese word, where the candidates
+would be whole sentences, and in buffers larger than
+`xueliang-cape-dabbrev-max-buffer-size'."
+  (unless (or (> (buffer-size) xueliang-cape-dabbrev-max-buffer-size)
+              (xueliang--cjk-word-char-p (char-before)))
+    (cape-dabbrev)))
+
 ;; `emacs-lisp-mode' installs its own buffer-local CAPF, so the global
-;; `cape-dabbrev' above never runs. Merge it in: symbols typed in this
-;; file (even before they are evaluated) now complete too.
+;; dabbrev entry never runs. Merge it in: symbols typed in this file (even
+;; before they are evaluated) now complete too.
 (defun xueliang-elisp-completion-setup ()
   "Merge buffer words into Emacs Lisp completion."
   (setq-local completion-at-point-functions
               (list (cape-capf-super #'elisp-completion-at-point
-                                     #'cape-dabbrev
+                                     #'xueliang-cape-dabbrev
                                      #'cape-file)
                     t)))
 

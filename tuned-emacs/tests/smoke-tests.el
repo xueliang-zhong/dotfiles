@@ -1082,8 +1082,9 @@ keypress.  Prefix keymaps are walked recursively."
         (should (equal args '(nil nil)))))))
 
 (ert-deftest xl-function-keys ()
-  "F2-F12 keep the vim/Neovim habits from `vimrc'."
-  (dolist (spec '(("<f2>" . consult-imenu)
+  "F2-F12 keep the vim/Neovim habits; F2 is the Chinese input toggle.
+F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
+  (dolist (spec '(("<f2>" . xueliang-toggle-chinese-input)
                   ("<f4>" . evil-window-delete)
                   ("<f5>" . xueliang-eshell-popup)
                   ("<f6>" . consult-yank-pop)
@@ -2787,7 +2788,9 @@ that shows blame has the mode-line loader only."
   (should (featurep 'marginalia))
   (should marginalia-mode)
   (should (assq 'orderless completion-styles-alist))
-  (should (equal completion-styles '(orderless basic)))
+  ;; Orderless only in the minibuffer: matching every in-buffer candidate
+  ;; with it tripled the cost of a completion query.
+  (should (equal completion-styles '(basic)))
   (should (equal completion-category-overrides
                  '((file (styles . (partial-completion))))))
   ;; Consult commands are autoloaded, the package itself loads on first use.
@@ -2809,14 +2812,100 @@ that shows blame has the mode-line loader only."
     (should (>= vertico-count 5)))
   (should global-corfu-mode)
   (should corfu-auto)
-  ;; Windows waits for a pause; both platforms wait for a second character.
-  (should (equal corfu-auto-delay (if (eq system-type 'windows-nt) 0.2 0)))
+  ;; Both platforms wait for a pause and for a second character.
+  (should (equal corfu-auto-delay (if (eq system-type 'windows-nt) 0.2 0.15)))
   (should (= corfu-auto-prefix 2))
   (with-temp-buffer
-    (should (memq 'cape-dabbrev completion-at-point-functions))
+    (should (memq 'xueliang-cape-dabbrev completion-at-point-functions))
+    ;; The guarded wrapper replaces Crafted's plain entry, which would
+    ;; otherwise still scan the whole buffer on every query.
+    (should-not (memq 'cape-dabbrev completion-at-point-functions))
     (should (memq 'cape-file completion-at-point-functions)))
   ;; Dabbrev must not scan every buffer of the same mode on each keystroke.
   (should (eq cape-dabbrev-buffer-function #'current-buffer)))
+
+(ert-deftest xl-minibuffer-keeps-orderless ()
+  "Buffers match by prefix; the minibuffer still gets orderless matching."
+  (should (memq #'xueliang-minibuffer-orderless minibuffer-setup-hook))
+  (with-temp-buffer
+    (xueliang-minibuffer-orderless)
+    (should (equal completion-styles '(orderless basic)))))
+
+;; Chinese input runs inside Emacs (pyim), so the macOS IME never sits
+;; between a key press and the command loop.
+(ert-deftest xl-chinese-input-is-pyim ()
+  "pyim is the input method, with the dictionary and popup configured."
+  (should (equal default-input-method "pyim"))
+  (should (assoc "pyim" input-method-alist))
+  (should (eq pyim-default-scheme 'quanpin))
+  (should (= pyim-page-length 9))
+  (should (equal pyim-page-tooltip '(posframe minibuffer)))
+  ;; Scanning the buffer for words stalls on large files.
+  (should-not pyim-candidates-search-buffer-p)
+  (should (seq-find (lambda (dict) (equal (plist-get dict :name) "Basedict-elpa"))
+                    pyim-extra-dicts))
+  (should (memq 'xueliang-pyim-english-p
+                pyim-english-input-switch-functions)))
+
+(ert-deftest xl-pyim-keeps-commands-english ()
+  "pyim types Chinese only where text is typed.
+The minibuffer, isearch and Evil normal/visual state must keep their
+single-key commands."
+  (with-temp-buffer
+    ;; No Evil insert state: commands and searches are English.
+    (should (xueliang-pyim-english-p))
+    (cl-letf (((symbol-function 'evil-insert-state-p) (lambda () t))
+              ((symbol-function 'evil-replace-state-p) (lambda () nil)))
+      (should-not (xueliang-pyim-english-p))
+      ;; isearch started from insert state still searches in English.
+      (let ((isearch-mode t))
+        (should (xueliang-pyim-english-p))))
+    (cl-letf (((symbol-function 'evil-insert-state-p) (lambda () nil))
+              ((symbol-function 'evil-replace-state-p) (lambda () t)))
+      (should-not (xueliang-pyim-english-p)))))
+
+(ert-deftest xl-chinese-input-toggle-says-which ()
+  "F2 toggles pyim, forces the OS layout to English, and reports the input."
+  (with-temp-buffer
+    (let (messages (os-switched nil))
+      (cl-letf (((symbol-function 'toggle-input-method)
+                 (lambda (&optional _) (setq-local current-input-method "pyim")))
+                ((symbol-function 'xueliang-ime-english)
+                 (lambda (&rest _) (setq os-switched t)))
+                ((symbol-function 'message)
+                 (lambda (format-string &rest args)
+                   (push (apply #'format format-string args) messages))))
+        (xueliang-toggle-chinese-input))
+      (should (equal (car messages) "中文输入 (pyim)"))
+      ;; The macOS IME must not eat the keys pyim is about to read.
+      (should os-switched))
+    (let (messages)
+      (cl-letf (((symbol-function 'toggle-input-method)
+                 (lambda (&optional _) (setq-local current-input-method nil)))
+                ((symbol-function 'message)
+                 (lambda (format-string &rest args)
+                   (push (apply #'format format-string args) messages))))
+        (xueliang-toggle-chinese-input))
+      (should (equal (car messages) "English")))))
+
+(ert-deftest xl-dabbrev-skips-chinese-and-large-buffers ()
+  "Automatic dabbrev would scan the buffer and offer whole Chinese sentences."
+  (require 'cape)
+  (with-temp-buffer
+    (insert "alpha beta alpha")
+    (goto-char (point-max))
+    (let ((cape-dabbrev-buffer-function #'current-buffer))
+      ;; Latin words complete.
+      (should (xueliang-cape-dabbrev))
+      ;; After a Chinese character there is no word boundary: skip.
+      (insert "中文")
+      (should-not (xueliang-cape-dabbrev))
+      ;; Punctuation ends the Chinese run, so English after it completes.
+      (insert "。")
+      (should (xueliang-cape-dabbrev))
+      ;; A large buffer is skipped: the scan is linear in its size.
+      (insert (make-string xueliang-cape-dabbrev-max-buffer-size ?x))
+      (should-not (xueliang-cape-dabbrev)))))
 
 (ert-deftest xl-corfu-popup-follows-the-theme ()
   "Corfu's stock near-black popup is repainted with the active theme.
@@ -3371,13 +3460,24 @@ the exit status."
       (should (file-equal-p (cdr call) (expand-file-name xl-dotfiles-dir))))))
 
 (ert-deftest xl-ime-switches-to-english-layout ()
-  "Leaving insert state calls macism with the British layout."
+  "Leaving insert state starts macism with the British layout, without waiting.
+The switch takes about 75 ms; blocking ESC on it was the lag after typing
+Chinese."
   (let ((xl-macism "macism") args)
-    (cl-letf (((symbol-function 'call-process)
-               (lambda (&rest a) (setq args a) 0)))
+    (cl-letf (((symbol-function 'make-process)
+               (lambda (&rest a) (setq args a) nil)))
       (xueliang-ime-english))
-    (should (equal (car args) "macism"))
-    (should (member "com.apple.keylayout.British" args))))
+    (should (equal (plist-get args :name) "xueliang-macism"))
+    (should (equal (plist-get args :command)
+                   '("macism" "com.apple.keylayout.British")))
+    (should (plist-get args :noquery)))
+  ;; No macism installed (Windows): nothing is started.
+  (let ((xl-macism nil)
+        (started nil))
+    (cl-letf (((symbol-function 'make-process)
+               (lambda (&rest _) (setq started t))))
+      (xueliang-ime-english))
+    (should-not started)))
 
 (ert-deftest xl-knowledge-links-open-the-picked-url ()
   "`F12' opens the first URL in the picked line of the links file."

@@ -32,7 +32,8 @@
   '(evil-escape evil-surround winum avy yasnippet yasnippet-snippets
     magit evil-org org-superstar golden-ratio spacemacs-theme doom-themes
     just-mode lua-mode graphviz-dot-mode markdown-mode diff-hl
-    persistent-scratch))
+    persistent-scratch
+    pyim pyim-basedict posframe))       ; Chinese input inside Emacs
 
 (dolist (pkg xl-packages) (add-to-list 'package-selected-packages pkg))
 

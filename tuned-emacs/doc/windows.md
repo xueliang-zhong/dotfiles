@@ -32,8 +32,8 @@ The script can be rerun. If `~/.emacs.d` already points at the profile it create
 | Native compilation | The official dependency bundle has no libgccjit, so there is no native compilation. JIT is off in any case, so nothing changes. |
 | dired | Windows has no `ls`. Emacs uses the built-in `ls-lisp` emulation, which supports `-alh`. |
 | Fonts and size | JetBrains Mono, then Consolas, is used for `default`, `fixed-pitch`, `fixed-pitch-serif` and `variable-pitch`. The Windows font size is set separately to 120. |
-| Completion | corfu waits 0.2 seconds, and the second typed character, before querying the completion backends. `cape-dabbrev` scans only the current buffer. |
-| macOS only | The macism input-source switch, `s-x` and the UK keyboard Option-3 fix are skipped on Windows. |
+| Completion | corfu waits 0.2 seconds, and the second typed character, before querying the completion backends. `cape-dabbrev` scans only the current buffer, and skips Chinese words and buffers over 200,000 characters. |
+| macOS only | The macism input-source switch (started asynchronously), `s-x` and the UK keyboard Option-3 fix are skipped on Windows. |
 | Search and fzf | `SPC *`, `SPC s p` and `SPC p s` need `rg` (ripgrep): install it with `winget install BurntSushi.ripgrep.MSVC`. eshell's fzf integration uses `consult-fd` when `fd` exists, otherwise `consult-find`. |
 | Org shell blocks | They run in `cmd.exe`, so blocks written for bash may fail. |
 | Machine-specific paths | Put links, note folders and similar paths in `~/.emacs-profiles/local.el`. Keep that file out of the repository. |
