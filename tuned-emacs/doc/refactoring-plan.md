@@ -119,6 +119,24 @@ Do this after the current perfetto work is committed.
   subscribes to, or have callers require both modules.
 - This step touches the most callers, so it comes last.
 
+## Follow-up
+
+A review of the eight commits added five more:
+
+- `git: name the split modules' functions after their files` renamed the
+  functions in `xl-git-core` and `xl-git-show` to their module prefixes, kept
+  the faces' user-facing names, and moved the status refresh registration
+  behind a core setter.
+- `perfetto: name the target in generated span docstrings` made
+  `xl-perfetto-define-span-advice` document what it records and around which
+  function, and tested every generated advice.
+- `emacs: give the generated autoloads one header` removed the generator's
+  GNU Emacs preamble from `xl-autoloads.el`.
+- `emacs: load xl-async-evaluate on first use` stopped `xl-eln-opt` from
+  pulling the evaluator into startup.
+- `perfetto: move package probes out of the core` split the xl-async,
+  vertico, corfu and pyim probes into `xl-perfetto-probes.el`.
+
 ## What not to do
 
 - Do not build a Doom-style module system or macro DSL. Being a thin layer over
