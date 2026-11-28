@@ -518,7 +518,7 @@ F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
                   ("<f8>" . xl-tagbar-toggle)
                   ("<f9>" . xueliang-dired-sidebar)
                   ("<f10>" . xl-sk-home-buffer)
-                  ("<f11>" . xueliang-org-sort-upheading)
+                  ("<f11>" . xueliang-imenu-or-org-today)
                   ("<f12>" . xueliang-open-knowledge-links)
                   ("C-<f4>" . kill-buffer-and-window)))
     (should (eq (keymap-lookup global-map (car spec)) (cdr spec)))))
@@ -876,7 +876,7 @@ The other TAB command would insert two spaces, so it delegates to
 
 (ert-deftest xl-dired-schedules-a-preview-after-the-idle-delay ()
   "Point resting for `xl-dired-preview-idle' starts a preview."
-  (should (= xl-dired-preview-idle 0.3))
+  (should (= xl-dired-preview-idle 60))
   (with-temp-buffer
     (setq default-directory temporary-file-directory)
     (xl-dired-mode)
