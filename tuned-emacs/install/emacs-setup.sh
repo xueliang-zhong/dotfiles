@@ -237,31 +237,26 @@ cmd_smoke() {
 cmd_test() {
     require_emacs
     require_profile
-    # The suite tests the author's configuration, which lives in example/ and
-    # is not loaded by default.  Load it after the profile, as personal.el would.
+    # Profile-level checks: keymaps, hooks and line counts.  The suite tests the
+    # author's configuration, which lives in example/ and is not loaded by
+    # default.  Load it after the profile, as personal.el would.
     emacs_batch --eval "(load \"$DOTFILES/tuned-emacs/example/xueliang.el\" nil t)" \
         -l "$DOTFILES/tuned-emacs/tests/smoke-tests.el" \
         -f ert-run-tests-batch-and-exit
-    # xl-async: ownership, slots, queues and cancellation, with real processes.
-    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
-        -l "$DOTFILES/tuned-emacs/tests/xl-async-tests.el" \
-        -f ert-run-tests-batch-and-exit
-    # xl-async-evaluate: evaluate, worker and native compile in a child Emacs.
-    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
-        -l "$DOTFILES/tuned-emacs/tests/xl-async-evaluate-tests.el" \
-        -f ert-run-tests-batch-and-exit
-    # xl-dired: asynchronous listings and previews, with real processes.
-    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
-        -l "$DOTFILES/tuned-emacs/tests/xl-dired-tests.el" \
-        -f ert-run-tests-batch-and-exit
-    # xl-perfetto-trace: recordings, JSON output and the instrumentation lifecycle.
-    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
-        -l "$DOTFILES/tuned-emacs/tests/xl-perfetto-trace-tests.el" \
-        -f ert-run-tests-batch-and-exit
-    # xl-package-fetch: parallel job runner, dependency plan, gpg check (no network).
-    "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
-        -l "$DOTFILES/tuned-emacs/tests/xl-package-fetch-tests.el" \
-        -f ert-run-tests-batch-and-exit
+    # Every module has its own suite, loaded without the profile so it also
+    # proves the module works on its own.  The glob means a new suite needs no
+    # change here.
+    local suite
+    for suite in "$DOTFILES"/tuned-emacs/tests/xl-*-tests.el; do
+        # Activate the profile's installed packages, so a module suite can
+        # require the packages it integrates with (consult, evil, which-key).
+        "$EMACS" --batch -Q -L "$DOTFILES/tuned-emacs/lisp" \
+            --eval '(setq load-prefer-newer t)' \
+            --eval "(setq package-user-dir (expand-file-name (format \"elpa-%d.%d\" emacs-major-version emacs-minor-version) \"$PROFILE_DIR\"))" \
+            --eval '(package-activate-all)' \
+            -l "$suite" \
+            -f ert-run-tests-batch-and-exit
+    done
 }
 
 # Byte-compile our own Lisp so it does not run interpreted.
