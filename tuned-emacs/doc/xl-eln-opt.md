@@ -40,7 +40,7 @@ A file opts out by setting `no-native-compile` or `no-byte-compile` to `t`. The 
 
 ## The child process
 
-`xl-eln-opt-start` runs a batch Emacs with the profile's `early-init.el` and `init.el`, then calls `xl-eln-opt-run`:
+`xl-eln-opt-start` runs a batch Emacs with the profile's `early-init.el` and `init.el`, then calls `xl-eln-opt-run`. The command line comes from `xl-async-child-command`, and `xl-eln-opt` requires `xl-async-evaluate` only when it is about to start a child, so a normal startup does not load the evaluator:
 
 - The child never writes the user's state. Before `init.el` loads, `savehist-file`, `recentf-save-file`, `save-place-file`, `persistent-scratch-save-file` and `project-list-file` point at the null device, and after it loads the modes that save at exit are turned off. (`init.el` writes recentf while it loads, so the redirect must come first.) The report child does the same.
 - Planning caches, per source, the opt-out cookie and the uncompressed size, in `xl-eln-opt/facts.eld`, keyed by path, modification time and size. A source that has not changed is not opened again. Only the sources asked for in the run are kept in the file.

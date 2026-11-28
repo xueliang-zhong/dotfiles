@@ -22,7 +22,10 @@
 (require 'seq)
 (require 'xl-async)
 (require 'xl-spinner)
-(require 'xl-async-evaluate)
+
+;; The evaluator is only needed to build a child's command line, so it loads
+;; on first use instead of with the profile.
+(declare-function xl-async-child-command "xl-async-evaluate" (&rest args))
 
 ;; The trace macro and the follower are used in the child run; the child loads
 ;; the profile, which autoloads them too.  Byte-compiling needs them defined.
@@ -771,6 +774,7 @@ cannot change the user's files.")
 (defun xl-eln-opt--child-args (&rest tail)
   "The command line of a child Emacs with the profile, then TAIL: the forms
 it evaluates after init.el."
+  (require 'xl-async-evaluate)
   (xl-async-child-command
    :init-directory user-emacs-directory
    :before-init xl-eln-opt--child-prefix

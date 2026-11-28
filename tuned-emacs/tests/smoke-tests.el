@@ -381,6 +381,10 @@ allowed."
     (should-not native-comp-jit-compilation))
   (should-not package-native-compile))
 
+(ert-deftest xl-async-evaluate-loads-on-first-use ()
+  "Starting the profile does not load the child-Emacs evaluator."
+  (should-not (featurep 'xl-async-evaluate)))
+
 (ert-deftest xl-packages-load-as-byte-code ()
   "A package function is byte code, unless its native compile built an eln.  Emacs's own
 JIT is off, so a native package function must come from the eln for consult's
