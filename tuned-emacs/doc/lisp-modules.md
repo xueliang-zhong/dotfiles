@@ -10,7 +10,7 @@ Recreates the Spacemacs key habits that Crafted does not provide:
 - `SPC i s` lists the snippets for the current mode; `SPC i S` creates one. The keys match Spacemacs' auto-completion layer.
 - `,` and `SPC m` are the major-mode leaders. They work in Org and Emacs Lisp.
 - `fd` leaves insert state, evil-surround is on, and `SPC 1` to `SPC 9` select windows.
-- The home buffer (`SPC b h`) lists recent files and opens one by its number.
+- `SPC b h` shows the home screen (`lisp/tuned-home.el`), which replaces Crafted's splash screen. It shows the logo, the greeting, the recent files (keys `1` to `9` open them), quick links and the startup time; `g` redraws it. The logo, `assets/tuned-emacs-logo.svg`, is hexagram 35, Jin (晋): the sun (Li, fire) rising over broken lines drawn like a reflection (Kun, the earth). A terminal shows a text version.
 - `SPC q r` restarts Emacs. The restart returns to the current file and point, and a dired buffer returns to its directory. From a temporary buffer with no file, it returns to the home buffer. The state is kept in `tuned-restart-place.eld` under `user-emacs-directory` and is used once; cancelling a restart deletes it.
 - It creates `tuned-leader-map`, which `personal.el` extends.
 

@@ -532,7 +532,7 @@
   "<f7>"   #'xueliang-just-make
   "<f8>"   #'tuned-tagbar-toggle      ; Tagbar-like imenu sidebar
   "<f9>"   #'xueliang-dired-sidebar
-  "<f10>"  #'tuned-sk-home-buffer
+  "<f10>"  #'tuned-home
   "<f11>"  #'xueliang-imenu-or-org-today
   "<f12>"  #'xueliang-open-knowledge-links
   "C-<f4>" #'kill-buffer-and-window)

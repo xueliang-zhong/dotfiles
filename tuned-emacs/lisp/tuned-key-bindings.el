@@ -76,7 +76,7 @@
 
   "b" "buffers" nil
   "b b" "switch buffer" #'consult-buffer
-  "b h" "home"          #'tuned-sk-home-buffer
+  "b h" "home"          #'tuned-home
   "b d" "kill buffer"   #'kill-current-buffer
   "b x" "kill buffer & window" #'kill-buffer-and-window
   "b n" "next buffer"   #'next-buffer
@@ -241,65 +241,8 @@
   "h h" "describe symbol" #'describe-symbol)
 (push (cons 'emacs-lisp-mode tuned-elisp-leader-map) tuned-major-leader-maps)
 
-;;; Home buffer: SPC b h, recent files 1-9, startup time at the bottom
-(defun tuned-sk-home-init-time ()
-  "Insert Emacs' startup time, to two decimals, three blank lines below the links."
-  (fancy-splash-insert
-   :face '(variable-pitch font-lock-comment-face italic)
-   (format "\n\n\nEmacs loaded in %.2f seconds\n"
-           (float-time (time-subtract after-init-time before-init-time)))))
-
-(defvar-local tuned-sk--home-files nil "Recent files listed on the home buffer.")
-(defun tuned-sk-home-recentf ()
-  "Insert up to 9 recent files, each with the number that opens it."
-  ;; One spelling per file: /Users/me/x and ~/x are the same entry
-  (setq recentf-list (seq-uniq (mapcar #'abbreviate-file-name recentf-list)))
-  (setq tuned-sk--home-files (seq-take recentf-list 9))
-  (when tuned-sk--home-files
-    (fancy-splash-insert :face '(variable-pitch font-lock-string-face italic)
-                         "Recent Files:\n")
-    (seq-do-indexed
-     (lambda (file i)
-       (fancy-splash-insert :face 'default (format "[%d]  " (1+ i))
-                            :link (list (abbreviate-file-name file)
-                                        (lambda (_button) (find-file file)))
-                            "\n"))
-     tuned-sk--home-files)))
-;; The home buffer lists recent files, so recentf must be on before it draws.
-;; Its size and cleanup settings are personal, in example/xueliang.el.
-(require 'recentf)
-(recentf-mode 1)
-(setq crafted-startup-module-list '(tuned-sk-home-recentf))
-
-(defun tuned-sk-home-tail (&optional _concise)
-  "Bottom of the home buffer: quick links, then the startup time."
-  (fancy-splash-insert
-   :face 'variable-pitch
-   "\nTo start...     "
-   :link `("Open a File" ,(lambda (_button) (call-interactively #'find-file)))
-   "     "
-   :link `("Open Home Directory" ,(lambda (_button) (dired "~")))
-   "     "
-   :link `("Open Dotfiles" ,(lambda (_button) (dired tuned-dotfiles)))
-   "\n")
-  (tuned-sk-home-init-time))
-(advice-add 'crafted-startup-tail :override #'tuned-sk-home-tail)
-
-(defun tuned-sk--home-keys (&rest _)
-  "In the home buffer, digits 1-9 open the listed recent files."
-  (with-current-buffer "*Crafted Emacs*"
-    (kill-local-variable 'browse-url-browser-function) ; Crafted sets eww here
-    (dotimes (i 9)
-      (let ((n i))
-        (dolist (state '(normal motion))
-          (evil-local-set-key state (kbd (number-to-string (1+ n)))
-                              (lambda () (interactive)
-                                (when-let* ((file (nth n tuned-sk--home-files)))
-                                  (find-file file)))))))))
-(advice-add 'crafted-startup--display-startup-screen :after #'tuned-sk--home-keys)
-
-(defun tuned-sk-home-buffer () "Redraw and show the Crafted home buffer." (interactive)
-  (crafted-startup-screen))
+;;; Home screen: SPC b h; drawn by tuned-home.el
+(autoload 'tuned-home "tuned-home" nil t)
 
 ;;; Restart: come back to the same file and place, or to the home buffer
 (defvar tuned-sk-restart-file (expand-file-name "tuned-restart-place.eld"
@@ -349,7 +292,7 @@ temporary: a restart from it goes to the home buffer."
     (error nil)))
 
 (defun tuned-sk-initial-buffer-choice ()
-  "Show the place from before a restart, or the Crafted home buffer."
+  "Show the place from before a restart, or the home screen."
   (let* ((place (tuned-sk--take-restart-place))
          (buffer (and (consp place) (tuned-sk--restart-buffer place))))
     (if buffer
@@ -357,7 +300,7 @@ temporary: a restart from it goes to the home buffer."
           (setq tuned-sk-restart--pending place
                 tuned-sk-restart--buffer buffer)
           buffer)
-      (crafted-startup-screen))))
+      (tuned-home))))
 
 (defun tuned-sk--restore-restart-place ()
   "Put point and the window start back after a restart."

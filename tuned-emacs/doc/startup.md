@@ -39,7 +39,7 @@ Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files writte
 9. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
 10. `tuned-key-bindings`, `tuned-git-status`, `tuned-git-commands` and the other modules load with `require`.
 11. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `tuned-load-example`, which `bin/tuned crafted-install` writes when run with `TUNED_EXAMPLE=1`.
-12. Startup finishes and the Crafted home buffer appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
+12. Startup finishes and the tuned home screen (`lisp/tuned-home.el`) appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
 
 Settings for Org, dired, magit and others go inside `with-eval-after-load`, so they run when the package is first used and do not slow startup.
 

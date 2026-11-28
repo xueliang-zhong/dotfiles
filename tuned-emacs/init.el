@@ -82,7 +82,6 @@
 (require 'crafted-completion-config) ; vertico, consult, corfu, cape
 (require 'crafted-evil-config)       ; evil + evil-collection
 (require 'crafted-org-config)        ; Org basics
-(require 'crafted-startup-config)    ; the home buffer
 
 ;; ============================================================
 ;; Crafted Defaults Overrides
@@ -108,6 +107,10 @@
 ;; tuned-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; personal.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'tuned-key-bindings)
+;; tuned-home: the home screen, in place of Crafted's splash screen.  Loaded
+;; here, not on first use, because it turns recentf on, which must record
+;; files even when a restart opens a file instead of the home screen.
+(require 'tuned-home)
 ;; `tuned-dired' loads on first use, so startup does not pull in `dired',
 ;; `dired-x' and `evil-collection-dired'; its autoloads come from
 ;; tuned-autoloads.

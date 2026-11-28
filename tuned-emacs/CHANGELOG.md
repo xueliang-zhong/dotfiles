@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- The home screen is now tuned-emacs's own, `lisp/tuned-home.el`, in place of
+  Crafted's splash screen. It keeps the layout (logo, greeting, recent files
+  opened with `1` to `9`, quick links, startup time) and shows the new logo,
+  `assets/tuned-emacs-logo.svg`: hexagram 35, Jin, the sun rising over the
+  earth. The buffer is `*Tuned Emacs*`; `SPC b h` and `<f10>` call
+  `tuned-home`, and `crafted-startup-config` is no longer loaded.
+
 ## 0.1.0
 
 Packaging basics:

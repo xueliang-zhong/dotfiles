@@ -161,6 +161,13 @@ or shows the commit at point.
 (register-definition-prefixes "tuned-git-status" '("tuned-git-s"))
 
 
+;;; Generated autoloads from tuned-home.el
+
+(autoload 'tuned-home "tuned-home"
+"Draw the home screen, show it and return its buffer." t)
+(register-definition-prefixes "tuned-home" '("tuned-home-"))
+
+
 ;;; Generated autoloads from tuned-key-bindings.el
 
 (register-definition-prefixes "tuned-key-bindings" '("tuned-"))

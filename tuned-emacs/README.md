@@ -15,7 +15,7 @@ A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/Syst
 - **Chinese input inside Emacs (pyim).** `F2` toggles a Lisp input method instead of the macOS IME, so no keypress waits for a system round trip; candidates appear at point through posframe.
 - **Shared asynchronous layer.** One composable process API (`tuned-async`) runs Git, dired listings and previews, Org `:async` source blocks, and background Lisp evaluation.
 - **Unified spinner animation UI for all async tasks.** One loader design (`tuned-spinner`) shows every asynchronous task: the mode-line spinner, the centre loader, and the progress lines of background work.
-- **Spacemacs-style keys and a home page.** `SPC` trees, `,` major-mode leader, a recent-files home buffer, and a restart command that returns to the same file and point.
+- **Spacemacs-style keys and a home page.** `SPC` trees, `,` major-mode leader, a Tuned Emacs home screen with its own logo and the recent files, and a restart command that returns to the same file and point.
 - **One CLI for three systems.** `bin/tuned` installs, syncs, checks and runs the profile on macOS, Linux and Windows, and works without `just`.
 - **Tested without a GUI.** ERT suites for each module run in `emacs --batch`.
 
@@ -82,8 +82,10 @@ tuned-emacs/
 ├── example/                 The author's opinionated configuration (not loaded by default)
 │   ├── xueliang.el              The configuration itself
 │   └── xueliang-utils.el        Helpers behind the example's bindings
+├── assets/                  tuned-emacs-logo.svg, the home screen logo
 ├── lisp/                    Modules loaded with `require'
 │   ├── tuned-key-bindings.el       Spacemacs-style key bindings (SPC tree, M-m, ...)
+│   ├── tuned-home.el               The home screen: logo, recent files 1-9, links, startup time
 │   ├── tuned-bootstrap.el          Package installation: refresh, fetch, retry
 │   ├── tuned-async.el              Asynchronous processes: ownership, slots, queues
 │   ├── tuned-spinner.el            Shared loader: kernel and mode-line slot
@@ -186,6 +188,7 @@ The suites run in `emacs --batch`, without a graphical frame:
 | `tests/tuned-spinner-tests.el`, `tests/tuned-consult-spinner-tests.el` | Loader frames and mode-line slot, consult indicator |
 | `tests/tuned-git-status-tests.el`, `tests/tuned-git-commands-tests.el` | Git status, auto refresh, the write queue, GBlame |
 | `tests/tuned-org-babel-async-tests.el` | `:async yes' Org blocks |
+| `tests/tuned-home-tests.el` | Home screen branding, text logo, recent files and digit keys, redraw |
 | `tests/tuned-dired-tests.el` | Asynchronous dired listings and previews |
 | `tests/tuned-tagbar-tests.el` | Tagbar sections, jumping, folding, refresh and the Embark target |
 | `tests/tuned-perf-trace-tests.el` | Trace recording and JSON output |

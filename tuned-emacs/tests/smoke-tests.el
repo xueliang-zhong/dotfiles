@@ -482,7 +482,7 @@ keypress.  Prefix keymaps are walked recursively."
                   ("i s" . xueliang-insert-snippet)
                   ("i S" . xueliang-new-snippet)
                   ("b b" . consult-buffer)
-                  ("b h" . tuned-sk-home-buffer)
+                  ("b h" . tuned-home)
                   ("e t" . tuned-consult-spell)
                   ("e r" . tuned-consult-spell-region)
                   ("b s" . xueliang-open-scratch-buffer-window)
@@ -532,7 +532,7 @@ F3 is left out on purpose: YI.el, loaded later, takes it for 八卦."
                   ("<f7>" . xueliang-just-make)
                   ("<f8>" . tuned-tagbar-toggle)
                   ("<f9>" . xueliang-dired-sidebar)
-                  ("<f10>" . tuned-sk-home-buffer)
+                  ("<f10>" . tuned-home)
                   ("<f11>" . xueliang-imenu-or-org-today)
                   ("<f12>" . xueliang-open-knowledge-links)
                   ("C-<f4>" . kill-buffer-and-window)))
@@ -1215,15 +1215,18 @@ which Crafted still puts on `embark-collect-mode-hook'."
     (should-not display-line-numbers)))
 
 (ert-deftest tuned-home-buffer ()
-  "The home buffer lists at most nine recent files and ends with startup time."
-  (tuned-sk-home-buffer)
-  (should (get-buffer "*Crafted Emacs*"))
-  (with-current-buffer "*Crafted Emacs*"
+  "SPC b h shows the tuned home screen: no Crafted branding, the startup time last."
+  (should (eq (keymap-lookup tuned-leader-map "b h") 'tuned-home))
+  (should-not (featurep 'crafted-startup-config))
+  (tuned-home)
+  (should (get-buffer "*Tuned Emacs*"))
+  (with-current-buffer "*Tuned Emacs*"
+    (should (string-match-p "Welcome to Tuned Emacs!" (buffer-string)))
+    (should-not (string-match-p "Crafted" (buffer-string)))
     (should (string-match-p
              "Open Dotfiles\n\n\n\nEmacs loaded in [0-9]+\\.[0-9][0-9] seconds[ \t\n]*\\'"
-             (buffer-string))))
-  (should (<= (length tuned-sk--home-files) 9))
-  (should (listp tuned-sk--home-files)))
+             (buffer-string)))
+    (should (<= (length tuned-home--files) 9))))
 
 (ert-deftest tuned-restart-comes-back-to-the-same-file ()
   "Restarting saves the file and point, and the next start restores them."
@@ -1277,7 +1280,7 @@ which Crafted still puts on `embark-collect-mode-hook'."
           (should-not (file-exists-p state))
           ;; With nothing saved the home screen is the initial buffer.
           (should (eq initial-buffer-choice #'tuned-sk-initial-buffer-choice))
-          (cl-letf (((symbol-function 'crafted-startup-screen)
+          (cl-letf (((symbol-function 'tuned-home)
                      (lambda () 'home)))
             (should (eq 'home (tuned-sk-initial-buffer-choice)))))
       (ignore-errors (delete-file state)))))
@@ -1419,10 +1422,10 @@ which Crafted still puts on `embark-collect-mode-hook'."
                         '("/tmp/tuned-test-01.txt")))
          (recentf-list files))
     (with-temp-buffer
-      (tuned-sk-home-recentf)
-      (should (= (length tuned-sk--home-files) 9))
-      (should (= (length (delete-dups (copy-sequence tuned-sk--home-files)))
-                 (length tuned-sk--home-files))))))
+      (tuned-home--insert-recent)
+      (should (= (length tuned-home--files) 9))
+      (should (= (length (delete-dups (copy-sequence tuned-home--files)))
+                 (length tuned-home--files))))))
 
 (ert-deftest tuned-split-windows-open-the-new-window ()
   "`SPC w v' and `SPC w s' split the window and move into the new one."
