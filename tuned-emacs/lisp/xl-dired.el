@@ -70,7 +70,7 @@ make Emacs wait for the whole file."
   :type 'natnum
   :group 'xl-dired)
 
-(defcustom xl-dired-preview-idle 0.3
+(defcustom xl-dired-preview-idle 60
   "Seconds point must rest on an entry before its preview starts."
   :type 'number
   :group 'xl-dired)
