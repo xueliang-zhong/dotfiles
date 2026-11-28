@@ -10,6 +10,20 @@
 
 (require 'cl-lib)
 
+;; The distribution version lives in VERSION; phase 3 moves this to
+;; lisp/tuned-core.el.
+(defconst tuned-version
+  (string-trim
+   (with-temp-buffer
+     (insert-file-contents (expand-file-name "tuned-emacs/VERSION" tuned-dotfiles))
+     (buffer-string)))
+  "Version of this tuned-emacs distribution.")
+
+(defun tuned-version ()
+  "Show the version of this tuned-emacs distribution."
+  (interactive)
+  (message "tuned-emacs %s" tuned-version))
+
 ;; Customize writes into its own file, never into this one
 (setq custom-file (expand-file-name "custom.el" user-emacs-directory))
 (when (file-exists-p custom-file) (load custom-file nil :nomessage))

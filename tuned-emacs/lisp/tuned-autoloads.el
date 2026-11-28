@@ -89,6 +89,13 @@ penultimate step during initialization.
 (register-definition-prefixes "tuned-dired" '("tuned-dired-"))
 
 
+;;; Generated autoloads from tuned-doctor.el
+
+(autoload 'tuned-doctor "tuned-doctor"
+"Show a health report for this tuned-emacs installation." t)
+(register-definition-prefixes "tuned-doctor" '("tuned-doctor-"))
+
+
 ;;; Generated autoloads from tuned-eln-opt.el
 
 (autoload 'tuned-eln-opt-arm "tuned-eln-opt"

@@ -193,6 +193,14 @@ It is what happens when the operation outlives `tuned-spinner-show-delay'."
   (should (file-directory-p tuned-dotfiles))
   (should (file-directory-p tuned-crafted-home)))
 
+(ert-deftest tuned-version-comes-from-the-version-file ()
+  "`tuned-version' is the contents of tuned-emacs/VERSION."
+  (let ((file (expand-file-name "tuned-emacs/VERSION" tuned-dotfiles)))
+    (should (file-readable-p file))
+    (with-temp-buffer
+      (insert-file-contents file)
+      (should (equal tuned-version (string-trim (buffer-string)))))))
+
 (ert-deftest tuned-packages-are-listed-in-init ()
   "`tuned-packages' lives in `init.el'; `personal.el' does not define it."
   (should (memq 'magit tuned-packages))
