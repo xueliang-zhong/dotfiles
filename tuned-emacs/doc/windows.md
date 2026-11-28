@@ -12,18 +12,18 @@ Setup on Windows runs from Git Bash. The same profile and packages are used as o
 
 ```bash
 just emacs-windows-setup                                 # with just
-bash tuned-emacs/install/emacs-setup.sh setup-windows    # without just
+bash tuned-emacs/bin/tuned install                       # without just
 ```
 
-The script:
+The CLI:
 
 1. Checks that `emacs` exists and is version 30 or later.
 2. Sets the user environment variable `HOME` to your user folder, if it is not set. Emacs started from the Start menu only reads this variable. Without it, `~` points to `%APPDATA%`, and paths such as `~/workspace/...` are not found.
 3. Moves any existing `~/.emacs`, `~/.emacs.el` and `~/.emacs.d` into `~/.emacs-profiles/backup-<date-time>/`. Nothing is deleted. Emacs reads `~/.emacs` and `~/.emacs.el` before `~/.emacs.d`, so they must go.
 4. Clones Crafted at the pinned commit and writes the two stubs directly into `~/.emacs.d`. Unlike macOS, there is no symbolic link.
-5. Loads the configuration in batch mode, which installs the packages, and prints `smoke ok`.
+5. Loads the configuration in batch mode, which installs the packages, then generates the autoloads, byte-compiles, builds the trampolines and writes `packages.lock`.
 
-The script can be rerun. If `~/.emacs.d` already points at the profile it created, it is kept, and only the stubs and missing packages are updated.
+The CLI can be rerun. If `~/.emacs.d` already points at the profile it created, it is kept, and only the stubs and missing packages are updated.
 
 ## Platform differences
 
@@ -40,7 +40,7 @@ The script can be rerun. If `~/.emacs.d` already points at the profile it create
 
 ## Line endings
 
-The `.gitattributes` file at the repository root keeps text files as LF on Windows too. Git for Windows converts files to CRLF by default, which makes the bash scripts in the `justfile` fail with `\r: command not found`, and adds a trailing `\r` to the commit read from `frameworks.lock`.
+The `.gitattributes` file at the repository root keeps text files as LF on Windows too. Git for Windows converts files to CRLF by default, which makes the bash scripts in the `justfile` fail with `\r: command not found`, and adds a trailing `\r` to the commit read from `crafted.lock`.
 
 A clone made before `.gitattributes` existed keeps CRLF endings. If the working tree has no uncommitted changes, renormalise it with:
 

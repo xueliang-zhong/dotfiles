@@ -12,7 +12,7 @@ You are working in the `~/workspace/dotfiles` repository. The task is to impleme
 2. `tuned-emacs/doc/tuned-perf-trace.md`: **the full design. Implement it as written.** Command names, variable names, event format, track numbers, lifecycle, test plan and acceptance criteria are all there. For any detail the design does not cover, choose a reasonable approach and list it in the final report.
 3. `tuned-emacs/lisp/tuned-async.el`: the arguments of `tuned-async-run` (`:command`, `:name`, `:on-done`, `:slot`, `:owner`, `:timeout`), and `tuned-async-cancel`. You will add advice to `tuned-async-run`.
 4. `tuned-emacs/lisp/tuned-dired.el` and `tuned-emacs/tests/tuned-dired-tests.el`: what an `tuned-*` module and its tests should look like (file header, defgroup, defcustom, temporary directories in tests, and how tests wait).
-5. `cmd_test` in `tuned-emacs/install/emacs-setup.sh`: how the tests are run.
+5. `cmd_test` in `tuned-emacs/bin/tuned`: how the tests are run.
 
 ## Must follow
 
@@ -24,7 +24,7 @@ You are working in the `~/workspace/dotfiles` repository. The task is to impleme
 - Change only these files:
   - create `tuned-emacs/lisp/tuned-perf-trace.el`
   - create `tuned-emacs/tests/tuned-perf-trace-tests.el`
-  - `tuned-emacs/install/emacs-setup.sh`: add a step to `cmd_test` that runs the new test file
+  - `tuned-emacs/bin/tuned`: add a step to `cmd_test` that runs the new test file
   - `tuned-emacs/tests/smoke-tests.el`: add the new file to the file list in `tuned-personal-file-is-framework-neutral`
   - `tuned-emacs/init.el`: add one line, `(require 'tuned-perf-trace)`
   - `tuned-emacs/doc/tuned-perf-trace.md`: only write the measured results under "Performance budget", and change the status to implemented
@@ -44,7 +44,7 @@ You are working in the `~/workspace/dotfiles` repository. The task is to impleme
    ```
 3. Run every test suite:
    ```bash
-   bash tuned-emacs/install/emacs-setup.sh test
+   bash tuned-emacs/bin/tuned test
    ```
    They must all pass. If something fails for reasons unrelated to your change, report it; do not change someone else's tests.
 4. Make one real recording in batch: start, run a few commands, a timer, one `garbage-collect`, and one `tuned-async-run`; stop; read the file back with `json-parse-string`; and confirm that every track has events.

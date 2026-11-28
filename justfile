@@ -43,10 +43,10 @@ spacemacs-install:
 # Each profile is its own init directory under ~/.emacs-profiles and is
 # started with --init-directory, so it never touches ~/.emacs.d (Spacemacs).
 #
-# The recipes below only wrap tuned-emacs/install/emacs-setup.sh, so the same setup
+# The recipes below only wrap tuned-emacs/bin/tuned, so the same setup
 # works on a machine without `just`:
-#   bash tuned-emacs/install/emacs-setup.sh setup-macos
-# The script holds the checks (platform, Emacs 30+, profile), the Crafted
+#   bash tuned-emacs/bin/tuned install
+# The CLI holds the checks (platform, Emacs 30+, profile), the Crafted
 # clone, the profile stubs and the trampoline cache; the recipes pass
 # EMACS/PROFILE/PROFILE_DIR/DOTFILES through.
 #
@@ -63,49 +63,50 @@ PROFILES := HOME_DIR / ".emacs-profiles"
 DOTFILES := replace(justfile_directory(), "\\", "/")
 PROFILE := "crafted"
 PROFILE_DIR := PROFILES / PROFILE
-# What the script reads from the environment, quoted for sh.
+# What the CLI reads from the environment, quoted for sh.
 # TUNED_EXAMPLE=1: this repo's own recipes load the author's
 # example/xueliang.el.
-# The script run directly (tuned-emacs/install/emacs-setup.sh) leaves it unset
-# and gets personal.el, which is what other users should see.
+# Running bin/tuned directly leaves it unset and gets personal.el, which is
+# what other users should see.
 TUNED_ENV := "TUNED_EXAMPLE='1' EMACS='" + EMACS + "' PROFILE='" + PROFILE + "' PROFILES='" + PROFILES + "' PROFILE_DIR='" + PROFILE_DIR + "' DOTFILES='" + DOTFILES + "'"
 
 # clone Crafted Emacs at the locked commit and generate the profile stubs in DIR
 emacs-crafted-install dir=PROFILE_DIR:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh crafted-install '{{dir}}'
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned crafted-install '{{dir}}'
 
 # start the profile next to the default Emacs
 emacs-try:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh try
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned run
 
 # The first run also installs the packages.
 # load the profile in batch mode; fails on any init error
 emacs-smoke:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh smoke
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned smoke
 
-# run the ERT suite against the loaded profile: keys, hooks, files, behaviour
+# run the ERT suites against the loaded profile: keys, hooks, files, behaviour
 emacs-test:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh test
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned test
 
-# everything a config change must pass: smoke + ERT suite
+# everything a config change must pass: sync + ERT suites
 emacs-check:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh check
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned sync
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned test
 
 # build the subr trampolines in batch, so a GUI start never compiles them
 emacs-trampolines-cache-setup:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh trampolines
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned trampolines
 
 # macOS/Linux: make Crafted the default Emacs (~/.emacs.d -> the profile)
 emacs-make-default:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh make-default
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned default
 
 # undo emacs-make-default: put Spacemacs back as ~/.emacs.d
 emacs-restore-spacemacs:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh restore-spacemacs
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned restore-spacemacs
 
 # Windows (run in Git Bash): fresh clone to working Emacs in one command
 emacs-windows-setup:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-windows
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned install
 
 ###########################
 # macOS: one command does all
@@ -113,7 +114,7 @@ emacs-windows-setup:
 
 # macOS (Terminal): dotfiles + Crafted Emacs in one command
 emacs-mac-setup:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-macos
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned install
 
 ###########################
 # Linux: one command does all
@@ -121,7 +122,7 @@ emacs-mac-setup:
 
 # Linux: dotfiles + Crafted Emacs in one command
 emacs-linux-setup:
-    @{{TUNED_ENV}} bash tuned-emacs/install/emacs-setup.sh setup-linux
+    @{{TUNED_ENV}} bash tuned-emacs/bin/tuned install
 
 ###########################
 # Docker Environment

@@ -4,9 +4,9 @@ How `tuned-emacs/` should be packaged so that it installs, upgrades and is
 configured like a mature Emacs distribution, while the code stays flat in
 `lisp/`. Also the steps to get there from today's tree.
 
-Status: proposal. Phase 1, the rename in [Naming](#naming), has landed; the
-rest is not started. It builds on [refactoring-plan.md](refactoring-plan.md),
-whose eight steps and follow-up have landed.
+Status: proposal. Phases 1 and 2 have landed; the rest is not started. It
+builds on [refactoring-plan.md](refactoring-plan.md), whose eight steps and
+follow-up have landed.
 
 ## Where we are
 
@@ -18,14 +18,14 @@ packaging around that code:
 | Area | Today | What a user of a distribution expects |
 | --- | --- | --- |
 | User config | `personal.el` lives inside the distro folder and is tracked in git | Their files live in their own folder; upgrading the distro never touches them |
-| Author's config | `example/xueliang.el`, switched on by `XL_EXAMPLE=1` in the profile stub | The author is a user like any other, with their own user folder |
+| Author's config | `example/xueliang.el`, switched on by `TUNED_EXAMPLE=1` in the profile stub | The author is a user like any other, with their own user folder |
 | Packages | One list in `init.el` that includes the author's taste (`pyim`, `golden-ratio`, two theme packs, `lua-mode`, ...) | The distro installs what its own code needs; a user adds the rest |
 | Base framework | Crafted calls are spread over `init.el` and `early-init.el` | One file knows about Crafted |
-| CLI | `install/emacs-setup.sh` with 17 subcommands, wrapped by `just emacs-*` | One command (`bin/tuned`) with `install`, `sync`, `doctor`, `upgrade`, `test` |
-| Health check | `check` runs the tests | A `doctor` that explains what is wrong on this machine |
-| Versioning | none | `VERSION`, `CHANGELOG.md`, the version shown in Emacs |
+| CLI | `bin/tuned` with `install`, `sync`, `doctor`, `test`, `upgrade`, `run`; `install/emacs-setup.sh` is a shim | The same commands, without the shim |
+| Health check | `tuned doctor` and `M-x tuned-doctor` | A `doctor` that explains what is wrong on this machine |
+| Versioning | `VERSION` 0.1.0, `CHANGELOG.md`, `M-x tuned-version` | The same, with a section per release |
 | Docs | Design notes and user docs mixed in `doc/` | A user manual and design notes, apart |
-| Leftovers | `doc/doomemacs.lock`, `doc/prelude.lock`, `doc/crafted-emacs.lock` are read by nothing; `personal.el` says `~/.emacs-profiles/local.el` is loaded before the modules, but only the example loads it | none |
+| Leftovers | `personal.el` says `~/.emacs-profiles/local.el` is loaded before the modules, but only the example loads it | none |
 
 ## Principles
 
@@ -82,8 +82,8 @@ tuned-emacs/
 └── tests/                    Flat, as today: smoke-tests.el and one tuned-*-tests.el per file
 ```
 
-What changes in `lisp/` is four new files. Every existing file keeps its name
-and place.
+Phase 2 added `lisp/tuned-doctor.el`; phase 3 adds the three entry files.
+Every existing file keeps its name and place.
 
 ### The user folder
 
@@ -250,10 +250,10 @@ works after every commit.
 1. **Rename `xl-` to `tuned-` (done).** As described in [Naming](#naming),
    before any other phase, so every new file is born with its final name and
    no later commit mixes a rename with a change.
-2. **Packaging basics.** Add `VERSION`, `CHANGELOG.md`, `tuned-version`. Rename
-   `frameworks.lock` to `crafted.lock`. Delete the three unused `doc/*.lock`.
-   Add `bin/tuned` with today's subcommands under the new names, keeping
-   `install/emacs-setup.sh` as a shim. Add `tuned doctor` and
+2. **Packaging basics (done).** Add `VERSION`, `CHANGELOG.md`, `tuned-version`.
+   Rename `frameworks.lock` to `crafted.lock`. Delete the three unused
+   `doc/*.lock`. Add `bin/tuned` with today's subcommands under the new names,
+   keeping `install/emacs-setup.sh` as a shim. Add `tuned doctor` and
    `lisp/tuned-doctor.el`.
 3. **Thin entry files.** Move the body of `early-init.el` to `lisp/tuned-early.el`,
    and every Crafted call and override from `init.el` to `lisp/tuned-crafted.el`.

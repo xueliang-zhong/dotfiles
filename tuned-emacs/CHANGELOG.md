@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased
+## 0.1.0
+
+Packaging basics:
+
+- `VERSION` holds `0.1.0`; `M-x tuned-version` shows it.
+- `bin/tuned` is the CLI: `install`, `sync`, `doctor`, `test`, `upgrade`,
+  `run`, `default` and `restore-spacemacs`. `install/emacs-setup.sh` remains
+  as a compatibility shim for one version.
+- `tuned doctor` and `M-x tuned-doctor` report the Emacs build, programs, the
+  ELPA keyring, profile stubs, stale byte code and autoloads, trampolines,
+  `packages.lock` drift and the last slow start.
+- `tuned sync` writes `packages.lock` in the profile.
+- `frameworks.lock` is now `crafted.lock`; the three unused `doc/*.lock` files
+  are gone.
+- The Perfetto modules shortened their prefix: `tuned-perfetto-` is now
+  `tuned-perf-`, with `tuned-perf-trace.el` and `tuned-perf-probes.el`.
 
 Renamed the `xl-` code prefix to `tuned-` and the `XL_` environment prefix to
 `TUNED_`. Symbols, features, files, buffers and state files follow the new

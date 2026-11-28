@@ -67,8 +67,8 @@
 (tuned-bootstrap)
 
 ;; Autoloads are generated from the `;;;###autoload' cookies in lisp/ by
-;; `emacs-setup.sh autoloads' (setup and check run it).  Loading the one
-;; generated file keeps the commands' definitions and their autoloads in step.
+;; `bin/tuned sync' (install and sync run it).  Loading the one generated
+;; file keeps the commands' definitions and their autoloads in step.
 (load (expand-file-name "tuned-emacs/lisp/tuned-autoloads" tuned-dotfiles) nil t)
 
 ;; ============================================================

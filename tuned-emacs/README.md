@@ -16,12 +16,12 @@ A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/Syst
 - **Shared asynchronous layer.** One composable process API (`tuned-async`) runs Git, dired listings and previews, Org `:async` source blocks, and background Lisp evaluation.
 - **Unified spinner animation UI for all async tasks.** One loader design (`tuned-spinner`) shows every asynchronous task: the mode-line spinner, the centre loader, and the progress lines of background work.
 - **Spacemacs-style keys and a home page.** `SPC` trees, `,` major-mode leader, a recent-files home buffer, and a restart command that returns to the same file and point.
-- **One setup for three systems.** A single script installs and checks the profile on macOS, Linux and Windows, and works without `just`.
+- **One CLI for three systems.** `bin/tuned` installs, syncs, checks and runs the profile on macOS, Linux and Windows, and works without `just`.
 - **Tested without a GUI.** ERT suites for each module run in `emacs --batch`.
 
 The personal layer is small. Its design is in the documents under [doc/](doc/).
 
-`tuned-` is the namespace of this project (`tuned-key-bindings`, `tuned-git-status`, `tuned-spinner`). The configuration lives in the `tuned-emacs/` folder of the dotfiles repository.
+`tuned-` is the namespace of this project (`tuned-key-bindings`, `tuned-git-status`, `tuned-spinner`). The version is in `VERSION`; `M-x tuned-version` shows it. The configuration lives in the `tuned-emacs/` folder of the dotfiles repository.
 
 ## Background compilation
 
@@ -58,7 +58,7 @@ Everything is described in [doc/tuned-eln-opt.md](doc/tuned-eln-opt.md).
 - Emacs 30 or later (developed and tested on Emacs 31.1).
 - `git`, `curl` and `gpg` for package installation. `gpg` is needed for signature checks on GNU ELPA.
 - `aspell`, `hunspell` or `ispell` for `tuned-consult-spell`; Emacs has no built-in dictionary.
-- `just` is optional. Every `just emacs-*` recipe is a thin wrapper around `install/emacs-setup.sh`.
+- `just` is optional. Every `just emacs-*` recipe is a thin wrapper around `bin/tuned`.
 
 ## What is guaranteed, and what is not
 
@@ -67,18 +67,21 @@ Everything is described in [doc/tuned-eln-opt.md](doc/tuned-eln-opt.md).
 | The personal layer is small | Line counts of `init.el`, `early-init.el`, `lisp/tuned-key-bindings.el` and `personal.el` (see the table in `doc/startup.md`). |
 | Git does not block the UI | Reads and writes all run through `make-process`. The ERT tests assert that the loader is shown while the content has not arrived. |
 
-Not yet asynchronous, stated plainly: package installation and removal from `list-packages` (package transactions) still run synchronously. Archive refresh is asynchronous. Installation from the setup script is parallel; see `doc/startup.md`.
+Not yet asynchronous, stated plainly: package installation and removal from `list-packages` (package transactions) still run synchronously. Archive refresh is asynchronous. Installation from the CLI is parallel; see `doc/startup.md`.
 
 ## Layout
 
 ```
 tuned-emacs/
+├── VERSION                  Version, shown by M-x tuned-version
+├── CHANGELOG.md             One section per version
+├── README.md                What it is and how to install it
 ├── early-init.el            Startup settings: GC, frame chrome, package archives
 ├── init.el                  The manifest: Crafted modules, packages, layers
-├── personal.el             Your own settings; starts empty, with comments
+├── personal.el              Your own settings; starts empty, with comments
 ├── example/                 The author's opinionated configuration (not loaded by default)
 │   ├── xueliang.el              The configuration itself
-│   └── xueliang-utils.el         Helpers behind the example's bindings
+│   └── xueliang-utils.el        Helpers behind the example's bindings
 ├── lisp/                    Modules loaded with `require'
 │   ├── tuned-key-bindings.el       Spacemacs-style key bindings (SPC tree, M-m, ...)
 │   ├── tuned-bootstrap.el          Package installation: refresh, fetch, retry
@@ -94,17 +97,22 @@ tuned-emacs/
 │   ├── tuned-tagbar.el             Tagbar-style imenu sidebar (F8)
 │   ├── tuned-org-babel-async.el    `:async yes' for Org source blocks
 │   ├── tuned-dired.el              Asynchronous dired listings and previews
-│   ├── tuned-perf-trace.el          Chrome JSON timelines of Lisp work
-│   ├── tuned-perf-probes.el         Its probes for tuned-async, vertico, corfu, pyim
+│   ├── tuned-perf-trace.el         Chrome JSON timelines of Lisp work
+│   ├── tuned-perf-probes.el        Its probes for tuned-async, vertico, corfu, pyim
 │   ├── tuned-package-fetch.el      Parallel download and signature check of packages
 │   ├── tuned-native-compile.el     Native-compile queue and its monitor
 │   ├── tuned-package-install.el    Asynchronous package install
 │   ├── tuned-eln-opt.el            Background native compilation of what you use
+│   ├── tuned-doctor.el             Health checks behind M-x tuned-doctor
 │   └── tuned-autoloads.el          Generated autoloads (do not edit)
-├── install/emacs-setup.sh   Install, check and run script (no `just' needed)
+├── bin/
+│   └── tuned                     The CLI: install, sync, doctor, test, upgrade, run
+├── install/
+│   └── emacs-setup.sh            Compatibility shim for the old command names
 ├── tests/                   ERT suites (see "Testing")
 ├── doc/                     Design notes and reference documents
-└── frameworks.lock          Crafted Emacs repository URL and pinned commit
+├── crafted.lock             Crafted Emacs repository URL and pinned commit
+└── LICENSE                  License
 ```
 
 ## Installation
@@ -112,19 +120,19 @@ tuned-emacs/
 ### macOS
 
 ```bash
-just emacs-mac-setup                                  # with just
-bash tuned-emacs/install/emacs-setup.sh setup-macos   # without just
+just emacs-mac-setup                       # with just
+bash tuned-emacs/bin/tuned install         # without just
 ```
 
-The setup runs six steps: copy the dotfiles, clone Crafted at the pinned commit and write the profile stubs, install the packages, generate the autoloads, byte-compile the personal Lisp, and point `~/.emacs.d` at the Crafted profile. The last step needs Emacs to be closed. If it is running, rerun `just emacs-make-default` after quitting it.
+The setup runs eight steps: copy the dotfiles, clone Crafted at the pinned commit and write the profile stubs, install the packages, generate the autoloads, byte-compile the personal Lisp, build the advice trampolines, write `packages.lock`, and point `~/.emacs.d` at the Crafted profile. The last step needs Emacs to be closed. If it is running, rerun `just emacs-make-default` after quitting it.
 
-Start Emacs with `just emacs-try`, `bash tuned-emacs/install/emacs-setup.sh try`, or the Dock icon.
+Start Emacs with `just emacs-try`, `bash tuned-emacs/bin/tuned run`, or the Dock icon.
 
 ### Linux
 
 ```bash
-just emacs-linux-setup                                # with just
-bash tuned-emacs/install/emacs-setup.sh setup-linux   # without just
+just emacs-linux-setup                     # with just
+bash tuned-emacs/bin/tuned install         # without just
 ```
 
 ### Windows
@@ -137,31 +145,36 @@ Each setup step prints a `[i/N]` title. Package installation reports the archive
 
 ## Commands
 
-Every `just` recipe has an equivalent in `install/emacs-setup.sh`:
+Every `just` recipe has an equivalent in `bin/tuned`:
 
-| `just` recipe | Script command | What it does |
+| `just` recipe | `tuned` command | What it does |
 | --- | --- | --- |
-| `emacs-mac-setup` | `setup-macos` | Full macOS setup |
-| `emacs-linux-setup` | `setup-linux` | Full Linux setup |
-| `emacs-windows-setup` | `setup-windows` | Full Windows setup (Git Bash) |
+| `emacs-mac-setup` | `install` | Full setup on this platform |
+| `emacs-linux-setup` | `install` | Full setup on this platform |
+| `emacs-windows-setup` | `install` | Full setup on this platform (Git Bash) |
 | `emacs-crafted-install` | `crafted-install` | Clone Crafted and write the profile stubs |
 | `emacs-smoke` | `smoke` | Load the whole profile in batch mode |
 | `emacs-test` | `test` | Run all ERT suites |
-| `emacs-check` | `check` | `autoloads`, `smoke` and `test` together |
+| `emacs-check` | `sync`, then `test` | Sync and run all suites |
 | `emacs-trampolines-cache-setup` | `trampolines` | Build advice trampolines by hand |
-| `emacs-make-default` | `make-default` | Point `~/.emacs.d` at the Crafted profile |
+| `emacs-make-default` | `default` | Point `~/.emacs.d` at the Crafted profile |
 | `emacs-restore-spacemacs` | `restore-spacemacs` | Switch back to the old Spacemacs profile |
-| `emacs-try` | `try` | Start Emacs; arguments pass through |
+| `emacs-try` | `run` | Start Emacs; arguments pass through |
 
-Other script commands: `autoloads` (regenerate `lisp/tuned-autoloads.el`) and `compile-lisp` (byte-compile our own `lisp/` where stale).
+Other commands: `sync` (packages, autoloads, byte code, trampolines,
+`packages.lock`), `doctor` (what is wrong on this machine), `test NAME` (one
+suite) and `upgrade` (pull the distro, move Crafted to the new pin, sync).
+The old `install/emacs-setup.sh` names still work through a compatibility
+shim.
 
 Environment variables: `EMACS`, `PROFILE`, `PROFILES`, `PROFILE_DIR`, `DOTFILES`, `TUNED_SKIP_DOTFILES=1` (skip `env.sh` in setup), `TUNED_FORCE_WINDOWS=1` (exercise the Windows flow on another OS).
 
 ## Testing
 
 ```bash
-just emacs-check                                      # smoke + all ERT suites
-bash tuned-emacs/install/emacs-setup.sh check         # without just
+just emacs-check                                      # sync + all ERT suites
+bash tuned-emacs/bin/tuned test                       # without just
+bash tuned-emacs/bin/tuned test async                 # one suite
 ```
 
 The suites run in `emacs --batch`, without a graphical frame:
@@ -178,6 +191,7 @@ The suites run in `emacs --batch`, without a graphical frame:
 | `tests/tuned-perf-trace-tests.el` | Trace recording and JSON output |
 | `tests/tuned-package-fetch-tests.el` | Parallel job runner, dependency plan, unsigned-archive policy, gpg check |
 | `tests/tuned-consult-spell-tests.el` | Checker output parsing, word positions, region widening, program choice |
+| `tests/tuned-doctor-tests.el` | Doctor formatting, version lookup, stale byte code, autoloads and `packages.lock` |
 
 Every `tests/tuned-*-tests.el` runs on its own, without the profile, and every
 suite is loaded by a glob so a new module needs no script change.
@@ -191,11 +205,12 @@ suite is loaded by a glob so a new module needs no script change.
 | Change a personal key binding or command | `personal.el` (examples in `example/xueliang.el`) |
 | Change the Spacemacs-style default bindings | `lisp/tuned-key-bindings.el` |
 | Add or remove a Crafted module | The `require` lines in `init.el` |
-| Upgrade Crafted | Change the commit in `frameworks.lock`, then run `emacs-crafted-install` |
+| Upgrade Crafted | Change the commit in `crafted.lock`, then run `emacs-crafted-install` |
 | Change startup settings (GC, native-compilation settings, package directories) | `early-init.el` |
-| After upgrading Emacs or rebuilding a profile | Run `trampolines` to avoid a blank first frame |
+| After upgrading Emacs or rebuilding a profile | Run `tuned sync` to rebuild the trampolines |
 
-After a change, run `just emacs-check` (or the script equivalent).
+After a change, run `just emacs-check` (or `bin/tuned sync` then
+`bin/tuned test`).
 
 ## Documentation
 

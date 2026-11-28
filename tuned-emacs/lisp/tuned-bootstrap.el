@@ -20,7 +20,7 @@
 (require 'seq)
 
 (defvar tuned-progress (equal (getenv "TUNED_PROGRESS") "1")
-  "Non-nil when emacs-setup.sh asked for step-by-step progress output.")
+  "Non-nil when the tuned CLI asked for step-by-step progress output.")
 
 (defun tuned-report (format-string &rest args)
   "Print a progress line when `tuned-progress' is set.

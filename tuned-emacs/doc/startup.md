@@ -7,17 +7,17 @@ This document covers what happens when Emacs starts: the files involved, the ord
 | File | Lines | Role |
 | --- | ---: | --- |
 | `early-init.el` | 137 | Startup settings, package archives |
-| `init.el` | 138 | The manifest: Crafted modules, packages, load order |
+| `init.el` | 154 | The manifest: Crafted modules, packages, load order |
 | `personal.el` | 32 | Your own settings; starts empty, with comments |
-| `example/xueliang.el` | 559 | The author's opinionated configuration, not loaded by default |
-| `lisp/tuned-key-bindings.el` | 428 | Spacemacs-style key bindings |
+| `example/xueliang.el` | 560 | The author's opinionated configuration, not loaded by default |
+| `lisp/tuned-key-bindings.el` | 430 | Spacemacs-style key bindings |
 | `lisp/tuned-bootstrap.el` | 195 | Package installation: refresh, fetch, retry |
 
 Counts are from `wc -l`.
 
 ## The profile stubs
 
-Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files written by `install/emacs-setup.sh`. Each stub defines where the dotfiles and Crafted live, then loads the real file:
+Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files written by `bin/tuned install`. Each stub defines where the dotfiles and Crafted live, then loads the real file:
 
 ```
 ~/.emacs-profiles/crafted/early-init.el  ->  tuned-emacs/early-init.el
@@ -38,7 +38,7 @@ Emacs starts from `~/.emacs-profiles/crafted`, which holds two stub files writte
 8. Crafted's defaults, completion, evil, Org and startup modules load. Completion covers vertico, consult, marginalia, orderless, embark, corfu and cape.
 9. `init.el` restores a few Crafted defaults that conflict with this setup: `C-h` stays the help prefix in insert state, spell checking is off globally, and `consult-preview-at-point-mode` is removed from `embark-collect-mode-hook`, where Consult 3.4 no longer defines it.
 10. `tuned-key-bindings`, `tuned-git-status`, `tuned-git-commands` and the other modules load with `require`.
-11. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `tuned-load-example`, which `crafted-install` writes when run with `TUNED_EXAMPLE=1`.
+11. `personal.el` loads last, so its bindings win over the defaults. The author's machine loads `example/xueliang.el` instead: its profile stub sets `tuned-load-example`, which `bin/tuned crafted-install` writes when run with `TUNED_EXAMPLE=1`.
 12. Startup finishes and the Crafted home buffer appears. If the session started from `SPC q r`, the previous file or dired listing is restored instead.
 
 Settings for Org, dired, magit and others go inside `with-eval-after-load`, so they run when the package is first used and do not slow startup.
@@ -77,7 +77,7 @@ These are in `early-init.el`:
 
 - **GC**: the threshold is raised during startup and set back to 128 MB on `emacs-startup-hook`.
 - **Frame chrome**: the menu, tool and scroll bars are off before the first frame is drawn.
-- **Native compilation**: JIT compilation and package native compilation are off. Emacs's own core Lisp is native. Packages run as byte code and, after tuned-eln-opt has compiled them, as native code. Advice on C primitives needs subr trampolines; `trampolines` builds them by hand.
+- **Native compilation**: JIT compilation and package native compilation are off. Emacs's own core Lisp is native. Packages run as byte code and, after tuned-eln-opt has compiled them, as native code. Advice on C primitives needs subr trampolines; `bin/tuned sync` builds them.
 - **Package directories** are per Emacs version (`elpa-31.1`), so byte or native output never mixes between versions.
 - **evil** and its companions come from MELPA. The NonGNU release 1.15.0 fails on Emacs 30 and later.
 - **`crafted-early-init-config`** is not loaded. It loads 37 more files (`url`, `auth-source`, `json`, `eieio`, `cus-edit` and others) on every start. The package archives and priorities it sets are written out directly in `early-init.el` instead.

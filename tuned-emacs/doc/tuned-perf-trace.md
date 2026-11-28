@@ -309,7 +309,7 @@ When the main Emacs starts recording, it writes a marker file `traces/recording.
 
 - New file: `tuned-emacs/lisp/tuned-perf-trace.el`. Its header follows `tuned-emacs/lisp/tuned-dired.el` (Author, Version, `Package-Requires: ((emacs "30.1") (tuned-async "0.1.0"))`, Commentary). tuned-async is an optional dependency: when it is not loaded, item 4 is skipped.
 - New test: `tuned-emacs/tests/tuned-perf-trace-tests.el`, run on its own with `emacs --batch -Q -L tuned-emacs/lisp`, in the style of `tuned-emacs/tests/tuned-dired-tests.el`.
-- `tuned-emacs/install/emacs-setup.sh`: `cmd_test` runs this test file.
+- `tuned-emacs/bin/tuned`: `cmd_test` runs this test file.
 - `tuned-emacs/tests/smoke-tests.el`: the file list in `tuned-personal-file-is-framework-neutral` includes `tuned-emacs/lisp/tuned-perf-trace.el`.
 - `tuned-emacs/init.el`: one line, `(require 'tuned-perf-trace)`. It installs nothing until recording starts, so its load cost is small.
 - Key bindings: not decided in the first version; left to the user.
@@ -342,7 +342,7 @@ ERT. Every test runs in a temporary directory and confirms at the end that no in
 
 ## Acceptance criteria
 
-- `bash tuned-emacs/install/emacs-setup.sh test` passes completely, including the new test.
+- `bash tuned-emacs/bin/tuned test` passes completely, including the new test.
 - In a real GUI Emacs, record 10 seconds while typing, switching buffers and opening an tuned-dired preview. The file opens in ui.perfetto.dev, and shows tracks for commands, timers, GC, tuned-async, redisplay frames with jank, and font-lock.
 - Not recording: no tracer function remains in the global hooks, and `advice-member-p` is nil for every tracer advice.
 

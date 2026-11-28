@@ -31,7 +31,7 @@ upwards or form a cycle; the steps below remove them.
 - Move them into per-module files, as `tuned-dired-tests.el` already does:
   `tuned-git-status-tests.el`, `tuned-org-babel-async-tests.el`, and so on.
   `smoke-tests.el` keeps only profile-level checks: keymaps, hooks, line counts.
-- `cmd_test` in `install/emacs-setup.sh` loads each suite with its own `-l`
+- `cmd_test` in `bin/tuned` loads each suite with its own `-l`
   line. Run every `tests/*-tests.el` with a glob instead, so a new suite needs no
   script change.
 

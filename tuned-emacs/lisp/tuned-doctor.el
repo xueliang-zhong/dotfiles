@@ -203,10 +203,10 @@
         (with-temp-buffer
           (insert-file-contents lock)
           (goto-char (point-min))
-          (while (re-search-forward "^\\([^ \t]+\\)[ \t]+\\([^ \t]+\\)$" nil t)
+          (while (re-search-forward "^\\([^ \t]+\\)[ \t]+\\([^ \t\n]+\\)$" nil t)
             (let* ((name (intern (match-string 1)))
                    (want (match-string 2))
-                   (desc (cdr (assq name package-alist)))
+                   (desc (cadr (assq name package-alist)))
                    (have (and desc (package-version-join
                                     (package-desc-version desc)))))
               (unless (equal want have)

@@ -201,6 +201,13 @@ It is what happens when the operation outlives `tuned-spinner-show-delay'."
       (insert-file-contents file)
       (should (equal tuned-version (string-trim (buffer-string)))))))
 
+(ert-deftest tuned-packaging-files-exist ()
+  "The distribution has its version, lock file and CLI."
+  (dolist (file '("tuned-emacs/VERSION" "tuned-emacs/crafted.lock"
+                  "tuned-emacs/bin/tuned" "tuned-emacs/install/emacs-setup.sh"))
+    (should (file-exists-p (expand-file-name file tuned-dotfiles))))
+  (should (file-executable-p (expand-file-name "tuned-emacs/bin/tuned" tuned-dotfiles))))
+
 (ert-deftest tuned-packages-are-listed-in-init ()
   "`tuned-packages' lives in `init.el'; `personal.el' does not define it."
   (should (memq 'magit tuned-packages))
