@@ -137,6 +137,17 @@ IME left active would consume the keys before pyim sees them."
              (message "中文输入 (pyim)"))
     (message "English")))
 
+(defun xueliang-chinese-input-title ()
+  "Frame-title prefix while pyim is the buffer's input method.
+The mode line's \"PYIM\" is easy to miss, the frame title is not."
+  (if (equal current-input-method "pyim") "(中文拼音) " ""))
+
+(defun xueliang-refresh-frame-title (&rest _)
+  "Recompute the frame title, which shows the pyim state.
+Runs from `input-method-activate-hook' and `input-method-deactivate-hook';
+the title is evaluated at the next redisplay, after the state changed."
+  (force-mode-line-update t))
+
 ;; Golden ratio: the candidate list takes 38.2% of the frame height, like
 ;; the F9 sidebar.  Computed for every minibuffer, so a resized frame gets
 ;; a resized list, exactly like the old `ivy-height-alist' function.

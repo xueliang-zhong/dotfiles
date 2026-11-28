@@ -327,6 +327,15 @@
 (setq-default pyim-english-input-switch-functions
               '(xueliang-pyim-english-p))
 
+;; The mode line's "PYIM" is small; put the state in the frame title too.
+;; Crafted sets `frame-title-format' to "%b", so keep the buffer name and
+;; prefix a marker while pyim is active.  The title is re-evaluated on
+;; redisplay; these hooks ask for one when the input method changes.
+(setq frame-title-format
+      '((:eval (xueliang-chinese-input-title)) "%b"))
+(add-hook 'input-method-activate-hook #'xueliang-refresh-frame-title)
+(add-hook 'input-method-deactivate-hook #'xueliang-refresh-frame-title)
+
 ;; ============================================================
 ;; Snippets - SPC i s, like the Spacemacs auto-completion layer
 ;; ============================================================

@@ -2850,6 +2850,18 @@ that shows blame has the mode-line loader only."
   (should (memq 'xueliang-pyim-english-p
                 pyim-english-input-switch-functions)))
 
+(ert-deftest xl-chinese-input-shows-in-the-frame-title ()
+  "The frame title says (中文拼音) while pyim is the buffer's input method."
+  (should (equal frame-title-format
+                 '((:eval (xueliang-chinese-input-title)) "%b")))
+  (with-temp-buffer
+    (should (equal (xueliang-chinese-input-title) ""))
+    (setq-local current-input-method "pyim")
+    (should (equal (xueliang-chinese-input-title) "(中文拼音) ")))
+  ;; The title is re-evaluated when the input method changes.
+  (should (memq #'xueliang-refresh-frame-title input-method-activate-hook))
+  (should (memq #'xueliang-refresh-frame-title input-method-deactivate-hook)))
+
 (ert-deftest xl-pyim-keeps-commands-english ()
   "pyim types Chinese only where text is typed.
 The minibuffer, isearch and Evil normal/visual state must keep their
