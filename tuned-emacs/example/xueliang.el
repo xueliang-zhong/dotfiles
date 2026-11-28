@@ -530,7 +530,7 @@
   "<f5>"   #'xueliang-eshell-popup
   "<f6>"   #'consult-yank-pop
   "<f7>"   #'xueliang-just-make
-  "<f8>"   #'xueliang-imenu-or-org-today
+  "<f8>"   #'xl-tagbar-toggle         ; Tagbar-like imenu sidebar
   "<f9>"   #'xueliang-dired-sidebar
   "<f10>"  #'xl-sk-home-buffer
   "<f11>"  #'xueliang-org-sort-upheading

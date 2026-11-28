@@ -256,6 +256,18 @@ Drag the file from the Dired buffer into the page." t)
 
 (register-definition-prefixes "xl-spinner" '("xl-spinner-"))
 
+;;; Generated autoloads from xl-tagbar.el
+
+(autoload 'xl-tagbar-open "xl-tagbar"
+"Show the tagbar for BUFFER, or for the selected window's buffer.
+
+(fn &optional BUFFER)" t)
+(autoload 'xl-tagbar-close "xl-tagbar"
+"Close the tagbar." t)
+(autoload 'xl-tagbar-toggle "xl-tagbar"
+"Toggle the Tagbar-like imenu sidebar." t)
+(register-definition-prefixes "xl-tagbar" '("xl-tagbar-"))
+
 ;;; End of scraped data
 
 (provide 'xl-autoloads)

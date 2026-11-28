@@ -103,7 +103,7 @@ Asynchronous consult lists such as `consult-ripgrep` and `consult-find` show a s
 
 `F8` opens a Tagbar-like sidebar: a dedicated side window on the right that lists the imenu tags of the buffer in the watched window, grouped into sections such as Functions and Variables.
 
-- The candidates, sections and faces come from `consult-imenu` (`consult-imenu--items`); `consult-imenu--jump` performs the jump. Any mode with an imenu backend works, including Org headings.
+- The candidates, sections and faces come from `consult-imenu` (`consult-imenu--items`); `consult-imenu--jump` performs the jump. Any mode with an imenu backend works, including Org headings. Sections and tags get a type icon: functions, variables, macros, types, packages and more, drawn from the Nerd Font (`xl-tagbar-nerd-font`) when it is available and from Unicode symbols otherwise.
 - `RET` or `mouse-1` jumps, `n`/`p` preview the next/previous tag while keeping the tagbar selected, `TAB` folds a section, `g` refreshes and `q` closes. `C-.` runs `embark-act` on the bare tag name (`xl-tagbar--embark-target`).
 - The list rebuilds after 0.3 s of idle editing, at once on save or revert, and when the watched window switches buffers. The tag enclosing point is highlighted and kept visible.
 - The watched window is the one selected when the tagbar opens. Focus never moves when the sidebar opens, refreshes or follows point.
