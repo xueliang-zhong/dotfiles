@@ -117,7 +117,7 @@ A file-watch refresh waits `xl-git-status-refresh-delay' after the last
 event, so a pending one counts as work: otherwise the test looks before it
 has moved the buffer."
   (with-current-buffer buffer
-    (let ((key (xl-git-status--queue-key))
+    (let ((key (xl-git-core-queue-key))
           (end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
                       (xl-async-queue-busy-p key)
@@ -1546,7 +1546,7 @@ instead of the two racing over `.git/index.lock'."
   (let ((dir (xl-test--git-repo)))
     (unwind-protect
         (let ((file (expand-file-name "file-0.txt" dir))
-              (key (xl-git-status--queue-key
+              (key (xl-git-core-queue-key
                     (file-name-as-directory dir))))
           (xl-test--git-output dir "config" "user.email" "test@example.com")
           (xl-test--git-output dir "config" "user.name" "Test")
@@ -1575,12 +1575,12 @@ instead of the two racing over `.git/index.lock'."
   (let ((one (make-temp-file "xl-queue-key-one-" t))
         (other (make-temp-file "xl-queue-key-two-" t)))
     (unwind-protect
-        (let ((key (xl-git-status--queue-key one)))
-          (should (equal key (xl-git-status--queue-key
+        (let ((key (xl-git-core-queue-key one)))
+          (should (equal key (xl-git-core-queue-key
                               (file-name-as-directory one))))
-          (should (equal key (xl-git-status--queue-key
+          (should (equal key (xl-git-core-queue-key
                               (expand-file-name "." one))))
-          (should-not (equal key (xl-git-status--queue-key other))))
+          (should-not (equal key (xl-git-core-queue-key other))))
       (delete-directory one t)
       (delete-directory other t))))
 
@@ -1828,7 +1828,7 @@ Chinese."
 (ert-deftest xl-own-lisp-is-compiled-when-built ()
   "Our lisp is compiled (byte code or native) when its .elc is current, else not."
   (let ((root (expand-file-name "tuned-emacs" xl-dotfiles)))
-    (dolist (case '((xl-git-status--entries "lisp/xl-git-core.el")))
+    (dolist (case '((xl-git-core-entries "lisp/xl-git-core.el")))
       (let* ((src (expand-file-name (cadr case) root))
              (elc (concat src "c"))
              (current (and (file-exists-p elc)

@@ -80,7 +80,7 @@ A file-watch refresh waits `xl-git-status-refresh-delay' after the last
 event, so a pending one counts as work: otherwise the test looks before it
 has moved the buffer."
   (with-current-buffer buffer
-    (let ((key (xl-git-status--queue-key))
+    (let ((key (xl-git-core-queue-key))
           (end (+ (float-time) 10)))
       (while (and (or (not buffer-read-only)
                       (xl-async-queue-busy-p key)
@@ -142,9 +142,9 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
                          " M a b.txt\0"
                          "R  new name\0plain\0"
                          "?? ü.txt\0"))
-         (entries (xl-git-status--entries status)))
-    (should (equal (xl-git-status--branch status) "main"))
-    (should (equal (xl-git-status--upstream status) "origin/main"))
+         (entries (xl-git-core-entries status)))
+    (should (equal (xl-git-core-branch status) "main"))
+    (should (equal (xl-git-core-upstream status) "origin/main"))
     (should (equal entries '((("renamed" . "new name"))
                              (("modified" . "a b.txt"))
                              (("untracked" . "ü.txt")))))))
@@ -158,7 +158,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
                        "similarity index 100%\nrename from plain\nrename to new name\n"
                        "diff --git a/img.png b/img.png\n"
                        "Binary files a/img.png and b/img.png differ\n"))
-         (files (xl-git-status--split-files text)))
+         (files (xl-git-show-split-files text)))
     (should (equal (mapcar #'car files) '("a b.txt" "new name" "img.png")))
     (should (string-prefix-p "diff --git a/a b.txt" (cdr (nth 0 files))))
     (should (string-suffix-p "+b\n" (cdr (nth 0 files))))
@@ -168,9 +168,9 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
   "Every status command carries --no-optional-locks, so a refresh does not
 rewrite .git/index and retrigger the auto refresh."
   (should (member "--no-optional-locks"
-                  (xl-git-status--git-command '("status" "--porcelain=v1"))))
+                  (xl-git-core-git-command '("status" "--porcelain=v1"))))
   (should (equal "--no-optional-locks"
-                 (nth 2 (xl-git-status--git-command '("status"))))))
+                 (nth 2 (xl-git-core-git-command '("status"))))))
 
 (ert-deftest xl-git-status-watch-ignores-noise ()
   "Lock files, editor backups and most of .git do not refresh the status."
@@ -395,7 +395,7 @@ Both go when the status is rendered."
                   ;; Pretend the operation outlived the delay.
                   (xl-test--slot-show-now buffer)
                   (let ((end (+ (float-time) 10)))
-                    (while (and (xl-async-queue-busy-p (xl-git-status--queue-key))
+                    (while (and (xl-async-queue-busy-p (xl-git-core-queue-key))
                                 (< (float-time) end))
                       (accept-process-output nil 0.05)))
                   ;; The same loader carries on under a new label.
@@ -601,7 +601,7 @@ The loader is visible while the queue runs."
               (xl-git-status-stage)
               ;; The command returned with git still running: no blocking,
               ;; and no loader yet, because fast operations must not flicker.
-              (should (xl-async-queue-busy-p (xl-git-status--queue-key)))
+              (should (xl-async-queue-busy-p (xl-git-core-queue-key)))
               (should (equal "Staged file-0.txt"
                              xl-git-status--queue-action))
               (should-not (xl-spinner-running-p))
@@ -773,7 +773,7 @@ The loader is visible while the queue runs."
                    (lambda (b &rest _) (setq buffer b) (set-window-buffer (selected-window) b) b))
                   ((symbol-function 'find-file)
                    (lambda (file) (setq opened file)))
-                  ((symbol-function 'xl-git-status--show-commit)
+                  ((symbol-function 'xl-git-show-commit)
                    (lambda (hash) (setq commit hash))))
           (let ((default-directory (file-name-as-directory repo)))
             (xl-git-status)
@@ -848,7 +848,7 @@ The loader is visible while the queue runs."
                                        "-c" "user.name=Test"
                                        "commit" "-qam" "change file")))
           (let ((default-directory (file-name-as-directory repo)))
-            (xl-git-status--show-commit "HEAD")
+            (xl-git-show-commit "HEAD")
             (setq buffer (get-buffer "*git-show: HEAD*"))
             (should (buffer-live-p buffer))
             (xl-test--wait-for-git-show buffer)
@@ -893,17 +893,17 @@ The loader is visible while the queue runs."
                                        "-c" "user.name=Test"
                                        "commit" "-qam" "change file")))
           (let ((default-directory (file-name-as-directory repo)))
-            (setq buffer (xl-git-status--show-commit "HEAD"))
+            (setq buffer (xl-git-show-commit "HEAD"))
             (with-current-buffer buffer
               ;; The buffer is there before git answers: loader on, no diff.
               (should (xl-spinner-running-p))
-              (should (overlayp xl-git-status--show-spinner))
+              (should (overlayp xl-git-show--show-spinner))
               (should (string-match-p "Loading\\.\\.\\." (buffer-string)))
               (should-not (string-match-p "^diff --git" (buffer-string))))
             (xl-test--wait-for-git-show buffer)
             (with-current-buffer buffer
               (should-not (xl-spinner-running-p))
-              (should-not (overlayp xl-git-status--show-spinner))
+              (should-not (overlayp xl-git-show--show-spinner))
               (should (string-prefix-p "commit " (buffer-string)))
               (should (string-match-p "^diff --git" (buffer-string))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
@@ -1061,7 +1061,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
             (xl-test--wait-for-git-status buffer)
             (with-current-buffer buffer
               (xl-git-status-fetch)
-              (should (xl-async-queue-busy-p (xl-git-status--queue-key))))
+              (should (xl-async-queue-busy-p (xl-git-core-queue-key))))
             (xl-test--wait-for-git-status buffer)
             ;; The branch stays where it was; only origin/<branch> moved.
             (should (equal before (xl-test--git-output repo "rev-parse" "HEAD")))
@@ -1109,7 +1109,7 @@ PEER commits `peer.txt' and pushes it, so REPO is one commit behind."
             (with-current-buffer buffer
               (should-error (xl-git-status-pull) :type 'user-error)
               (should-not (xl-async-queue-busy-p
-                           (xl-git-status--queue-key))))))
+                           (xl-git-core-queue-key))))))
       (when (buffer-live-p buffer) (kill-buffer buffer))
       (delete-directory repo t))))
 

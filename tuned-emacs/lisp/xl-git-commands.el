@@ -363,9 +363,9 @@ Return non-nil when a GBlame buffer was open."
      ((null hash) (user-error "No blame information on this line"))
      ((string-match-p "\\`0+\\'" hash)
       (user-error "This line is not committed yet"))
-     ((fboundp 'xl-git-status--show-commit)
+     ((fboundp 'xl-git-show-commit)
       (let ((default-directory (or xl-gblame--root default-directory)))
-        (xl-git-status--show-commit hash)))
+        (xl-git-show-commit hash)))
      (t (message "Commit %s" hash)))))
 
 (defun xl-gblame ()

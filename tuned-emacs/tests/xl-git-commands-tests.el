@@ -150,7 +150,7 @@
                          (+ 15 (window-body-height window))))))
           ;; RET shows the commit of a committed line.
           (let (shown)
-            (cl-letf (((symbol-function 'xl-git-status--show-commit)
+            (cl-letf (((symbol-function 'xl-git-show-commit)
                        (lambda (hash) (setq shown hash))))
               (with-current-buffer xl-gblame--buffer
                 (goto-char (point-min))

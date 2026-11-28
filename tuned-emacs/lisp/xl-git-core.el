@@ -18,7 +18,7 @@
 (require 'seq)
 (require 'xl-async)
 
-(defun xl-git-status--label (char)
+(defun xl-git-core--label (char)
   "Return a human-readable label for porcelain status CHAR."
   (pcase char
     (?M "modified")
@@ -30,14 +30,14 @@
     (?? "untracked")
     (_ "changed")))
 
-(defun xl-git-status--head-line (status)
+(defun xl-git-core--head-line (status)
   "Return the `## branch' line of porcelain STATUS output.
 The output is NUL-separated (`-z'); a newline also ends the line."
   (car (split-string status "[\0\n]")))
 
-(defun xl-git-status--branch (status)
+(defun xl-git-core-branch (status)
   "Return the branch name from porcelain STATUS output."
-  (let ((line (xl-git-status--head-line status)))
+  (let ((line (xl-git-core--head-line status)))
     (cond
      ((string-match "\\`## No commits yet on \\(.+\\)\\'" line)
       (match-string 1 line))
@@ -49,20 +49,20 @@ The output is NUL-separated (`-z'); a newline also ends the line."
           branch)))
      (t ""))))
 
-(defun xl-git-status--upstream (status)
+(defun xl-git-core-upstream (status)
   "Return the upstream ref from porcelain STATUS output, or nil."
-  (let ((line (xl-git-status--head-line status)))
+  (let ((line (xl-git-core--head-line status)))
     (when (string-match "\\`## [^ \n]+\\.\\.\\.\\([^ \n]+\\)" line)
       (match-string 1 line))))
 
-(defun xl-git-status--subject (log)
+(defun xl-git-core-subject (log)
   "Return the newest commit's subject from LOG output."
   (let ((line (car (split-string log "\n"))))
     (if (string-match "\\`[0-9a-f]+ \\(?:([^)]*) \\)?\\(.*\\)\\'" line)
         (match-string 1 line)
       "")))
 
-(defun xl-git-status--entries (status)
+(defun xl-git-core-entries (status)
   "Return (STAGED UNSTAGED UNTRACKED) file entries from STATUS output.
 STATUS is `git status --porcelain=v1 --branch -z': NUL-separated
 records with raw paths.  Without `-z' git wraps a path with a space
@@ -82,12 +82,12 @@ in quotes, which `git add' then takes literally."
             (if (and (eq x ??) (eq y ??))
                 (push (cons "untracked" path) untracked)
               (unless (memq x '(?\s ?! ??))
-                (push (cons (xl-git-status--label x) path) staged))
+                (push (cons (xl-git-core--label x) path) staged))
               (unless (memq y '(?\s ?! ??))
-                (push (cons (xl-git-status--label y) path) unstaged)))))))
+                (push (cons (xl-git-core--label y) path) unstaged)))))))
     (list (nreverse staged) (nreverse unstaged) (nreverse untracked))))
 
-(defun xl-git-status--queue-key (&optional root)
+(defun xl-git-core-queue-key (&optional root)
   "Return the key of the write queue shared by ROOT's repository.
 Every Git command that writes the index or the refs of one repository
 takes this key, so they run one at a time: a pull and a Gwrite cannot
@@ -98,7 +98,7 @@ place that builds the key."
                                                (or root default-directory))))
         'git-writes))
 
-(defun xl-git-status--git-command (args)
+(defun xl-git-core-git-command (args)
   "Return the full git command line for ARGS.
 `--no-optional-locks' stops a read such as `status' from rewriting
 .git/index.  That rewrite is a change the auto refresh watches for, so
@@ -107,7 +107,7 @@ must write still lock as usual."
   (append '("git" "--no-pager" "--no-optional-locks" "-c" "core.quotepath=false")
           args))
 
-(defun xl-git-status--git-string (root &rest args)
+(defun xl-git-core-git-string (root &rest args)
   "Return the trimmed output of git ARGS run in ROOT, or nil.
 A failing command, or one that prints nothing, returns nil.  This
 runs synchronously and is only for the small config lookups the push
@@ -130,6 +130,12 @@ asynchronous."
 The status view sets it when it loads; without one, a queued write still
 runs, it just has no status buffer to refresh.")
 
+(defun xl-git-core-set-refresh-function (function)
+  "Make FUNCTION refresh a repository's status after its write queue drains.
+The status view calls this when it loads; the core never writes the
+status view's private state, and the view never writes the core's."
+  (setq xl-git-core--refresh-function function))
+
 (defun xl-git-core-refresh (root)
   "Refresh the status buffer of ROOT through the registered function."
   (when (functionp xl-git-core--refresh-function)
@@ -145,10 +151,10 @@ through `xl-git-core-refresh'.  See `xl-async-enqueue' for the queue."
   (let* ((root (plist-get job :root))
          (action (plist-get job :action)))
     (xl-async-enqueue
-     (xl-git-status--queue-key root)
+     (xl-git-core-queue-key root)
      (list :directory root
            :owner (plist-get job :owner)
-           :attempts (mapcar #'xl-git-status--git-command
+           :attempts (mapcar #'xl-git-core-git-command
                              (plist-get job :attempts))
            :stdin (plist-get job :patch)
            :on-start (plist-get job :on-start)

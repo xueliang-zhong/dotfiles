@@ -119,7 +119,7 @@ more operations are queued; `xl-spinner' keeps it for its minimum time,
 so it never flashes."
   (setq xl-git-status--blank nil)
   (xl-git-status--draw-center nil)
-  (unless (xl-async-queue-busy-p (xl-git-status--queue-key))
+  (unless (xl-async-queue-busy-p (xl-git-core-queue-key))
     (xl-spinner-mode-line-stop)))
 
 (defun xl-git-status--start-spinner ()
@@ -142,12 +142,14 @@ status."
                        :path path
                        :heading-start (point))))
     (insert (propertize (format "%-10s " label)
-                        'face (xl-git-status--label-face label))
+                        'face (xl-git-show-label-face label))
             (propertize path 'face 'xl-git-status-file)
             "\n")
     (plist-put section :content-start (point))
     (when diff
-      (xl-git-status--insert-diff status path diff))
+      (setq xl-git-status--sections
+            (append (xl-git-show-insert-diff status path diff)
+                    xl-git-status--sections)))
     (plist-put section :content-end (point))
     (push section xl-git-status--sections)))
 
@@ -378,7 +380,7 @@ drains; see `xl-git-core-enqueue'."
 (defun xl-git-status--queue-label (&optional root)
   "Return the mode-line label of ROOT's write queue.
 It names the running operation and, after it, how many wait."
-  (let ((waiting (xl-async-queue-length (xl-git-status--queue-key root))))
+  (let ((waiting (xl-async-queue-length (xl-git-core-queue-key root))))
     (concat (or xl-git-status--queue-action "git")
             (if (> waiting 0) (format " +%d" waiting) ""))))
 
@@ -552,16 +554,16 @@ The git work runs in the background; the status refreshes when it is done."
   "Return the remote BRANCH pushes to, or nil when none is configured.
 Git prefers `branch.<name>.pushRemote' over `remote.pushDefault'
 over the remote of the upstream, and the menu offers the same."
-  (or (xl-git-status--git-string
+  (or (xl-git-core-git-string
        default-directory "config" "--get"
        (format "branch.%s.pushRemote" branch))
-      (xl-git-status--git-string default-directory "config" "--get"
+      (xl-git-core-git-string default-directory "config" "--get"
                                  "remote.pushDefault")
       (car-safe (xl-git-status--upstream-parts))))
 
 (defun xl-git-status--remotes ()
   "Return the names of this repository's remotes."
-  (split-string (or (xl-git-status--git-string default-directory "remote") "")
+  (split-string (or (xl-git-core-git-string default-directory "remote") "")
                 "\n" t))
 
 (defun xl-git-status-push-to-pushremote ()
@@ -740,7 +742,7 @@ On a hunk, open its file at the line the hunk line belongs to."
             (recenter)))
       (let ((commit (xl-git-status--property 'xl-git-status-commit)))
         (if commit
-            (xl-git-status--show-commit commit)
+            (xl-git-show-commit commit)
           (user-error "Nothing to visit at point"))))))
 
 (defun xl-git-status--property (property)
@@ -763,16 +765,16 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
             ;; A refresh keeps the old sections until here, which is how
             ;; the first load is told apart from a silent refresh.
             (first (null xl-git-status--sections))
-            (entries (xl-git-status--entries status))
-            (branch (xl-git-status--branch status))
-            (subject (xl-git-status--subject log)))
+            (entries (xl-git-core-entries status))
+            (branch (xl-git-core-branch status))
+            (subject (xl-git-core-subject log)))
         (erase-buffer)
         (setq xl-git-status--sections nil
               xl-git-status--overlays nil
               xl-git-status--head-branch
               (unless (member branch '("" "detached HEAD")) branch)
               xl-git-status--head-upstream
-              (xl-git-status--upstream status))
+              (xl-git-core-upstream status))
         (insert (propertize "Head:" 'face 'bold)
                 "     "
                 (propertize branch 'face 'xl-git-status-branch)
@@ -800,7 +802,7 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
               (insert (propertize "No commits yet\n"
                                   'face 'xl-git-status-comment))
             (dolist (line (split-string (string-trim-right log) "\n" t))
-              (xl-git-status--insert-commit line)))
+              (xl-git-show-insert-commit line)))
           (plist-put section :content-end (point))
           (push section xl-git-status--sections))
         (unless (and (zerop status-code) (zerop log-code))
@@ -820,7 +822,7 @@ LOG-CODE and STATUS-CODE are the exit codes of the git commands."
 UNSTAGED is `git diff' and STAGED `git diff --cached'."
   (let ((diffs (make-hash-table :test #'equal)))
     (dolist (part (list (cons "unstaged" unstaged) (cons "staged" staged)))
-      (dolist (file (xl-git-status--split-files (cdr part)))
+      (dolist (file (xl-git-show-split-files (cdr part)))
         (puthash (concat (car part) ":" (car file)) (cdr file) diffs)))
     diffs))
 
@@ -842,7 +844,7 @@ starts four processes instead of over fifty."
         (let ((key (car spec)))
           (xl-async-run
            :name (format "git-status-%s" key)
-           :command (xl-git-status--git-command (cdr spec))
+           :command (xl-git-core-git-command (cdr spec))
            :directory root
            :slot (intern (format "load-%s" key))
            :on-done
@@ -891,7 +893,7 @@ starts four processes instead of over fifty."
                 (xl-git-status))))
 
 (define-derived-mode xl-git-show-mode special-mode "Git-Show"
-  "Major mode for `xl-git-status--show-commit' buffers."
+  "Major mode for `xl-git-show-commit' buffers."
   (require 'diff-mode))
 
 (defun xl-git-status--root ()
@@ -1027,7 +1029,7 @@ A queue that is busy refreshes the status itself when it drains."
       (setq xl-git-status--watch-timer nil)
       (when (and (get-buffer-window buffer t)
                  (not (xl-async-queue-busy-p
-                       (xl-git-status--queue-key default-directory))))
+                       (xl-git-core-queue-key default-directory))))
         (xl-git-status)))))
 
 (defun xl-git-status--scan-watch-dirs (buffer root)
@@ -1132,11 +1134,9 @@ or shows the commit at point."
     (kbd "RET") #'xl-git-status-visit
     (kbd "<return>") #'xl-git-status-visit))
 
-(provide 'xl-git-status)
-
 ;; The status view is the one that knows how to refresh a repository
 ;; after a queued write; register it with the core.
-(setq xl-git-core--refresh-function #'xl-git-status--queue-drained)
+(xl-git-core-set-refresh-function #'xl-git-status--queue-drained)
 
 (provide 'xl-git-status)
 ;;; xl-git-status.el ends here

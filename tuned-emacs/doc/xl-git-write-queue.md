@@ -45,7 +45,7 @@ buffer's `default-directory` agree. A linked worktree has its own index,
 so its own key: two worktrees of one repository still write concurrently,
 which is correct.
 
-`xl-git-status--queue-key` (in `xl-git-core`) is the only place that builds
+`xl-git-core-queue-key` (in `xl-git-core`) is the only place that builds
 the key. Every queue operation must go through it; building a key by hand
 would silently create a second queue.
 
@@ -128,9 +128,9 @@ it is done, as before.
 ## What does not join the queue
 
 - Reads: `status`, `diff`, `log`, `blame`, `show`. They take no write
-  lock (`xl-git-status--git-command` adds `--no-optional-locks`), and
+  lock (`xl-git-core-git-command` adds `--no-optional-locks`), and
   queueing them would hold up a slow `pull` or block a refresh after it.
-- The `git config` lookups of the push menu (`xl-git-status--git-string`).
+- The `git config` lookups of the push menu (`xl-git-core-git-string`).
   They are small synchronous reads, not writes.
 - Discarding an untracked file. It is a file deletion, not Git, followed
   by a synchronous status refresh; it is outside this queue.
