@@ -26,7 +26,10 @@
 ;;
 ;; `xl-async-enqueue' runs jobs of one slot strictly in order (a fast
 ;; `s s s' stages in order instead of racing), retries a job's next command
-;; when one fails, and calls ON-DRAIN once the slot's queue is empty.
+;; when one fails, and calls ON-DRAIN once the slot's queue is empty.  A
+;; cons SLOT is a key shared by every buffer that passes it, so jobs of one
+;; repository run in order whichever buffer started them; a job may also
+;; name its own owner, or nil to outlive every buffer.
 ;;
 ;; Output is plain text: stdout and stderr together, as git writes them.
 ;; Parsing stays with the caller, who knows the format.
@@ -291,6 +294,19 @@ task is left alone."
   "Tasks owned by this buffer, newest first.")
 (put 'xl-async--owned 'permanent-local t)
 
+(defvar-local xl-async--dying nil
+  "Non-nil while this buffer's kill hook runs.
+A drain that runs while the buffer's own task is aborted must not start
+new work in it.")
+(put 'xl-async--dying 'permanent-local t)
+
+(defun xl-async-buffer-dying-p (&optional buffer)
+  "Return non-nil while BUFFER is being killed.
+BUFFER defaults to the current buffer."
+  (let ((buffer (or buffer (current-buffer))))
+    (and (buffer-live-p buffer)
+         (buffer-local-value 'xl-async--dying buffer))))
+
 (defun xl-async--abort-owned ()
   "Abort every task this buffer owns; it is going away."
   (mapc #'xl-async-abort (copy-sequence xl-async--owned)))
@@ -326,7 +342,7 @@ ownership survives a major-mode change in BUFFER."
     (with-current-buffer buffer
       (unless (memq proc xl-async--owned)
         (push proc xl-async--owned))
-      (add-hook 'kill-buffer-hook #'xl-async--abort-owned nil t)))
+      (add-hook 'kill-buffer-hook #'xl-async--buffer-dying nil t)))
   (xl-async-finally
    proc
    (lambda (p)
@@ -365,28 +381,49 @@ Falls back to a global slot when no task is found in BUFFER."
         (cdr (assoc (cons nil slot) xl-async--slots)))))
 
 (defun xl-async--drop-buffer-queues ()
-  "Clear every queue whose key names this buffer; it is going away."
+  "Drop this buffer's jobs from every queue, and clear its own queues.
+It is going away.  Waiting jobs of a keyed queue name their owner, so
+they are removed before the buffer's running tasks are aborted: the
+abort may advance the queue synchronously, and a job of a dying buffer
+must not start."
   (let ((buffer (current-buffer)))
     (dolist (entry (copy-sequence xl-async--queue-table))
-      (when (and (consp (car entry))
-                 (eq (car (car entry)) buffer))
-        (xl-async-queue-clear (car entry))))))
+      (if (and (consp (car entry))
+               (eq (car (car entry)) buffer))
+          (xl-async-queue-clear (car entry))
+        (setf (nth 1 entry)
+              (seq-remove (lambda (cell) (eq (cdr cell) buffer))
+                          (nth 1 entry)))))))
 (put 'xl-async--drop-buffer-queues 'permanent-local-hook t)
 
-(defun xl-async-queue-push (key job &optional on-drain)
+(defun xl-async--buffer-dying ()
+  "This buffer is going away: drop its queued jobs, then abort its tasks.
+The order matters: aborting a task advances its queue in the same call
+stack, and the next job must not be one of the dying buffer's."
+  (setq xl-async--dying t)
+  (unwind-protect
+      (progn
+        (xl-async--drop-buffer-queues)
+        (xl-async--abort-owned))
+    (setq xl-async--dying nil)))
+(put 'xl-async--buffer-dying 'permanent-local-hook t)
+
+(defun xl-async-queue-push (key job &optional on-drain owner)
   "Append JOB to KEY's queue and return KEY.
 JOB is called with one argument, DONE, and calls (funcall DONE) when it
 finishes; jobs of one KEY run strictly in order.  When the queue empties
-ON-DRAIN is called once; a new ON-DRAIN replaces the old one."
+ON-DRAIN is called once; a new ON-DRAIN replaces the old one.  OWNER, a
+buffer, ties JOB to that buffer: killing it drops the job before it
+starts.  Jobs with no OWNER are never dropped this way."
   (let ((entry (assoc key xl-async--queue-table))
         (buffer (and (consp key) (car key))))
     (when (buffer-live-p buffer)
       (with-current-buffer buffer
-        (add-hook 'kill-buffer-hook #'xl-async--drop-buffer-queues nil t)))
+        (add-hook 'kill-buffer-hook #'xl-async--buffer-dying nil t)))
     (unless entry
       (setq entry (list key nil nil nil))
       (push entry xl-async--queue-table))
-    (setf (nth 1 entry) (append (nth 1 entry) (list job)))
+    (setf (nth 1 entry) (append (nth 1 entry) (list (cons job owner))))
     (when on-drain (setf (nth 2 entry) on-drain))
     (xl-async--queue-start key)
     key))
@@ -395,8 +432,8 @@ ON-DRAIN is called once; a new ON-DRAIN replaces the old one."
   "Start KEY's next job, or drain the queue when it is empty."
   (let ((entry (assoc key xl-async--queue-table)))
     (when (and entry (not (nth 3 entry)))
-      (let ((job (pop (nth 1 entry))))
-        (if (null job)
+      (let ((cell (pop (nth 1 entry))))
+        (if (null cell)
             (progn
               (setq xl-async--queue-table
                     (assoc-delete-all key xl-async--queue-table))
@@ -404,7 +441,7 @@ ON-DRAIN is called once; a new ON-DRAIN replaces the old one."
           (let ((done-called nil))
             (setf (nth 3 entry) t)
             (let ((proc (funcall
-                         job
+                         (car cell)
                          (lambda ()
                            (unless done-called
                              (setq done-called t)
@@ -474,7 +511,8 @@ ON-DONE nor the next thunk."
 
 (defun xl-async-queue-busy-p (key &optional buffer)
   "Return non-nil while KEY's queue runs or has jobs waiting.
-KEY may also be a SLOT in BUFFER, as `xl-async-enqueue' uses it."
+KEY may be an explicit queue key, as `xl-async-enqueue' accepts, or a
+SLOT in BUFFER."
   (let ((buffer (or buffer (current-buffer))))
     (or (and (assoc key xl-async--queue-table) t)
         (and (assoc (cons buffer key) xl-async--queue-table) t))))
@@ -559,12 +597,23 @@ current buffer.  Queued jobs are not touched; see `xl-async-clear-queue'."
            (seq-some #'xl-async-live-p
                      (buffer-local-value 'xl-async--owned buffer))))))
 
+(defun xl-async--queue-key (slot buffer)
+  "Return SLOT's queue key in BUFFER.
+A cons SLOT is a key of its own, shared by every buffer that passes it;
+a symbol names the queue of SLOT in BUFFER, as before."
+  (if (consp slot) slot (cons buffer slot)))
+
 (defun xl-async-enqueue (slot job &optional on-drain)
-  "Append JOB to the queue of SLOT in this buffer and start it if idle.
+  "Append JOB to SLOT's queue and start it if the queue is idle.
+SLOT is a symbol naming this buffer's queue, or a cons KEY shared by
+every caller that passes the same key.
+
 JOB is a plist:
 
   :attempts   commands tried in order; the next runs when one fails
   :directory  working directory, default `default-directory'
+  :owner      buffer owning every attempt, default the current one;
+              nil makes them unowned, so no killed buffer stops them
   :stdin      text for every attempt's standard input
   :on-output  streaming callback, see `xl-async-run'
   :timeout    seconds for every attempt, see `xl-async-run'
@@ -572,8 +621,16 @@ JOB is a plist:
   :on-done    called as (ON-DONE OUTPUT EXIT-CODE) for the last attempt
 
 ON-DRAIN, when given, replaces the queue's drain function, which is
-called once the queue runs out of jobs."
+called once the queue runs out of jobs.  A job whose owner buffer was
+killed before it started is skipped: it calls no handler and no
+command, and the queue moves on."
   (let* ((buffer (current-buffer))
+         (explicit (consp slot))
+         (slot-name (unless explicit slot))
+         (key (xl-async--queue-key slot buffer))
+         (owner (if (plist-member job :owner)
+                    (plist-get job :owner)
+                  buffer))
          (directory (or (plist-get job :directory) default-directory))
          (attempt-args (list :directory directory
                              :stdin (plist-get job :stdin)
@@ -585,8 +642,8 @@ called once the queue runs out of jobs."
              (lambda ()
                (apply #'xl-async-run
                       :command command
-                      :owner buffer
-                      :slot slot
+                      :owner owner
+                      :slot slot-name
                       attempt-args)))
            (plist-get job :attempts)))
          (on-start (plist-get job :on-start))
@@ -599,11 +656,17 @@ called once the queue runs out of jobs."
                (funcall on-done (xl-async-output proc)
                         (xl-async-exit-code proc)))))))
     (xl-async-queue-push
-     (cons buffer slot)
+     key
      (lambda (done)
-       (when on-start (funcall on-start))
-       (funcall attempts-job done))
-     on-drain)))
+       ;; A keyed queue outlives its buffer, so a job may reach the
+       ;; front after its owner died: it must not start at all.
+       (if (or (null owner) (buffer-live-p owner))
+           (progn
+             (when on-start (funcall on-start))
+             (funcall attempts-job done))
+         (funcall done)))
+     on-drain
+     owner)))
 
 (defun xl-async-queue-length (slot &optional buffer)
   "Return the number of jobs waiting behind the running one in SLOT."
@@ -613,10 +676,13 @@ called once the queue runs out of jobs."
     (length (nth 1 entry))))
 
 (defun xl-async-clear-queue (slot &optional buffer)
-  "Drop SLOT's waiting jobs in BUFFER and kill the running one."
+  "Drop SLOT's waiting jobs in BUFFER and kill the running one.
+SLOT may also be a cons queue KEY, as `xl-async-enqueue' accepts."
   (let ((buffer (or buffer (current-buffer))))
-    (xl-async-queue-clear (cons buffer slot))
-    (xl-async-cancel slot buffer)))
+    (xl-async-queue-clear (xl-async--queue-key slot buffer))
+    ;; A symbol slot may also have a run that the queue did not start.
+    (unless (consp slot)
+      (xl-async-cancel slot buffer))))
 
 
 (provide 'xl-async)

@@ -158,7 +158,7 @@ Ownership has three effects:
 
 - It sets `xl-async-owner`, so the on-output and on-exit handlers run in BUFFER. If BUFFER is killed, the exit handlers do not run.
 - It adds PROC to BUFFER's buffer-local list `xl-async--owned`. The variable is `permanent-local`, so changing the major mode does not lose it.
-- It adds a **buffer-local** `kill-buffer-hook` to BUFFER, which aborts every task owned by that buffer when it is killed. This is the existing behaviour, limited to that buffer.
+- It adds a **buffer-local** `kill-buffer-hook` to BUFFER which, when the buffer is killed, first removes that buffer's waiting jobs from every queue and then aborts every task the buffer owns. Removing the jobs first matters: aborting a task can advance its queue in the same call stack, and the next job must not be one of the dying buffer's.
 
 A `finally` handler removes PROC from the list.
 
@@ -168,13 +168,15 @@ For the same owner (or globally, with no owner) and the same SLOT, a new task ab
 
 Query: `(xl-async-slot-process SLOT &optional BUFFER)`.
 
-### Queues: `(xl-async-queue-push KEY JOB &optional ON-DRAIN)`
+### Queues: `(xl-async-queue-push KEY JOB &optional ON-DRAIN OWNER)`
 
 The queue's unit is a **job**, not a process: `(lambda (DONE) …)`. The job calls `(funcall DONE)` when it finishes. The queue does not care how many processes a job starts, or whether it runs git or evaluate.
 
 - Jobs with the same KEY run strictly in order; the next starts only after the previous one calls DONE.
 - When the queue is empty, ON-DRAIN is called once (a new one replaces the old one), and the queue is removed.
 - KEY is usually `(BUFFER . SLOT)`. When BUFFER is killed, its queue is cleared.
+- KEY may also be a key of its own, shared by several buffers, such as one per repository. Such a queue outlives its buffers.
+- OWNER, a buffer, ties the job to that buffer: killing it removes the job from the queue before it starts. With no OWNER the job is never removed this way.
 
 Two helpers:
 
@@ -275,8 +277,8 @@ No existing caller changed. The old functions are now compositions:
 | `xl-async-run` | `xl-async-start` (`:directory`, `:stdin`, `:name`) → no `own` if the owner is nil, otherwise `xl-async-own` (default: current buffer) → `xl-async-slot` if `:slot` is given → `xl-async-timeout` if `:timeout` is given → `xl-async-on-output` if `:on-output` is given (wrapped to call `(ON-OUTPUT CHUNK)`) → `xl-async-on-exit` if `:on-done` is given (wrapped to call `(ON-DONE OUTPUT EXIT-CODE)`) |
 | `xl-async-cancel (&optional SLOT BUFFER)` | Aborts the tasks in SLOT (or all) for BUFFER |
 | `xl-async-busy-p` | Looks up the slot table or the owner list |
-| `xl-async-enqueue` | `xl-async-queue-push` with `xl-async-attempts`; `:on-start` runs when the job starts |
-| `xl-async-queue-length`, `xl-async-queue-busy-p`, `xl-async-clear-queue` | The matching queue query or clear |
+| `xl-async-enqueue` | `xl-async-queue-push` with `xl-async-attempts`; `:on-start` runs when the job starts; `:owner` selects the buffer that owns the attempts (default: current buffer, nil: unowned); a cons SLOT is an explicit queue key shared by other buffers |
+| `xl-async-queue-length`, `xl-async-queue-busy-p`, `xl-async-clear-queue` | The matching queue query or clear; all accept an explicit key |
 | `xl-async-timeout-code` | Kept; the value is still 124 |
 
 Behaviour that callers rely on (covered by existing tests): ON-DONE runs in OWNER; ON-DONE does not run if OWNER is killed or the task is cancelled; an unowned task's ON-DONE always runs, and `:slot` cannot be used with it; blocks delivered through `:on-output` are all present in the OUTPUT passed to ON-DONE.

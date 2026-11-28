@@ -296,6 +296,75 @@
     (should (xl-async-test--late-p (lambda () (= finals 1))))
     (should (= finals 1))))
 
+(ert-deftest xl-async-enqueue-key-is-shared-across-buffers ()
+  "One explicit key serializes jobs enqueued from different buffers."
+  (let* ((key (cons "shared-repository" 'git-writes))
+         (log nil)
+         (first (generate-new-buffer " *xl-async-key-1*"))
+         (second (generate-new-buffer " *xl-async-key-2*")))
+    (unwind-protect
+        (progn
+          (dolist (pair (list (cons first "a") (cons second "b")))
+            (with-current-buffer (car pair)
+              (xl-async-enqueue
+               key
+               (list :attempts
+                     (list (list "sh" "-c"
+                                 (concat "sleep 0.05; printf " (cdr pair))))
+                     :on-done (lambda (output _code) (push output log))))))
+          (should (xl-async-queue-busy-p key))
+          (should (= (xl-async-queue-length key) 1))
+          (should (xl-async-test--wait
+                   (lambda () (not (xl-async-queue-busy-p key)))))
+          (should (equal (nreverse log) '("a" "b"))))
+      (dolist (buffer (list first second))
+        (when (buffer-live-p buffer) (kill-buffer buffer))))))
+
+(ert-deftest xl-async-enqueue-skips-jobs-of-a-dead-owner ()
+  "A job whose owner died before it started is skipped, not run."
+  (let* ((key (cons "dead-owner" 'git-writes))
+         (owner (generate-new-buffer " *xl-async-dead-owner*"))
+         (skipped nil)
+         (live nil))
+    (unwind-protect
+        (progn
+          (with-current-buffer owner
+            (xl-async-enqueue key (list :attempts '(("sleep" "0.3"))))
+            (xl-async-enqueue
+             key
+             (list :attempts '(("sh" "-c" "printf x"))
+                   :on-start (lambda () (setq skipped 'started))
+                   :on-done (lambda (_output _code) (setq skipped 'done)))))
+          (should (xl-async-queue-busy-p key))
+          ;; The first job is running and owned by OWNER; killing it aborts
+          ;; that job, and the waiting one must not start in a dead buffer.
+          (kill-buffer owner)
+          (xl-async-enqueue
+           key
+           (list :owner nil
+                 :attempts '(("sh" "-c" "printf live"))
+                 :on-done (lambda (_output _code) (setq live t))))
+          (should (xl-async-test--wait
+                   (lambda () (not (xl-async-queue-busy-p key)))))
+          (should (xl-async-test--late-p (lambda () live)))
+          (should-not skipped))
+      (when (buffer-live-p owner) (kill-buffer owner)))))
+
+(ert-deftest xl-async-clear-queue-accepts-an-explicit-key ()
+  "Clearing a keyed queue drops waiting jobs and aborts the running one."
+  (with-temp-buffer
+    (let* ((key (cons "clear-key" 'git-writes))
+           proc)
+      (xl-async-enqueue key (list :attempts '(("sleep" "5"))))
+      (xl-async-enqueue key (list :attempts '(("true"))))
+      (setq proc (nth 3 (assoc key xl-async--queue-table)))
+      (should (= (xl-async-queue-length key) 1))
+      (xl-async-clear-queue key)
+      (should (= (xl-async-queue-length key) 0))
+      (should-not (xl-async-queue-busy-p key))
+      (should (xl-async-test--wait-settled proc))
+      (should (eq (xl-async-status proc) 'cancelled)))))
+
 ;;; Compatibility layer
 
 (ert-deftest xl-async-run-calls-on-done-in-the-owner ()
