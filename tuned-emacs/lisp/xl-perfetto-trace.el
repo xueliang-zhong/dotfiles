@@ -266,21 +266,30 @@ feature is present, so an unloaded package costs nothing."
          (funcall ,install)))))
 
 (defmacro xl-perfetto-define-span-advice
-    (name function arglist call category track name-form &optional args-form skip-form)
+    (name function arglist call category track name-form
+          &optional args-form skip-form doc)
   "Define NAME as an :around span advice for FUNCTION.
 ARGLIST is the advice's arguments after the original; CALL invokes the
 original.  NAME-FORM and ARGS-FORM are evaluated after it, and SKIP-FORM,
-when given, runs the original without recording."
+when given, runs the original without recording.  DOC is an optional
+sentence added to the generated docstring."
   (declare (indent 6) (debug t))
-  `(defun ,name (original ,@arglist)
-     (if (or (not xl-perfetto--recording) xl-perfetto--inside ,skip-form)
-         ,call
-       (let ((start (xl-perfetto--elapsed)))
-         (unwind-protect
-             ,call
-           (xl-perfetto--record
-            "X" ,name-form ,category start
-            (- (xl-perfetto--elapsed) start) ,track ,args-form))))))
+  (let* ((target (if (symbolp function)
+                     (format "`%s'" (symbol-name function))
+                   function))
+         (docstring (format "Record a span on the %s track around %s.%s"
+                            category target
+                            (if doc (concat "  " doc) ""))))
+    `(defun ,name (original ,@arglist)
+       ,docstring
+       (if (or (not xl-perfetto--recording) xl-perfetto--inside ,skip-form)
+           ,call
+         (let ((start (xl-perfetto--elapsed)))
+           (unwind-protect
+               ,call
+             (xl-perfetto--record
+              "X" ,name-form ,category start
+              (- (xl-perfetto--elapsed) start) ,track ,args-form)))))))
 
 (defvar xl-perfetto--function-origins (make-hash-table :test #'eq)
   "Map from an advised function object to the symbol that owns it.")
@@ -611,16 +620,18 @@ the trace holds no typed text."
 ;;; ============================================================
 
 (xl-perfetto-define-span-advice xl-perfetto--process-filter-around
-  process (process chunk) (funcall original process chunk)
+  process-filter (process chunk) (funcall original process chunk)
   "processes" 3
   (format "filter %s" (process-name process))
-  (list :bytes (string-bytes chunk)))
+  (list :bytes (string-bytes chunk))
+  nil "It records the bytes the filter received.")
 
 (xl-perfetto-define-span-advice xl-perfetto--process-sentinel-around
-  process (process event) (funcall original process event)
+  process-sentinel (process event) (funcall original process event)
   "processes" 3
   (format "sentinel %s" (process-name process))
-  (list :event event))
+  (list :event event)
+  nil "It records the event the sentinel received.")
 
 (defun xl-perfetto--wrap-process (process)
   "Wrap PROCESS's filter and sentinel, once per recording."
@@ -796,14 +807,16 @@ switches modes, and that would bury the mode changes that matter."
 (xl-perfetto-define-span-advice xl-perfetto--vertico-around
   vertico--update (&rest args) (apply original args)
   "completion" 9 "vertico--update"
-  (list :candidates (if (boundp 'vertico--total) vertico--total 0)))
+  (list :candidates (if (boundp 'vertico--total) vertico--total 0))
+  nil "It includes the candidate count.")
 
 (xl-perfetto-define-span-advice xl-perfetto--corfu-around
   corfu--update (&rest args) (apply original args)
   "completion" 9 "corfu--update"
   (append (list :candidates (if (boundp 'corfu--total) corfu--total 0))
           (when xl-perfetto-trace-record-names
-            (list :buffer (buffer-name)))))
+            (list :buffer (buffer-name))))
+  nil "The in-buffer popup computes its candidates here on every keystroke.")
 
 (defun xl-perfetto--install-corfu ()
   "Advise `corfu--update' when corfu is loaded."
@@ -838,22 +851,26 @@ switches modes, and that would bury the mode changes that matter."
   "input" 11 "pyim-input-method"
   (append (list :mode (symbol-name major-mode))
           (when xl-perfetto-trace-record-names
-            (list :buffer (buffer-name)))))
+            (list :buffer (buffer-name))))
+  nil "It covers a whole composition, from the first key to the commit.")
 
 (xl-perfetto-define-span-advice xl-perfetto--pyim-run-around
   pyim-process-run (&rest args) (apply original args)
   "input" 11 "pyim-process-run"
   (list :candidates (if (boundp 'pyim-process--candidates)
                         (length pyim-process--candidates)
-                      0)))
+                      0))
+  nil "The candidate count is the size of the list pyim just built.")
 
 (xl-perfetto-define-span-advice xl-perfetto--pyim-refresh-around
   pyim-page--refresh (&rest args) (apply original args)
-  "input" 11 "pyim-page--refresh")
+  "input" 11 "pyim-page--refresh"
+  nil nil "It measures the popup redraw.")
 
 (xl-perfetto-define-span-advice xl-perfetto--pyim-select-around
   pyim-select-word (&rest args) (apply original args)
-  "input" 11 "pyim-select-word")
+  "input" 11 "pyim-select-word"
+  nil nil "Its duration covers inserting the text and the after-change hooks.")
 
 (defun xl-perfetto--install-input ()
   "Advise pyim's entry points.  Loads pyim when it is installed."
@@ -1348,14 +1365,15 @@ is refused unless native compilation is unavailable."
     (advice-remove function #'xl-perfetto--function-advice)))
 
 (xl-perfetto-define-span-advice xl-perfetto--function-advice
-  emacs (&rest args) (apply original args)
+  "a user-named function" (&rest args) (apply original args)
   "functions" 6
   (or (gethash original xl-perfetto--function-origins) "function")
   (append (list :mode (symbol-name major-mode))
           (when xl-perfetto-trace-record-names
             (list :buffer (buffer-name)))
           (when xl-perfetto-trace-record-names
-            (list :file (buffer-file-name)))))
+            (list :file (buffer-file-name))))
+  nil "It names the function from the advice table.")
 
 ;;;###autoload
 (defmacro xl-perfetto-with-span (name &rest body)
@@ -1389,7 +1407,8 @@ non-local exit still ends the span."
   "commands" 1
   (format "M-x %s" (or this-command "?"))
   (when xl-perfetto-trace-record-names
-    (list :buffer (buffer-name))))
+    (list :buffer (buffer-name)))
+  nil "It names the command that M-x ran.")
 
 (defun xl-perfetto--install-commands ()
   "Install the command hooks, first and last, and the M-x span."

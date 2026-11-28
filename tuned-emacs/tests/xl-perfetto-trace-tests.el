@@ -611,6 +611,22 @@ FIELD values are compared with `equal'."
       (should (>= (aref bad 4) 0)))
     (xl-perfetto-trace-stop)))
 
+(ert-deftest xl-perfetto-advice-docstrings-name-their-targets ()
+  "Every span advice the macro defines has a docstring naming its target."
+  (dolist (pair '((xl-perfetto--process-filter-around . "process-filter")
+                  (xl-perfetto--process-sentinel-around . "process-sentinel")
+                  (xl-perfetto--vertico-around . "vertico--update")
+                  (xl-perfetto--corfu-around . "corfu--update")
+                  (xl-perfetto--pyim-input-around . "pyim-input-method")
+                  (xl-perfetto--pyim-run-around . "pyim-process-run")
+                  (xl-perfetto--pyim-refresh-around . "pyim-page--refresh")
+                  (xl-perfetto--pyim-select-around . "pyim-select-word")
+                  (xl-perfetto--function-advice . "a user-named function")
+                  (xl-perfetto--mx-around . "execute-extended-command")))
+    (let ((doc (documentation (car pair))))
+      (should (and (stringp doc) (not (string-empty-p doc))))
+      (should (string-match-p (regexp-quote (cdr pair)) doc)))))
+
 ;;; ============================================================
 ;;; Ring, output, names
 ;;; ============================================================
