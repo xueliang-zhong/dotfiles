@@ -6,7 +6,7 @@
 ;; time is spent waiting for the network and for gpg.  This file does those two
 ;; parts in parallel, then unpacks each package from its local file in
 ;; dependency order.  Anything it cannot finish is left for `package-install'
-;; (see `xl-install-packages' in init.el), which runs afterwards.
+;; (see `xl-install-packages' in xl-bootstrap.el), which runs afterwards.
 
 ;;; Code:
 
