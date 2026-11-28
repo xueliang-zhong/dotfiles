@@ -296,7 +296,7 @@ one made transient's dependency compat 31.1 look unavailable."
 Comments are ignored (the files explain the rule in their headers).
 Theme names (`spacemacs-dark', `doom-tokyo-night', `doom-themes') are
 allowed."
-  (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/lisp/xl-utils.el"
+  (dolist (file '("tuned-emacs/personal.el" "tuned-emacs/example/xl-utils.el"
                   "tuned-emacs/lisp/xl-git-status.el" "tuned-emacs/lisp/xl-git-commands.el"
                   "tuned-emacs/lisp/xl-perfetto-trace.el"))
     (dolist (entry (xl-test--code-lines (expand-file-name file xl-dotfiles)))

@@ -249,6 +249,10 @@ session."
 ;; lisp/: modules loaded with `require'.  The ones with package headers
 ;; also work when installed on their own.
 (add-to-list 'load-path (expand-file-name "tuned-emacs/lisp" xl-dotfiles))
+;; example/: the author's configuration and its helpers.  xl-utils.el lives
+;; here with xueliang.el; people who copy parts of the example still need it
+;; on `load-path'.
+(add-to-list 'load-path (expand-file-name "tuned-emacs/example" xl-dotfiles))
 ;; xl-key-bindings: SPC tree, M-m, `,' major-mode leader, fd, surround.
 ;; personal.el loads last, so its bindings win over the Spacemacs defaults.
 (require 'xl-key-bindings)
