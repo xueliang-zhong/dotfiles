@@ -309,6 +309,11 @@
 ;; the keys before pyim ever sees them.
 (require 'pyim-basedict)                 ; registers the dictionary, lazily
 (pyim-basedict-enable)
+;; A second, bigger word list (THUOCL, fetched from Git by init.el): the small
+;; dictionary ranks 进天/术入发/北经大学 where this one gives 今天/输入法/北京大学.
+;; Without it pyim still works; the require below is then just nil.
+(when (require 'pyim-tsinghua-dict nil t)
+  (pyim-tsinghua-dict-enable))
 (setq default-input-method "pyim"
       pyim-default-scheme 'quanpin
       pyim-page-length 9

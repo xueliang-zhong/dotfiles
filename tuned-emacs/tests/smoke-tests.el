@@ -2842,8 +2842,11 @@ that shows blame has the mode-line loader only."
   (should (equal pyim-page-tooltip '(posframe minibuffer)))
   ;; Scanning the buffer for words stalls on large files.
   (should-not pyim-candidates-search-buffer-p)
-  (should (seq-find (lambda (dict) (equal (plist-get dict :name) "Basedict-elpa"))
-                    pyim-extra-dicts))
+  ;; Two word lists: pyim's own and THUOCL, fetched from Git by init.el.
+  (dolist (name '("Basedict-elpa" "tsinghua-dict-elpa"))
+    (should (seq-find (lambda (dict) (equal (plist-get dict :name) name))
+                      pyim-extra-dicts)))
+  (should (package-installed-p 'pyim-tsinghua-dict))
   (should (memq 'xueliang-pyim-english-p
                 pyim-english-input-switch-functions)))
 

@@ -189,6 +189,33 @@ session."
 (xl-install-missing-packages)
 
 ;; ============================================================
+;; Git packages - what the archives do not have
+;; ============================================================
+;; pyim's bigger pinyin dictionary is not in any ELPA.  Fetch it from its Git
+;; repository, pinned like Crafted.  When that fails (no network or no git on
+;; the first run), pyim still works with its own small dictionary, and the
+;; next start retries.
+(defconst xl-vc-packages
+  '((pyim-tsinghua-dict
+     :url "https://github.com/redguardtoo/pyim-tsinghua-dict"
+     :rev "9f4a665db629b20a04d4ee6b93582b0abe73e977")))
+
+(when (seq-remove #'package-installed-p (mapcar #'car xl-vc-packages))
+  (require 'package-vc)
+  (dolist (spec xl-vc-packages)
+    (unless (package-installed-p (car spec))
+      (condition-case err
+          (progn
+            (package-vc-install (plist-get (cdr spec) :url)
+                                (plist-get (cdr spec) :rev)
+                                nil (car spec))
+            ;; This session activated packages before the install, so put the
+            ;; new one on `load-path' now.
+            (package-activate-all))
+        (error (message "Could not install %s: %s"
+                        (car spec) (error-message-string err)))))))
+
+;; ============================================================
 ;; Crafted Modules - the parts of Crafted I use
 ;; ============================================================
 ;; evil-collection binds keys in many modes; keep SPC and `,' out of them
