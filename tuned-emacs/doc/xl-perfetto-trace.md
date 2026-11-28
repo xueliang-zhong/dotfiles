@@ -1,10 +1,10 @@
 # xl-perfetto-trace: a Perfetto timeline of the Emacs Lisp layer
 
-Status: implemented (2026-11-25). Implementation notes are in [`xl-perfetto-trace-prompt.md`](xl-perfetto-trace-prompt.md).
+Status: implemented (2026-11-25); redisplay frames added (2026-11-28). Implementation notes are in [`xl-perfetto-trace-prompt.md`](xl-perfetto-trace-prompt.md).
 
 ## In one sentence
 
-Record what Emacs does at the Lisp level over a period of time: commands, timers, process callbacks, asynchronous tasks from xl-async, garbage collection, font-lock, and any functions you name. The result is a Chrome JSON trace file. Open it at [ui.perfetto.dev](https://ui.perfetto.dev) to see the timeline and where the time went.
+Record what Emacs does at the Lisp level over a period of time: commands, timers, process callbacks, asynchronous tasks from xl-async, garbage collection, font-lock, redisplay frames with jank, and any functions you name. The result is a Chrome JSON trace file. Open it at [ui.perfetto.dev](https://ui.perfetto.dev) to see the timeline and where the time went.
 
 **Motivation.** During a slow Chinese input-method session, guessing and batch measurements found that every commit ran an `ispell-completion-at-point` for about 230 ms. A timeline shows that directly.
 
@@ -20,7 +20,7 @@ Record what Emacs does at the Lisp level over a period of time: commands, timers
 
 **Non-goals (not in the first version)**
 
-- Inside the C layer: redisplay phases, key reading, font rendering. Elisp cannot see these.
+- Inside the C layer: the individual redisplay phases, key reading, font rendering. Elisp cannot see these. A redisplay frame gets a start, an end and the Lisp phases inside it, but not the C layout and drawing phases.
 - Merging external samplers (Linux `perf`, macOS Instruments).
 - Perfetto's protobuf format. JSON is enough.
 - Tracing every function. Only the boundaries listed below, plus functions the user names.
@@ -68,6 +68,9 @@ When not recording, this costs one variable check and then runs BODY. When recor
 | `xl-perfetto-trace-directory` | `traces/` under `user-emacs-directory` | Output directory, created if missing. |
 | `xl-perfetto-trace-record-names` | t | Whether buffer and file names are recorded. When nil, only the major mode of a buffer is recorded. |
 | `xl-perfetto-trace-process-scan-interval` | 0.5 | Seconds between scans for new processes during recording (see "Processes"). |
+| `xl-perfetto-trace-frame-budget` | 0.0167 | Budget of one redisplay frame in seconds. A longer frame is marked `jank`, like a missed vsync (see "Redisplay"). |
+| `xl-perfetto-trace-frame-min-interval` | 0.008 | Shortest gap between two recorded frames. Faster redisplays are coalesced into the next recorded frame; a janky frame is always recorded. 0 records every redisplay. |
+| `xl-perfetto-trace-redisplay-detail` | t | Record one marker per redisplayed window and a span for each Lisp phase inside redisplay. When nil, only the frame span remains. |
 
 ### Recording indicator
 
@@ -94,7 +97,7 @@ Chrome JSON trace format (Trace Event Format), which Perfetto UI reads natively.
 | 2 | timers | Timers (normal and idle) |
 | 3 | processes | Process filters and sentinels |
 | 4 | gc | Garbage collection |
-| 5 | redisplay | Redisplay-start markers and font-lock |
+| 5 | redisplay | Redisplay frames, per-window markers, Lisp phase spans and font-lock |
 | 6 | functions | User-named functions and `xl-perfetto-with-span` |
 | 7 | marks | User marks |
 | 8 | modes | Major-mode changes |
@@ -113,7 +116,14 @@ Asynchronous xl-async tasks use async events (`b`/`e`), which Perfetto shows on 
 {"name":"git status","cat":"xl-async","ph":"b","id":"xl-async-7","ts":3000,"pid":123,"tid":3}
 {"name":"git status","cat":"xl-async","ph":"e","id":"xl-async-7","ts":41000,"pid":123,"tid":3,
  "args":{"exit":0,"bytes":5120}}
-{"name":"memory","ph":"C","ts":50000,"pid":123,"args":{"conses":123456,"strings":2345}}
+{"name":"redisplay frame","cat":"redisplay","ph":"X","ts":42000,"dur":20000,"pid":123,"tid":5,
+ "args":{"windows":2,"fontified":830,"jank":true,"interval-ms":16.7,
+         "key-latency-ms":21.3,"command-latency-ms":22.1,"after-command-ms":1.4,
+         "resized":true,"buffer":"notes.org","mode":"org-mode"}}
+{"name":"redisplay frame","ph":"C","ts":62000,"pid":123,
+ "args":{"ms":20.0,"interval-ms":16.7,"windows":2}}
+{"name":"^","cat":"redisplay","ph":"i","s":"t","ts":42000,"pid":123,"tid":5,
+ "args":{"frame-ms":20.0,"budget-ms":16.7,"windows":2}}
 {"name":"start typing Chinese","cat":"marks","ph":"i","s":"t","ts":60000,"pid":123,"tid":7}
 ```
 
@@ -162,13 +172,29 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 - **Arguments.** `gcs-done`, and the collection's sequence number.
 - **Watch for.** `post-gc-hook` must not allocate heavily, since that can trigger further collections. Events are written into positions preallocated in the ring buffer.
 
-### 6. Redisplay and font-lock (`redisplay`)
+### 6. Redisplay (`redisplay`), modelled on a SurfaceFlinger trace
 
-- **Mechanism.**
-  - `pre-redisplay-functions`: an instant event `redisplay` at the start of each redisplay. This can be frequent, so at most one is recorded per millisecond.
-  - `:around` advice on the Lisp function `jit-lock-function`: one `X` event per fontification.
-- **Arguments.** The buffer that was fontified (subject to the option), the major mode, and the character count.
-- **Watch for.** The end of a redisplay cannot be observed, so a redisplay has only its start marker. The duration of font-lock is exact.
+Emacs has no post-redisplay hook. The track therefore builds the closest thing Lisp can observe: one span per **frame**, the windows that frame repainted, the Lisp **phases** inside it, the fontification it caused, the input latency that led to it, and whether it missed its budget.
+
+- **Frame span.** `pre-redisplay-functions` runs in each window just before that window is redisplayed. The first call of a redisplay opens a frame and schedules a zero-delay timer. The timer runs as soon as redisplay returns to the command loop and closes the frame. The `X` span `redisplay frame` therefore covers the Lisp hooks plus the C drawing in between. Windows that Emacs redisplays more than once in one pass are counted once.
+- **Sampling.** A program that calls `redisplay` in a loop (an asynchronous completion UI, for example) can produce thousands of frames per second. Frames closer than `xl-perfetto-trace-frame-min-interval` (default 8 ms, 125 Hz) are coalesced: their window markers, phase spans and font-lock spans are discarded and only the next recorded frame is written, with `coalesced` naming how many fast frames it stands for. A janky frame is always recorded, and the first frame after a gap is always recorded.
+- **Frame arguments.**
+  - `windows`: number of distinct windows repainted.
+  - `fontified`: characters fontified by `jit-lock-function` during the frame.
+  - `jank`: t when the frame lasted longer than `xl-perfetto-trace-frame-budget`.
+  - `interval-ms`: time since the previous recorded frame started.
+  - `coalesced`: number of fast frames skipped since the previous recorded frame, when non-zero.
+  - `key-latency-ms`, `command-latency-ms`, `after-command-ms`: time from the last recorded special key, from the command's `pre-command-hook`, and from the command's end.
+  - `scrolled`, `resized`, `state-changed`, `buffer-changed`: which Lisp phases ran in this frame.
+  - `buffer` and `mode` of the selected window (subject to `xl-perfetto-trace-record-names`).
+  - `cut`: t when `xl-perfetto-trace-stop` closed a frame that was still open.
+- **Jank event.** A janky frame writes an instant event named `^` at the frame start, on the redisplay track, with `frame-ms`, `budget-ms`, `windows`, `buffer` and `mode`. It is a marker, not a counter curve, and it is written even when the frame is closer than the sampling interval.
+- **Frame counter.** When `counters` is enabled, each recorded frame also writes a `C` event `redisplay frame` with `ms`, `interval-ms`, `windows` and, when non-zero, `coalesced`. Perfetto draws these as a frame-time graph.
+- **Per-window markers.** With `xl-perfetto-trace-redisplay-detail` (default t), every redisplayed window gets one instant `redisplay <buffer>` per recorded frame, with `buffer`, `mode`, `selected`, `width` and `height`. This is the closest analogue of a SurfaceFlinger layer. Markers are held in memory until the frame is chosen for recording, so a coalesced frame writes none.
+- **Lisp phase spans.** Also with detail, first and last functions bracket the global value of each redisplay hook: `window-state-change-functions`, `window-size-change-functions`, `window-buffer-change-functions`, `window-scroll-functions` and `window-state-change-hook`. Buffer-local values, if a buffer has any, run before the bracket, so the span covers the global part; the phase flag still says that the hook ran. The resulting spans are named after the hook and carry the buffer and mode when a window is known. They are kept until the frame is recorded, so a coalesced frame writes none. They are the parts of a redisplay that Lisp can time; the C layout and drawing remain the gap inside the frame.
+- **Fontification.** `:around` advice on `jit-lock-function` records one `X` event per fontification, with buffer, file, mode and character count. The span is held until the frame is recorded, and the character counts are added to the open frame's `fontified`.
+- **Summary.** The trace metadata records `redisplay-frames` (all frames seen), `redisplay-recorded-frames`, `redisplay-coalesced-frames`, `redisplay-jank-frames` and `redisplay-max-frame-ms`.
+- **Watch for.** A redisplay triggered inside a command (an explicit `(redisplay)`, for example) is measured until the command loop resumes, so it may include the rest of that command. The frame end is the command loop, not the compositor: there is no vsync or presentation feedback in Lisp.
 
 ### 7. Functions the user names (`functions`)
 
@@ -209,7 +235,8 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 ### 13. Counters (`counters`)
 
-- After each GC, and once a second (reusing the process-scan timer), a `C` event with the entries of `memory-use-counts`, `gcs-done`, the number of live processes, and the number of buffers.
+- The only counter is the redisplay frame counter described in item 6: one `C` event per recorded frame with `ms`, `interval-ms`, `windows` and, when non-zero, `coalesced`.
+- Memory and object counters are not recorded. The first version sampled `memory-use-counts` after each GC and once a second, but those curves did not answer the questions the trace is used for, so they were removed.
 
 ## Time, buffer and re-entry guard
 
@@ -230,11 +257,12 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 **Stop** (idempotent, inside `unwind-protect`, so instrumentation is always removed):
 
-1. Remove everything in the "installed" list, in reverse order: hooks, advice, process-function wrappers and timers.
-2. Add an `e` event for each unfinished xl-async id.
-3. Turn off the mode-line indicator.
-4. Convert the buffer to JSON (`json-serialize`) and write the file.
-5. Show the path and the event count in the echo area, and return the path.
+1. Close a redisplay frame that is still open, marking it `cut`.
+2. Remove everything in the "installed" list, in reverse order: hooks, advice, process-function wrappers and timers.
+3. Add an `e` event for each unfinished xl-async id.
+4. Turn off the mode-line indicator.
+5. Convert the buffer to JSON (`json-serialize`) and write the file.
+6. Show the path and the event count in the echo area, and return the path.
 
 **Other cases.**
 
@@ -245,7 +273,7 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 
 - File name: `emacs-trace-<YYYYMMDD-HHMMSS>.json`, in `xl-perfetto-trace-directory`.
 - Method: write a temporary file and rename it, so a partly written file is never seen.
-- Size: 100,000 events are about 15 to 25 MB, which Perfetto UI opens easily.
+- Size: 100,000 events are about 15 to 25 MB, which Perfetto UI opens easily. A 120 s recording at the default redisplay sampling rate holds at most about 15,000 frame events, so it stays well under that cap.
 - Opening: ui.perfetto.dev parses the file locally in the browser, so the file is not uploaded. The offline build of Perfetto also works without a network.
 
 ## Following from another process
@@ -262,6 +290,7 @@ When the main Emacs starts recording, it writes a marker file `traces/recording.
 - Target: no more than 5 µs per recorded event (Apple Silicon). Typing should not feel any difference.
 - Method: trace an empty function, call it 100,000 times, and compare the time with and without tracing. The command `xl-perfetto-trace-benchmark` was removed (it existed only for one-off measurement, so it is not kept). Tests do not assert timings, to avoid flakiness on slow machines.
 - Measured (2026-11-25, Emacs 31.1 `aarch64-apple-darwin23.6.0`, `emacs --batch`, 100,000 calls, three runs): **about 3.2 µs per call when byte-compiled**, which meets the 5 µs target. Loading the `.el` source directly costs about 7.1 µs per call, because the recording path itself runs interpreted. A normal install compiles through `compile-lisp` into `.elc`, so 3.2 µs is the figure for run time. Commands and timer events are recorded once each, so this figure is not multiplied for them, and it is not noticeable when typing. The test only prints this number and does not assert it.
+- Redisplay instrumentation costs one zero-delay timer per redisplay, plus one frame span and (with `counters`) one counter event per **recorded** frame. Window markers, phase spans and font-lock spans are held in memory and written only for recorded frames. Sampling at `xl-perfetto-trace-frame-min-interval` bounds the event rate, so a redisplay loop cannot fill the ring buffer in seconds.
 
 ## Privacy and security
 
@@ -283,7 +312,7 @@ When the main Emacs starts recording, it writes a marker file `traces/recording.
 
 ERT. Every test runs in a temporary directory and confirms at the end that no instrumentation remains.
 
-1. **No trace after start and stop.** `pre-command-hook`, `post-command-hook`, `post-gc-hook` and `pre-redisplay-functions` are restored exactly; `timer-event-handler`, `jit-lock-function` and `xl-async-run` carry no tracer advice; no tracer timers remain; each process's filter and sentinel are `eq` to their values before start.
+1. **No trace after start and stop.** `pre-command-hook`, `post-command-hook`, `post-gc-hook`, `pre-redisplay-functions` and the five window change hooks are restored exactly; `timer-event-handler`, `jit-lock-function` and `xl-async-run` carry no tracer advice; no tracer timers remain; each process's filter and sentinel are `eq` to their values before start.
 2. **Commands.** Simulate pre and post with `run-hooks`, bind `this-command` to a symbol, and get an `X` event with the right name and a non-negative `dur`. No key appears in the arguments.
 3. **Timers.** Run a named function with `run-at-time 0`, wait for it, and get the matching event with `idle` nil. An idle timer gets `idle` t.
 4. **GC.** Call `garbage-collect`, and get a `gc` event with a non-negative `dur`.
@@ -297,11 +326,18 @@ ERT. Every test runs in a temporary directory and confirms at the end that no in
 12. **Rollback on a failed start.** Simulate an error partway through installation: instrumentation already installed is removed, and the state is not recording.
 13. **Name recording switch.** With `xl-perfetto-trace-record-names` nil, events contain no buffer or file names.
 14. **Chinese input.** With pyim (or a stub) present, the four entry points carry the advice while recording; calling them writes `input` events with the candidate count, and stopping removes the advice.
+15. **Redisplay frame.** Run `pre-redisplay-functions`, let the zero-delay timer close the frame, and get an `X` event `redisplay frame` with `windows` and `jank`, plus its `C` counter event. Stopping while a frame is open closes it once, with `cut` set.
+16. **Window markers.** With detail on, a window is marked once even when its redisplay hook runs twice in one frame; with detail off, no window marker and no phase span is written.
+17. **Redisplay phases.** Running `window-size-change-functions` and `window-scroll-functions` gives spans named after the hooks, and the frame says `resized` and `scrolled`.
+18. **Jank.** A frame stretched past `xl-perfetto-trace-frame-budget` has `jank` t, writes a `^` instant event whose arguments give the frame time and budget, and the metadata counts it. The frame counter carries no `jank` field.
+19. **Latency.** After a key, a command and a post-command, the next frame carries `key-latency-ms`, `command-latency-ms` and `after-command-ms`.
+20. **No memory counters.** A GC and a scan write no `memory` or `counters` event.
+21. **Coalescing.** With a 50 ms minimum interval, three fast frames are merged into the next recorded one; their window markers and phase spans are discarded; the recorded frame says `coalesced 3`; and the metadata counts recorded and coalesced frames.
 
 ## Acceptance criteria
 
 - `bash tuned-emacs/install/emacs-setup.sh test` passes completely, including the new test.
-- In a real GUI Emacs, record 10 seconds while typing, switching buffers and opening an xl-dired preview. The file opens in ui.perfetto.dev, and shows tracks for commands, timers, GC, xl-async and font-lock.
+- In a real GUI Emacs, record 10 seconds while typing, switching buffers and opening an xl-dired preview. The file opens in ui.perfetto.dev, and shows tracks for commands, timers, GC, xl-async, redisplay frames with jank, and font-lock.
 - Not recording: no tracer function remains in the global hooks, and `advice-member-p` is nil for every tracer advice.
 
 ## Possible future work
@@ -310,9 +346,11 @@ ERT. Every test runs in a temporary directory and confirms at the end that no in
 - Add `xl-perfetto-with-span` to the critical paths of xl-dired.
 - Produce flame graphs from Emacs's built-in `profiler`. It has no timestamps, so it gives call trees only, not a timeline.
 - An on-demand snapshot: one command records for 10 seconds, stops by itself and opens the file.
+- Label why a frame happened from the deltas of `redisplay--all-windows-cause` and `redisplay--mode-lines-cause`. Both are internal, version-dependent cause codes, so the first version records only which Lisp phases ran.
 
 ## Known limitations
 
-- The C layer is not visible: a redisplay has only a start marker, with no per-phase durations. Key-reading latency can only be inferred from gaps between commands.
+- The C layer is not visible. A frame span measures from the first Lisp redisplay hook until the command loop resumes, not the compositor's presentation or a vsync; the individual C phases (layout, drawing, bidi) still cannot be timed. Key-reading latency is still inferred from the last recorded key and the command hooks.
+- Frames closer than `xl-perfetto-trace-frame-min-interval` are coalesced. Their individual durations are not in the trace; the next recorded frame says how many were merged. Set the interval to 0 to see every redisplay, at the risk of filling the ring buffer during a redisplay loop.
 - For processes that are not xl-async, output in the first `xl-perfetto-trace-process-scan-interval` seconds after creation may be missed.
 - During a recursive edit (for example, running a command inside the minibuffer), the span of the outer command is discarded rather than shown nested.

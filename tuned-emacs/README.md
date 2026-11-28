@@ -8,7 +8,7 @@ A thin personal layer on top of a pinned [Crafted Emacs](https://github.com/Syst
 
 - **Background native compilation (xl-eln-opt).** The key feature described above. See [Background compilation](#background-compilation).
 - **Asynchronous rewrite of popular packages/commands** like magit-status, package-install, git blame, etc. Status, staging, commit, blame and the commit view run as asynchronous processes, with a spinner instead of a frozen interface. See [doc/lisp-modules.md](doc/lisp-modules.md).
-- **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC and font-lock as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
+- **Perfetto trace profiling support.** `xl-perfetto-trace` records commands, timers, process callbacks, GC, font-lock and redisplay frames (with jank and window/phase detail) as a Perfetto timeline, with zero cost when off. See [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md).
 - **Async extras.** Asynchronous dired, Org babel with live output and cancellation, persistent scratch, a completion stack (vertico, consult, corfu, orderless, embark), and a macOS UK keyboard fix for `#`.
 - **Chinese input inside Emacs (pyim).** `F2` toggles a Lisp input method instead of the macOS IME, so no keypress waits for a system round trip; candidates appear at point through posframe.
 - **Shared asynchronous layer.** One composable process API (`xl-async`) runs Git, dired listings and previews, Org `:async` source blocks, and background Lisp evaluation.
@@ -184,5 +184,6 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/xl-eln-opt.md](doc/xl-eln-opt.md) | Background native compilation: sources, verdicts, the child, reports |
 | [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
 | [doc/xl-perfetto-trace-prompt.md](doc/xl-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
+| [doc/refactoring-plan.md](doc/refactoring-plan.md) | Proposed architecture refactoring: target layers and eight steps |
 
 New documents go in `doc/`. Documents are written in English.

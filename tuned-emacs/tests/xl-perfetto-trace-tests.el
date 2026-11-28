@@ -129,6 +129,11 @@ FIELD values are compared with `equal'."
         (post (copy-sequence post-command-hook))
         (gc (copy-sequence post-gc-hook))
         (redisplay (copy-sequence pre-redisplay-functions))
+        (state (copy-sequence window-state-change-functions))
+        (size (copy-sequence window-size-change-functions))
+        (buffer-change (copy-sequence window-buffer-change-functions))
+        (scroll (copy-sequence window-scroll-functions))
+        (state-hook (copy-sequence window-state-change-hook))
         (buffer (generate-new-buffer " *xl-perfetto-test-proc*"))
         process filter sentinel)
     (unwind-protect
@@ -154,6 +159,14 @@ FIELD values are compared with `equal'."
           (should (equal post post-command-hook))
           (should (equal gc post-gc-hook))
           (should (equal redisplay pre-redisplay-functions))
+          (should (equal state window-state-change-functions))
+          (should (equal size window-size-change-functions))
+          (should (equal buffer-change window-buffer-change-functions))
+          (should (equal scroll window-scroll-functions))
+          (should (equal state-hook window-state-change-hook))
+          (should-not xl-perfetto--frame)
+          (should-not xl-perfetto--frame-timer)
+          (should-not xl-perfetto--redisplay-phase)
           (should-not (advice-member-p #'xl-perfetto--timer-advice
                                        'timer-event-handler))
           (should-not (advice-member-p #'xl-perfetto--jit-lock-around
@@ -322,6 +335,188 @@ FIELD values are compared with `equal'."
             (xl-perfetto-trace-stop))
         (when (process-live-p process) (delete-process process))
         (kill-buffer buffer)))))
+
+(ert-deftest xl-perfetto-trace-records-no-memory-counters ()
+  "GC and the scan timer no longer write memory counter events."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (garbage-collect)
+    (xl-perfetto--scan)
+    (should-not (xlpt--ring-event "memory"))
+    (should-not (seq-find (lambda (event)
+                            (equal "counters" (aref event 2)))
+                          (xl-perfetto--events)))
+    (xl-perfetto-trace-stop)))
+
+;;; ============================================================
+;;; Redisplay frames
+;;; ============================================================
+
+(ert-deftest xl-perfetto-trace-records-a-redisplay-frame ()
+  "A redisplay becomes a frame span with its windows, jank and a counter."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (run-hook-with-args 'pre-redisplay-functions (selected-window))
+    (should xl-perfetto--frame)
+    (should (xlpt--wait-idle (lambda () (null xl-perfetto--frame)) 3))
+    (let ((frame (xlpt--ring-event "redisplay frame"))
+          (counter (seq-find
+                    (lambda (event)
+                      (and (equal "C" (aref event 0))
+                           (equal "redisplay frame" (aref event 1))))
+                    (xl-perfetto--events))))
+      (should frame)
+      (should (equal "redisplay" (aref frame 2)))
+      (should (>= (aref frame 4) 0))
+      (should (= 1 (plist-get (aref frame 6) :windows)))
+      (should (plist-member (aref frame 6) :jank))
+      (should counter)
+      (should (numberp (plist-get (aref counter 6) :ms)))
+      (should-not (plist-member (aref counter 6) :jank)))
+    (xl-perfetto-trace-stop)))
+
+(ert-deftest xl-perfetto-trace-stop-closes-an-open-frame ()
+  "Stopping while a frame is open records it once, marked cut."
+  (xlpt--with-recording directory
+    (xl-perfetto-trace-start)
+    (run-hook-with-args 'pre-redisplay-functions (selected-window))
+    (should xl-perfetto--frame)
+    (let* ((file (xl-perfetto-trace-stop))
+           (event (xlpt--find (xlpt--read file)
+                              "ph" "X" "name" "redisplay frame")))
+      (should-not xl-perfetto--frame)
+      (should-not xl-perfetto--frame-timer)
+      (should event)
+      (should (eq t (xlpt--arg event "cut")))
+      (should (string-prefix-p directory file)))))
+
+(ert-deftest xl-perfetto-trace-coalesces-fast-frames ()
+  "Frames closer than the minimum interval are merged into the next one."
+  (xlpt--with-recording directory
+    (let ((xl-perfetto-trace-frame-min-interval 0.05))
+      (xl-perfetto-trace-start)
+      ;; The first frame is always recorded.
+      (run-hook-with-args 'pre-redisplay-functions (selected-window))
+      (xl-perfetto--redisplay-frame-end)
+      ;; Three fast frames and their detail spans are coalesced away.
+      (dotimes (_ 3)
+        (run-hook-with-args 'pre-redisplay-functions (selected-window))
+        (run-hook-with-args 'window-scroll-functions (selected-window) 1)
+        (xl-perfetto--redisplay-frame-end))
+      (should (= 1 xl-perfetto--recorded-frame-count))
+      (should (= 3 xl-perfetto--coalesced-pending))
+      (should-not (xlpt--ring-event "window-scroll"))
+      ;; Pretend the last recorded frame was 100 ms ago, then record another.
+      (setq xl-perfetto--last-recorded-frame-start
+            (- (xl-perfetto--elapsed) 100000))
+      (run-hook-with-args 'pre-redisplay-functions (selected-window))
+      (run-hook-with-args 'window-scroll-functions (selected-window) 1)
+      (xl-perfetto--redisplay-frame-end)
+      (let ((frames (seq-filter
+                     (lambda (event)
+                       (and (equal "X" (aref event 0))
+                            (equal "redisplay frame" (aref event 1))))
+                     (xl-perfetto--events))))
+        (should (= 2 (length frames)))
+        (should (= 3 (plist-get (aref (nth 1 frames) 6) :coalesced)))
+        (should (= 2 xl-perfetto--recorded-frame-count))
+        (should (= 3 xl-perfetto--coalesced-count))
+        (should (= 5 xl-perfetto--frame-count))
+        (should (xlpt--ring-event "window-scroll")))
+      (let* ((file (xl-perfetto-trace-stop))
+             (metadata (gethash "metadata" (xlpt--read file))))
+        (should (= 2 (gethash "redisplay-recorded-frames" metadata)))
+        (should (= 3 (gethash "redisplay-coalesced-frames" metadata)))
+        (should (string-prefix-p directory file))))))
+
+(ert-deftest xl-perfetto-trace-marks-each-redisplayed-window ()
+  "Detail mode marks a window once per frame, and can be turned off."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (let ((window (selected-window)))
+      (run-hook-with-args 'pre-redisplay-functions window)
+      (run-hook-with-args 'pre-redisplay-functions window)
+      (should (= 1 (xl-perfetto--frame-windows xl-perfetto--frame)))
+      (xl-perfetto--redisplay-frame-end)
+      (let ((marks (seq-filter
+                    (lambda (event)
+                      (and (equal "i" (aref event 0))
+                           (equal "redisplay" (aref event 2))))
+                    (xl-perfetto--events))))
+        (should (= 1 (length marks)))
+        (should (string-prefix-p "redisplay " (aref (car marks) 1)))
+        (should (plist-get (aref (car marks) 6) :buffer))
+        (should (eq t (plist-get (aref (car marks) 6) :selected)))
+        (should (integerp (plist-get (aref (car marks) 6) :width)))))
+    ;; With detail off, only the frame span remains.
+    (let ((xl-perfetto-trace-redisplay-detail nil))
+      (run-hook-with-args 'pre-redisplay-functions (selected-window))
+      (xl-perfetto--redisplay-frame-end))
+    (let ((marks (seq-filter
+                  (lambda (event)
+                    (and (equal "i" (aref event 0))
+                         (equal "redisplay" (aref event 2))))
+                  (xl-perfetto--events))))
+      (should (= 1 (length marks))))
+    (xl-perfetto-trace-stop)))
+
+(ert-deftest xl-perfetto-trace-records-redisplay-phases ()
+  "Window change and scroll hooks are spans inside the frame."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (run-hook-with-args 'window-size-change-functions (selected-frame))
+    (run-hook-with-args 'window-scroll-functions (selected-window) 1)
+    (xl-perfetto--redisplay-frame-end)
+    (let ((size (xlpt--ring-event "window-size-change"))
+          (scroll (xlpt--ring-event "window-scroll"))
+          (frame (xlpt--ring-event "redisplay frame")))
+      (should size)
+      (should (equal "redisplay" (aref size 2)))
+      (should scroll)
+      (should (plist-get (aref scroll 6) :buffer))
+      (should (plist-get (aref frame 6) :resized))
+      (should (plist-get (aref frame 6) :scrolled)))
+    (xl-perfetto-trace-stop)))
+
+(ert-deftest xl-perfetto-trace-marks-a-janky-frame ()
+  "A frame over the budget gets a `^' event, and the summary counts it."
+  (xlpt--with-recording directory
+    (xl-perfetto-trace-start)
+    (run-hook-with-args 'pre-redisplay-functions (selected-window))
+    (setf (xl-perfetto--frame-start xl-perfetto--frame)
+          (- (xl-perfetto--elapsed) 50000))
+    (xl-perfetto--redisplay-frame-end)
+    (should (= 1 xl-perfetto--jank-count))
+    (let* ((file (xl-perfetto-trace-stop))
+           (trace (xlpt--read file))
+           (event (xlpt--find trace "ph" "X" "name" "redisplay frame"))
+           (caret (xlpt--find trace "ph" "i" "name" "^"))
+           (counter (xlpt--find trace "ph" "C" "name" "redisplay frame"))
+           (metadata (gethash "metadata" trace)))
+      (should (eq t (xlpt--arg event "jank")))
+      (should caret)
+      (should (= 5 (gethash "tid" caret)))
+      (should (> (xlpt--arg caret "frame-ms") 16))
+      (should-not (xlpt--arg counter "jank"))
+      (should (= 1 (gethash "redisplay-jank-frames" metadata)))
+      (should (> (gethash "redisplay-max-frame-ms" metadata) 16)))))
+
+(ert-deftest xl-perfetto-trace-measures-frame-latency ()
+  "A frame records how long the key, the command and post-command took."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (let ((last-command-event 'return)
+          (this-command 'xlpt--latency-command))
+      (run-hooks 'pre-command-hook)
+      (run-hooks 'post-command-hook))
+    (run-hook-with-args 'pre-redisplay-functions (selected-window))
+    (xl-perfetto--redisplay-frame-end)
+    (let ((frame (xlpt--ring-event "redisplay frame")))
+      (should (plist-member (aref frame 6) :key-latency-ms))
+      (should (plist-member (aref frame 6) :command-latency-ms))
+      (should (plist-member (aref frame 6) :after-command-ms))
+      (should (>= (plist-get (aref frame 6) :key-latency-ms) 0)))
+    (xl-perfetto-trace-stop)))
 
 ;;; ============================================================
 ;;; xl-async and user-named functions

@@ -15,8 +15,14 @@
 ;;
 ;; The result is a Chrome JSON trace written to `xl-perfetto-trace-directory'.
 ;; Each category has its own track: commands, timers, process filters and
-;; sentinels, GC, redisplay and font-lock, functions you asked to trace, and
-;; your own marks.  `xl-async' jobs and memory counters get their own tracks.
+;; sentinels, GC, redisplay frames and font-lock, functions you asked to trace,
+;; and your own marks.  `xl-async' jobs get their own async tracks, and
+;; redisplay frames get a counter track.  A redisplay frame has its duration,
+;; the windows it repainted, the Lisp phases inside it and whether it missed
+;; its budget (jank, shown as a `^' event), in the style of a SurfaceFlinger
+;; trace.  Frames closer than `xl-perfetto-trace-frame-min-interval' are
+;; coalesced, so a program that calls `redisplay' in a loop cannot flood the
+;; ring buffer.
 ;;
 ;; Nothing is recorded outside a recording: hooks, advice, process function
 ;; wrappers and timers exist only between `xl-perfetto-trace-start' and
@@ -122,6 +128,33 @@ exactly from the start; see `xl-perfetto--async-around'."
   :type 'number
   :group 'xl-perfetto)
 
+(defcustom xl-perfetto-trace-frame-budget 0.0167
+  "Budget of one redisplay frame, in seconds.
+A redisplay that takes longer is marked with `jank' in the trace and
+counted as a janky frame, the way a missed vsync is marked in a
+SurfaceFlinger trace.  The default is one frame at 60 Hz."
+  :type 'number
+  :group 'xl-perfetto)
+
+(defcustom xl-perfetto-trace-redisplay-detail t
+  "Whether a recording details each recorded redisplay frame.
+When non-nil, every redisplayed window gets a marker and the Lisp phases
+inside redisplay (window state, size and buffer changes, scrolling) get
+their own spans.  When nil, a recording keeps only one span per redisplay
+frame, which is much cheaper but hides which window and phase ran."
+  :type 'boolean
+  :group 'xl-perfetto)
+
+(defcustom xl-perfetto-trace-frame-min-interval 0.008
+  "Shortest gap between two recorded redisplay frames, in seconds.
+Frames closer together than this are coalesced into the next recorded
+frame, because a program that calls `redisplay' in a loop can make
+thousands of frames per second and fill the ring buffer.  A janky frame
+is always recorded.  Set this to 0 to record every redisplay.  The
+default 0.008 is 125 frames per second, enough for a 120 Hz display."
+  :type 'number
+  :group 'xl-perfetto)
+
 ;;; ============================================================
 ;;; Recording state
 ;;; ============================================================
@@ -191,23 +224,14 @@ exactly from the start; see `xl-perfetto--async-around'."
 (defvar xl-perfetto--in-gc nil
   "Guards the GC hook against a collection caused by its own work.")
 
-(defvar xl-perfetto--in-counter nil
-  "Guards counter sampling against a collection caused by its own work.")
-
-(defvar xl-perfetto--last-redisplay-ms nil
-  "Millisecond of the last redisplay mark, so one millisecond has one mark.")
-
 (defvar xl-perfetto--wrapped-processes nil
   "Processes whose filter and sentinel this recording wrapped.")
 
 (defvar xl-perfetto--process-scan-timer nil
-  "Timer that finds new processes and samples counters, or nil.")
+  "Timer that finds new processes and updates the mode line, or nil.")
 
 (defvar xl-perfetto--auto-stop-timer nil
   "Timer that stops the recording at its time limit, or nil.")
-
-(defvar xl-perfetto--last-counter nil
-  "Time of the last counter sample, or nil.")
 
 (defvar xl-perfetto--async-open nil
   "Alist of open `xl-async' jobs: id to a plist with :name.")
@@ -238,6 +262,61 @@ every following recording until `xl-perfetto-untrace-function'.")
 (defvar xl-perfetto--last-dropped 0
   "Number of dropped events in the most recent trace file.")
 
+(cl-defstruct (xl-perfetto--frame (:constructor xl-perfetto--make-frame)
+                                  (:copier nil))
+  "The redisplay frame currently being measured.
+START, INTERVAL, KEY-LATENCY, COMMAND-LATENCY and AFTER-COMMAND are in
+microseconds.  WINDOWS counts distinct windows; SEEN and PRE-SEEN are the
+windows already counted and waiting for a marker.  SPANS holds the
+deferred font-lock and phase spans, so a coalesced frame costs no trace
+events.  The phase flags say which Lisp redisplay hooks ran in this frame."
+  start interval key-latency command-latency after-command
+  windows seen pre-seen spans fontified
+  scroll resize state buffer-change
+  selected-buffer selected-mode)
+
+(defvar xl-perfetto--frame nil
+  "The open redisplay frame, or nil when none is open.")
+
+(defvar xl-perfetto--frame-timer nil
+  "Timer that closes the open redisplay frame, or nil.")
+
+(defvar xl-perfetto--last-frame-start nil
+  "Start of the previous redisplay frame, in microseconds, or nil.")
+
+(defvar xl-perfetto--last-key-time nil
+  "Time of the last recorded special key, in microseconds, or nil.")
+
+(defvar xl-perfetto--last-command-start nil
+  "Start of the most recent command, in microseconds, or nil.")
+
+(defvar xl-perfetto--last-command-end nil
+  "End of the most recent command, in microseconds, or nil.")
+
+(defvar xl-perfetto--redisplay-phase nil
+  "The open Lisp redisplay phase as (NAME START WINDOW), or nil.")
+
+(defvar xl-perfetto--frame-count 0
+  "Number of redisplay frames in the current recording.")
+
+(defvar xl-perfetto--jank-count 0
+  "Number of redisplay frames over `xl-perfetto-trace-frame-budget'.")
+
+(defvar xl-perfetto--frame-max 0
+  "Duration of the longest redisplay frame, in microseconds.")
+
+(defvar xl-perfetto--last-recorded-frame-start nil
+  "Start of the last redisplay frame written to the trace, or nil.")
+
+(defvar xl-perfetto--recorded-frame-count 0
+  "Number of redisplay frames written to the current trace.")
+
+(defvar xl-perfetto--coalesced-pending 0
+  "Fast frames skipped since the last recorded frame.")
+
+(defvar xl-perfetto--coalesced-count 0
+  "Number of redisplay frames coalesced away in the current recording.")
+
 ;;; ============================================================
 ;;; Time, events and the ring
 ;;; ============================================================
@@ -249,6 +328,12 @@ every following recording until `xl-perfetto-untrace-function'.")
 (defun xl-perfetto--elapsed ()
   "Return microseconds since the recording started."
   (- (xl-perfetto--now) xl-perfetto--t0))
+
+(defun xl-perfetto--ms (microseconds)
+  "MICROSECONDS as milliseconds, rounded to two decimals."
+  (if microseconds
+      (/ (round (* microseconds 100.0)) 100000.0)
+    0))
 
 (defun xl-perfetto--record (ph name cat ts dur tid &optional args id)
   "Write one event into the ring.
@@ -314,7 +399,15 @@ event cannot recursively record another."
            :metadata (list :emacs-version emacs-version
                            :system-type (symbol-name system-type)
                            :started xl-perfetto--started
-                           :dropped-events (xl-perfetto--dropped))))))
+                           :dropped-events (xl-perfetto--dropped)
+                           :redisplay-frames xl-perfetto--frame-count
+                           :redisplay-recorded-frames
+                           xl-perfetto--recorded-frame-count
+                           :redisplay-coalesced-frames
+                           xl-perfetto--coalesced-count
+                           :redisplay-jank-frames xl-perfetto--jank-count
+                           :redisplay-max-frame-ms
+                           (xl-perfetto--ms xl-perfetto--frame-max))))))
 
 (defun xl-perfetto--trace-directory ()
   "Return the trace directory, as a directory name."
@@ -412,11 +505,14 @@ the trace holds no typed text."
     (let ((label (and (memq 'keys xl-perfetto-trace-categories)
                       (xl-perfetto--key-label last-command-event))))
       (when label
-        (xl-perfetto--record "i" (format "key %s" label) "keys"
-                             (xl-perfetto--elapsed) nil 1 nil)))
+        (let ((now (xl-perfetto--elapsed)))
+          (setq xl-perfetto--last-key-time now)
+          (xl-perfetto--record "i" (format "key %s" label) "keys"
+                               now nil 1 nil))))
     ;; A second pre without a post means a recursive edit or an earlier
     ;; span that never ended; the old start is dropped rather than used.
     (setq xl-perfetto--command-start (xl-perfetto--elapsed)
+          xl-perfetto--last-command-start xl-perfetto--command-start
           xl-perfetto--command-name
           (if (symbolp this-command)
               (symbol-name this-command)
@@ -437,7 +533,8 @@ the trace holds no typed text."
           (buffer xl-perfetto--command-buffer)
           (file xl-perfetto--command-file)
           (mode xl-perfetto--command-mode))
-      (setq xl-perfetto--command-start nil)
+      (setq xl-perfetto--last-command-end (xl-perfetto--elapsed)
+            xl-perfetto--command-start nil)
       (xl-perfetto--record
        "X" name "commands" start (- (xl-perfetto--elapsed) start) 1
        (append (list :mode mode)
@@ -893,19 +990,318 @@ follow, which is what makes a commit feel slow."
         (setq xl-perfetto--gc-elapsed elapsed)
         (xl-perfetto--record "X" "gc" "gc" (max 0 (- now duration))
                              duration 4
-                             (list :gcs-done gcs-done))
-        (when (memq 'counters xl-perfetto-trace-categories)
-          (xl-perfetto--record-counter))))))
+                             (list :gcs-done gcs-done))))))
 
-(defun xl-perfetto--pre-redisplay (&rest _)
-  "Mark the start of a redisplay, at most once per millisecond."
+;;; ------------------------------------------------------------
+;;; Redisplay frames
+;;; ------------------------------------------------------------
+
+;; Emacs has no hook that says when redisplay ends.  A zero-delay timer
+;; scheduled from its first Lisp hook runs as soon as redisplay returns to
+;; the command loop, which gives a frame span: the Lisp hooks plus the C
+;; drawing in between.  Long frames are marked as jank against
+;; `xl-perfetto-trace-frame-budget', the way a SurfaceFlinger trace marks a
+;; missed vsync.
+
+(defun xl-perfetto--frame-open ()
+  "Open a redisplay frame when none is open, and return it.
+The frame is closed by `xl-perfetto--redisplay-frame-end'."
+  (when (and xl-perfetto--recording
+             (not xl-perfetto--inside)
+             (memq 'redisplay xl-perfetto-trace-categories))
+    (unless xl-perfetto--frame
+      (let* ((now (xl-perfetto--elapsed))
+             (selected (selected-window))
+             (buffer (and (window-live-p selected)
+                          (window-buffer selected))))
+        (setq xl-perfetto--frame
+              (xl-perfetto--make-frame
+               :start now
+               :interval (and xl-perfetto--last-frame-start
+                              (- now xl-perfetto--last-frame-start))
+               :key-latency (and xl-perfetto--last-key-time
+                                 (- now xl-perfetto--last-key-time))
+               :command-latency (and xl-perfetto--last-command-start
+                                     (- now xl-perfetto--last-command-start))
+               :after-command (and xl-perfetto--last-command-end
+                                   (- now xl-perfetto--last-command-end))
+               :windows 0
+               :spans nil
+               :fontified 0
+               :selected-buffer (and buffer
+                                     xl-perfetto-trace-record-names
+                                     (buffer-name buffer))
+               :selected-mode (and buffer
+                                   (with-current-buffer buffer
+                                     (symbol-name major-mode)))))
+        ;; Latencies belong to the first frame after the input or command;
+        ;; a later idle-timer redisplay must not report them again.
+        (setq xl-perfetto--last-frame-start now
+              xl-perfetto--last-key-time nil
+              xl-perfetto--last-command-start nil
+              xl-perfetto--last-command-end nil)
+        (setq xl-perfetto--frame-timer
+              (run-at-time 0 nil #'xl-perfetto--redisplay-frame-end))))
+    xl-perfetto--frame))
+
+(defun xl-perfetto--frame-note-window (window)
+  "Count WINDOW in the open frame and mark its redisplay once per frame."
+  (when (and xl-perfetto--frame (window-live-p window))
+    (let ((frame xl-perfetto--frame))
+      (unless (memq window (xl-perfetto--frame-seen frame))
+        (push window (xl-perfetto--frame-seen frame))
+        (cl-incf (xl-perfetto--frame-windows frame)))
+      (when (and xl-perfetto-trace-redisplay-detail
+                 (not (memq window (xl-perfetto--frame-pre-seen frame))))
+        ;; The marker is written only if the frame itself is recorded.
+        (push window (xl-perfetto--frame-pre-seen frame))))))
+
+(defun xl-perfetto--mark-window-redisplay (window &optional timestamp)
+  "Record an instant saying that WINDOW is being redisplayed.
+TIMESTAMP defaults to now."
+  (when (window-live-p window)
+    (let* ((buffer (window-buffer window))
+           (name (if (and xl-perfetto-trace-record-names
+                          (buffer-name buffer))
+                     (format "redisplay %s" (buffer-name buffer))
+                   "redisplay window"))
+           (args (append (list :mode (with-current-buffer buffer
+                                       (symbol-name major-mode))
+                               :selected (if (eq window (selected-window))
+                                             t :false)
+                               :width (window-body-width window)
+                               :height (window-body-height window))
+                         (when xl-perfetto-trace-record-names
+                           (list :buffer (buffer-name buffer))))))
+      (xl-perfetto--record "i" name "redisplay"
+                           (or timestamp (xl-perfetto--elapsed))
+                           nil 5 args))))
+
+(defun xl-perfetto--frame-note-phase (phase)
+  "Remember that PHASE ran in the open redisplay frame."
+  (when xl-perfetto--frame
+    (let ((frame xl-perfetto--frame))
+      (pcase phase
+        ('window-scroll
+         (setf (xl-perfetto--frame-scroll frame) t))
+        ('window-size-change
+         (setf (xl-perfetto--frame-resize frame) t))
+        ('window-state-change
+         (setf (xl-perfetto--frame-state frame) t))
+        ('window-buffer-change
+         (setf (xl-perfetto--frame-buffer-change frame) t))))))
+
+(defun xl-perfetto--defer-span (name start duration args)
+  "Keep a redisplay span for the open frame, or record it when none is open.
+Deferring lets a coalesced frame cost no trace events."
+  (if xl-perfetto--frame
+      (push (list name start duration args)
+            (xl-perfetto--frame-spans xl-perfetto--frame))
+    (xl-perfetto--record "X" name "redisplay" start duration 5 args)))
+
+(defun xl-perfetto--redisplay-phase-begin (phase &optional window)
+  "Start the Lisp redisplay phase PHASE, for WINDOW when one is known."
   (when (and xl-perfetto--recording (not xl-perfetto--inside))
-    (let* ((now (xl-perfetto--elapsed))
-           (millisecond (/ now 1000)))
-      (unless (eq millisecond xl-perfetto--last-redisplay-ms)
-        (setq xl-perfetto--last-redisplay-ms millisecond)
-        (xl-perfetto--record "i" "redisplay" "redisplay"
-                             now nil 5 nil)))))
+    (xl-perfetto--frame-open)
+    (when (windowp window)
+      (xl-perfetto--frame-note-window window))
+    (xl-perfetto--frame-note-phase phase)
+    (when xl-perfetto-trace-redisplay-detail
+      (when xl-perfetto--redisplay-phase
+        (xl-perfetto--redisplay-phase-end t))
+      (setq xl-perfetto--redisplay-phase
+            (list phase (xl-perfetto--elapsed)
+                  (and (windowp window) window))))))
+
+(defun xl-perfetto--redisplay-phase-end (&optional interrupted)
+  "End the open Lisp redisplay phase, marking it INTERRUPTED if asked."
+  (when (and xl-perfetto--recording
+             (not xl-perfetto--inside)
+             xl-perfetto--redisplay-phase)
+    (let* ((phase xl-perfetto--redisplay-phase)
+           (name (symbol-name (car phase)))
+           (start (nth 1 phase))
+           (window (nth 2 phase))
+           (args (list :phase name)))
+      (setq xl-perfetto--redisplay-phase nil)
+      (when interrupted
+        (setq args (append args (list :interrupted t))))
+      (when (window-live-p window)
+        (let ((buffer (window-buffer window)))
+          (setq args (append args
+                             (list :mode
+                                   (with-current-buffer buffer
+                                     (symbol-name major-mode))))
+                args (if xl-perfetto-trace-record-names
+                         (append args (list :buffer (buffer-name buffer)))
+                       args))))
+      (xl-perfetto--defer-span name start
+                               (- (xl-perfetto--elapsed) start) args))))
+
+(defun xl-perfetto--pre-redisplay (&optional window)
+  "Note the redisplay of WINDOW, opening a frame when needed."
+  (when (and xl-perfetto--recording (not xl-perfetto--inside))
+    (xl-perfetto--frame-open)
+    (when (windowp window)
+      (xl-perfetto--frame-note-window window))))
+
+(defun xl-perfetto--window-state-change-begin (&optional thing)
+  "Start the span of `window-state-change-functions' for THING."
+  (xl-perfetto--redisplay-phase-begin 'window-state-change
+                                      (and (windowp thing) thing)))
+
+(defun xl-perfetto--window-state-change-end (&optional _thing)
+  "End the span of `window-state-change-functions'."
+  (xl-perfetto--redisplay-phase-end))
+
+(defun xl-perfetto--window-size-change-begin (&optional thing)
+  "Start the span of `window-size-change-functions' for THING."
+  (xl-perfetto--redisplay-phase-begin 'window-size-change
+                                      (and (windowp thing) thing)))
+
+(defun xl-perfetto--window-size-change-end (&optional _thing)
+  "End the span of `window-size-change-functions'."
+  (xl-perfetto--redisplay-phase-end))
+
+(defun xl-perfetto--window-buffer-change-begin (&optional thing)
+  "Start the span of `window-buffer-change-functions' for THING."
+  (xl-perfetto--redisplay-phase-begin 'window-buffer-change
+                                      (and (windowp thing) thing)))
+
+(defun xl-perfetto--window-buffer-change-end (&optional _thing)
+  "End the span of `window-buffer-change-functions'."
+  (xl-perfetto--redisplay-phase-end))
+
+(defun xl-perfetto--window-scroll-begin (window _start)
+  "Start the span of `window-scroll-functions' for WINDOW."
+  (xl-perfetto--redisplay-phase-begin 'window-scroll window))
+
+(defun xl-perfetto--window-scroll-end (_window _start)
+  "End the span of `window-scroll-functions'."
+  (xl-perfetto--redisplay-phase-end))
+
+(defun xl-perfetto--state-change-hook-begin ()
+  "Start the span of `window-state-change-hook'."
+  (xl-perfetto--redisplay-phase-begin 'window-state-change-hook))
+
+(defun xl-perfetto--state-change-hook-end ()
+  "End the span of `window-state-change-hook'."
+  (xl-perfetto--redisplay-phase-end))
+
+(defun xl-perfetto--redisplay-frame-end (&optional cut)
+  "Close the open redisplay frame.  CUT says the recording is stopping.
+A frame faster than `xl-perfetto-trace-frame-min-interval' is coalesced into
+the next recorded frame; a janky frame is always recorded."
+  (when (and xl-perfetto--recording (not xl-perfetto--inside))
+    (xl-perfetto--redisplay-phase-end)
+    (let ((frame xl-perfetto--frame)
+          (timer xl-perfetto--frame-timer))
+      (when frame
+        (setq xl-perfetto--frame nil
+              xl-perfetto--frame-timer nil)
+        (when (timerp timer)
+          (ignore-errors (cancel-timer timer)))
+        (let* ((now (xl-perfetto--elapsed))
+               (start (xl-perfetto--frame-start frame))
+               (duration (max 0 (- now start)))
+               (budget (* 1000000.0 (or xl-perfetto-trace-frame-budget 0)))
+               (jank (and (> duration budget) t))
+               (min-interval
+                (* 1000000.0 (or xl-perfetto-trace-frame-min-interval 0)))
+               (since-recorded
+                (and xl-perfetto--last-recorded-frame-start
+                     (- start xl-perfetto--last-recorded-frame-start)))
+               (record (or jank
+                           (null since-recorded)
+                           (>= since-recorded min-interval)))
+               (interval (or since-recorded
+                             (xl-perfetto--frame-interval frame))))
+          (setq xl-perfetto--frame-count (1+ xl-perfetto--frame-count))
+          (when jank
+            (setq xl-perfetto--jank-count (1+ xl-perfetto--jank-count)))
+          (when (> duration xl-perfetto--frame-max)
+            (setq xl-perfetto--frame-max duration))
+          (if (not record)
+              (setq xl-perfetto--coalesced-pending
+                    (1+ xl-perfetto--coalesced-pending)
+                    xl-perfetto--coalesced-count
+                    (1+ xl-perfetto--coalesced-count))
+            (let ((pending xl-perfetto--coalesced-pending))
+              (setq xl-perfetto--last-recorded-frame-start start
+                    xl-perfetto--coalesced-pending 0
+                    xl-perfetto--recorded-frame-count
+                    (1+ xl-perfetto--recorded-frame-count))
+              ;; Details first, so the frame span stays the newest event.
+              (dolist (window (reverse (xl-perfetto--frame-pre-seen frame)))
+                (xl-perfetto--mark-window-redisplay window start))
+              (dolist (span (reverse (xl-perfetto--frame-spans frame)))
+                (xl-perfetto--record "X" (nth 0 span) "redisplay"
+                                     (nth 1 span) (nth 2 span) 5
+                                     (nth 3 span)))
+              (let ((args (append
+                           (list :windows (xl-perfetto--frame-windows frame)
+                                 :fontified (xl-perfetto--frame-fontified frame)
+                                 :jank (if jank t :false))
+                           (when interval
+                             (list :interval-ms (xl-perfetto--ms interval)))
+                           (when (> pending 0)
+                             (list :coalesced pending))
+                           (when (xl-perfetto--frame-key-latency frame)
+                             (list :key-latency-ms
+                                   (xl-perfetto--ms
+                                    (xl-perfetto--frame-key-latency frame))))
+                           (when (xl-perfetto--frame-command-latency frame)
+                             (list :command-latency-ms
+                                   (xl-perfetto--ms
+                                    (xl-perfetto--frame-command-latency frame))))
+                           (when (xl-perfetto--frame-after-command frame)
+                             (list :after-command-ms
+                                   (xl-perfetto--ms
+                                    (xl-perfetto--frame-after-command frame))))
+                           (when (xl-perfetto--frame-scroll frame)
+                             (list :scrolled t))
+                           (when (xl-perfetto--frame-resize frame)
+                             (list :resized t))
+                           (when (xl-perfetto--frame-state frame)
+                             (list :state-changed t))
+                           (when (xl-perfetto--frame-buffer-change frame)
+                             (list :buffer-changed t))
+                           (when (xl-perfetto--frame-selected-buffer frame)
+                             (list :buffer
+                                   (xl-perfetto--frame-selected-buffer frame)))
+                           (when (xl-perfetto--frame-selected-mode frame)
+                             (list :mode
+                                   (xl-perfetto--frame-selected-mode frame)))
+                           (when cut (list :cut t)))))
+                (xl-perfetto--record "X" "redisplay frame" "redisplay"
+                                     start duration 5 args)
+                ;; Jank is a discrete event (a caret at the start of the bad
+                ;; frame), not a 0/1 counter curve.
+                (when jank
+                  (xl-perfetto--record
+                   "i" "^" "redisplay" start nil 5
+                   (append (list :frame-ms (xl-perfetto--ms duration)
+                                 :budget-ms (xl-perfetto--ms budget)
+                                 :windows (xl-perfetto--frame-windows frame))
+                           (when (> pending 0)
+                             (list :coalesced pending))
+                           (when (xl-perfetto--frame-selected-buffer frame)
+                             (list :buffer
+                                   (xl-perfetto--frame-selected-buffer frame)))
+                           (when (xl-perfetto--frame-selected-mode frame)
+                             (list :mode
+                                   (xl-perfetto--frame-selected-mode
+                                    frame))))))
+                (when (memq 'counters xl-perfetto-trace-categories)
+                  (xl-perfetto--record
+                   "C" "redisplay frame" "counters" now nil nil
+                   (append (list :ms (xl-perfetto--ms duration)
+                                 :interval-ms
+                                 (xl-perfetto--ms (or interval 0))
+                                 :windows
+                                 (xl-perfetto--frame-windows frame))
+                           (when (> pending 0)
+                             (list :coalesced pending)))))))))))))
 
 (defun xl-perfetto--jit-lock-around (original start)
   "Time ORIGINAL, a `jit-lock-function' call starting at START."
@@ -918,44 +1314,21 @@ follow, which is what makes a commit feel slow."
           (chars (if (numberp start)
                      (max 0 (- (point-max) start))
                    0)))
+      (when xl-perfetto--frame
+        (cl-incf (xl-perfetto--frame-fontified xl-perfetto--frame) chars))
       (unwind-protect
           (funcall original start)
-        (xl-perfetto--record
-         "X" "jit-lock" "redisplay" begin
-         (- (xl-perfetto--elapsed) begin) 5
+        (xl-perfetto--defer-span
+         "jit-lock" begin (- (xl-perfetto--elapsed) begin)
          (append (list :mode mode :chars chars)
                  (when buffer (list :buffer buffer))
                  (when file (list :file file))))))))
 
-(defun xl-perfetto--record-counter ()
-  "Record one memory and object counter sample."
-  (when (and xl-perfetto--recording
-             (not xl-perfetto--inside)
-             (not xl-perfetto--in-counter))
-    (let ((xl-perfetto--in-counter t)
-          (counts (memory-use-counts)))
-      (xl-perfetto--record
-       "C" "memory" "counters" (xl-perfetto--elapsed) nil nil
-       (list :conses (or (nth 0 counts) 0)
-             :floats (or (nth 1 counts) 0)
-             :strings (or (nth 2 counts) 0)
-             :vector-cells (or (nth 3 counts) 0)
-             :symbols (or (nth 4 counts) 0)
-             :gcs-done gcs-done
-             :processes (length (process-list))
-             :buffers (length (buffer-list)))))))
-
 (defun xl-perfetto--scan ()
-  "Periodic work of a recording: new processes, counters, mode line."
+  "Periodic work of a recording: new processes and the mode line."
   (when xl-perfetto--recording
     (when (memq 'processes xl-perfetto-trace-categories)
       (xl-perfetto--wrap-new-processes))
-    (when (memq 'counters xl-perfetto-trace-categories)
-      (let ((now (float-time)))
-        (when (or (null xl-perfetto--last-counter)
-                  (>= (- now xl-perfetto--last-counter) 1))
-          (setq xl-perfetto--last-counter now)
-          (xl-perfetto--record-counter))))
     (xl-perfetto--update-mode-line)))
 
 ;;; ============================================================
@@ -1096,11 +1469,52 @@ is `this-command' once that returns."
   (push (lambda () (remove-hook 'post-gc-hook #'xl-perfetto--post-gc))
         xl-perfetto--installed))
 
+(defconst xl-perfetto--redisplay-hooks
+  '((window-state-change-functions
+     xl-perfetto--window-state-change-begin
+     xl-perfetto--window-state-change-end)
+    (window-size-change-functions
+     xl-perfetto--window-size-change-begin
+     xl-perfetto--window-size-change-end)
+    (window-buffer-change-functions
+     xl-perfetto--window-buffer-change-begin
+     xl-perfetto--window-buffer-change-end)
+    (window-scroll-functions
+     xl-perfetto--window-scroll-begin
+     xl-perfetto--window-scroll-end)
+    (window-state-change-hook
+     xl-perfetto--state-change-hook-begin
+     xl-perfetto--state-change-hook-end))
+  "Hooks that bracket the Lisp phases of a redisplay.
+Each entry is (HOOK BEGIN END); BEGIN goes at the front of the hook and
+END at the back, so the span covers every other function in it.")
+
+(defun xl-perfetto--install-redisplay-hooks ()
+  "Add the phase sentinels to every redisplay hook that exists."
+  (dolist (entry xl-perfetto--redisplay-hooks)
+    (when (boundp (nth 0 entry))
+      (add-hook (nth 0 entry) (nth 1 entry) -100)
+      (add-hook (nth 0 entry) (nth 2 entry) 100))))
+
+(defun xl-perfetto--remove-redisplay-hooks ()
+  "Remove the phase sentinels from every redisplay hook."
+  (dolist (entry xl-perfetto--redisplay-hooks)
+    (remove-hook (nth 0 entry) (nth 1 entry))
+    (remove-hook (nth 0 entry) (nth 2 entry))))
+
 (defun xl-perfetto--install-redisplay ()
-  "Install the redisplay mark and the font-lock advice."
+  "Install the redisplay frame, its phase hooks and the font-lock advice."
   (add-hook 'pre-redisplay-functions #'xl-perfetto--pre-redisplay)
+  (xl-perfetto--install-redisplay-hooks)
   (push (lambda ()
-          (remove-hook 'pre-redisplay-functions #'xl-perfetto--pre-redisplay))
+          (remove-hook 'pre-redisplay-functions
+                       #'xl-perfetto--pre-redisplay)
+          (xl-perfetto--remove-redisplay-hooks)
+          (when (timerp xl-perfetto--frame-timer)
+            (cancel-timer xl-perfetto--frame-timer))
+          (setq xl-perfetto--frame-timer nil
+                xl-perfetto--frame nil
+                xl-perfetto--redisplay-phase nil))
         xl-perfetto--installed)
   (require 'jit-lock)
   (when (fboundp 'jit-lock-function)
@@ -1120,7 +1534,7 @@ is `this-command' once that returns."
             xl-perfetto--installed))))
 
 (defun xl-perfetto--install-scan ()
-  "Start the timer that scans processes and samples counters."
+  "Start the timer that finds new processes and refreshes the mode line."
   (let ((interval (max 0.01 (or xl-perfetto-trace-process-scan-interval 0.5))))
     (setq xl-perfetto--process-scan-timer
           (run-with-timer interval interval #'xl-perfetto--scan))
@@ -1157,9 +1571,9 @@ is `this-command' once that returns."
     (when (memq 'completion categories) (xl-perfetto--install-corfu))
     (when (memq 'input categories) (xl-perfetto--install-input))
     (when (memq 'files categories) (xl-perfetto--install-files))
-    (when (or (memq 'processes categories)
-              (memq 'counters categories))
-      (xl-perfetto--install-scan))))
+    ;; The scan timer also refreshes the mode-line indicator, so it runs
+    ;; whatever categories are selected.
+    (xl-perfetto--install-scan)))
 
 (defun xl-perfetto--uninstall-all ()
   "Run every cleanup function, most recently installed first."
@@ -1189,8 +1603,20 @@ is `this-command' once that returns."
         xl-perfetto--command-file nil
         xl-perfetto--command-mode nil
         xl-perfetto--gc-elapsed 0
-        xl-perfetto--last-redisplay-ms nil
-        xl-perfetto--last-counter nil
+        xl-perfetto--frame nil
+        xl-perfetto--frame-timer nil
+        xl-perfetto--last-frame-start nil
+        xl-perfetto--last-key-time nil
+        xl-perfetto--last-command-start nil
+        xl-perfetto--last-command-end nil
+        xl-perfetto--redisplay-phase nil
+        xl-perfetto--frame-count 0
+        xl-perfetto--jank-count 0
+        xl-perfetto--frame-max 0
+        xl-perfetto--last-recorded-frame-start nil
+        xl-perfetto--recorded-frame-count 0
+        xl-perfetto--coalesced-pending 0
+        xl-perfetto--coalesced-count 0
         xl-perfetto--process-scan-timer nil
         xl-perfetto--auto-stop-timer nil))
 
@@ -1229,9 +1655,21 @@ signals the error."
           xl-perfetto--inside nil
           xl-perfetto--wrapped-processes nil
           xl-perfetto--async-open nil
-          xl-perfetto--last-counter nil
-          xl-perfetto--last-redisplay-ms nil
           xl-perfetto--command-start nil
+          xl-perfetto--frame nil
+          xl-perfetto--frame-timer nil
+          xl-perfetto--last-frame-start nil
+          xl-perfetto--last-key-time nil
+          xl-perfetto--last-command-start nil
+          xl-perfetto--last-command-end nil
+          xl-perfetto--redisplay-phase nil
+          xl-perfetto--frame-count 0
+          xl-perfetto--jank-count 0
+          xl-perfetto--frame-max 0
+          xl-perfetto--last-recorded-frame-start nil
+          xl-perfetto--recorded-frame-count 0
+          xl-perfetto--coalesced-pending 0
+          xl-perfetto--coalesced-count 0
           xl-perfetto--meta-events (xl-perfetto--meta-events)
           xl-perfetto--recording t)
     (condition-case error
@@ -1256,6 +1694,7 @@ The instrumentation is removed even when writing fails."
     (let ((file nil))
       (unwind-protect
           (progn
+            (xl-perfetto--redisplay-frame-end t)
             (xl-perfetto--uninstall-all)
             (xl-perfetto--close-async-events)
             (xl-perfetto--mode-line-off)
