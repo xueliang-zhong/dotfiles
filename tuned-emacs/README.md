@@ -209,5 +209,6 @@ After a change, run `just emacs-check` (or the script equivalent).
 | [doc/xl-perfetto-trace.md](doc/xl-perfetto-trace.md) | Chrome JSON timelines of Lisp work |
 | [doc/xl-perfetto-trace-prompt.md](doc/xl-perfetto-trace-prompt.md) | Prompt for generating trace-based investigations |
 | [doc/refactoring-plan.md](doc/refactoring-plan.md) | Architecture refactoring: target layers and the eight steps, all landed |
+| [doc/distro-design.md](doc/distro-design.md) | Proposed distribution packaging with a flat lisp/: user folder, CLI, doctor, versioning, migration phases |
 
 New documents go in `doc/`. Documents are written in English.
