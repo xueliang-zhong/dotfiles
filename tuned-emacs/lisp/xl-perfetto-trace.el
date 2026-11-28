@@ -60,13 +60,15 @@
   :prefix "xl-perfetto-")
 
 (defcustom xl-perfetto-trace-categories
-  '(commands keys timers processes xl-async gc redisplay functions modes completion files counters)
+  '(commands keys timers processes xl-async gc redisplay functions modes
+    completion input files counters)
   "Categories of events a recording collects.
 `marks' is not here: `xl-perfetto-trace-mark' always records, because you
 asked for that mark explicitly."
   :type '(set (const commands) (const timers) (const processes)
               (const xl-async) (const gc) (const redisplay)
-              (const functions) (const modes) (const completion) (const files)
+              (const functions) (const modes) (const completion)
+              (const input) (const files)
               (const counters))
   :group 'xl-perfetto)
 
@@ -134,7 +136,8 @@ exactly from the start; see `xl-perfetto--async-around'."
     (7 . "marks")
     (8 . "modes")
     (9 . "completion")
-    (10 . "files"))
+    (10 . "files")
+    (11 . "input"))
   "Track number and name, as written into the trace metadata.")
 
 (defvar xl-perfetto--recording nil
@@ -713,6 +716,86 @@ of the in-buffer popup are computed here on every keystroke."
           xl-perfetto--installed)))
 
 ;;; ============================================================
+;;; Chinese input (pyim)
+;;; ============================================================
+
+;; pyim runs in Lisp.  A composition enters `pyim-input-method', which reads
+;; further keys until the text is committed; each key rebuilds the candidate
+;; list (`pyim-process-run') and redraws the popup (`pyim-page--refresh'), and
+;; the commit inserts the text (`pyim-select-word').  These spans fill the gap
+;; the command track cannot see: the keys are read inside the input method, so
+;; no command runs until the text is inserted.
+;; Only durations and candidate counts are recorded, never the pinyin or text.
+
+(defun xl-perfetto--pyim-input-around (original &rest args)
+  "Record a whole pyim composition around ORIGINAL, called with ARGS."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed)))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" "pyim-input-method" "input" start
+         (- (xl-perfetto--elapsed) start) 11
+         (append (list :mode (symbol-name major-mode))
+                 (when xl-perfetto-trace-record-names
+                   (list :buffer (buffer-name)))))))))
+
+(defun xl-perfetto--pyim-run-around (original &rest args)
+  "Record `pyim-process-run' around ORIGINAL, called with ARGS.
+The candidate count is the size of the list pyim just built."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed))
+          (candidates 0))
+      (unwind-protect
+          (apply original args)
+        (when (boundp 'pyim-process--candidates)
+          (setq candidates (length pyim-process--candidates)))
+        (xl-perfetto--record
+         "X" "pyim-process-run" "input" start
+         (- (xl-perfetto--elapsed) start) 11
+         (list :candidates candidates))))))
+
+(defun xl-perfetto--pyim-refresh-around (original &rest args)
+  "Record `pyim-page--refresh' around ORIGINAL, called with ARGS: the popup."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed)))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" "pyim-page--refresh" "input" start
+         (- (xl-perfetto--elapsed) start) 11)))))
+
+(defun xl-perfetto--pyim-select-around (original &rest args)
+  "Record `pyim-select-word' around ORIGINAL, called with ARGS: the commit.
+Its duration covers inserting the text and the `after-change' hooks that
+follow, which is what makes a commit feel slow."
+  (if (or (not xl-perfetto--recording) xl-perfetto--inside)
+      (apply original args)
+    (let ((start (xl-perfetto--elapsed)))
+      (unwind-protect
+          (apply original args)
+        (xl-perfetto--record
+         "X" "pyim-select-word" "input" start
+         (- (xl-perfetto--elapsed) start) 11)))))
+
+(defun xl-perfetto--install-input ()
+  "Advise pyim's entry points.  Loads pyim when it is installed."
+  (when (require 'pyim nil t)
+    (dolist (pair '((pyim-input-method . xl-perfetto--pyim-input-around)
+                    (pyim-process-run . xl-perfetto--pyim-run-around)
+                    (pyim-page--refresh . xl-perfetto--pyim-refresh-around)
+                    (pyim-select-word . xl-perfetto--pyim-select-around)))
+      (let ((function (car pair))
+            (advice (cdr pair)))
+        (when (fboundp function)
+          (advice-add function :around advice)
+          (push (lambda () (advice-remove function advice))
+                xl-perfetto--installed))))))
+
+;;; ============================================================
 ;;; Files: opening and saving
 ;;; ============================================================
 
@@ -1072,6 +1155,7 @@ is `this-command' once that returns."
     (when (memq 'completion categories) (xl-perfetto--install-completion))
     (when (memq 'completion categories) (xl-perfetto--install-vertico))
     (when (memq 'completion categories) (xl-perfetto--install-corfu))
+    (when (memq 'input categories) (xl-perfetto--install-input))
     (when (memq 'files categories) (xl-perfetto--install-files))
     (when (or (memq 'processes categories)
               (memq 'counters categories))

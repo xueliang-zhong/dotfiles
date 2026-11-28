@@ -62,7 +62,7 @@ When not recording, this costs one variable check and then runs BODY. When recor
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `xl-perfetto-trace-categories` | all | Categories to record: `commands`, `timers`, `processes`, `xl-async`, `gc`, `redisplay`, `functions`, `counters`. |
+| `xl-perfetto-trace-categories` | all | Categories to record: `commands`, `keys`, `timers`, `processes`, `xl-async`, `gc`, `redisplay`, `functions`, `modes`, `completion`, `input`, `files`, `counters`. |
 | `xl-perfetto-trace-ring-size` | 100000 | Number of events the ring buffer holds. |
 | `xl-perfetto-trace-max-seconds` | 120 | Maximum recording length. Stops and writes the file when reached. |
 | `xl-perfetto-trace-directory` | `traces/` under `user-emacs-directory` | Output directory, created if missing. |
@@ -97,6 +97,10 @@ Chrome JSON trace format (Trace Event Format), which Perfetto UI reads natively.
 | 5 | redisplay | Redisplay-start markers and font-lock |
 | 6 | functions | User-named functions and `xl-perfetto-with-span` |
 | 7 | marks | User marks |
+| 8 | modes | Major-mode changes |
+| 9 | completion | `completion-at-point`, vertico and corfu |
+| 10 | files | `find-file`, `save-buffer` and the save hooks |
+| 11 | input | pyim, the Chinese input method |
 
 Asynchronous xl-async tasks use async events (`b`/`e`), which Perfetto shows on their own async tracks. Counters use `C` events, one counter track each.
 
@@ -191,12 +195,19 @@ For each source: the mechanism, the events it produces, the arguments recorded, 
 - **Name.** `completion-at-point`, `vertico--update`, `corfu--update`.
 - **Arguments.** `candidates` (the count only, never the text) and the buffer and mode, unless names are off.
 
-### 11. Files (`files`)
+### 11. Chinese input (`input`)
+
+- **Mechanism.** `:around` advice on four pyim functions (Lisp). A composition enters `pyim-input-method`, which reads keys until the text is committed; each key rebuilds the candidate list in `pyim-process-run`, which redraws the popup through `pyim-page--refresh`, and the commit runs `pyim-select-word`. pyim is loaded when recording starts if it was not loaded yet.
+- **Name.** `pyim-input-method` (one span per composition), `pyim-process-run` (per key), `pyim-page--refresh` (the popup), `pyim-select-word` (the insert and the `after-change` hooks that follow).
+- **Arguments.** `candidates` (the count only) on `pyim-process-run`, and the buffer and mode on the composition span unless names are off. The pinyin and the text are never recorded.
+- **Watch for.** This fills a gap the command track cannot see: while the input method reads keys, no command runs, so without this category typing Chinese looks like idle time between commands. A slow composition shows in `pyim-process-run` (dictionary lookup and candidate generation), in `pyim-page--refresh` (posframe drawing), or in `pyim-select-word` (the buffer's `after-change` hooks, for example Org's element cache).
+
+### 12. Files (`files`)
 
 - **Mechanism.** `:around` advice on `find-file-noselect` and `save-buffer` (both Lisp). The save hooks `before-save-hook` and `after-save-hook` are timed separately, so a slow format-on-save shows as its own span.
 - **Name.** `find-file`, `save-buffer`, `before-save-hook`, `after-save-hook`.
 
-### 12. Counters (`counters`)
+### 13. Counters (`counters`)
 
 - After each GC, and once a second (reusing the process-scan timer), a `C` event with the entries of `memory-use-counts`, `gcs-done`, the number of live processes, and the number of buffers.
 
@@ -285,6 +296,7 @@ ERT. Every test runs in a temporary directory and confirms at the end that no in
 11. **Output file.** `json-parse-string` succeeds; there is a `traceEvents` key; every event has `ph`, `ts` and `pid`; `dur` on `X` events is non-negative; the `M` track-name events exist; the metadata has `emacs-version` and `dropped-events`.
 12. **Rollback on a failed start.** Simulate an error partway through installation: instrumentation already installed is removed, and the state is not recording.
 13. **Name recording switch.** With `xl-perfetto-trace-record-names` nil, events contain no buffer or file names.
+14. **Chinese input.** With pyim (or a stub) present, the four entry points carry the advice while recording; calling them writes `input` events with the candidate count, and stopping removes the advice.
 
 ## Acceptance criteria
 

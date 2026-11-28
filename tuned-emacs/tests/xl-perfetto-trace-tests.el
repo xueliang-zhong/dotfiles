@@ -11,6 +11,16 @@
 (require 'xl-perfetto-trace)
 (require 'xl-async)
 
+;; pyim is not in this isolated suite (it runs with -Q).  A stub keeps the
+;; input category testable: the recorder only needs its four entry points.
+(unless (require 'pyim nil t)
+  (defvar pyim-process--candidates nil)
+  (defun pyim-input-method (&rest _) t)
+  (defun pyim-process-run () nil)
+  (defun pyim-page--refresh (&rest _) nil)
+  (defun pyim-select-word (&rest _) nil)
+  (provide 'pyim))
+
 (defun xlpt--wait (pred &optional seconds)
   "Run the event loop until PRED returns non-nil, or SECONDS pass."
   (let ((end (+ (float-time) (or seconds 5))))
@@ -150,6 +160,10 @@ FIELD values are compared with `equal'."
                                        'jit-lock-function))
           (should-not (advice-member-p #'xl-perfetto--async-around
                                        'xl-async-start))
+          (should-not (advice-member-p #'xl-perfetto--pyim-input-around
+                                       'pyim-input-method))
+          (should-not (advice-member-p #'xl-perfetto--pyim-run-around
+                                       'pyim-process-run))
           (should-not xl-perfetto--process-scan-timer)
           (should-not xl-perfetto--auto-stop-timer)
           (should (eq filter (process-filter process)))
@@ -443,7 +457,8 @@ FIELD values are compared with `equal'."
           (should (>= (gethash "dur" event) 0))))
       (dolist (track '((1 . "commands") (2 . "timers") (3 . "processes")
                        (4 . "gc") (5 . "redisplay") (6 . "functions")
-                       (7 . "marks")))
+                       (7 . "marks") (8 . "modes") (9 . "completion")
+                       (10 . "files") (11 . "input")))
         (let ((metadata (seq-find (lambda (event)
                                     (and (equal "M" (gethash "ph" event))
                                          (equal (car track)
@@ -457,6 +472,32 @@ FIELD values are compared with `equal'."
         (should (gethash "system-type" metadata))
         (should (gethash "started" metadata))
         (should (numberp (gethash "dropped-events" metadata)))))))
+
+(ert-deftest xl-perfetto-trace-records-pyim-input ()
+  "A pyim composition shows on the input track, with its candidate count."
+  (xlpt--with-recording _directory
+    (xl-perfetto-trace-start)
+    (should (advice-member-p #'xl-perfetto--pyim-input-around
+                             'pyim-input-method))
+    (should (advice-member-p #'xl-perfetto--pyim-run-around
+                             'pyim-process-run))
+    (setq pyim-process--candidates '("a" "b" "c"))
+    (pyim-input-method ?n)
+    (pyim-process-run)
+    (pyim-page--refresh)
+    (pyim-select-word)
+    (let ((event (xlpt--ring-event "pyim-process-run")))
+      (should event)
+      (should (equal "input" (aref event 2)))
+      (should (= 11 (aref event 5)))
+      (should (= 3 (plist-get (aref event 6) :candidates))))
+    (dolist (name '("pyim-input-method" "pyim-page--refresh" "pyim-select-word"))
+      (should (xlpt--ring-event name)))
+    (xl-perfetto-trace-stop)
+    (should-not (advice-member-p #'xl-perfetto--pyim-input-around
+                                 'pyim-input-method))
+    (should-not (advice-member-p #'xl-perfetto--pyim-run-around
+                                 'pyim-process-run))))
 
 (ert-deftest xl-perfetto-trace-record-names-off-omits-buffer-names ()
   "With `xl-perfetto-trace-record-names' nil, no buffer name is recorded."
